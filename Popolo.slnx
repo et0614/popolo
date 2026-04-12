@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Popolo.Core/Popolo.Core.csproj" Id="82a86d9a-cdd0-48da-b7f6-a532a2a39782" />
+  <Project Path="tests/Popolo.Core.Tests/Popolo.Core.Tests.csproj" Id="1542e520-dc61-4137-91d1-72879247d1f0" />
+</Solution>
