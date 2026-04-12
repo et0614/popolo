@@ -22,7 +22,7 @@ using Xunit;
 using Popolo.Numerics.LinearAlgebra;
 using Popolo.Exceptions;
 
-namespace Popolo.Core.Tests.Numerics.LinearAlgebra
+namespace Popolo.Core.Tests.Numerics.Linearalgebra
 {
   /// <summary>Matrix および MatrixView のテスト</summary>
   public class MatrixTests
