@@ -19,7 +19,7 @@
 
 using System;
 using Xunit;
-using Popolo.Numerics;
+using Popolo.Core.Numerics;
 
 namespace Popolo.Core.Tests.Numerics
 {

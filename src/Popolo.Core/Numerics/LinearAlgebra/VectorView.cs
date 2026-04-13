@@ -18,9 +18,9 @@
  */
 
 using System;
-using Popolo.Exceptions;
+using Popolo.Core.Exceptions;
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
 
   /// <summary>ベクトル</summary>

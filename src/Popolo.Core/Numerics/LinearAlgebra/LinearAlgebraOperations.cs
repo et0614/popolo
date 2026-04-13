@@ -17,10 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-using Popolo.Exceptions;
+using Popolo.Core.Exceptions;
 using System;
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>
   /// 線形代数処理に関する静的メソッドを提供する

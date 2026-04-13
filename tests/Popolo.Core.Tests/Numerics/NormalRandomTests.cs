@@ -19,8 +19,8 @@
 
 using System;
 using Xunit;
-using Popolo.Numerics;
-using Popolo.Exceptions;
+using Popolo.Core.Numerics;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Tests.Numerics
 {

@@ -1,4 +1,4 @@
-﻿using Popolo.Exceptions;
+﻿using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Tests.Exceptions
 {

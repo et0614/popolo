@@ -12,7 +12,7 @@
 
 		<!-- アセンブリ情報 -->
 		<AssemblyName>Popolo.Core</AssemblyName>
-		<RootNamespace>Popolo</RootNamespace>
+		<RootNamespace>Popolo.Core</RootNamespace>
 
 		<!-- NuGetパッケージ情報 -->
 		<PackageId>Popolo.Core</PackageId>

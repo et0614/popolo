@@ -19,9 +19,9 @@
 
 using System;
 using System.Collections.Generic;
-using Popolo.Exceptions;
+using Popolo.Core.Exceptions;
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>疎行列</summary>
   [Serializable]

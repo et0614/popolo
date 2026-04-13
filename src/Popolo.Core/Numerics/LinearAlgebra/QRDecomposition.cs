@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>QR分解実行クラス</summary>
   public class QRDecomposer
@@ -16,7 +16,7 @@ namespace Popolo.Numerics.LinearAlgebra
     double[] acnorm;
 
     double[] wa;
- 
+
     /// <summary>コンストラクタ</summary>
     /// <param name="rowNumber">行数</param>
     /// <param name="columnNumber">列数</param>

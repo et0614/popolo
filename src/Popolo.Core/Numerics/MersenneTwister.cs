@@ -19,7 +19,7 @@
 
 using System;
 
-namespace Popolo.Numerics
+namespace Popolo.Core.Numerics
 {
   /// <summary>メルセンヌ・ツイスターによる擬似乱数生成クラス</summary>
   /// <remarks>

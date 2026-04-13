@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>ベクトルインターフェース</summary>
   public interface IVector : ImmutableIVector

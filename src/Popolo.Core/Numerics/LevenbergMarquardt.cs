@@ -4,10 +4,10 @@
 
 using System;
 
-using Popolo.Exceptions;
-using Popolo.Numerics.LinearAlgebra;
+using Popolo.Core.Exceptions;
+using Popolo.Core.Numerics.LinearAlgebra;
 
-namespace Popolo.Numerics
+namespace Popolo.Core.Numerics
 {
   /// <summary>LevenbergMarquardt法による最小二乗法クラス</summary>
   /// <remarks>

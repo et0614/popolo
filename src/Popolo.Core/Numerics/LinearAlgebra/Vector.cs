@@ -19,7 +19,7 @@
 
 using System;
 
-namespace Popolo.Numerics.LinearAlgebra
+namespace Popolo.Core.Numerics.LinearAlgebra
 {
 
   /// <summary>ベクトル</summary>

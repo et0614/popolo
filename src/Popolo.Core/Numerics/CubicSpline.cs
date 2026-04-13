@@ -18,10 +18,10 @@
  */
 
 using System;
-using Popolo.Exceptions;
-using Popolo.Numerics.LinearAlgebra;
+using Popolo.Core.Exceptions;
+using Popolo.Core.Numerics.LinearAlgebra;
 
-namespace Popolo.Numerics
+namespace Popolo.Core.Numerics
 {
   /// <summary>3次スプライン補間処理クラス</summary>
   public static class CubicSpline

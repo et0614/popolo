@@ -19,8 +19,8 @@
 
 using System;
 using Xunit;
-using Popolo.Numerics.LinearAlgebra;
-using Popolo.Exceptions;
+using Popolo.Core.Numerics.LinearAlgebra;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Tests.Numerics.Linearalgebra
 {

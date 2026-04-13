@@ -19,7 +19,7 @@
 
 using System;
 
-namespace Popolo.Numerics
+namespace Popolo.Core.Numerics
 {
   /// <summary>3次方程式ソルバ</summary>
   public static class CubicEquation
