@@ -24,6 +24,9 @@ namespace Popolo.Core.Physics
   /// </summary>
   public static class PhysicsConstants
   {
+
+    #region 定数宣言
+
     /// <summary>
     /// Offset for converting between Celsius and Kelvin [K].
     /// </summary>
@@ -33,6 +36,13 @@ namespace Popolo.Core.Physics
     /// Standard atmospheric pressure at sea level [kPa].
     /// </summary>
     public const double StandardAtmosphericPressure = 101.325;
+
+    /// <summary>Stefan-Boltzmann constant [W/(m²·K⁴)].</summary>
+    public const double StefanBoltzmannConstant = 5.67e-8;
+
+    #endregion
+
+    #region staticメソッド
 
     /// <summary>
     /// Converts a temperature from Celsius [°C] to Kelvin [K].
@@ -47,5 +57,8 @@ namespace Popolo.Core.Physics
     /// <param name="kelvin">Temperature in Kelvin [K]</param>
     /// <returns>Temperature in Celsius [°C]</returns>
     public static double ToCelsius(double kelvin) => kelvin - CelsiusToKelvinOffset;
+
+    #endregion
+
   }
 }
