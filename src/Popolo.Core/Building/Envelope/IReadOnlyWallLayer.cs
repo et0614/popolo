@@ -1,0 +1,67 @@
+﻿/* IReadOnlyWallLayer.cs
+ * 
+ * Copyright (C) 2026 E.Togashi
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+namespace Popolo.Core.Building.Envelope
+{
+  /// <summary>Represents a read-only view of a wall layer.</summary>
+  public interface IReadOnlyWallLayer
+  {
+
+    #region プロパティ
+
+    /// <summary>Gets or sets the name of the layer.</summary>
+    string Name { get; }
+
+    /// <summary>Gets a value indicating whether thermophysical properties can change with temperature.</summary>
+    bool IsVariableProperties { get; }
+
+    /// <summary>Gets the thermal conductivity [W/(m·K)].</summary>
+    double ThermalConductivity { get; }
+
+    /// <summary>Gets the moisture conductivity [(kg/s)/((kg/kg)·m)].</summary>
+    double MoistureConductivity { get; }
+
+    /// <summary>Gets the volumetric specific heat [kJ/(m³·K)].</summary>
+    double VolSpecificHeat { get; }
+
+    /// <summary>Gets the thermal conductance [W/(m²·K)].</summary>
+    double HeatConductance { get; }
+
+    /// <summary>Gets the sensible heat capacity on the F side [J/(m²·K)].</summary>
+    double HeatCapacity_F { get; }
+
+    /// <summary>Gets the sensible heat capacity on the B side [J/(m²·K)].</summary>
+    double HeatCapacity_B { get; }
+
+    /// <summary>Gets the moisture capacity [kg/m²].</summary>
+    double WaterCapacity { get; }
+
+    /// <summary>Gets the moisture absorption coefficient per unit humidity difference [kg/m²].</summary>
+    double KappaC { get; }
+
+    /// <summary>Gets the moisture release coefficient per unit temperature difference [kg/(m²·K)].</summary>
+    double NuC { get; }
+
+    /// <summary>Gets the layer thickness [m].</summary>
+    double Thickness { get; }
+
+    #endregion
+
+  }
+}

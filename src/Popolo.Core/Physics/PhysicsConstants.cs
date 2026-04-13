@@ -37,8 +37,35 @@ namespace Popolo.Core.Physics
     /// </summary>
     public const double StandardAtmosphericPressure = 101.325;
 
-    /// <summary>Stefan-Boltzmann constant [W/(m²·K⁴)].</summary>
+    /// <summary>
+    /// Stefan-Boltzmann constant [W/(m²·K⁴)].
+    /// </summary>
     public const double StefanBoltzmannConstant = 5.67e-8;
+
+    /// <summary>
+    /// Nominal density of moist air [kg/m³] used as a representative value
+    /// for building energy simulation (approximately valid at 20–25°C, 50–60% RH).
+    /// </summary>
+    public const double NominalMoistAirDensity = 1.2;
+
+    /// <summary>
+    /// Nominal isobaric specific heat of moist air [J/(kg·K)] used as a
+    /// representative value for building energy simulation
+    /// (approximately valid at 24°C, 50% RH, humidity ratio ≈ 9.5 g/kg).
+    /// </summary>
+    public const double NominalMoistAirIsobaricSpecificHeat = 1005 + 1846 * 0.0095;
+
+    /// <summary>
+    /// Nominal density of liquid water [kg/m³] used as a representative value
+    /// for building energy simulation (approximately valid for 5–60°C).
+    /// </summary>
+    public const double NominalWaterDensity = 997.0;
+
+    /// <summary>
+    /// Nominal isobaric specific heat of liquid water [J/(kg·K)] used as a
+    /// representative value for building energy simulation (approximately valid for 5–60°C).
+    /// </summary>
+    public const double NominalWaterIsobaricSpecificHeat = 4182.0;
 
     #endregion
 
