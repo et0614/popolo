@@ -28,7 +28,7 @@ namespace Popolo.Core.Physics
     double AtmosphericPressure { get; }
 
     /// <summary>Gets the dry-bulb temperature [°C].</summary>
-    double DrybulbTemperature { get; }
+    double DryBulbTemperature { get; }
 
     /// <summary>Gets the wet-bulb temperature [°C].</summary>
     double WetbulbTemperature { get; }

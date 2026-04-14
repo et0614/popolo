@@ -72,7 +72,7 @@ namespace Popolo.Core.Physics
     public static double LatentHeatOfVaporization => VaporizationLatentHeat;
 
     /// <summary>Gets or sets the dry-bulb temperature [°C].</summary>
-    public double DrybulbTemperature { get; set; }
+    public double DryBulbTemperature { get; set; }
 
     /// <summary>Gets or sets the wet-bulb temperature [°C].</summary>
     public double WetbulbTemperature { get; set; }
@@ -112,7 +112,7 @@ namespace Popolo.Core.Physics
       ValidateTemperature(drybulbTemperature, nameof(drybulbTemperature));
       ValidateHumidityRatio(humidityRatio, nameof(humidityRatio));
       AtmosphericPressure = PhysicsConstants.StandardAtmosphericPressure;
-      DrybulbTemperature = drybulbTemperature;
+      DryBulbTemperature = drybulbTemperature;
       HumidityRatio = humidityRatio;
       RelativeHumidity = GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(
           drybulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
@@ -131,7 +131,7 @@ namespace Popolo.Core.Physics
     public MoistAir(IReadOnlyMoistAir moistAir)
     {
       AtmosphericPressure = moistAir.AtmosphericPressure;
-      DrybulbTemperature = moistAir.DrybulbTemperature;
+      DryBulbTemperature = moistAir.DryBulbTemperature;
       HumidityRatio = moistAir.HumidityRatio;
       RelativeHumidity = moistAir.RelativeHumidity;
       Enthalpy = moistAir.Enthalpy;
@@ -1100,8 +1100,8 @@ namespace Popolo.Core.Physics
       {
         volume[i] = Math.Max(0, volume[i]);
         rSum += volume[i];
-        tSum += air[i].DrybulbTemperature;
-        trSum += air[i].DrybulbTemperature * volume[i];
+        tSum += air[i].DryBulbTemperature;
+        trSum += air[i].DryBulbTemperature * volume[i];
         hSum += air[i].HumidityRatio;
         hrSum += air[i].HumidityRatio * volume[i];
       }
@@ -1133,12 +1133,12 @@ namespace Popolo.Core.Physics
     public static MoistAir BlendAir(
         IReadOnlyMoistAir air1, IReadOnlyMoistAir air2, double air1Volume, double air2Volume)
     {
-      if (air1Volume <= 0) return new MoistAir(air2.DrybulbTemperature, air2.HumidityRatio);
-      if (air2Volume <= 0) return new MoistAir(air1.DrybulbTemperature, air1.HumidityRatio);
+      if (air1Volume <= 0) return new MoistAir(air2.DryBulbTemperature, air2.HumidityRatio);
+      if (air2Volume <= 0) return new MoistAir(air1.DryBulbTemperature, air1.HumidityRatio);
 
       double vSum = air1Volume + air2Volume;
-      double dbt = (air1.DrybulbTemperature * air1Volume
-          + air2.DrybulbTemperature * air2Volume) / vSum;
+      double dbt = (air1.DryBulbTemperature * air1Volume
+          + air2.DryBulbTemperature * air2Volume) / vSum;
       double ahd = (air1.HumidityRatio * air1Volume
           + air2.HumidityRatio * air2Volume) / vSum;
       return new MoistAir(dbt, ahd);
@@ -1155,7 +1155,7 @@ namespace Popolo.Core.Physics
     public void CopyTo(MoistAir destination)
     {
       destination.AtmosphericPressure = AtmosphericPressure;
-      destination.DrybulbTemperature = DrybulbTemperature;
+      destination.DryBulbTemperature = DryBulbTemperature;
       destination.WetbulbTemperature = WetbulbTemperature;
       destination.HumidityRatio = HumidityRatio;
       destination.RelativeHumidity = RelativeHumidity;

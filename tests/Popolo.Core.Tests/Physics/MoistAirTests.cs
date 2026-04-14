@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.Physics
     public void DefaultConstructor_SetsReasonableInitialState()
     {
       var air = new MoistAir();
-      Assert.Equal(24.0, air.DrybulbTemperature, precision: 6);
+      Assert.Equal(24.0, air.DryBulbTemperature, precision: 6);
       Assert.Equal(0.0093, air.HumidityRatio, precision: 4);
       Assert.InRange(air.RelativeHumidity, 0.0, 100.0);
       Assert.True(air.Enthalpy > 0);
@@ -73,7 +73,7 @@ namespace Popolo.Core.Tests.Physics
       var src = new MoistAir(30.0, 0.012);
       var dst = new MoistAir(src);
 
-      Assert.Equal(src.DrybulbTemperature, dst.DrybulbTemperature);
+      Assert.Equal(src.DryBulbTemperature, dst.DryBulbTemperature);
       Assert.Equal(src.HumidityRatio, dst.HumidityRatio);
       Assert.Equal(src.RelativeHumidity, dst.RelativeHumidity);
       Assert.Equal(src.Enthalpy, dst.Enthalpy);
@@ -358,7 +358,7 @@ namespace Popolo.Core.Tests.Physics
 
       var blended = MoistAir.BlendAir(air1, air2, 1.0, 1.0);
 
-      Assert.Equal(25.0, blended.DrybulbTemperature, precision: 6);
+      Assert.Equal(25.0, blended.DryBulbTemperature, precision: 6);
       Assert.Equal(0.010, blended.HumidityRatio, precision: 6);
     }
 
@@ -370,7 +370,7 @@ namespace Popolo.Core.Tests.Physics
       var air2 = new MoistAir(30.0, 0.012);
 
       var result = MoistAir.BlendAir(air1, air2, 0.0, 1.0);
-      Assert.Equal(air2.DrybulbTemperature, result.DrybulbTemperature, precision: 6);
+      Assert.Equal(air2.DryBulbTemperature, result.DryBulbTemperature, precision: 6);
     }
 
     /// <summary>配列の長さが一致しない場合に PopoloArgumentException が発生する</summary>
@@ -397,7 +397,7 @@ namespace Popolo.Core.Tests.Physics
       var dst = new MoistAir();
       src.CopyTo(dst);
 
-      Assert.Equal(src.DrybulbTemperature, dst.DrybulbTemperature);
+      Assert.Equal(src.DryBulbTemperature, dst.DryBulbTemperature);
       Assert.Equal(src.HumidityRatio, dst.HumidityRatio);
       Assert.Equal(src.RelativeHumidity, dst.RelativeHumidity);
       Assert.Equal(src.Enthalpy, dst.Enthalpy);
