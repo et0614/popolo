@@ -1,0 +1,34 @@
+/* IReadOnlyCircuitBranch.cs
+ *
+ * Copyright (C) 2026 E.Togashi
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
+
+namespace Popolo.Core.HVAC.FluidCircuit
+{
+  /// <summary>Represents a branch (conduit) in a fluid circuit network.</summary>
+    public interface IReadOnlyCircuitBranch
+    {
+      /// <summary>Gets the upstream node.</summary>
+      CircuitNode? UpStreamNode { get; }
+  
+      /// <summary>Gets the downstream node.</summary>
+      CircuitNode? DownStreamNode { get; }
+  
+      /// <summary>Gets the flow rate [m³/s].</summary>
+      double VolumetricFlowRate { get; }
+    }
+}

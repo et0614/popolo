@@ -34,4 +34,12 @@
 
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Folder Include="HVAC\Storage\" />
+	  <Folder Include="HVAC\HeatExchanger\" />
+	  <Folder Include="HVAC\HeatSource\" />
+	  <Folder Include="HVAC\VRF\" />
+	  <Folder Include="HVAC\System\" />
+	</ItemGroup>
+
 </Project>

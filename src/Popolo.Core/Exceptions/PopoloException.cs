@@ -126,6 +126,55 @@ namespace Popolo.Core.Exceptions
 
   #endregion
 
+  #region オブジェクト状態不正の例外クラス
+
+  /// <summary>
+  /// Thrown when a method call is invalid for the current state of the object.
+  /// Typically indicates that a required property or configuration has not been
+  /// set before performing an operation.
+  /// </summary>
+  /// <remarks>
+  /// Use this exception when the error is not caused by an argument passed to
+  /// the method, but by the object not being in a valid state for the operation.
+  /// Common examples:
+  /// <list type="bullet">
+  ///   <item><description>Calling <c>Solve()</c> before setting a required reference node.</description></item>
+  ///   <item><description>Calling an update method before initialization is complete.</description></item>
+  /// </list>
+  /// For invalid argument values, use <see cref="PopoloArgumentException"/> instead.
+  /// </remarks>
+  public class PopoloInvalidOperationException : InvalidOperationException
+  {
+    /// <summary>Gets the name of the object or class in which the error occurred.</summary>
+    public string? ObjectName { get; }
+
+    /// <summary>Gets the name of the property that was not set, if applicable.</summary>
+    public string? PropertyName { get; }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PopoloInvalidOperationException"/>
+    /// with a descriptive message.
+    /// </summary>
+    /// <param name="message">The error message describing why the operation is invalid.</param>
+    public PopoloInvalidOperationException(string message)
+        : base(message) { }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PopoloInvalidOperationException"/>
+    /// indicating that a required property has not been set.
+    /// </summary>
+    /// <param name="objectName">The name of the object or class.</param>
+    /// <param name="propertyName">The name of the property that must be set before this operation.</param>
+    public PopoloInvalidOperationException(string objectName, string propertyName)
+        : base($"{objectName}.{propertyName} must be set before performing this operation.")
+    {
+      ObjectName = objectName;
+      PropertyName = propertyName;
+    }
+  }
+
+  #endregion
+
   #region 未実装例外クラス
 
   /// <summary>
