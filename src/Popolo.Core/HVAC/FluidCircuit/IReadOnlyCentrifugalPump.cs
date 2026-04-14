@@ -22,12 +22,12 @@ using System;
 namespace Popolo.Core.HVAC.FluidCircuit
 {
   /// <summary>Represents a read-only view of a centrifugal pump.</summary>
-    public interface IReadOnlyCentrifugalPump : IReadOnlyFluidMachinery
-    {
-      /// <summary>Gets the bypass flow rate [m³/s].</summary>
-      double BypassFlowRate { get; }
-  
-      /// <summary>Gets the flow control method.</summary>
-      CentrifugalPump.ControlMethod Control { get; }
-    }
+  public interface IReadOnlyCentrifugalPump : IReadOnlyFluidMachinery
+  {
+    /// <summary>Gets the bypass flow rate [m³/s].</summary>
+    double BypassFlowRate { get; }
+
+    /// <summary>Gets the flow control method.</summary>
+    CentrifugalPump.ControlMethod Control { get; }
+  }
 }

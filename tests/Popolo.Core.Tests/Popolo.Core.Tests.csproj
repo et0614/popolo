@@ -25,7 +25,6 @@
   <ItemGroup>
     <Folder Include="HVAC\HeatExchanger\" />
     <Folder Include="HVAC\HeatSource\" />
-    <Folder Include="HVAC\Storage\" />
     <Folder Include="HVAC\System\" />
     <Folder Include="HVAC\VRF\" />
   </ItemGroup>
