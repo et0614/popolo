@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/Popolo.Core/Popolo.Core.csproj" Id="82a86d9a-cdd0-48da-b7f6-a532a2a39782" />
   <Project Path="tests/BESTEST/BESTEST.csproj" Id="92668278-2541-4c35-8b18-d9b6ed9fb6f1" />
+  <Project Path="tests/Popolo.Core.Samples/Popolo.Core.Samples.csproj" Id="fc91ca39-147c-4eee-b06d-38599f882f05" />
   <Project Path="tests/Popolo.Core.Tests/Popolo.Core.Tests.csproj" Id="1542e520-dc61-4137-91d1-72879247d1f0" />
 </Solution>
