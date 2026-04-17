@@ -19,6 +19,7 @@
 
 using System;
 using Popolo.Core.Climate;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -219,7 +220,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.FFS2_F;
         else if (IsWall && !isSideF) return Wall.BFS2_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 1 - 1d / (Window.GetResistance() * Window.FilmCoefficientB);
       }
     }
@@ -231,7 +233,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.FFS3_F;
         else if (IsWall && !isSideF) return Wall.BFS3_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }
@@ -243,7 +246,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.FFL2_F;
         else if (IsWall && !isSideF) return Wall.BFL2_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }
@@ -255,7 +259,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.FFL3_F;
         else if (IsWall && !isSideF) return Wall.BFL3_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }
@@ -267,7 +272,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.BFS2_F;
         else if (IsWall && !isSideF) return Wall.FFS2_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 1d / (Window.GetResistance() * Window.FilmCoefficientB);
       }
     }
@@ -279,7 +285,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.BFS3_F;
         else if (IsWall && !isSideF) return Wall.FFS3_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }
@@ -291,7 +298,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.BFL2_F;
         else if (IsWall && !isSideF) return Wall.FFL2_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }
@@ -303,7 +311,8 @@ namespace Popolo.Core.Building.Envelope
       {
         if (IsWall && isSideF) return Wall.BFL3_F;
         else if (IsWall && !isSideF) return Wall.FFL3_B;
-        else if (!IsWall && isSideF) throw new NotImplementedException();
+        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
+          "Response factor coefficients for the front side of a window surface are not supported.");
         else return 0;
       }
     }

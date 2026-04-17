@@ -120,7 +120,7 @@ namespace Popolo.Core.HVAC.SystemModel
     { get { return mChiller.MinChilledWaterFlowRate / MaxChilledWaterFlowRate; } }
 
     /// <summary>Gets or sets the outdoor air conditions.</summary>
-    public IReadOnlyMoistAir OutdoorAir { get; set; }
+    public IReadOnlyMoistAir OutdoorAir { get; set; } = new MoistAir(35, 0.0185);
 
     /// <summary>Shuts off this heat source sub-system.</summary>
     public void ShutOff()
@@ -154,7 +154,7 @@ namespace Popolo.Core.HVAC.SystemModel
         ShutOff();
         return;
       }
-      mChiller.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+      mChiller.Mode = HeatSource.AirHeatSourceModularChillers.OperatingMode.Heating;
       ChilledWaterSupplyTemperature = ChilledWaterReturnTemperature;
 
       OperatingChillerNumber = (int)Math.Ceiling(hotWaterFlowRate / mChiller.MaxHotWaterFlowRate);
@@ -167,7 +167,7 @@ namespace Popolo.Core.HVAC.SystemModel
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
 
-        mChiller.Update(twi, hwFlow, OutdoorAir.DrybulbTemperature);
+        mChiller.Update(twi, hwFlow, OutdoorAir.DryBulbTemperature);
         IsOverLoad_H = mChiller.IsOverLoad;
         if (OperatingChillerNumber == ChillerNumber || !IsOverLoad_H) break;
         else OperatingChillerNumber++;
@@ -186,7 +186,7 @@ namespace Popolo.Core.HVAC.SystemModel
         ShutOff();
         return;
       }
-      mChiller.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+      mChiller.Mode = HeatSource.AirHeatSourceModularChillers.OperatingMode.Cooling;
       HotWaterSupplyTemperature = HotWaterReturnTemperature;
 
       OperatingChillerNumber = (int)Math.Ceiling(chilledWaterFlowRate / mChiller.MaxChilledWaterFlowRate);
@@ -199,7 +199,7 @@ namespace Popolo.Core.HVAC.SystemModel
         chwPump.UpdateState(0.001 * chwFlow);
         double twi = ChilledWaterReturnTemperature + chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow);
 
-        mChiller.Update(twi, chwFlow, OutdoorAir.DrybulbTemperature);
+        mChiller.Update(twi, chwFlow, OutdoorAir.DryBulbTemperature);
         IsOverLoad_C = mChiller.IsOverLoad;
         if (OperatingChillerNumber == ChillerNumber || !IsOverLoad_C) break;
         else OperatingChillerNumber++;

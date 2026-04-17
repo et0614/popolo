@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Climate;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building
 {
@@ -803,7 +804,10 @@ namespace Popolo.Core.Building
       }
 
       IEnumerator IEnumerable.GetEnumerator()
-      { throw new NotImplementedException(); }
+      {
+        throw new PopoloNotImplementedException(
+          "IEnumerable.GetEnumerator (non-generic). Use the generic GetEnumerator instead.");
+      }
     }
 
     /// <summary>Holds a single inter-zone air flow entry.</summary>

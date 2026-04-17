@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
       UpperEmissivity = upperEmissivity;
       LowerEmissivity = lowerEmissivity;
 
-      VolSpecificHeat = MoistAir.GetSpecificHeat(HUMIDITY_RATIO) * 1.2;
+      VolSpecificHeat = MoistAir.GetSpecificHeat(HUMIDITY_RATIO) * PhysicsConstants.NominalMoistAirDensity;
       HeatCapacity_B = HeatCapacity_F = 0.5 * VolSpecificHeat * Thickness * 1000;
 
       lstDwnTmp = lstUpTmp = 0;

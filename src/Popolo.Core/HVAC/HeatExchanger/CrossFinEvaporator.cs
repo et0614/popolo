@@ -19,6 +19,7 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
 
@@ -224,7 +225,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double hdF = GetHD(tFB, borderRelativeHumidity);
       double hdEvp = GetHD(evpTemperature, 100);
       epsilon = (heatTransfer - qD - qW) / (airFlowRate * (hdF - hdEvp));
-      if (1 <= epsilon) throw new Exception("初期化不能エラー");
+      if (1 <= epsilon) throw new PopoloNumericalException(
+        "CrossFinEvaporator.GetSurfaceArea",
+        $"NTU epsilon reached {epsilon} (>= 1); heat transfer requirement exceeds physical limit.");
       double sF = -Math.Log(1 - epsilon) * airFlowRate / kF;
 
       return sF + sD + sW;

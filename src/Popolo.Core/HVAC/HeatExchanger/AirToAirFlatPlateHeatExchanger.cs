@@ -19,6 +19,7 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 
 namespace Popolo.Core.HVAC.HeatExchanger
@@ -189,7 +190,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
           eaHmd = 0.00857;
           break;
         default:
-          throw new NotImplementedException();
+          throw new PopoloArgumentException(
+            $"Unsupported test condition: {condition}.", nameof(condition));
       }
 
       //エンタルピー交換効率が与えられた場合には潜熱交換効率に変換

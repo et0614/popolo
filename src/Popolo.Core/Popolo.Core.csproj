@@ -34,9 +34,4 @@
 
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <Compile Remove="HVAC\SystemModel\AirHeatSourceModularChillersSystem.cs" />
-	  <Compile Remove="HVAC\SystemModel\MultiConnectedWaterTankSystem.cs" />
-	</ItemGroup>
-
 </Project>

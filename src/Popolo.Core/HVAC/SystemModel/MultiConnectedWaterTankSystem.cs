@@ -169,7 +169,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public double MinChilledWaterFlowRatio { get { return 0; } }
 
     /// <summary>Gets or sets the outdoor air conditions.</summary>
-    public IReadOnlyMoistAir OutdoorAir { get; set; }
+    public IReadOnlyMoistAir OutdoorAir { get; set; } = new MoistAir(35, 0.0185);
 
     /// <summary>Shuts off this heat source sub-system.</summary>
     public void ShutOff()
@@ -308,7 +308,7 @@ namespace Popolo.Core.HVAC.SystemModel
           double tAHPout = ahp.WaterOutletSetPointTemperature;
           double rf = GetFirstTankWaterFlowRate(0, 0, tAHPout);
           double ahpIn = rf * tAHPout + (1 - rf) * wTank.GetTemperature(wTank.TankNumber - 1);
-          ahp.Update(ahpIn + dtChgPump, 1000 * chgPump.DesignFlowRate, OutdoorAir.DrybulbTemperature);
+          ahp.Update(ahpIn + dtChgPump, 1000 * chgPump.DesignFlowRate, OutdoorAir.DryBulbTemperature);
           wTank.ForecastState
             (ahp.WaterOutletTemperature, chgPump.DesignFlowRate * OperatingHeatSourceNumber * (1 - rf), true);
           IsOverLoad_C = IsOverLoad_H = false;
@@ -364,7 +364,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
         //入口水温を仮定してAHPを計算
         double ahpIn = rF * tAHPout + (1 - rF) * tH + dtChgPump;
-        ahp.Update(ahpIn, chgPump.DesignFlowRate * 1000, OutdoorAir.DrybulbTemperature);
+        ahp.Update(ahpIn, chgPump.DesignFlowRate * 1000, OutdoorAir.DryBulbTemperature);
 
         if (!ahp.IsOverLoad) break; //AHP出口温度が達成できるなら終了。
         tAHPout = ahp.WaterOutletTemperature; //過負荷の場合にはもう一回計算

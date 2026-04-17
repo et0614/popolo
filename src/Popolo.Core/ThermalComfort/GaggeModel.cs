@@ -35,17 +35,11 @@ namespace Popolo.Core.ThermalComfort
 
     #region 定数宣言
 
-    /// <summary>Stefan–Boltzmann constant [W/(m²·K⁴)].</summary>
-    private const double BLACK_CONSTANT = 5.67e-8;
-
     /// <summary>Clothing area factor coefficient [-].</summary>
     private const double K_CLO = 0.25;
 
     /// <summary>Clothing moisture permeability index [K/kPa].</summary>
     private const double I_CLS = 0.45;
-
-    /// <summary>Offset for converting Celsius to Kelvin [K].</summary>
-    private const double CONVERT_C_TO_K = 273.15;
 
     /// <summary>Conversion factor from metabolic rate [met] to heat flux [W/m²].</summary>
     private const double CONVERT_MET_TO_W = 58.2;
@@ -171,8 +165,8 @@ namespace Popolo.Core.ThermalComfort
         {
           double ctOld = ClothTemperature;
           //放射熱伝達率[W/(m2K)]の計算
-          double hr = 4d * BLACK_CONSTANT * 0.72
-            * Math.Pow((ClothTemperature + meanRadiantTemperature) / 2d + CONVERT_C_TO_K, 3);
+          double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72
+            * Math.Pow(PhysicsConstants.ToKelvin((ClothTemperature + meanRadiantTemperature) / 2d), 3);
           //総合熱伝達率[W/(m2K)]の計算
           double hcr = hr + convectiveHTransCoef;
           //空気層顕熱抵抗[(m2K)/W]の計算
@@ -204,7 +198,7 @@ namespace Popolo.Core.ThermalComfort
         double esw = 2.501 * msw;
 
         //不感蒸泄による蒸発熱損失[W/m2]を計算
-        double lewis = 0.0555 * (SkinTemperature + CONVERT_C_TO_K);
+        double lewis = 0.0555 * PhysicsConstants.ToKelvin(SkinTemperature);
         double latentHTransCoef = 1 / (rcl / (I_CLS * lewis) + 1d / (clothRate * convectiveHTransCoef * lewis));
         double emax = latentHTransCoef * (Water.GetSaturationPressure(SkinTemperature) - pa);
         double wSw = esw / emax;
@@ -345,8 +339,8 @@ namespace Popolo.Core.ThermalComfort
         {
           double ctOld = clothTemperature;
           //放射熱伝達率[W/(m2K)]の計算
-          double hr = 4d * BLACK_CONSTANT * 0.72 
-            * Math.Pow((clothTemperature + meanRadiantTemperature) / 2d + CONVERT_C_TO_K, 3);
+          double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72 
+            * Math.Pow(PhysicsConstants.ToKelvin((clothTemperature + meanRadiantTemperature) / 2d), 3);
           //総合熱伝達率[W/(m2K)]の計算
           double hcr = hr + convectiveHTransCoef;
           //空気層顕熱抵抗[(m2K)/W]の計算
@@ -403,7 +397,7 @@ namespace Popolo.Core.ThermalComfort
         double esw = 2.501 * msw;
 
         //不感蒸泄による蒸発熱損失[W/m2]を計算
-        double lewis = 0.0555 * (skinTemperature + CONVERT_C_TO_K);
+        double lewis = 0.0555 * (PhysicsConstants.ToKelvin(skinTemperature));
         double latentHTransCoef = 1 / (rcl / (I_CLS * lewis) + 1d / (clothRate * convectiveHTransCoef * lewis));
         double emax = latentHTransCoef * (Water.GetSaturationPressure(skinTemperature) - pa);
         double wSw = esw / emax;
@@ -508,8 +502,8 @@ namespace Popolo.Core.ThermalComfort
         {
           double ctOld = clothTemperature;
           //放射熱伝達率[W/(m2K)]の計算
-          double hr = 4d * BLACK_CONSTANT * 0.72
-            * Math.Pow((clothTemperature + meanRadiantTemperature) / 2d + CONVERT_C_TO_K, 3);
+          double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72
+            * Math.Pow(PhysicsConstants.ToKelvin((clothTemperature + meanRadiantTemperature) / 2d), 3);
           //総合熱伝達率[W/(m2K)]の計算
           double hcr = hr + convectiveHTransCoef;
           //空気層顕熱抵抗[(m2K)/W]の計算
@@ -566,7 +560,7 @@ namespace Popolo.Core.ThermalComfort
         double esw = 2.501 * msw;
 
         //不感蒸泄による蒸発熱損失[W/m2]を計算
-        double lewis = 0.0555 * (skinTemperature + CONVERT_C_TO_K);
+        double lewis = 0.0555 * (PhysicsConstants.ToKelvin(skinTemperature));
         double latentHTransCoef = 1 / (rcl / (I_CLS * lewis) + 1d / (clothRate * convectiveHTransCoef * lewis));
         double emax = latentHTransCoef * (Water.GetSaturationPressure(skinTemperature) - pa);
         double wSw = esw / emax;
@@ -632,8 +626,8 @@ namespace Popolo.Core.ThermalComfort
       double skinTemperature, double sensibleHFSkin, double latentHFSkin, double wettedness)
     {
       //放射熱伝達率[W/(m2K)]の計算
-      double radiativeHTransCoef = 4d * BLACK_CONSTANT * 0.72
-        * Math.Pow((clothTemperature + meanRadiantTemperature) / 2d + CONVERT_C_TO_K, 3);
+      double radiativeHTransCoef = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72
+        * Math.Pow(PhysicsConstants.ToKelvin((clothTemperature + meanRadiantTemperature) / 2d), 3);
       //対流熱伝達率[W/(m2 K)]の計算
       double convectiveHTransCoef = 5.66 * Math.Pow(Math.Max(0, basalMetabolism / CONVERT_MET_TO_W - 0.85), 0.39);
       convectiveHTransCoef = Math.Max(convectiveHTransCoef, 3d);
@@ -647,7 +641,7 @@ namespace Popolo.Core.ThermalComfort
       double clothRate = 1d + K_CLO * sClothing;
 
       //潜熱伝達率[W/(m2 K)]の計算
-      double lewis = 0.0555 * (skinTemperature + CONVERT_C_TO_K);
+      double lewis = 0.0555 * (PhysicsConstants.ToKelvin(skinTemperature));
       double latentHTransCoef = 1 / (rcl / (I_CLS * lewis) + 1d / (clothRate * convectiveHTransCoef * lewis));
 
       //顕熱伝達率[W/(m2K)]の計算

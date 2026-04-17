@@ -19,6 +19,7 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
 
@@ -202,7 +203,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       else if (load < 680) return 3.7;
       else if (load < 1020) return 5.5;
       else if (load < 1130) return 7.5;
-      else throw new Exception("Out of range");
+      else throw new PopoloOutOfRangeException(
+        nameof(load), load, 0.0, 1130.0);
     }
 
     #endregion

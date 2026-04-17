@@ -214,7 +214,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
       int iterNum = 0;
       while (0.01 < err)
       {
-        if (20 < iterNum) throw new Exception("WaterPipe iteration error");
+        if (20 < iterNum) throw new PopoloNumericalException(
+          "WaterPipe.UpdateHeatFlow",
+          $"Surface temperature iteration did not converge within {iterNum} iterations.");
 
         //空気側の対流熱伝達率[W/(m2K)]を計算
         double aa = GetOutSideHeatTransferCoefficient
@@ -257,7 +259,8 @@ namespace Popolo.Core.HVAC.FluidCircuit
           SetInsulator(thickness, 0.043);
           break;
         default:
-          throw new Exception("Invalid Insulator");
+          throw new PopoloArgumentException(
+            $"Unsupported insulator type: {insulator}.", nameof(insulator));
       }
     }
 

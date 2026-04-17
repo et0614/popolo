@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
 
 namespace Popolo.Core.HVAC.FluidCircuit
@@ -80,7 +81,8 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="designPressure">Design pressure [kPa].</param>
     public ParallelFluidMachineries(int numberOfStages, double designPressure)
     {
-      if (numberOfStages <= 0) throw new Exception("StageNumberError");
+      if (numberOfStages <= 0) throw new PopoloOutOfRangeException(
+        nameof(numberOfStages), numberOfStages, 1, null);
       MaximumStageNumber = numberOfStages;
       RotationRatio = 1.0;
       DesignPressure = designPressure;

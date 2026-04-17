@@ -62,7 +62,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         double big = 0.0;
         for (int j = 0; j < num; j++)
           big = Math.Max(big, Math.Abs(matrix[i, j]));
-        if (big < double.Epsilon) throw new PopoloNumericalException(
+        if (big < 1e-30) throw new PopoloNumericalException(
           "LUDecompose",
           $"Singular matrix detected at row {i}. All elements in the row are zero.");
         wArray[i] = 1.0 / big;

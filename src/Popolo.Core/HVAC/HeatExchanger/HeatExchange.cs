@@ -19,6 +19,7 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
 
 namespace Popolo.Core.HVAC.HeatExchanger
@@ -172,7 +173,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
         }
         return r * (hotInletTemperature - coldInletTemperature);
       }
-      throw new Exception("Not implemented");
+      throw new PopoloArgumentException(
+        $"Unsupported flow type: {flowType}.", nameof(flowType));
     }
 
     /// <summary>Error function for cross-flow with both fluids mixed (used in NTU solver).</summary>

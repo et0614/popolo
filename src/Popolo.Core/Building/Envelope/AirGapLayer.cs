@@ -37,7 +37,7 @@ namespace Popolo.Core.Building.Envelope
     {
       //年平均として常温20C/60%程度の値を採用
       ThermalConductivity = MoistAir.GetThermalConductivity(20);
-      VolSpecificHeat = MoistAir.GetSpecificHeat(0.01) * 1.2;
+      VolSpecificHeat = MoistAir.GetSpecificHeat(0.01) * PhysicsConstants.NominalMoistAirDensity;
 
       IsVariableProperties = false;
       Name = name;

@@ -19,6 +19,8 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
+
 namespace Popolo.Core.HVAC.FluidCircuit
 {
   /// <summary>Represents a pump system with staged operation.</summary>
@@ -157,7 +159,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
         double ps = resistanceCoefficient * r2 + ActualHead;
         //締切揚程が必要揚程を上回ることの確認
         pump.UpdateWithFlowRateAndRotationRatio(0, 1.0);
-        if (pump.Pressure < ps) throw new Exception("Pump Pressure Error");
+        if (pump.Pressure < ps) throw new PopoloInvalidOperationException(
+          $"Pump shutoff head ({pump.Pressure} kPa) is less than required static head ({ps} kPa). "
+          + "Pump is undersized for the specified flow and resistance.");
         int opNum = 1;
         while (true)
         {
@@ -166,7 +170,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
           pump.updateWithResistanceAndRotationRatio(1.0, resistanceCoefficient, ActualHead, opNum, out tf);
           if (flowRate < tf) break;
           else opNum++;
-          if (50 < opNum) throw new Exception("Pump Number Error");
+          if (50 < opNum) throw new PopoloNumericalException(
+            "PumpSystem.GetOperatingNumber",
+            $"Failed to determine operating pump count within 50 units; required flow rate may be too large.");
         }
         return opNum;
       }

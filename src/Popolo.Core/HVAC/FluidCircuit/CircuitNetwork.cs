@@ -101,7 +101,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="ndTo">Destination node.</param>
     public void ConnectNode(ICircuitBranch branch, CircuitNode ndFrom, CircuitNode ndTo)
     {
-      if (!nodes.Contains(ndFrom) || !nodes.Contains(ndTo)) throw new Exception("Invalid Node Error");
+      if (!nodes.Contains(ndFrom) || !nodes.Contains(ndTo)) throw new PopoloArgumentException(
+        "Both nodes must be registered to this network before connecting.",
+        !nodes.Contains(ndFrom) ? nameof(ndFrom) : nameof(ndTo));
       if (!branches.Contains(branch)) branches.Add(branch);
       //接続処理
       branch.UpStreamNode = ndFrom;

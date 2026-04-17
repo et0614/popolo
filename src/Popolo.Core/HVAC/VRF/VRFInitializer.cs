@@ -17,8 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-using System;
-
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 
 namespace Popolo.Core.HVAC.VRF
@@ -183,7 +182,8 @@ namespace Popolo.Core.HVAC.VRF
         case OutdoorUnitModel.Toshiba_MMY:
           return MakeOutdoorUnit_ToshibaMMY(coolingCapacity, indoorUnitHeight, useWaterSpray);
         default:
-          throw new Exception("There is no such model.");
+          throw new PopoloArgumentException(
+              $"Unsupported outdoor unit model: {model}.", nameof(model));
       }
     }
 
@@ -212,7 +212,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(33.0 * 1.2 / 60d, 0.175, -11.2, 0.162, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(34.5 * 1.2 / 60d, 0.197, -14.0, 0.179, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(35.5 * 1.2 / 60d, 0.217, -16.0, 0.207, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingRoundFlow:  //FXYFP-M
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(12.5 * 1.2 / 60d, 0.033, -2.8, 0.027, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(12.5 * 1.2 / 60d, 0.033, -3.6, 0.027, 4.0);
@@ -224,7 +226,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(31.5 * 1.2 / 60d, 0.187, -11.2, 0.174, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(34.5 * 1.2 / 60d, 0.209, -14.0, 0.200, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(35.5 * 1.2 / 60d, 0.217, -16.0, 0.207, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingDoubleFlow_Eco:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(10.5 * 1.2 / 60d, 0.031, -2.2, 0.028, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(11.5 * 1.2 / 60d, 0.039, -2.8, 0.035, 3.2);
@@ -237,7 +241,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(28.0 * 1.2 / 60d, 0.093, -11.2, 0.093, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(32.0 * 1.2 / 60d, 0.146, -14.0, 0.146, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.197, -16.0, 0.197, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingDoubleFlow:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(7.0 * 1.2 / 60d, 0.078, -2.2, 0.045, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.083, -2.8, 0.050, 3.2);
@@ -250,7 +256,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(26.0 * 1.2 / 60d, 0.165, -11.2, 0.132, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(32.0 * 1.2 / 60d, 0.206, -14.0, 0.173, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.238, -16.0, 0.205, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSingleFlow:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(6.5 * 1.2 / 60d, 0.036, -2.2, 0.036, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(7.5 * 1.2 / 60d, 0.051, -2.8, 0.051, 3.2);
@@ -258,7 +266,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(11.5 * 1.2 / 60d, 0.075, -4.5, 0.069, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.5 * 1.2 / 60d, 0.103, -5.6, 0.097, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(18.0 * 1.2 / 60d, 0.100, -7.1, 0.096, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingMounted:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.110, -2.2, 0.090, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.110, -2.8, 0.090, 3.2);
@@ -269,7 +279,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C9_0) return VRFSystem.MakeIndoorUnit(27.0 * 1.2 / 60d, 0.216, -9.0, 0.196, 10.0);
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(28.0 * 1.2 / 60d, 0.250, -11.2, 0.220, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(38.0 * 1.2 / 60d, 0.320, -14.0, 0.300, 16.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingConcealedSlimDuct:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.067, -2.2, 0.058, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.067, -2.8, 0.058, 3.2);
@@ -277,7 +289,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(10.5 * 1.2 / 60d, 0.074, -4.5, 0.066, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(12.5 * 1.2 / 60d, 0.082, -5.6, 0.075, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(16.5 * 1.2 / 60d, 0.099, -7.1, 0.106, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingConcealedDuct:
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.146, -4.5, 0.134, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.146, -5.6, 0.134, 6.3);
@@ -288,7 +302,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(46.0 * 1.2 / 60d, 0.400, -16.0, 0.375, 18.0);
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(58.0 * 1.2 / 60d, 1.340, -22.4, 1.340, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(72.0 * 1.2 / 60d, 1.340, -28.0, 1.340, 31.5);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSuspended:
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.107, -3.6, 0.107, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.107, -4.5, 0.107, 5.0);
@@ -299,37 +315,48 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(29.5 * 1.2 / 60d, 0.237, -11.2, 0.237, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(34.0 * 1.2 / 60d, 0.253, -14.0, 0.253, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.343, -16.0, 0.343, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.WallMounted:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.022, -2.8, 0.027, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.027, -3.6, 0.032, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(12.0 * 1.2 / 60d, 0.020, -4.5, 0.020, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(15.0 * 1.2 / 60d, 0.027, -5.6, 0.032, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(19.0 * 1.2 / 60d, 0.050, -7.1, 0.060, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.FloorStandingLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(7.0 * 1.2 / 60d, 0.039, -2.8, 0.039, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.067, -3.6, 0.067, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(11.0 * 1.2 / 60d, 0.069, -4.5, 0.069, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.086, -5.6, 0.086, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.087, -7.1, 0.087, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.ConcealedLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(7.0 * 1.2 / 60d, 0.039, -2.8, 0.039, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.067, -3.6, 0.067, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(11.0 * 1.2 / 60d, 0.069, -4.5, 0.069, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.086, -5.6, 0.086, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.087, -7.1, 0.087, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.FloorMount:
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(42.0 * 1.2 / 60d, 0.340, -14.0, 0.340, 16.0);
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(63.0 * 1.2 / 60d, 0.490, -22.4, 0.490, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(80.0 * 1.2 / 60d, 0.640, -28.0, 0.640, 31.5);
           if (coolingCapacity == CoolingCapacity.C45_0) return VRFSystem.MakeIndoorUnit(120.0 * 1.2 / 60d, 2.020, -45.0, 2.020, 50.0);
           if (coolingCapacity == CoolingCapacity.C56_0) return VRFSystem.MakeIndoorUnit(165.0 * 1.2 / 60d, 2.180, -56.0, 2.180, 63.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         default:
-          throw new Exception("There is no such model");
+          throw new PopoloArgumentException(
+              $"Unsupported indoor unit type: {iType}.", nameof(iType));
       }
     }
 
@@ -510,7 +537,9 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem.NumberOfOutdoorUnitDivisions = 3;
           break;
         default:
-          throw new Exception("There is no such model.");
+          throw new PopoloArgumentException(
+              $"No catalogue data for cooling capacity: {coolingCapacity}.",
+              nameof(coolingCapacity));
       }
 
       vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVPORATING_TEMPERATURE;
@@ -768,7 +797,9 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem.NumberOfOutdoorUnitDivisions = 3;
           break;
         default:
-          throw new Exception("There is no such model.");
+          throw new PopoloArgumentException(
+              $"No catalogue data for cooling capacity: {coolingCapacity}.",
+              nameof(coolingCapacity));
       }
 
       vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVPORATING_TEMPERATURE;
@@ -809,7 +840,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.094, -11.2, 0.094, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(37.0 * 1.2 / 60d, 0.094, -14.0, 0.094, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(37.0 * 1.2 / 60d, 0.094, -16.0, 0.094, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingDoubleFlow:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(10.0 * 1.2 / 60d, 0.057, -2.2, 0.057, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(11.0 * 1.2 / 60d, 0.057, -2.8, 0.057, 3.2);
@@ -825,7 +858,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(30.0 * 1.2 / 60d, 0.057 * 2, -11.2, 0.057 * 2, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(35.0 * 1.2 / 60d, 0.057 * 2, -14.0, 0.057 * 2, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(37.0 * 1.2 / 60d, 0.057 * 2, -16.0, 0.057 * 2, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSingleFlow:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(8.5 * 1.2 / 60d, 0.050, -2.2, 0.050, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.5 * 1.2 / 60d, 0.050, -2.8, 0.050, 3.2);
@@ -837,7 +872,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C6_3) return VRFSystem.MakeIndoorUnit(17.0 * 1.2 / 60d, 0.080, -6.3, 0.080, 7.5);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(18.5 * 1.2 / 60d, 0.080, -7.1, 0.080, 8.0);
           if (coolingCapacity == CoolingCapacity.C8_0) return VRFSystem.MakeIndoorUnit(20.0 * 1.2 / 60d, 0.080, -8.0, 0.080, 9.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingMounted:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(8.5 * 1.2 / 60d, 0.157, -2.2, 0.157, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.5 * 1.2 / 60d, 0.157, -2.8, 0.157, 3.2);
@@ -853,7 +890,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(30.0 * 1.2 / 60d, 0.259, -11.2, 0.259, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(33.5 * 1.2 / 60d, 0.259, -14.0, 0.259, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.259, -16.0, 0.259, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingConcealedDuct:
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(13.0 * 1.2 / 60d, 0.157, -4.5, 0.157, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_0) return VRFSystem.MakeIndoorUnit(14.5 * 1.2 / 60d, 0.157, -5.0, 0.157, 5.6);
@@ -867,7 +906,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(36.0 * 1.2 / 60d, 0.259, -16.0, 0.259, 18.0);
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(63.0 * 1.2 / 60d, 0.840, -22.4, 0.840, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(80.0 * 1.2 / 60d, 0.840, -28.0, 0.840, 31.5);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSuspended:
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(13.0 * 1.2 / 60d, 0.030, -3.6, 0.030, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_0) return VRFSystem.MakeIndoorUnit(14.5 * 1.2 / 60d, 0.040, -4.0, 0.040, 4.8);
@@ -883,7 +924,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(37.0 * 1.2 / 60d, 0.160, -16.0, 0.160, 18.0);
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(58.0 * 1.2 / 60d, 0.200 * 2, -22.4, 0.200 * 2, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(66.0 * 1.2 / 60d, 0.200 * 2, -28.0, 0.200 * 2, 31.5);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.WallMounted:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.030, -2.2, 0.030, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.030, -2.8, 0.030, 3.2);
@@ -897,21 +940,27 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C8_0) return VRFSystem.MakeIndoorUnit(20.0 * 1.2 / 60d, 0.080, -8.0, 0.080, 9.0);
           if (coolingCapacity == CoolingCapacity.C9_0) return VRFSystem.MakeIndoorUnit(21.5 * 1.2 / 60d, 0.080, -9.0, 0.080, 10.0);
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(23.0 * 1.2 / 60d, 0.090, -11.2, 0.090, 12.5); //伝熱面積初期化エラー：蒸発器凝縮器、両方ダメ
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.FloorStandingLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(6.5 * 1.2 / 60d, 0.020, -2.8, 0.020, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.030, -3.6, 0.030, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(11.0 * 1.2 / 60d, 0.035, -4.5, 0.035, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.040, -5.6, 0.040, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(15.5 * 1.2 / 60d, 0.045, -7.1, 0.045, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.ConcealedLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(6.5 * 1.2 / 60d, 0.020, -2.8, 0.020, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(9.0 * 1.2 / 60d, 0.030, -3.6, 0.030, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(11.0 * 1.2 / 60d, 0.035, -4.5, 0.035, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.040, -5.6, 0.040, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(15.5 * 1.2 / 60d, 0.045, -7.1, 0.045, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.FloorMount:
           if (coolingCapacity == CoolingCapacity.C5_0) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.040, -5.0, 0.040, 5.6);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(16.0 * 1.2 / 60d, 0.040, -5.6, 0.040, 6.3);
@@ -924,9 +973,12 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(31.0 * 1.2 / 60d, 0.150, -16.0, 0.150, 18.0); //伝熱面積初期化エラー：凝縮器がダメ
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(49.0 * 1.2 / 60d, 0.330, -22.4, 0.330, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(69.0 * 1.2 / 60d, 0.390, -28.0, 0.390, 31.5);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         default:
-          throw new Exception("There is no such model");
+          throw new PopoloArgumentException(
+              $"Unsupported indoor unit type: {iType}.", nameof(iType));
       }
     }
 
@@ -956,10 +1008,10 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem.MinimumPartialLoadRate = 0.15;
           break;
         case CoolingCapacity.C28_0:
-           vrfSystem = new VRFSystem(r410a,
-            170 * 1.2 / 60d, 0.28 * 1, -28.0, 10.1, -12.6, 2.37, -13.2, 1.94,
-            170 * 1.2 / 60d, 0.28 * 1, 31.5, 8.93, 14.2, 2.55,
-            7.5, 100, 0.90, 100, 1.00, iHex);
+          vrfSystem = new VRFSystem(r410a,
+           170 * 1.2 / 60d, 0.28 * 1, -28.0, 10.1, -12.6, 2.37, -13.2, 1.94,
+           170 * 1.2 / 60d, 0.28 * 1, 31.5, 8.93, 14.2, 2.55,
+           7.5, 100, 0.90, 100, 1.00, iHex);
           vrfSystem.MinimumPartialLoadRate = 0.13;
           break;
         case CoolingCapacity.C33_5:
@@ -1132,7 +1184,9 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem.NumberOfOutdoorUnitDivisions = 3;
           break;
         default:
-          throw new Exception("There is no such model.");
+          throw new PopoloArgumentException(
+              $"No catalogue data for cooling capacity: {coolingCapacity}.",
+              nameof(coolingCapacity));
       }
 
       vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVPORATING_TEMPERATURE;
@@ -1170,7 +1224,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(36.4 * 1.2 / 60d, 0.125, -11.2, 0.125, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(37.7 * 1.2 / 60d, 0.135, -14.0, 0.135, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(37.7 * 1.2 / 60d, 0.137, -16.0, 0.137, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingDoubleFlow:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(9.3 * 1.2 / 60d, 0.024, -2.2, 0.024, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(9.3 * 1.2 / 60d, 0.024, -2.8, 0.024, 3.2);
@@ -1183,12 +1239,16 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(29.0 * 1.2 / 60d, 0.081, -11.2, 0.081, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(30.0 * 1.2 / 60d, 0.091, -14.0, 0.091, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(34.0 * 1.2 / 60d, 0.131, -16.0, 0.131, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSingleFlow:
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(12.5 * 1.2 / 60d, 0.039, -4.5, 0.039, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(13.0 * 1.2 / 60d, 0.042, -5.6, 0.042, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(19.0 * 1.2 / 60d, 0.064, -7.1, 0.064, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingMounted:
           if (coolingCapacity == CoolingCapacity.C2_2) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.033, -2.2, 0.033, 2.5);
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.033, -2.8, 0.033, 3.2);
@@ -1201,7 +1261,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(27.0 * 1.2 / 60d, 0.107, -11.2, 0.107, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(27.0 * 1.2 / 60d, 0.128, -14.0, 0.128, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(33.0 * 1.2 / 60d, 0.128, -16.0, 0.128, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingConcealedDuct:
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(13.3 * 1.2 / 60d, 0.058, -5.6, 0.058, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(20.0 * 1.2 / 60d, 0.094, -7.1, 0.094, 8.0);
@@ -1212,7 +1274,9 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(40.0 * 1.2 / 60d, 0.245, -16.0, 0.245, 18.0);
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(63.3 * 1.2 / 60d, 0.360, -22.4, 0.360, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(80.0 * 1.2 / 60d, 0.560, -28.0, 0.560, 31.5);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.CeilingSuspended:
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.033, -4.5, 0.033, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(15.0 * 1.2 / 60d, 0.034, -5.6, 0.034, 6.3);
@@ -1222,28 +1286,37 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(31.0 * 1.2 / 60d, 0.083, -11.2, 0.083, 12.5);
           if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(31.0 * 1.2 / 60d, 0.083, -14.0, 0.083, 16.0);
           if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(34.0 * 1.2 / 60d, 0.111, -16.0, 0.111, 18.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.WallMounted:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(10.0 * 1.2 / 60d, 0.019, -2.8, 0.019, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(10.0 * 1.2 / 60d, 0.019, -3.6, 0.019, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.028, -4.5, 0.028, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(14.0 * 1.2 / 60d, 0.028, -5.6, 0.028, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(17.0 * 1.2 / 60d, 0.044, -7.1, 0.044, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.ConcealedLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(7.7 * 1.2 / 60d, 0.049, -2.8, 0.049, 3.2);
           if (coolingCapacity == CoolingCapacity.C3_6) return VRFSystem.MakeIndoorUnit(7.7 * 1.2 / 60d, 0.049, -3.6, 0.049, 4.0);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(12.3 * 1.2 / 60d, 0.078, -4.5, 0.078, 5.0);
           if (coolingCapacity == CoolingCapacity.C5_6) return VRFSystem.MakeIndoorUnit(12.3 * 1.2 / 60d, 0.078, -5.6, 0.078, 6.3);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(15.8 * 1.2 / 60d, 0.083, -7.1, 0.083, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         case IndoorUnitType.FloorStandingLowboy:
           if (coolingCapacity == CoolingCapacity.C2_8) return VRFSystem.MakeIndoorUnit(8.0 * 1.2 / 60d, 0.053, -2.8, 0.053, 3.2);
           if (coolingCapacity == CoolingCapacity.C4_5) return VRFSystem.MakeIndoorUnit(15.0 * 1.2 / 60d, 0.090, -4.5, 0.090, 5.0);
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(18.0 * 1.2 / 60d, 0.100, -7.1, 0.100, 8.0);
-          throw new Exception("There is no model with such cooling capacity");
+          throw new PopoloArgumentException(
+            $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
+            nameof(coolingCapacity));
         default:
-          throw new Exception("There is no such model");
+          throw new PopoloArgumentException(
+              $"Unsupported indoor unit type: {iType}.", nameof(iType));
       }
     }
 
@@ -1284,7 +1357,9 @@ namespace Popolo.Core.HVAC.VRF
           break;
 
         default:
-          throw new Exception("There is no such model.");
+          throw new PopoloArgumentException(
+              $"No catalogue data for cooling capacity: {coolingCapacity}.",
+              nameof(coolingCapacity));
       }
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;

@@ -19,6 +19,7 @@
 
 using System;
 using Popolo.Core.Climate;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -161,7 +162,8 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the short-wave (solar) emissivity on the F side (outdoor) [-].</summary>
     public double ShortWaveEmissivityF
-    { get { throw new NotImplementedException(); } }
+    { get { throw new PopoloNotImplementedException(
+        $"{nameof(Window)}.{nameof(ShortWaveEmissivityF)}"); } }
 
     /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side (outdoor) [-].</summary>
     public double LongWaveEmissivityF { get; set; } = 0.9;

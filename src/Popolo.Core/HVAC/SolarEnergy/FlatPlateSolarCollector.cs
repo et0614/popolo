@@ -19,6 +19,7 @@
 
 using System;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
 
@@ -132,7 +133,9 @@ namespace Popolo.Core.HVAC.SolarEnergy
       int iterNumP = 0;
       while (0.001 < Math.Abs(panelTemperature - ptL))
       {
-        if (100 < iterNumP) throw new Exception("FlatPlateSolarCollector iteration error");
+        if (100 < iterNumP) throw new PopoloNumericalException(
+          "FlatPlateSolarCollector.GetHeatTransfer",
+          $"Panel temperature iteration did not converge within {iterNumP} iterations.");
 
         double heatLoss_pg = 0; //ガラスとパネルとの間の熱通過率[W/m2K]
         double radiativeHeatLoss_ga = 0; //ガラスと天空との間の放射熱伝達率[W/m2K]
