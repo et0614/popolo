@@ -197,7 +197,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
       var ahuEco = MakeAHU(withRegenerator: false);
       ahuEco.OATemperature = 10.0;
       ahuEco.OAHumidityRatio = 0.006;
-      ahuEco.OutdoorAirCooling = AirHandlingUnit.OutdoorAirCoolingControl.DrybulbTemperature;
+      ahuEco.OutdoorAirCooling = AirHandlingUnit.OutdoorAirCoolingControl.DryBulbTemperature;
       ahuEco.CoolAir(15.0, 0);
       double qEco = ahuEco.CoolingCoil.HeatTransfer;
 
@@ -370,7 +370,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
       var ahuEco = MakeAHU(hwInlet: 50.0);
       ahuEco.OATemperature = 10.0;
       ahuEco.OAHumidityRatio = 0.006;
-      ahuEco.OutdoorAirCooling = AirHandlingUnit.OutdoorAirCoolingControl.DrybulbTemperature;
+      ahuEco.OutdoorAirCooling = AirHandlingUnit.OutdoorAirCoolingControl.DryBulbTemperature;
       ahuEco.MinimizeAirFlow = true;
       ahuEco.OptimizeVAV(true, 0, off, zT, zW, zHL, minSA, maxSA, maxRA, out suc);
       double qEco = ahuEco.CoolingCoil.HeatTransfer;

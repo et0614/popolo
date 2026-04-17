@@ -197,7 +197,7 @@ namespace Popolo.Core.Tests.Building
     private static (double[][] temp, double[][] load) RunPeriodicSteadyState(
         BuildingThermalModel bModel, int season, bool useCapacityLimit)
     {
-      int nZones = bModel.MultiRoom[0].ZoneNumber;
+      int nZones = bModel.MultiRoom[0].ZoneCount;
       var temp = new double[nZones][];
       var load = new double[nZones][];
       for (int z = 0; z < nZones; z++)
@@ -231,7 +231,7 @@ namespace Popolo.Core.Tests.Building
           {
             if (isAcTime)
             {
-              bModel.ControlDrybulbTemperature(0, z, DbtSetpoint[season]);
+              bModel.ControlDryBulbTemperature(0, z, DbtSetpoint[season]);
               bModel.ControlHumidityRatio(0, z, HrtSetpoint[season]);
             }
             else
@@ -510,8 +510,8 @@ namespace Popolo.Core.Tests.Building
           : new DateTime(2001, 1, 20, 0, 0, 0);
 
       // FreeFloat で収束させる
-      double[] wallHeatSum = new double[bModel.MultiRoom[0].ZoneNumber];
-      double[] tempZ = new double[bModel.MultiRoom[0].ZoneNumber];
+      double[] wallHeatSum = new double[bModel.MultiRoom[0].ZoneCount];
+      double[] tempZ = new double[bModel.MultiRoom[0].ZoneCount];
 
       for (int iter = 0; iter < 100; iter++)
       {

@@ -179,11 +179,11 @@ namespace Popolo.Core.Tests.Utilities
                 new DateTime(2024, 7, 1),
             };
       var interp = new BoundaryInterpolator(dateTimes);
-      Assert.Equal(0, interp.NumberOfSeries);
+      Assert.Equal(0, interp.SeriesCount);
       interp.AddSeries(new double[] { 1.0, 2.0 });
-      Assert.Equal(1, interp.NumberOfSeries);
+      Assert.Equal(1, interp.SeriesCount);
       interp.AddSeries(new double[] { 3.0, 4.0 });
-      Assert.Equal(2, interp.NumberOfSeries);
+      Assert.Equal(2, interp.SeriesCount);
     }
 
     #endregion

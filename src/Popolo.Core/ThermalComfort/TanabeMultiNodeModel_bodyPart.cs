@@ -145,7 +145,7 @@ namespace Popolo.Core.ThermalComfort
       internal double meanRadiantTemperature { get; private set; }
 
       /// <summary>Gets the ambient dry-bulb temperature [°C].</summary>
-      internal double drybulbTemperature { get; private set; }
+      internal double dryBulbTemperature { get; private set; }
 
       /// <summary>Gets the water vapor pressure [kPa].</summary>
       internal double waterVaporPressure { get; private set; }
@@ -175,10 +175,10 @@ namespace Popolo.Core.ThermalComfort
       internal double centralBloodHeatCapacity { get; private set; }
 
       /// <summary>Gets or sets the skin setpoint temperature [°C].</summary>
-      internal double setPoint_Skin { get; set; }
+      internal double setpoint_Skin { get; set; }
 
       /// <summary>Gets or sets the core setpoint temperature [°C].</summary>
-      internal double setPoint_Core { get; set; }
+      internal double setpoint_Core { get; set; }
 
       /// <summary>Gets the evaporative heat loss due to sweating [W].</summary>
       internal double evaporativeHeatLoss_Sweat { get; private set; }
@@ -727,7 +727,7 @@ namespace Popolo.Core.ThermalComfort
         }
 
         //係数計算
-        double dsp = temperatures[Layer.Skin] - setPoint_Skin;
+        double dsp = temperatures[Layer.Skin] - setpoint_Skin;
         double pow1 = sweatSignal * Math.Pow(2, dsp / 10d);
         double pow2 = Math.Pow(2, dsp / 6d);
 
@@ -784,7 +784,7 @@ namespace Popolo.Core.ThermalComfort
       /// <summary>Gets the current thermoregulatory control signals.</summary>
       /// <returns>Thermoregulatory control signal value.</returns>
       internal double getSignal()
-      { return (temperatures[Layer.Skin] - setPoint_Skin) * skinSignal[node]; }
+      { return (temperatures[Layer.Skin] - setpoint_Skin) * skinSignal[node]; }
 
       /// <summary>Computes sensible heat loss from the skin surface [W].</summary>
       /// <returns>Sensible heat loss from skin [W].</returns>
@@ -861,14 +861,14 @@ namespace Popolo.Core.ThermalComfort
       /// <summary>Sets the thermal boundary condition for this body segment.</summary>
       /// <param name="velocity">Air velocity [m/s].</param>
       /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
-      /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+      /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
       /// <param name="waterVaporPressure">Water vapor pressure [kPa].</param>
       internal void updateBoundary
-        (double velocity, double meanRadiantTemperature,double drybulbTemperature, double waterVaporPressure)
+        (double velocity, double meanRadiantTemperature,double dryBulbTemperature, double waterVaporPressure)
       {
         this.velocity = velocity;
         this.meanRadiantTemperature = meanRadiantTemperature;
-        this.drybulbTemperature = drybulbTemperature;
+        this.dryBulbTemperature = dryBulbTemperature;
         this.waterVaporPressure = waterVaporPressure;
         UpdateSkinHeatConductance();
       }
@@ -894,14 +894,14 @@ namespace Popolo.Core.ThermalComfort
         {
           double ctOld = clothTemperature;
           //放射熱伝達率[W/(m2K)]の計算
-          radiativeHeatTransferCoefficient = 4d * BLACK_CONSTANT * eff 
-            * Math.Pow((clothTemperature + meanRadiantTemperature) / 2d + CONVERT_C_TO_K, 3);
+          radiativeHeatTransferCoefficient = 4d * PhysicsConstants.StefanBoltzmannConstant * eff 
+            * Math.Pow(PhysicsConstants.ToKelvin((clothTemperature + meanRadiantTemperature) / 2d), 3);
           //対流熱伝達率[W/(m2K)の計算]
           if (initializing) convectiveHeatTransferCoefficient = cht;
           else
           {
             convectiveHeatTransferCoefficient = cht * Math.Max(2.58 * Math.Sqrt(vel),
-              (clothTemperature - drybulbTemperature) / (setPoint_Skin - 28.8));
+              (clothTemperature - dryBulbTemperature) / (setpoint_Skin - 28.8));
           }
           //総合熱伝達率[W/(m2K)]の計算
           double hcr = radiativeHeatTransferCoefficient + convectiveHeatTransferCoefficient;
@@ -909,7 +909,7 @@ namespace Popolo.Core.ThermalComfort
           ra = 1 / (fcl * hcr);
           //作用温度[C]の計算
           operatingTemperature = (radiativeHeatTransferCoefficient * meanRadiantTemperature
-            + convectiveHeatTransferCoefficient * drybulbTemperature) / hcr;
+            + convectiveHeatTransferCoefficient * dryBulbTemperature) / hcr;
           //衣服温度[C]の計算
           clothTemperature = (ra * temperatures[Layer.Skin] + rcl * operatingTemperature) / (ra + rcl);
           //衣服温度の更新量が0.01C以下で収束と判定
@@ -921,7 +921,7 @@ namespace Popolo.Core.ThermalComfort
           * (radiativeHeatTransferCoefficient + convectiveHeatTransferCoefficient)));
 
         //潜熱伝達率[W/K]の計算
-        double lewis = 0.0555 * (temperatures[Layer.Skin] + CONVERT_C_TO_K);
+        double lewis = 0.0555 * (PhysicsConstants.ToKelvin(temperatures[Layer.Skin]));
         hConductance[8] = surfaceArea * lewis / (1 / (fcl * convectiveHeatTransferCoefficient) + rcl / I_CLS);
       }
 

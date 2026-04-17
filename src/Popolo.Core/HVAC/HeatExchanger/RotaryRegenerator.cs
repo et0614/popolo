@@ -92,16 +92,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double ExhaustAirFlowVolume { get; private set; }
 
     /// <summary>Gets the supply air inlet dry-bulb temperature [°C].</summary>
-    public double SupplyAirInletDrybulbTemperature { get; private set; }
+    public double SupplyAirInletDryBulbTemperature { get; private set; }
 
     /// <summary>Gets the exhaust air inlet dry-bulb temperature [°C].</summary>
-    public double ExhaustAirInletDrybulbTemperature { get; private set; }
+    public double ExhaustAirInletDryBulbTemperature { get; private set; }
 
     /// <summary>Gets the supply air outlet dry-bulb temperature [°C].</summary>
-    public double SupplyAirOutletDrybulbTemperature { get; private set; }
+    public double SupplyAirOutletDryBulbTemperature { get; private set; }
 
     /// <summary>Gets the exhaust air outlet dry-bulb temperature [°C].</summary>
-    public double ExhaustAirOutletDrybulbTemperature { get; private set; }
+    public double ExhaustAirOutletDryBulbTemperature { get; private set; }
 
     /// <summary>Gets the supply air inlet humidity ratio [kg/kg].</summary>
     public double SupplyAirInletHumidityRatio { get; private set; }
@@ -149,18 +149,18 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="saFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="eaFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="isDesiccantWheel">True for a desiccant (total heat) wheel; false for a sensible wheel.</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="nominalElectricity">Nominal power consumption [kW].</param>
     public RotaryRegenerator
       (double efficiency, double diameter, double depth, double thermalConductivity, double saFlowVolume,
-      double eaFlowVolume, bool isDesiccantWheel, double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, double nominalElectricity)
+      double eaFlowVolume, bool isDesiccantWheel, double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, double nominalElectricity)
     {
       Initialize(efficiency, diameter, depth, thermalConductivity, saFlowVolume, eaFlowVolume,
-        isDesiccantWheel, inletSADrybulbTemperature, inletSAHumidityRatio, inletEADrybulbTemperature,
+        isDesiccantWheel, inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature,
         inletEAHumidityRatio, nominalElectricity);
     }
 
@@ -169,14 +169,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="saFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="eaFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="isDesiccantWheel">True for a desiccant (total heat) wheel; false for a sensible wheel.</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     public RotaryRegenerator
       (double depth, double saFlowVolume, double eaFlowVolume, bool isDesiccantWheel,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
       const double VEL = 3.0;
       double diameter = 2 * Math.Sqrt(saFlowVolume / 3600 / (VEL * 0.433 * Math.PI));
@@ -186,8 +186,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       IsDesiccantWheel = isDesiccantWheel;
 
       Initialize
-        (eff, diameter, depth, 210, saFlowVolume, eaFlowVolume, IsDesiccantWheel, inletSADrybulbTemperature,
-        inletSAHumidityRatio, inletEADrybulbTemperature, inletEAHumidityRatio, nomElec);
+        (eff, diameter, depth, 210, saFlowVolume, eaFlowVolume, IsDesiccantWheel, inletSADryBulbTemperature,
+        inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio, nomElec);
     }
 
     /// <summary>Initializes a new instance.</summary>
@@ -198,16 +198,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="saFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="eaFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="isDesiccantWheel">True for a desiccant (total heat) wheel; false for a sensible wheel.</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="nominalElectricity">Nominal power consumption [kW].</param>
     private void Initialize
       (double efficiency, double diameter, double depth, double thermalConductivity,
       double saFlowVolume, double eaFlowVolume, bool isDesiccantWheel,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, double nominalElectricity)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, double nominalElectricity)
     {
       IsDetailedModel = true;
 
@@ -221,16 +221,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
       this.thermalConductivity = thermalConductivity;
       matrixHeatCapacity = GetMatrixHeatCapacity
         (efficiency, frontalArea, airStreamArea, matrixArea, heatTransferArea, depth, thermalConductivity,
-        saFlowVolume, eaFlowVolume, inletSADrybulbTemperature, inletSAHumidityRatio,
-        inletEADrybulbTemperature, inletEAHumidityRatio);
+        saFlowVolume, eaFlowVolume, inletSADryBulbTemperature, inletSAHumidityRatio,
+        inletEADryBulbTemperature, inletEAHumidityRatio);
 
       //ローターの種類と消費電力を保存
       IsDesiccantWheel = isDesiccantWheel;
       NominalElectricity = nominalElectricity;
 
       //定格条件で成り行き計算
-      UpdateState(saFlowVolume, eaFlowVolume, 1.0, inletSADrybulbTemperature, inletSAHumidityRatio,
-        inletEADrybulbTemperature, inletEAHumidityRatio);
+      UpdateState(saFlowVolume, eaFlowVolume, 1.0, inletSADryBulbTemperature, inletSAHumidityRatio,
+        inletEADryBulbTemperature, inletEAHumidityRatio);
     }
 
     #endregion
@@ -241,23 +241,23 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     public void UpdateState
       (double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
       //風量を保存
       SupplyAirFlowVolume = supplyAirFlowVolume;
       ExhaustAirFlowVolume = exhaustAirFlowVolume;
 
       //入口空気状態を保存
-      SupplyAirInletDrybulbTemperature = inletSADrybulbTemperature;
+      SupplyAirInletDryBulbTemperature = inletSADryBulbTemperature;
       SupplyAirInletHumidityRatio = inletSAHumidityRatio;
-      ExhaustAirInletDrybulbTemperature = inletEADrybulbTemperature;
+      ExhaustAirInletDryBulbTemperature = inletEADryBulbTemperature;
       ExhaustAirInletHumidityRatio = inletEAHumidityRatio;
 
       //消費電力は回転率に比例
@@ -275,23 +275,23 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         GetEfficiency_Detailed
           (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
-          inletSADrybulbTemperature, inletSAHumidityRatio,
-          inletEADrybulbTemperature, inletEAHumidityRatio, out effSA, out effEA);
+          inletSADryBulbTemperature, inletSAHumidityRatio,
+          inletEADryBulbTemperature, inletEAHumidityRatio, out effSA, out effEA);
       }
       else
       {
         GetEfficiency_Simplified
           (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
-          inletSADrybulbTemperature, inletSAHumidityRatio,
-          inletEADrybulbTemperature, inletEAHumidityRatio, out effSA, out effEA);
+          inletSADryBulbTemperature, inletSAHumidityRatio,
+          inletEADryBulbTemperature, inletEAHumidityRatio, out effSA, out effEA);
       }
       Efficiency = effSA;
 
       //出口空気状態の計算
-      SupplyAirOutletDrybulbTemperature = SupplyAirInletDrybulbTemperature -
-        effSA * (SupplyAirInletDrybulbTemperature - ExhaustAirInletDrybulbTemperature);
-      ExhaustAirOutletDrybulbTemperature = ExhaustAirInletDrybulbTemperature -
-        effEA * (ExhaustAirInletDrybulbTemperature - SupplyAirInletDrybulbTemperature);
+      SupplyAirOutletDryBulbTemperature = SupplyAirInletDryBulbTemperature -
+        effSA * (SupplyAirInletDryBulbTemperature - ExhaustAirInletDryBulbTemperature);
+      ExhaustAirOutletDryBulbTemperature = ExhaustAirInletDryBulbTemperature -
+        effEA * (ExhaustAirInletDryBulbTemperature - SupplyAirInletDryBulbTemperature);
       //水分交換
       if (IsDesiccantWheel)
       {
@@ -311,16 +311,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="effSA">Output: supply-air-side heat exchange efficiency [-].</param>
     /// <param name="effEA">Output: exhaust-air-side heat exchange efficiency [-].</param>
     private void GetEfficiency_Detailed
       (double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
     {
       //無次元数を計算
       double ntu0m, rmc, cLambda, mcMin;
@@ -328,7 +328,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       GetDimensionLessVariables
         (frontalArea, airStreamArea, matrixArea, heatTransferArea, Depth,
         thermalConductivity, supplyAirFlowVolume, exhaustAirFlowVolume,
-        inletSADrybulbTemperature, inletSAHumidityRatio, inletEADrybulbTemperature, inletEAHumidityRatio,
+        inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio,
         out mcMin, out rmc, out ntu0m, out cLambda, out isMcMinSASide);
 
       //回転数制御の効果を計算
@@ -337,7 +337,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       //熱通過有効度[-]を計算
       double eff = GetEffectiveness
         (mcMin, rmc, ntu0m, cLambda, rr, supplyAirFlowVolume, exhaustAirFlowVolume,
-        inletSADrybulbTemperature, inletSAHumidityRatio, inletEADrybulbTemperature, inletEAHumidityRatio);
+        inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
       //熱交換効率[-]を計算
       if (isMcMinSASide)
@@ -356,22 +356,22 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="effSA">Output: supply-air-side heat exchange efficiency [-].</param>
     /// <param name="effEA">Output: exhaust-air-side heat exchange efficiency [-].</param>
     private void GetEfficiency_Simplified
       (double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
     {
       //熱容量流量比[-]の計算
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
-        (inletSADrybulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+        (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
-        (inletEADrybulbTemperature, inletEAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+        (inletEADryBulbTemperature, inletEAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double mSA = supplyAirFlowVolume / 3600d / svSA;
       double mEA = exhaustAirFlowVolume / 3600d / svEA;
       double mcSA = mSA * MoistAir.GetSpecificHeat(inletSAHumidityRatio) * 1000;
@@ -400,28 +400,28 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
-    /// <param name="outletSADrybulbTemperatureSP">Supply air outlet dry-bulb temperature setpoint [°C].</param>
+    /// <param name="outletSADryBulbTemperatureSP">Supply air outlet dry-bulb temperature setpoint [°C].</param>
     /// <returns>True if the setpoint is achievable; false if overloaded.</returns>
     public bool ControlOutletTemperature(
       double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, double outletSADrybulbTemperatureSP)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSADryBulbTemperatureSP)
     {
       //成り行き計算実行
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
-        inletSADrybulbTemperature, inletSAHumidityRatio, inletEADrybulbTemperature, inletEAHumidityRatio);
+        inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
       //冷却運転か否か
-      bool cl = SupplyAirOutletDrybulbTemperature < SupplyAirInletDrybulbTemperature;
+      bool cl = SupplyAirOutletDryBulbTemperature < SupplyAirInletDryBulbTemperature;
 
       //熱交換が無駄な場合は停止
-      if ((cl && (SupplyAirInletDrybulbTemperature < outletSADrybulbTemperatureSP)) ||
-        (!cl && (outletSADrybulbTemperatureSP < SupplyAirInletDrybulbTemperature)))
+      if ((cl && (SupplyAirInletDryBulbTemperature < outletSADryBulbTemperatureSP)) ||
+        (!cl && (outletSADryBulbTemperatureSP < SupplyAirInletDryBulbTemperature)))
       {
         ShutOff();
         return false;
@@ -429,16 +429,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
       //処理可能な場合には消費電力と出口条件を修正
       bool canSolve =
-        (cl && SupplyAirOutletDrybulbTemperature <= outletSADrybulbTemperatureSP
-        && outletSADrybulbTemperatureSP <= SupplyAirInletDrybulbTemperature) ||
-        (!cl && outletSADrybulbTemperatureSP < SupplyAirOutletDrybulbTemperature
-        && SupplyAirInletDrybulbTemperature <= outletSADrybulbTemperatureSP);
+        (cl && SupplyAirOutletDryBulbTemperature <= outletSADryBulbTemperatureSP
+        && outletSADryBulbTemperatureSP <= SupplyAirInletDryBulbTemperature) ||
+        (!cl && outletSADryBulbTemperatureSP < SupplyAirOutletDryBulbTemperature
+        && SupplyAirInletDryBulbTemperature <= outletSADryBulbTemperatureSP);
       if (canSolve)
       {
-        double rRun = (1d / Efficiency) * (outletSADrybulbTemperatureSP - SupplyAirInletDrybulbTemperature)
-          / (ExhaustAirInletDrybulbTemperature - SupplyAirInletDrybulbTemperature);
+        double rRun = (1d / Efficiency) * (outletSADryBulbTemperatureSP - SupplyAirInletDryBulbTemperature)
+          / (ExhaustAirInletDryBulbTemperature - SupplyAirInletDryBulbTemperature);
         Electricity *= rRun;
-        SupplyAirOutletDrybulbTemperature = outletSADrybulbTemperatureSP;
+        SupplyAirOutletDryBulbTemperature = outletSADryBulbTemperatureSP;
         SupplyAirOutletHumidityRatio =
           rRun * SupplyAirOutletHumidityRatio + (1 - rRun) * SupplyAirInletHumidityRatio;
       }
@@ -449,22 +449,22 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="outletSAHumidityRatioSP">Supply air outlet humidity ratio setpoint [kg/kg].</param>
     /// <returns>True if the setpoint is achievable; false if overloaded.</returns>
     public bool ControlOutletHumidity(
       double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, double outletSAHumidityRatioSP)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSAHumidityRatioSP)
     {
       //成り行き計算実行
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
-        inletSADrybulbTemperature, inletSAHumidityRatio,
-        inletEADrybulbTemperature, inletEAHumidityRatio);
+        inletSADryBulbTemperature, inletSAHumidityRatio,
+        inletEADryBulbTemperature, inletEAHumidityRatio);
 
       //除湿運転か否か
       bool cl = SupplyAirOutletHumidityRatio < SupplyAirInletHumidityRatio;
@@ -489,8 +489,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
           (outletSAHumidityRatioSP - SupplyAirInletHumidityRatio) /
           (ExhaustAirInletHumidityRatio - SupplyAirInletHumidityRatio);
         Electricity *= rRun;
-        SupplyAirOutletDrybulbTemperature = rRun * SupplyAirOutletDrybulbTemperature
-          + (1 - rRun) * SupplyAirInletDrybulbTemperature;
+        SupplyAirOutletDryBulbTemperature = rRun * SupplyAirOutletDryBulbTemperature
+          + (1 - rRun) * SupplyAirInletDryBulbTemperature;
         SupplyAirOutletHumidityRatio = outletSAHumidityRatioSP;
       }
       return canSolve;
@@ -500,27 +500,27 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
     /// <param name="rotatingRate">Rotor rotation rate ratio [-].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="outletSAEnthalpySP">Supply air outlet specific enthalpy setpoint [kJ/kg].</param>
     /// <returns>True if the setpoint is achievable; false if overloaded.</returns>
     public bool ControlOutletEnthalpy(
       double supplyAirFlowVolume, double exhaustAirFlowVolume, double rotatingRate,
-      double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio, double outletSAEnthalpySP)
+      double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSAEnthalpySP)
     {
       //成り行き計算実行
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
-        inletSADrybulbTemperature, inletSAHumidityRatio, inletEADrybulbTemperature, inletEAHumidityRatio);
+        inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
       //冷却除湿運転か否か
       double hSAi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-        (SupplyAirInletDrybulbTemperature, SupplyAirInletHumidityRatio);
+        (SupplyAirInletDryBulbTemperature, SupplyAirInletHumidityRatio);
       double hSAo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-        (SupplyAirOutletDrybulbTemperature, SupplyAirOutletHumidityRatio);
+        (SupplyAirOutletDryBulbTemperature, SupplyAirOutletHumidityRatio);
       bool cl = hSAo < hSAi;
 
       //熱交換が無駄な場合は停止
@@ -537,19 +537,19 @@ namespace Popolo.Core.HVAC.HeatExchanger
       if (canSolve)
       {
         double ctw = 1.805
-          * (ExhaustAirInletDrybulbTemperature - SupplyAirInletDrybulbTemperature)
+          * (ExhaustAirInletDryBulbTemperature - SupplyAirInletDryBulbTemperature)
           * (ExhaustAirInletHumidityRatio - SupplyAirInletHumidityRatio);
         double aRun = Efficiency * Efficiency * ctw;
         double hEAi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-          (ExhaustAirInletDrybulbTemperature, ExhaustAirInletHumidityRatio);
+          (ExhaustAirInletDryBulbTemperature, ExhaustAirInletHumidityRatio);
         double bRun = Efficiency * ((hEAi - hSAi) - ctw);
         double cRun = hSAi - outletSAEnthalpySP;
         double bf = Math.Sqrt(bRun * bRun - 4 * aRun * cRun);
         double rRun = (-bRun + bf) / (2 * aRun);
         if (rRun < 0 || 1 < rRun) rRun = (-bRun - bf) / (2 * aRun);
         Electricity *= rRun;
-        SupplyAirOutletDrybulbTemperature = rRun * SupplyAirOutletDrybulbTemperature
-          + (1 - rRun) * SupplyAirInletDrybulbTemperature;
+        SupplyAirOutletDryBulbTemperature = rRun * SupplyAirOutletDryBulbTemperature
+          + (1 - rRun) * SupplyAirInletDryBulbTemperature;
         SupplyAirOutletHumidityRatio = rRun * SupplyAirOutletHumidityRatio
           + (1 - rRun) * SupplyAirInletHumidityRatio;
       }
@@ -567,9 +567,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
       if (SupplyAirFlowVolume == 0 || ExhaustAirFlowVolume == 0) return 0;
 
       double hSAo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-        (SupplyAirOutletDrybulbTemperature, SupplyAirOutletHumidityRatio);
+        (SupplyAirOutletDryBulbTemperature, SupplyAirOutletHumidityRatio);
       double hSAi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-        (SupplyAirInletDrybulbTemperature, SupplyAirInletHumidityRatio);
+        (SupplyAirInletDryBulbTemperature, SupplyAirInletHumidityRatio);
       return SupplyAirFlowVolume * PhysicsConstants.NominalMoistAirDensity / 3600 * (hSAo - hSAi);
     }
 
@@ -577,8 +577,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public void ShutOff()
     {
       Efficiency = 0;
-      SupplyAirOutletDrybulbTemperature = SupplyAirInletDrybulbTemperature;
-      ExhaustAirOutletDrybulbTemperature = ExhaustAirInletDrybulbTemperature;
+      SupplyAirOutletDryBulbTemperature = SupplyAirInletDryBulbTemperature;
+      ExhaustAirOutletDryBulbTemperature = ExhaustAirInletDryBulbTemperature;
       SupplyAirOutletHumidityRatio = SupplyAirInletHumidityRatio;
       ExhaustAirOutletHumidityRatio = ExhaustAirInletHumidityRatio;
       SupplyAirFlowVolume = ExhaustAirFlowVolume = 0;
@@ -599,24 +599,24 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="thermalConductivity">Thermal conductivity of the matrix material [W/(m·K)].</param>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <returns>Rotary heat capacity rate [W/K].</returns>
     public static double GetMatrixHeatCapacity
       (double efficiency, double frontalArea, double airStreamArea, double matrixArea,
       double heatTransferArea, double length, double thermalConductivity, double supplyAirFlowVolume,
-      double exhaustAirFlowVolume, double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio)
+      double exhaustAirFlowVolume, double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
       //無次元数を取得
       double ntu0m, rmc, cLambda, mcMin;
       bool isMcMinSASide;
       GetDimensionLessVariables
         (frontalArea, airStreamArea, matrixArea, heatTransferArea, length, thermalConductivity,
-        supplyAirFlowVolume, exhaustAirFlowVolume, inletSADrybulbTemperature, inletSAHumidityRatio,
-        inletEADrybulbTemperature, inletEAHumidityRatio,
+        supplyAirFlowVolume, exhaustAirFlowVolume, inletSADryBulbTemperature, inletSAHumidityRatio,
+        inletEADryBulbTemperature, inletEAHumidityRatio,
         out mcMin, out rmc, out ntu0m, out cLambda, out isMcMinSASide);
 
       double effectiveness;
@@ -653,15 +653,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="rr">Rotary heat capacity rate ratio Cr* [-].</param>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <returns>Heat transfer effectiveness [-].</returns>
     public static double GetEffectiveness
       (double mcMin, double rmc, double ntu0m, double cLambda, double rr, double supplyAirFlowVolume,
-      double exhaustAirFlowVolume, double inletSADrybulbTemperature, double inletSAHumidityRatio,
-      double inletEADrybulbTemperature, double inletEAHumidityRatio)
+      double exhaustAirFlowVolume, double inletSADryBulbTemperature, double inletSAHumidityRatio,
+      double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
       double e;
       if (0.99 < rmc)
@@ -691,9 +691,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="thermalConductivity">Thermal conductivity of the matrix material [W/(m·K)].</param>
     /// <param name="saFlowVolume">Supply air volumetric flow rate [m³/h].</param>
     /// <param name="eaFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
-    /// <param name="inletSADrybulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletSADryBulbTemperature">Supply air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletSAHumidityRatio">Supply air inlet humidity ratio [kg/kg].</param>
-    /// <param name="inletEADrybulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="inletEADryBulbTemperature">Exhaust air inlet dry-bulb temperature [°C].</param>
     /// <param name="inletEAHumidityRatio">Exhaust air inlet humidity ratio [kg/kg].</param>
     /// <param name="mcMin">Minimum heat capacity rate [W/K].</param>
     /// <param name="rmc">Heat capacity rate ratio (Cmin/Cmax) [-].</param>
@@ -702,15 +702,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="isMcMinSASide">True if the supply air side has the smaller heat capacity rate.</param>
     public static void GetDimensionLessVariables
       (double frontalArea, double airStreamArea, double matrixArea, double heatTransferArea, double length,
-      double thermalConductivity, double saFlowVolume, double eaFlowVolume, double inletSADrybulbTemperature,
-      double inletSAHumidityRatio, double inletEADrybulbTemperature, double inletEAHumidityRatio,
+      double thermalConductivity, double saFlowVolume, double eaFlowVolume, double inletSADryBulbTemperature,
+      double inletSAHumidityRatio, double inletEADryBulbTemperature, double inletEAHumidityRatio,
       out double mcMin, out double rmc, out double ntu0m, out double cLambda, out bool isMcMinSASide)
     {
       //熱容量流量比[-]の計算
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
-        (inletSADrybulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+        (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
-        (inletEADrybulbTemperature, inletEAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+        (inletEADryBulbTemperature, inletEAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double mSA = saFlowVolume / 3600d / svSA;
       double mEA = eaFlowVolume / 3600d / svEA;
       double mcSA = mSA * MoistAir.GetSpecificHeat(inletSAHumidityRatio) * 1000;
@@ -725,8 +725,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double vEA = eaFlowVolume / 3600d / (airStreamArea * (1 - SA_AREA_RATE));
       //対流熱伝達率[W/(m2K)]の計算
       double ed25 = 1d / Math.Pow(E_DIAMETER, 0.25);
-      double alphaSA = (4.13 + 0.195 * inletSADrybulbTemperature / 100) * Math.Pow(vSA, 0.75) * ed25;
-      double alphaEA = (4.13 + 0.195 * inletEADrybulbTemperature / 100) * Math.Pow(vEA, 0.75) * ed25;
+      double alphaSA = (4.13 + 0.195 * inletSADryBulbTemperature / 100) * Math.Pow(vSA, 0.75) * ed25;
+      double alphaEA = (4.13 + 0.195 * inletEADryBulbTemperature / 100) * Math.Pow(vEA, 0.75) * ed25;
       //修正移動単位数[-]の計算
       double ha = 1 / (alphaSA * heatTransferArea * SA_AREA_RATE)
         + 1 / (alphaEA * heatTransferArea * (1 - SA_AREA_RATE));

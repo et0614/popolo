@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         [Fact]
         public void Constructor_NumberOfUnits_MatchesInput()
         {
-            Assert.Equal(Units, MakeHP().NumberOfUnits);
+            Assert.Equal(Units, MakeHP().UnitCount);
         }
 
         [Fact]
@@ -100,7 +100,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.MaximizeEfficiency = true;
             hp.MinimumPartialLoadRate = 0.2;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
@@ -114,7 +114,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(0.7), Mw, CoolingAirT);
             if (!hp.IsOverLoad)
                 Assert.InRange(hp.WaterOutletTemperature, ChwOutlet - 0.5, ChwOutlet + 0.5);
@@ -126,12 +126,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp35 = MakeHP();
             hp35.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp35.WaterOutletSetPointTemperature = ChwOutlet;
+            hp35.WaterOutletSetpointTemperature = ChwOutlet;
             hp35.Update(CoolingInletTemp(0.7), Mw, 35.0);
 
             var hp25 = MakeHP();
             hp25.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp25.WaterOutletSetPointTemperature = ChwOutlet;
+            hp25.WaterOutletSetpointTemperature = ChwOutlet;
             hp25.Update(CoolingInletTemp(0.7), Mw, 25.0);
 
             Assert.True(hp25.COP > hp35.COP,
@@ -144,7 +144,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.InRange(hp.COP, 1.0, 8.0);
         }
@@ -155,7 +155,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.True(hp.ElectricConsumption > 0);
         }
@@ -171,7 +171,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-            hp.WaterOutletSetPointTemperature = HwOutlet;
+            hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.MaximizeEfficiency = true;
             hp.MinimumPartialLoadRate = 0.2;
             hp.Update(HeatingInletTemp(1.0), Mw, HeatingAirT);
@@ -185,7 +185,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-            hp.WaterOutletSetPointTemperature = HwOutlet;
+            hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.Update(HeatingInletTemp(0.7), Mw, HeatingAirT);
             if (!hp.IsOverLoad)
                 Assert.InRange(hp.WaterOutletTemperature, HwOutlet - 0.5, HwOutlet + 0.5);
@@ -197,12 +197,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp7 = MakeHP();
             hp7.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-            hp7.WaterOutletSetPointTemperature = HwOutlet;
+            hp7.WaterOutletSetpointTemperature = HwOutlet;
             hp7.Update(HeatingInletTemp(0.7), Mw, 7.0);
 
             var hp20 = MakeHP();
             hp20.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-            hp20.WaterOutletSetPointTemperature = HwOutlet;
+            hp20.WaterOutletSetpointTemperature = HwOutlet;
             hp20.Update(HeatingInletTemp(0.7), Mw, 20.0);
 
             Assert.True(hp20.COP > hp7.COP,
@@ -215,7 +215,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-            hp.WaterOutletSetPointTemperature = HwOutlet;
+            hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.Update(HeatingInletTemp(1.0), Mw, HeatingAirT);
             Assert.InRange(hp.COP, 1.0, 8.0);
         }
@@ -230,7 +230,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.True(hp.CoolingLoad > 0);
             hp.ShutOff();
@@ -243,7 +243,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var hp = MakeHP();
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-            hp.WaterOutletSetPointTemperature = ChwOutlet;
+            hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.ShutOff;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);

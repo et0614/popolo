@@ -100,7 +100,7 @@ namespace Popolo.Core.Tests.Numerics
       var integrator = new GaussLegendreIntegrator(x => Math.Sin(x), 2);
       double before = integrator.Integrate(0.0, Math.PI);
 
-      integrator.UpdateNodeNumber(10);
+      integrator.UpdateNodeCount(10);
       double after = integrator.Integrate(0.0, Math.PI);
 
       // 分点数増加後の方が真値(2.0)に近い
@@ -124,7 +124,7 @@ namespace Popolo.Core.Tests.Numerics
     {
       var integrator = new GaussLegendreIntegrator(x => x, 5);
       var ex = Assert.Throws<PopoloArgumentException>(
-          () => integrator.UpdateNodeNumber(0));
+          () => integrator.UpdateNodeCount(0));
       Assert.Equal("nodeNumber", ex.ParamName);
     }
 

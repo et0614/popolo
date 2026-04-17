@@ -106,10 +106,10 @@ namespace Popolo.Core.Physics
     #region 近似係数（プライベートフィールド）
 
     /// <summary>近似係数 m の数</summary>
-    private readonly int _mNumber;
+    private readonly int _mCount;
 
     /// <summary>近似係数 n の数</summary>
-    private readonly int _nNumber;
+    private readonly int _nCount;
 
     /// <summary>ガス定数 [kJ/(kg·K)]</summary>
     private readonly double _gasConstant;
@@ -194,7 +194,7 @@ namespace Popolo.Core.Physics
       switch (fluid)
       {
         case Fluid.R410A:
-          _mNumber = 5; _nNumber = 8;
+          _mCount = 5; _nCount = 8;
           CriticalTemperature = 71.358 + PhysicsConstants.CelsiusToKelvinOffset;
           CriticalDensity = 459.53;
           CriticalPressure = 4902.6;
@@ -203,7 +203,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1170; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR410A; _cps = CpsR410A; _cts = CtsR410A;
           MaxPressure = 4000; MinPressure = 700;
-          _alpha = new double[_mNumber, _nNumber - 2];
+          _alpha = new double[_mCount, _nCount - 2];
           index = 0;
           for (int m = 0; m < _alpha.GetLength(0); m++)
             for (int n = 0; n < _alpha.GetLength(1); n++)
@@ -211,7 +211,7 @@ namespace Popolo.Core.Physics
           break;
 
         case Fluid.R32:
-          _mNumber = 5; _nNumber = 8;
+          _mCount = 5; _nCount = 8;
           CriticalTemperature = 78.105 + PhysicsConstants.CelsiusToKelvinOffset;
           CriticalDensity = 424.0;
           CriticalPressure = 5782;
@@ -220,7 +220,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1055.3; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR32; _cps = CpsR32; _cts = CtsR32;
           MaxPressure = 4500; MinPressure = 700;
-          _alpha = new double[_mNumber, _nNumber - 2];
+          _alpha = new double[_mCount, _nCount - 2];
           index = 0;
           for (int m = 0; m < _alpha.GetLength(0); m++)
             for (int n = 0; n < _alpha.GetLength(1); n++)
@@ -228,7 +228,7 @@ namespace Popolo.Core.Physics
           break;
 
         case Fluid.R134a:
-          _mNumber = 5; _nNumber = 7;
+          _mCount = 5; _nCount = 7;
           CriticalTemperature = 101.06 + PhysicsConstants.CelsiusToKelvinOffset;
           CriticalDensity = 511.9;
           CriticalPressure = 4059.3;
@@ -237,7 +237,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1294.8; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR134a; _cps = CpsR134a; _cts = CtsR134a;
           MaxPressure = 1500; MinPressure = 200;
-          _alpha = new double[_mNumber, _nNumber - 2];
+          _alpha = new double[_mCount, _nCount - 2];
           index = 0;
           for (int m = 0; m < _alpha.GetLength(0); m++)
             for (int n = 0; n < _alpha.GetLength(1); n++)

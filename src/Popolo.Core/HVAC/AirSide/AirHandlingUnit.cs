@@ -38,7 +38,7 @@ namespace Popolo.Core.HVAC.AirSide
       /// <summary>No humidifier.</summary>
       None,
       /// <summary>Control based on dry-bulb temperature.</summary>
-      DrybulbTemperature,
+      DryBulbTemperature,
       /// <summary>Control based on humidity ratio.</summary>
       HumidityRatio,
       /// <summary>Control based on specific enthalpy.</summary>
@@ -281,7 +281,7 @@ namespace Popolo.Core.HVAC.AirSide
       if (controlOutletTemp)
       {
         double mOA = MinOAFlowRate;
-        if (OutdoorAirCooling == OutdoorAirCoolingControl.DrybulbTemperature)
+        if (OutdoorAirCooling == OutdoorAirCoolingControl.DryBulbTemperature)
         {
           if (tdCo < OATemperature && OATemperature < RATemperature)
             mOA = Math.Min(MaxOAFlowRate, SAFlowRate);
@@ -323,10 +323,10 @@ namespace Popolo.Core.HVAC.AirSide
           //成り行き計算を試行
           regen.UpdateState(OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio);
           //過剰処理の場合には給気温度を制御
-          if (controlOutletTemp && regen.SupplyAirOutletDrybulbTemperature < tdCo)
+          if (controlOutletTemp && regen.SupplyAirOutletDryBulbTemperature < tdCo)
             regen.ControlOutletTemperature
               (OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio, tdCo);
-          tdOA = regen.SupplyAirOutletDrybulbTemperature;
+          tdOA = regen.SupplyAirOutletDryBulbTemperature;
           hrOA = regen.SupplyAirOutletHumidityRatio;
         }
         else regen.ShutOff();
@@ -430,11 +430,11 @@ namespace Popolo.Core.HVAC.AirSide
           regen.UpdateState(OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio);
           //過剰処理の場合には給気比エンタルピーを制御
           double hRego = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-            (regen.SupplyAirOutletDrybulbTemperature, regen.SupplyAirOutletHumidityRatio);
+            (regen.SupplyAirOutletDryBulbTemperature, regen.SupplyAirOutletHumidityRatio);
           if (controlOutletState && hCo < hRego)
             regen.ControlOutletEnthalpy
               (OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio, hCo);
-          tdOA = regen.SupplyAirOutletDrybulbTemperature;
+          tdOA = regen.SupplyAirOutletDryBulbTemperature;
           hrOA = regen.SupplyAirOutletHumidityRatio;
         }
         else regen.ShutOff();

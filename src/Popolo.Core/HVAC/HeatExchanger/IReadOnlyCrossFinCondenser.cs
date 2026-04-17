@@ -1,4 +1,4 @@
-/* IReadOnlyCrossFinCondensor.cs
+/* IReadOnlyCrossFinCondenser.cs
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3
  */
@@ -6,7 +6,7 @@
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Read-only view of a cross-fin air-cooled condenser.</summary>
-  public interface IReadOnlyCrossFinCondensor
+  public interface IReadOnlyCrossFinCondenser
   {
     /// <summary>Gets the heat transfer surface area [m²].</summary>
     double SurfaceArea { get; }

@@ -49,10 +49,10 @@ namespace Popolo.Core.HVAC.SystemModel
     public IReadOnlyCentrifugalPump HotWaterPump { get { return hwPump; } }
 
     /// <summary>Gets the total number of boiler units.</summary>
-    public int BoilerNumber { get; private set; }
+    public int BoilerCount { get; private set; }
 
     /// <summary>Gets the number of operating units.</summary>
-    public int OperatingNumber { get; private set; }
+    public int ActiveUnitCount { get; private set; }
 
     #endregion
 
@@ -91,11 +91,11 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the maximum hot water flow rate [kg/s].</summary>
     public double MaxHotWaterFlowRate
-    { get { return boiler.MaxWaterFlowRate * BoilerNumber; } }
+    { get { return boiler.MaxWaterFlowRate * BoilerCount; } }
 
     /// <summary>Gets the minimum hot water flow rate ratio [-].</summary>
     public double MinHotWaterFlowRatio
-    { get { return boiler.MinWaterFlowRatio / BoilerNumber; } }
+    { get { return boiler.MinWaterFlowRatio / BoilerCount; } }
 
     /// <summary>Gets or sets the chilled water return temperature [°C].</summary>
     public double ChilledWaterReturnTemperature { get; set; }
@@ -122,7 +122,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public void ShutOff()
     {
       IsOverLoad_H = false;
-      BoilerNumber = 0;
+      BoilerCount = 0;
       boiler.ShutOff();
       hwPump.ShutOff();
     }
@@ -140,20 +140,20 @@ namespace Popolo.Core.HVAC.SystemModel
         return;
       }
 
-      OperatingNumber = (int)Math.Ceiling(hotWaterFlowRate / boiler.MaxWaterFlowRate);
-      OperatingNumber = Math.Min(BoilerNumber, OperatingNumber);
+      ActiveUnitCount = (int)Math.Ceiling(hotWaterFlowRate / boiler.MaxWaterFlowRate);
+      ActiveUnitCount = Math.Min(BoilerCount, ActiveUnitCount);
       boiler.AmbientTemperature = OutdoorAir.DryBulbTemperature;
-      boiler.OutletWaterSetPointTemperature = HotWaterSupplyTemperatureSetpoint;
+      boiler.OutletWaterSetpointTemperature = HotWaterSupplyTemperatureSetpoint;
 
       while (true)
       {
         //ポンプによる昇温を評価
-        double hwFlow = hotWaterFlowRate / OperatingNumber;
+        double hwFlow = hotWaterFlowRate / ActiveUnitCount;
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
         boiler.Update(twi, hwFlow);
-        if (OperatingNumber == BoilerNumber || !boiler.IsOverLoad) break;
-        else OperatingNumber++;
+        if (ActiveUnitCount == BoilerCount || !boiler.IsOverLoad) break;
+        else ActiveUnitCount++;
       }
 
       IsOverLoad_H = boiler.IsOverLoad;
@@ -171,12 +171,12 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <summary>Initializes a new instance.</summary>
     /// <param name="boiler">Hot-water boiler.</param>
     /// <param name="hwPump">Hot water pump.</param>
-    /// <param name="number">Number of boiler units.</param>
-    public HotWaterBoilerSystem(HotWaterBoiler boiler, CentrifugalPump hwPump, int number)
+    /// <param name="unitCount">Total number of boiler units.</param>
+    public HotWaterBoilerSystem(HotWaterBoiler boiler, CentrifugalPump hwPump, int unitCount)
     {
       this.boiler = boiler;
       this.hwPump = hwPump;
-      BoilerNumber = number;
+      BoilerCount = unitCount;
       Mode = HeatSourceSystemModel.OperatingMode.ShutOff;
     }
 

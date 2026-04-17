@@ -127,7 +127,7 @@ namespace Popolo.Core.Building
       List<IReadOnlyWindow> wins = new List<IReadOnlyWindow>();
       for (int i = 0; i < mRooms.Length; i++)
       {
-        zoneVent[i] = new InterZoneAirFlowCollection[mRooms[i].ZoneNumber];
+        zoneVent[i] = new InterZoneAirFlowCollection[mRooms[i].ZoneCount];
         for (int j = 0; j < zoneVent[i].Length; j++) zoneVent[i][j] = new InterZoneAirFlowCollection();
         hasHTChgd.Add(mRooms[i], true);
         hasWTChgd.Add(mRooms[i], true);
@@ -137,12 +137,12 @@ namespace Popolo.Core.Building
 
         //ゾーンの重複確認
         foreach (IReadOnlyZone zn in mRooms[i].Zones)
-          if (zns.Contains(zn)) throw new Popolo.Core.Exceptions.PopoloArgumentException("mRooms", "A zone belongs to more than one MultiRooms instance.");
+          if (zns.Contains(zn)) throw new PopoloArgumentException("A zone belongs to more than one MultiRooms instance.", "mRooms");
         zns.AddRange(mRooms[i].Zones);
 
         //窓の重複確認
         foreach (IReadOnlyWindow win in mRooms[i].Windows)
-          if (wins.Contains(win)) throw new Popolo.Core.Exceptions.PopoloArgumentException("mRooms", "A window belongs to more than one MultiRooms instance.");
+          if (wins.Contains(win)) throw new PopoloArgumentException("A window belongs to more than one MultiRooms instance.", "mRooms");
         wins.AddRange(mRooms[i].Windows);
       }
     }
@@ -289,7 +289,7 @@ namespace Popolo.Core.Building
         bool hasOverLoad = false;
         for (int i = 0; i < MultiRoom.Length; i++)
         {
-          for (int j = 0; j < MultiRoom[i].ZoneNumber; j++)
+          for (int j = 0; j < MultiRoom[i].ZoneCount; j++)
           {
             IReadOnlyZone zn = MultiRoom[i].Zones[j];
             if (zn.TemperatureControlled && //温度制御をしている場合で
@@ -325,7 +325,7 @@ namespace Popolo.Core.Building
       for (int i = 0; i < mrIndex.Count; i++)
       {
         if (isDBTSP[i])
-          ControlDrybulbTemperature(mrIndex[i], znIndex[i], sPoint[i]);
+          ControlDryBulbTemperature(mrIndex[i], znIndex[i], sPoint[i]);
         else
           ControlHumidityRatio(mrIndex[i], znIndex[i], sPoint[i]);
       }
@@ -488,13 +488,13 @@ namespace Popolo.Core.Building
     /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
     /// <param name="mRoomIndex">MultiRooms index.</param>
     /// <param name="wallIndex">Wall (floor) index.</param>
-    /// <param name="mNumber">Node index.</param>
+    /// <param name="mIndex">Node index.</param>
     /// <param name="flowRate">Water mass flow rate [kg/s].</param>
     /// <param name="temperature">Inlet water temperature [°C].</param>
     public void SetBuriedPipeWaterState
-      (int mRoomIndex, int wallIndex, int mNumber, double flowRate, double temperature)
+      (int mRoomIndex, int wallIndex, int mIndex, double flowRate, double temperature)
     {
-      mRooms[mRoomIndex].SetBuriedPipeWaterState(wallIndex, mNumber, flowRate, temperature);
+      mRooms[mRoomIndex].SetBuriedPipeWaterState(wallIndex, mIndex, flowRate, temperature);
       hasHTChgd[mRooms[mRoomIndex]] = true;
     }
 
@@ -589,9 +589,9 @@ namespace Popolo.Core.Building
     /// <param name="mRoomIndex">MultiRooms index.</param>
     /// <param name="zoneIndex">Zone index.</param>
     /// <param name="setpoint">Temperature setpoint [°C].</param>
-    public void ControlDrybulbTemperature(int mRoomIndex, int zoneIndex, double setpoint)
+    public void ControlDryBulbTemperature(int mRoomIndex, int zoneIndex, double setpoint)
     {
-      mRooms[mRoomIndex].ControlDrybulbTemperature(zoneIndex, setpoint);
+      mRooms[mRoomIndex].ControlDryBulbTemperature(zoneIndex, setpoint);
       hasHTChgd[mRooms[mRoomIndex]] = true;
       if (mRooms[mRoomIndex].SolveMoistureTransferSimultaneously) hasWTChgd[mRooms[mRoomIndex]] = true;
     }

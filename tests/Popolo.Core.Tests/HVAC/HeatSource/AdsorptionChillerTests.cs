@@ -48,7 +48,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
           TChi, tcho, MChW,
           TCdi, tcdo, MCdW,
           THi, tho, MHW);
-      c.ChilledWaterOutletSetPointTemperature = 0; // 成り行き運転
+      c.ChilledWaterOutletSetpointTemperature = 0; // 成り行き運転
       return c;
     }
 

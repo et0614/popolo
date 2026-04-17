@@ -17,6 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+using Popolo.Core.Physics;
 using System;
 
 namespace Popolo.Core.HVAC.Storage
@@ -61,7 +62,7 @@ namespace Popolo.Core.HVAC.Storage
     public double Effectiveness { get; set; } = 0.7;
 
     /// <summary>Gets or sets the heat source fluid specific heat [kJ/(kg·K)].</summary>
-    public double FluidSpecificHeat { get; set; } = 4.186;
+    public double FluidSpecificHeat { get; set; } = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
     /// <summary>Gets or sets the heat conductance between near-field and far-field soil (Kcnt) [kW/K].</summary>
     public double NearGroundHeatConductance { get; set; }

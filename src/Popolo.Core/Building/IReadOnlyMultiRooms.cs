@@ -38,11 +38,11 @@ namespace Popolo.Core.Building
     /// <summary>Gets the solar state.</summary>
     IReadOnlySun Sun { get; }
 
-    /// <summary>Gets the number of rooms.</summary>
-    int RoomNumber { get; }
+    /// <summary>Gets the total number of rooms.</summary>
+    int RoomCount { get; }
 
-    /// <summary>Gets the number of zones.</summary>
-    int ZoneNumber { get; }
+    /// <summary>Gets the total number of zones.</summary>
+    int ZoneCount { get; }
 
     /// <summary>Gets the array of zones.</summary>
     IReadOnlyZone[] Zones { get; }

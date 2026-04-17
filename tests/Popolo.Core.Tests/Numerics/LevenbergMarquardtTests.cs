@@ -55,8 +55,8 @@ namespace Popolo.Core.Tests.Numerics
           numberOfFunctions: 2,
           numberOfVariables: 2);
 
-      Assert.Equal(2, lm.NumberOfFunctions);
-      Assert.Equal(2, lm.NumberOfVariables);
+      Assert.Equal(2, lm.FunctionCount);
+      Assert.Equal(2, lm.VariableCount);
     }
 
     #endregion

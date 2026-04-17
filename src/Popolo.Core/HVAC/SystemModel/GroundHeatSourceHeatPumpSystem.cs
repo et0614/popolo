@@ -77,8 +77,8 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <summary>Gets or sets the hot water supply temperature setpoint [°C].</summary>
     public double HotWaterSupplyTemperatureSetpoint
     {
-      get { return whp.HotWaterSetPoint; }
-      set { whp.HotWaterSetPoint = value; }
+      get { return whp.HotWaterSetpoint; }
+      set { whp.HotWaterSetpoint = value; }
     }
 
     /// <summary>Gets the hot water supply temperature [°C].</summary>
@@ -99,8 +99,8 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <summary>Gets or sets the chilled water supply temperature setpoint [°C].</summary>
     public double ChilledWaterSupplyTemperatureSetpoint
     {
-      get { return whp.ChilledWaterSetPoint; }
-      set { whp.ChilledWaterSetPoint = value; }
+      get { return whp.ChilledWaterSetpoint; }
+      set { whp.ChilledWaterSetpoint = value; }
     }
 
     /// <summary>Gets the chilled water supply temperature [°C].</summary>

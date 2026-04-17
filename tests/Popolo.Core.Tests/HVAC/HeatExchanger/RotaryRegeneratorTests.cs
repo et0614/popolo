@@ -85,8 +85,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 1.0, 0.0, 0.003, 22.0, 0.008);
-            Assert.True(rr.SupplyAirOutletDrybulbTemperature > rr.SupplyAirInletDrybulbTemperature,
-                $"SA outlet={rr.SupplyAirOutletDrybulbTemperature:F2}°C > inlet=0°C");
+            Assert.True(rr.SupplyAirOutletDryBulbTemperature > rr.SupplyAirInletDryBulbTemperature,
+                $"SA outlet={rr.SupplyAirOutletDryBulbTemperature:F2}°C > inlet=0°C");
         }
 
         /// <summary>
@@ -97,8 +97,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 1.0, 0.0, 0.003, 22.0, 0.008);
-            Assert.True(rr.ExhaustAirOutletDrybulbTemperature < rr.ExhaustAirInletDrybulbTemperature,
-                $"EA outlet={rr.ExhaustAirOutletDrybulbTemperature:F2}°C < inlet=22°C");
+            Assert.True(rr.ExhaustAirOutletDryBulbTemperature < rr.ExhaustAirInletDryBulbTemperature,
+                $"EA outlet={rr.ExhaustAirOutletDryBulbTemperature:F2}°C < inlet=22°C");
         }
 
         /// <summary>
@@ -138,8 +138,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 1.0, 35.0, 0.018, 26.0, 0.010);
-            Assert.True(rr.SupplyAirOutletDrybulbTemperature < rr.SupplyAirInletDrybulbTemperature,
-                $"SA outlet={rr.SupplyAirOutletDrybulbTemperature:F2}°C < inlet=35°C");
+            Assert.True(rr.SupplyAirOutletDryBulbTemperature < rr.SupplyAirInletDryBulbTemperature,
+                $"SA outlet={rr.SupplyAirOutletDryBulbTemperature:F2}°C < inlet=35°C");
         }
 
         #endregion
@@ -155,7 +155,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 0.0, 0.0, 0.003, 22.0, 0.008);
-            Assert.InRange(rr.SupplyAirOutletDrybulbTemperature, -0.5, 0.5);
+            Assert.InRange(rr.SupplyAirOutletDryBulbTemperature, -0.5, 0.5);
         }
 
         /// <summary>
@@ -166,10 +166,10 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 0.5, 0.0, 0.003, 22.0, 0.008);
-            double tHalf = rr.SupplyAirOutletDrybulbTemperature;
+            double tHalf = rr.SupplyAirOutletDryBulbTemperature;
 
             rr.UpdateState(SA_Flow, EA_Flow, 1.0, 0.0, 0.003, 22.0, 0.008);
-            double tFull = rr.SupplyAirOutletDrybulbTemperature;
+            double tFull = rr.SupplyAirOutletDryBulbTemperature;
 
             Assert.True(tFull > tHalf,
                 $"Full rotation={tFull:F2}°C > Half rotation={tHalf:F2}°C");
@@ -193,7 +193,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
                 0.0, 0.003, 22.0, 0.008,
                 setpoint);
             if (ok)
-                Assert.InRange(rr.SupplyAirOutletDrybulbTemperature,
+                Assert.InRange(rr.SupplyAirOutletDryBulbTemperature,
                     setpoint - 0.5, setpoint + 0.5);
         }
 
@@ -208,12 +208,12 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         {
             var rr = MakeSensibleWheel();
             rr.UpdateState(SA_Flow, EA_Flow, 1.0, 0.0, 0.003, 22.0, 0.008);
-            Assert.True(rr.SupplyAirOutletDrybulbTemperature > 0); // 予熱あり
+            Assert.True(rr.SupplyAirOutletDryBulbTemperature > 0); // 予熱あり
 
             rr.ShutOff();
-            Assert.InRange(rr.SupplyAirOutletDrybulbTemperature,
-                rr.SupplyAirInletDrybulbTemperature - 0.01,
-                rr.SupplyAirInletDrybulbTemperature + 0.01);
+            Assert.InRange(rr.SupplyAirOutletDryBulbTemperature,
+                rr.SupplyAirInletDryBulbTemperature - 0.01,
+                rr.SupplyAirInletDryBulbTemperature + 0.01);
         }
 
         #endregion

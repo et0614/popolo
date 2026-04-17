@@ -80,7 +80,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var window = MakeSinglePaneWindow(2.5);
 
       Assert.Equal(2.5, window.Area, precision: 6);
-      Assert.Equal(1, window.GlazingNumber);
+      Assert.Equal(1, window.GlazingCount);
     }
 
     /// <summary>2重ガラスのGlazingNumberが2</summary>
@@ -88,7 +88,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     public void Constructor_DoublePane_GlazingNumberIsTwo()
     {
       var window = MakeDoublePaneWindow();
-      Assert.Equal(2, window.GlazingNumber);
+      Assert.Equal(2, window.GlazingCount);
     }
 
     /// <summary>熱抵抗が正の値である</summary>

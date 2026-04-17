@@ -64,7 +64,7 @@ namespace Popolo.Core.ThermalComfort
     #region 列挙型定義
 
     /// <summary>ASHRAE seven-point thermal sensation scale.</summary>
-    public enum ASHRAE_Vote
+    public enum AshraeThermalSensation
     {
       /// <summary>Cold (-3).</summary>
       Cold = -3,
@@ -96,7 +96,7 @@ namespace Popolo.Core.ThermalComfort
     public bool IsAirConditioned { get; private set; }
 
     /// <summary>Gets the current thermal sensation vote.</summary>
-    public ASHRAE_Vote Vote { get; private set; }
+    public AshraeThermalSensation Vote { get; private set; }
 
     /// <summary>Gets the upper acceptable sensation threshold in summer.</summary>
     public int HighAcceptableSensationInSummer { get; private set; }
@@ -212,13 +212,13 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="pmv">Environmental PMV value [-].</param>
     public void Update(double pmv)
     {
-      ASHRAE_Vote[] VOTES = new ASHRAE_Vote[]
-      { ASHRAE_Vote.Cold, ASHRAE_Vote.Cool, ASHRAE_Vote.SlightlyCool, ASHRAE_Vote.Neutral, ASHRAE_Vote.SlightlyWarm, ASHRAE_Vote.Warm };
+      AshraeThermalSensation[] VOTES = new AshraeThermalSensation[]
+      { AshraeThermalSensation.Cold, AshraeThermalSensation.Cool, AshraeThermalSensation.SlightlyCool, AshraeThermalSensation.Neutral, AshraeThermalSensation.SlightlyWarm, AshraeThermalSensation.Warm };
 
       //温冷感申告値を更新
       double[] vDist = GetVoteDistribution(pmv);
       double cc = rnd.NextDouble();
-      Vote = ASHRAE_Vote.Hot;
+      Vote = AshraeThermalSensation.Hot;
       for (int i = 0; i < vDist.Length - 1; i++)
       {
         if (cc < vDist[i])

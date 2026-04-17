@@ -41,13 +41,13 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     #region インスタンス変数
 
     /// <summary>部分ベクトル開始番号</summary>
-    private int startNumber;
+    private int startIndex;
 
     /// <summary>部分ベクトル開始行番号</summary>
-    private int rowStartNumber;
+    private int rowStartIndex;
 
     /// <summary>部分ベクトル開始列番号</summary>
-    private int columnStartNumber;
+    private int columnStartIndex;
 
     /// <summary>もとのデータは行列か否か</summary>
     private bool isOrginalMatrix;
@@ -81,10 +81,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
         if (isOrginalMatrix)
         {
-          if (isRowVector) return matrix![rowStartNumber, columnStartNumber + index];
-          else return matrix![rowStartNumber + index, columnStartNumber];
+          if (isRowVector) return matrix![rowStartIndex, columnStartIndex + index];
+          else return matrix![rowStartIndex + index, columnStartIndex];
         }
-        else return vector![index + startNumber];
+        else return vector![index + startIndex];
       }
       set
       {
@@ -94,10 +94,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
         if (isOrginalMatrix)
         {
-          if (isRowVector) matrix![rowStartNumber, columnStartNumber + index] = value;
-          else matrix![rowStartNumber + index, columnStartNumber] = value;
+          if (isRowVector) matrix![rowStartIndex, columnStartIndex + index] = value;
+          else matrix![rowStartIndex + index, columnStartIndex] = value;
         }
-        else vector![index + startNumber] = value;
+        else vector![index + startIndex] = value;
       }
     }
 
@@ -107,49 +107,49 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     /// <summary>コンストラクタ</summary>
     /// <param name="vector">もとのベクトル</param>
-    /// <param name="startNumber">部分ベクトル開始番号</param>
+    /// <param name="startIndex">部分ベクトル開始番号</param>
     /// <param name="length">ベクトル長</param>
-    public VectorView(IVector vector, int startNumber, int length)
+    public VectorView(IVector vector, int startIndex, int length)
     {
       isOrginalMatrix = false;
       this.vector = vector;
-      this.startNumber = startNumber;
+      this.startIndex = startIndex;
       this.Length = length;
     }
 
     /// <summary>コンストラクタ</summary>
     /// <param name="vector">もとのベクトル</param>
-    /// <param name="startNumber">部分ベクトル開始番号</param>
-    public VectorView(IVector vector, int startNumber)
-      : this(vector, startNumber, vector.Length - startNumber)
+    /// <param name="startIndex">部分ベクトル開始番号</param>
+    public VectorView(IVector vector, int startIndex)
+      : this(vector, startIndex, vector.Length - startIndex)
     { }
 
     /// <summary>コンストラクタ</summary>
     /// <param name="matrix">もとの行列</param>
     /// <param name="isRowVector">行ベクトルか否か</param>
-    /// <param name="rowStartNumber">部分ベクトル開始行番号</param>
-    /// <param name="columnStartNumber">部分ベクトル開始列番号</param>
+    /// <param name="rowStartIndex">部分ベクトル開始行番号</param>
+    /// <param name="columnStartIndex">部分ベクトル開始列番号</param>
     /// <param name="length">ベクトル長</param>
     public VectorView(IMatrix matrix, bool isRowVector,
-      int rowStartNumber, int columnStartNumber, int length)
+      int rowStartIndex, int columnStartIndex, int length)
     {
       isOrginalMatrix = true;
       this.matrix = matrix;
       this.isRowVector = isRowVector;
-      this.rowStartNumber = rowStartNumber;
-      this.columnStartNumber = columnStartNumber;
+      this.rowStartIndex = rowStartIndex;
+      this.columnStartIndex = columnStartIndex;
       this.Length = length;
     }
 
     /// <summary>コンストラクタ</summary>
     /// <param name="matrix">もとの行列</param>
     /// <param name="isRowVector">行ベクトルか否か</param>
-    /// <param name="rowStartNumber">部分ベクトル開始行番号</param>
-    /// <param name="columnStartNumber">部分ベクトル開始列番号</param>
+    /// <param name="rowStartIndex">部分ベクトル開始行番号</param>
+    /// <param name="columnStartIndex">部分ベクトル開始列番号</param>
     public VectorView(IMatrix matrix, bool isRowVector,
-      int rowStartNumber, int columnStartNumber) :
-        this(matrix, isRowVector, rowStartNumber, columnStartNumber, isRowVector ?
-          matrix.Columns - columnStartNumber : matrix.Rows - rowStartNumber)
+      int rowStartIndex, int columnStartIndex) :
+        this(matrix, isRowVector, rowStartIndex, columnStartIndex, isRowVector ?
+          matrix.Columns - columnStartIndex : matrix.Rows - rowStartIndex)
     { }
 
     #endregion

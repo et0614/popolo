@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
     double DiffuseSolarLostAbsorptance { get; }
 
     /// <summary>Gets the number of glazing layers.</summary>
-    int GlazingNumber { get; }
+    int GlazingCount { get; }
 
     /// <summary>Gets the exterior solar shading device.</summary>
     SunShade SunShade { get; }
@@ -123,14 +123,14 @@ namespace Popolo.Core.Building.Envelope
     double GetGlazingReflectance(int glazingIndex, bool isSideF);
 
     /// <summary>Gets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">Glazing layer index.</param>
+    /// <param name="glazingIndex">Glazing layer index.</param>
     /// <returns>Thermal resistance [m²·K/W].</returns>
-    double GetGlassResistance(int glazingNumber);
+    double GetGlassResistance(int glazingIndex);
 
     /// <summary>Gets the thermal resistance of the air gap to the right of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">Glazing layer index (the air gap to its indoor side is returned).</param>
+    /// <param name="glazingIndex">Glazing layer index (the air gap to its indoor side is returned).</param>
     /// <returns>Air gap thermal resistance [m²·K/W].</returns>
-    double GetAirGapResistance(int glazingNumber);
+    double GetAirGapResistance(int glazingIndex);
 
   }
 }

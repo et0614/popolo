@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.HeatSource
     double CoolingWaterFlowRate { get; }
 
     /// <summary>Gets the chilled water outlet temperature setpoint [°C].</summary>
-    double ChilledWaterSetPoint { get; }
+    double ChilledWaterSetpoint { get; }
 
     /// <summary>Gets the chilled water inlet temperature [°C].</summary>
     double ChilledWaterInletTemperature { get; }
@@ -78,7 +78,7 @@ namespace Popolo.Core.HVAC.HeatSource
     double HeatSourceWaterFlowRate { get; }
 
     /// <summary>Gets the hot water outlet temperature setpoint [°C].</summary>
-    double HotWaterSetPoint { get; }
+    double HotWaterSetpoint { get; }
 
     /// <summary>Gets the hot water inlet temperature [°C].</summary>
     double HotWaterInletTemperature { get; }

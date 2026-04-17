@@ -53,8 +53,8 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
                 hotWaterOutletTemperature:     45.0,
                 heatSourceWaterInletTemperature: 10.0,
                 heatingEnergyConsumption:      30.0);
-            hp.ChilledWaterSetPoint = 7.0;
-            hp.HotWaterSetPoint     = 45.0;
+            hp.ChilledWaterSetpoint = 7.0;
+            hp.HotWaterSetpoint     = 45.0;
             return hp;
         }
 

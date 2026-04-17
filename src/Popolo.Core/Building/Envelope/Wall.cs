@@ -88,15 +88,15 @@ namespace Popolo.Core.Building.Envelope
     public bool ComputeMoistureTransfer { get; private set; }
 
     /// <summary>Gets the number of nodes in the finite difference model.</summary>
-    public int NodeNumber { get { return layers.Length + 1; } }
+    public int NodeCount { get { return layers.Length + 1; } }
 
     /// <summary>Gets the temperature distribution vector [°C].</summary>
     public IVector Temperatures
-    { get { return new VectorView(tempAndHumid, 0, NodeNumber); } }
+    { get { return new VectorView(tempAndHumid, 0, NodeCount); } }
 
     /// <summary>Gets the humidity ratio distribution vector [kg/kg].</summary>
     public IVector Humidities
-    { get { return new VectorView(tempAndHumid, NodeNumber, NodeNumber); } }
+    { get { return new VectorView(tempAndHumid, NodeCount, NodeCount); } }
 
     /// <summary>Gets or sets the wall surface area [m²].</summary>
     public double Area { get; set; } = 1.0d;
@@ -525,11 +525,11 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="node">追加する質点番号</param>
     /// <param name="pitch">敷設ピッチ[m]</param>
     /// <param name="length">配管総延長[m]</param>
-    /// <param name="branchNumber">分岐の数[本]</param>
+    /// <param name="branchCount">分岐の数[本]</param>
     /// <param name="iDiameter">内径[m]</param>
     /// <param name="oDiameter">外径[m]</param>
     /// <param name="tubeConductivity">配管材の熱伝導率[W/(mK)]</param>
-    public void AddPipe(int node, double pitch, double length, int branchNumber,
+    public void AddPipe(int node, double pitch, double length, int branchCount,
       double iDiameter, double oDiameter, double tubeConductivity)
     {
       UpdateUMatrix();  //resSを設定
@@ -555,7 +555,7 @@ namespace Popolo.Core.Building.Envelope
         lambdaLF = layers[node].ThermalConductivity;
         thkLF = Math.Min(oDiameter, layers[node].Thickness);
       }
-      BuriedPipe bp = new BuriedPipe(pitch, length, branchNumber, iDiameter, oDiameter,
+      BuriedPipe bp = new BuriedPipe(pitch, length, branchCount, iDiameter, oDiameter,
         tubeConductivity, lambdaUF, lambdaLF, resS[node], resS[node + 1], thkUF, thkLF);
       bPipes[node] = bp;
     }
@@ -566,12 +566,12 @@ namespace Popolo.Core.Building.Envelope
     public IReadOnlyBuriedPipe GetPipe(int node) { return bPipes[node]; }
 
     /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
-    /// <param name="mNumber">質点番号</param>
+    /// <param name="mIndex">質点番号</param>
     /// <param name="flowRate">通水量[kg/s]</param>
     /// <param name="temperature">水温[C]</param>
-    public void SetInletWater(int mNumber, double flowRate, double temperature)
+    public void SetInletWater(int mIndex, double flowRate, double temperature)
     {
-      BuriedPipe bp = bPipes[mNumber];
+      BuriedPipe bp = bPipes[mIndex];
       if (bp.WaterFlowRate != flowRate || bp.InletWaterTemperature != temperature)
       {
         needToUpdateUINVMatrix = true;
@@ -581,30 +581,30 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the heat transfer rate from the buried pipe at the specified node [W].</summary>
-    /// <param name="mNumber">質点番号</param>
+    /// <param name="mIndex">質点番号</param>
     /// <returns>Heat transfer rate from the pipe [W].</returns>
-    public double GetHeatTransferFromPipe(int mNumber)
+    public double GetHeatTransferFromPipe(int mIndex)
     {
-      BuriedPipe bp = bPipes[mNumber];
+      BuriedPipe bp = bPipes[mIndex];
       if (bp.WaterFlowRate == 0) return 0;
       double tm1, tp1;
-      if (mNumber == 0) tm1 = SolAirTemperatureF;
-      else tm1 = tempAndHumid[mNumber - 1];
-      if (mNumber == layers.Length + 1) tp1 = SolAirTemperatureB;
-      else tp1 = tempAndHumid[mNumber + 1];
-      double bf = uP[mNumber] * bp.InletWaterTemperature + uPF[mNumber] * tm1
-        - uPM[mNumber] * tempAndHumid[mNumber] + uPB[mNumber] * tp1;
-      return bf * capS[mNumber] * Area / timeStep;
+      if (mIndex == 0) tm1 = SolAirTemperatureF;
+      else tm1 = tempAndHumid[mIndex - 1];
+      if (mIndex == layers.Length + 1) tp1 = SolAirTemperatureB;
+      else tp1 = tempAndHumid[mIndex + 1];
+      double bf = uP[mIndex] * bp.InletWaterTemperature + uPF[mIndex] * tm1
+        - uPM[mIndex] * tempAndHumid[mIndex] + uPB[mIndex] * tp1;
+      return bf * capS[mIndex] * Area / timeStep;
     }
 
     /// <summary>Gets the outlet water temperature of the buried pipe at the specified node [°C].</summary>
-    /// <param name="mNumber">質点番号</param>
+    /// <param name="mIndex">質点番号</param>
     /// <returns>Outlet water temperature [°C].</returns>
-    public double GetOutletWaterTemperature(int mNumber)
+    public double GetOutletWaterTemperature(int mIndex)
     {
-      BuriedPipe bp = bPipes[mNumber];
+      BuriedPipe bp = bPipes[mIndex];
       if (bp.WaterFlowRate == 0) return bp.InletWaterTemperature; //2017.12.15 E.Togashi
-      double hs = GetHeatTransferFromPipe(mNumber);
+      double hs = GetHeatTransferFromPipe(mIndex);
       return bp.InletWaterTemperature - hs / (PhysicsConstants.NominalWaterIsobaricSpecificHeat * bp.WaterFlowRate);
     }
 
@@ -660,7 +660,7 @@ namespace Popolo.Core.Building.Envelope
         for (int i = 0; i < mNum; i++)
         {
           if (capS[i] == 0 && capL[i] == 0)
-            throw new Popolo.Core.Exceptions.PopoloArgumentException("layers", "Vacuum wall layer is not supported.");
+            throw new Exceptions.PopoloArgumentException("Vacuum wall layer is not supported.", "layers");
           double cS = capS[i];
           double cL = capL[i];
           double dtS = timeStep;

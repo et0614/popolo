@@ -31,7 +31,7 @@ namespace Popolo.Core.Physics
     double DryBulbTemperature { get; }
 
     /// <summary>Gets the wet-bulb temperature [°C].</summary>
-    double WetbulbTemperature { get; }
+    double WetBulbTemperature { get; }
 
     /// <summary>Gets the humidity ratio [kg/kg(DA)].</summary>
     double HumidityRatio { get; }

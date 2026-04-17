@@ -57,7 +57,7 @@ namespace Popolo.Core.HVAC.HeatSource
     private double evaporatorKA;
 
     /// <summary>Condenser overall heat transfer conductance [kW/K].</summary>
-    private double condensorKA;
+    private double condenserKA;
 
     /// <summary>Low-temperature desorber overall heat transfer conductance [kW/K].</summary>
     private double lowDesorborKA;
@@ -91,7 +91,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double OutletWaterTemperature { get; private set; }
 
     /// <summary>Gets or sets the outlet water temperature setpoint [°C].</summary>
-    public double OutletWaterSetPointTemperature { get; set; }
+    public double OutletWaterSetpointTemperature { get; set; }
 
     /// <summary>Gets the inlet water temperature [°C].</summary>
     public double InletWaterTemperature { get; private set; }
@@ -215,7 +215,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double coolingWaterFlowRate, double hotWaterFlowRate, double electricConsumption, Boiler.Fuel fuel)
     {
       this.IsCoolingMode = true;
-      this.OutletWaterSetPointTemperature = chilledWaterOutletTemperature;
+      this.OutletWaterSetpointTemperature = chilledWaterOutletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.InletWaterTemperature = chilledWaterInletTemperature;
       this.CoolingWaterOutletTemperature = coolingWaterOutletTemperature;
@@ -239,7 +239,7 @@ namespace Popolo.Core.HVAC.HeatSource
       //吸収冷凍サイクルの各種性能を計算
       AbsorptionRefrigerationCycle.GetHeatTransferCoefficients(chilledWaterInletTemperature,
         chilledWaterOutletTemperature, chilledWaterFlowRate, coolingWaterInletTemperature,
-        coolingWaterOutletTemperature, coolingWaterFlowRate, out evaporatorKA, out condensorKA,
+        coolingWaterOutletTemperature, coolingWaterFlowRate, out evaporatorKA, out condenserKA,
         out lowDesorborKA, out thinSolutionHexKA, out solutionFlowRate, out desorbHeat);
       desorbHeat *= 1.001;  //定格性能を担保するための処理
 
@@ -274,24 +274,24 @@ namespace Popolo.Core.HVAC.HeatSource
       this.CoolingWaterFlowRate = Math.Max(coolingWaterFlowRate, MinCoolingWaterFlowRate);
 
       //冷却運転
-      if (IsCoolingMode && (OutletWaterSetPointTemperature < InletWaterTemperature))
+      if (IsCoolingMode && (OutletWaterSetpointTemperature < InletWaterTemperature))
       {
         //極少負荷対応のための入口水温・水量補正
         this.WaterFlowRate = Math.Max(waterFlowRate, MinChilledWaterFlowRate);
-        double pl = (InletWaterTemperature - OutletWaterSetPointTemperature)
+        double pl = (InletWaterTemperature - OutletWaterSetpointTemperature)
           * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate / NominalCoolingCapacity;
-        double ti = (InletWaterTemperature - OutletWaterSetPointTemperature)
-          / Math.Min(1, pl / MINIMUM_PARTIALLOAD) + OutletWaterSetPointTemperature;
+        double ti = (InletWaterTemperature - OutletWaterSetpointTemperature)
+          / Math.Min(1, pl / MINIMUM_PARTIALLOAD) + OutletWaterSetpointTemperature;
 
         double dsbH = 0;
         double tcdo, tdsb, tevp, tcnd, wtn, wtk;
         //定格の高温再生器投入熱量で出口状態を計算
         double cht = AbsorptionRefrigerationCycle.GetChilledWaterOutletTemperature
           (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA,
-          condensorKA, lowDesorborKA, thinSolutionHexKA, solutionFlowRate, desorbHeat,
+          condenserKA, lowDesorborKA, thinSolutionHexKA, solutionFlowRate, desorbHeat,
           out tcdo, out tdsb, out tevp, out tcnd, out wtn, out wtk);
 
-        IsOverLoad = OutletWaterSetPointTemperature <= cht;
+        IsOverLoad = OutletWaterSetpointTemperature <= cht;
         //過負荷の場合
         if (IsOverLoad)
         {
@@ -306,8 +306,8 @@ namespace Popolo.Core.HVAC.HeatSource
             Minimization.MinimizeFunction mFnc = delegate (double sFlow)
             {
               dsbH = AbsorptionRefrigerationCycle.GetDesorbHeat
-              (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA, condensorKA,
-              lowDesorborKA, thinSolutionHexKA, sFlow, OutletWaterSetPointTemperature,
+              (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA, condenserKA,
+              lowDesorborKA, thinSolutionHexKA, sFlow, OutletWaterSetpointTemperature,
               out tcdo, out tdsb, out tevp, out tcnd, out wtn, out wtk);
               return dsbH;
             };
@@ -317,11 +317,11 @@ namespace Popolo.Core.HVAC.HeatSource
           else
           {
             dsbH = AbsorptionRefrigerationCycle.GetDesorbHeat
-              (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA, condensorKA,
-              lowDesorborKA, thinSolutionHexKA, solutionFlowRate, OutletWaterSetPointTemperature,
+              (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA, condenserKA,
+              lowDesorborKA, thinSolutionHexKA, solutionFlowRate, OutletWaterSetpointTemperature,
               out tcdo, out tdsb, out tevp, out tcnd, out wtn, out wtk);
           }
-          OutletWaterTemperature = OutletWaterSetPointTemperature;
+          OutletWaterTemperature = OutletWaterSetpointTemperature;
         }
         CoolingWaterOutletTemperature = tcdo;
         CoolingLoad = (InletWaterTemperature - OutletWaterTemperature) * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * waterFlowRate;
@@ -337,14 +337,14 @@ namespace Popolo.Core.HVAC.HeatSource
         ThinSolutionMassFraction = wtn;
       }
       //加熱運転
-      else if (!IsCoolingMode && (InletWaterTemperature < OutletWaterSetPointTemperature))
+      else if (!IsCoolingMode && (InletWaterTemperature < OutletWaterSetpointTemperature))
       {
         //水量設定
         CoolingWaterFlowRate = 0;
         this.WaterFlowRate = Math.Max(waterFlowRate, MinHotWaterFlowRate);
 
         //温水ボイラを更新
-        hBoiler.OutletWaterSetPointTemperature = this.OutletWaterSetPointTemperature;
+        hBoiler.OutletWaterSetpointTemperature = this.OutletWaterSetpointTemperature;
         hBoiler.Update(InletWaterTemperature, WaterFlowRate);
         IsOverLoad = hBoiler.IsOverLoad;
         HeatingLoad = hBoiler.HeatLoad;

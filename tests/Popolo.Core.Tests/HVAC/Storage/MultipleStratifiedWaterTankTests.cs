@@ -66,7 +66,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     public void Constructor_LayerNumber_MatchesInput()
     {
       var tank = MakeTank();
-      Assert.Equal(10, tank.LayerNumber);
+      Assert.Equal(10, tank.LayerCount);
     }
 
     /// <summary>WaterVolume = 水深 × 断面積。</summary>
@@ -83,7 +83,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     {
       var tank = MakeTank();
       tank.InitializeTemperature(15.0);
-      for (int i = 0; i < tank.LayerNumber; i++)
+      for (int i = 0; i < tank.LayerCount; i++)
         Assert.InRange(tank.GetTemperature(i), 14.99, 15.01);
     }
 
@@ -92,7 +92,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     public void Constructor_PipeInstallationLayer_WithinValidRange()
     {
       var tank = MakeTank();
-      Assert.InRange(tank.PipeInstallationLayer, 0, tank.LayerNumber - 1);
+      Assert.InRange(tank.PipeInstallationLayer, 0, tank.LayerCount - 1);
     }
 
     #endregion
@@ -138,7 +138,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tank = MakeTank(20.0);
       tank.TimeStep = 3600;
       tank.ForecastState(20.0, 0.01, isDownFlow: true);
-      for (int i = 0; i < tank.LayerNumber; i++)
+      for (int i = 0; i < tank.LayerCount; i++)
         Assert.InRange(tank.GetTemperature(i), 19.5, 20.5);
     }
 
@@ -293,7 +293,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       tank.TimeStep = 3600;
       tank.ForecastState(40.0, 0.0, isDownFlow: false); // 流量ゼロ
                                                         // 熱損失で温度は下がるが外気温度以下にはならない
-      for (int i = 0; i < tank.LayerNumber; i++)
+      for (int i = 0; i < tank.LayerCount; i++)
       {
         Assert.True(tank.GetTemperature(i) < 40.0,
             $"Layer {i}: T={tank.GetTemperature(i):F2}°C should be < 40°C");

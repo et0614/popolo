@@ -113,7 +113,7 @@ namespace Popolo.Core.Building.Envelope
     public double DiffuseSolarLostAbsorptance { get; private set; }
 
     /// <summary>Gets the number of glazing layers.</summary>
-    public int GlazingNumber { get; private set; }
+    public int GlazingCount { get; private set; }
 
     /// <summary>Exterior solar shading device.</summary>
     private SunShade sunShade = null!;
@@ -234,29 +234,29 @@ namespace Popolo.Core.Building.Envelope
       double[] transmittanceB, double[] reflectanceB, IReadOnlyIncline outsideIncline)
     {
       Area = area;
-      GlazingNumber = transmittanceF.Length;
+      GlazingCount = transmittanceF.Length;
       this.SunShade = SunShade.MakeEmptySunShade();
       this.OutsideIncline = outsideIncline;
       lstAlt = lstOri = -999;
 
-      tau_CF = new double[GlazingNumber][];
-      tau_CB = new double[GlazingNumber][];
-      rho_CF = new double[GlazingNumber][];
-      rho_CB = new double[GlazingNumber][];
-      taurhoF = new double[GlazingNumber, 2];
-      taurhoB = new double[GlazingNumber, 2];
-      opFDir = new double[GlazingNumber * 2 + 1, 3];
-      opBDir = new double[GlazingNumber * 2 + 1, 3];
-      opFDif = new double[GlazingNumber * 2 + 1, 3];
-      opBDif = new double[GlazingNumber * 2 + 1, 3];
-      absFDir = new double[GlazingNumber * 2 + 1];
-      absFDif = new double[GlazingNumber * 2 + 1];
-      absBDif = new double[GlazingNumber * 2 + 1];
-      agapRes = new double[GlazingNumber * 2 + 2];
-      glassRes = new double[GlazingNumber];
+      tau_CF = new double[GlazingCount][];
+      tau_CB = new double[GlazingCount][];
+      rho_CF = new double[GlazingCount][];
+      rho_CB = new double[GlazingCount][];
+      taurhoF = new double[GlazingCount, 2];
+      taurhoB = new double[GlazingCount, 2];
+      opFDir = new double[GlazingCount * 2 + 1, 3];
+      opBDir = new double[GlazingCount * 2 + 1, 3];
+      opFDif = new double[GlazingCount * 2 + 1, 3];
+      opBDif = new double[GlazingCount * 2 + 1, 3];
+      absFDir = new double[GlazingCount * 2 + 1];
+      absFDif = new double[GlazingCount * 2 + 1];
+      absBDif = new double[GlazingCount * 2 + 1];
+      agapRes = new double[GlazingCount * 2 + 2];
+      glassRes = new double[GlazingCount];
 
       //空の日射遮蔽で初期化
-      sDevices = new IShadingDevice[GlazingNumber + 1];
+      sDevices = new IShadingDevice[GlazingCount + 1];
       for (int i = 0; i < sDevices.Length; i++)
       {
         sDevices[i] = new NoShadingDevice();
@@ -267,7 +267,7 @@ namespace Popolo.Core.Building.Envelope
       }
 
       //垂直入射時の透過率と反射率を保存
-      for (int i = 0; i < GlazingNumber; i++)
+      for (int i = 0; i < GlazingCount; i++)
       {
         taurhoF[i, 0] = transmittanceF[i];
         taurhoB[i, 0] = transmittanceB[i];
@@ -289,7 +289,7 @@ namespace Popolo.Core.Building.Envelope
       InsideSurface = new BoundarySurface(this, false);
 
       //入射角特性を透明フロートガラスで初期化
-      for (int i = 0; i < GlazingNumber; i++) SetAngleDependence(i, GlassTypes.Transparent);
+      for (int i = 0; i < GlazingCount; i++) SetAngleDependence(i, GlassTypes.Transparent);
     }
 
     /// <summary>Initializes a new multi-layer glazing window assembly.</summary>
@@ -328,7 +328,7 @@ namespace Popolo.Core.Building.Envelope
         //ガラスの直達日射入射角特性を反映
         if (0 < cos)
         {
-          for (int i = 0; i < GlazingNumber; i++)
+          for (int i = 0; i < GlazingCount; i++)
           {
             double tauF, tauB, rhoF, rhoB;
             tauF = tauB = rhoF = rhoB = 0;
@@ -493,34 +493,34 @@ namespace Popolo.Core.Building.Envelope
     public IShadingDevice GetShadingDevice(int number) { return sDevices[number]; }
 
     /// <summary>Sets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">ガラスの層番号</param>
+    /// <param name="glazingIndex">ガラスの層番号</param>
     /// <param name="resistance">ガラスの熱抵抗[m2K/W]</param>
-    public void SetGlassResistance(int glazingNumber, double resistance)
+    public void SetGlassResistance(int glazingIndex, double resistance)
     {
-      glassRes[glazingNumber] = resistance;
+      glassRes[glazingIndex] = resistance;
       UpdateAbsorptance();
     }
 
     /// <summary>Gets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">ガラスの層番号</param>
+    /// <param name="glazingIndex">ガラスの層番号</param>
     /// <returns>Thermal resistance [m²·K/W].</returns>
-    public double GetGlassResistance(int glazingNumber)
-    { return glassRes[glazingNumber]; }
+    public double GetGlassResistance(int glazingIndex)
+    { return glassRes[glazingIndex]; }
 
     /// <summary>Sets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">ガラスの層番号（層の右側の中空層が設定対象）</param>
+    /// <param name="glazingIndex">ガラスの層番号（層の右側の中空層が設定対象）</param>
     /// <param name="resistance">中空層の熱抵抗[m2K/W]</param>
-    public void SetAirGapResistance(int glazingNumber, double resistance)
+    public void SetAirGapResistance(int glazingIndex, double resistance)
     {
-      agapRes[2 * glazingNumber + 2] = agapRes[2 * glazingNumber + 3] = 0.5 * resistance;
+      agapRes[2 * glazingIndex + 2] = agapRes[2 * glazingIndex + 3] = 0.5 * resistance;
       UpdateAbsorptance();
     }
 
     /// <summary>Gets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
-    /// <param name="glazingNumber">ガラスの層番号（層の右側の中空層が取得対象）</param>
+    /// <param name="glazingIndex">ガラスの層番号（層の右側の中空層が取得対象）</param>
     /// <returns>Thermal resistance [m²·K/W].</returns>
-    public double GetAirGapResistance(int glazingNumber)
-    { return 2 * agapRes[2 * glazingNumber + 2]; }
+    public double GetAirGapResistance(int glazingIndex)
+    { return 2 * agapRes[2 * glazingIndex + 2]; }
 
     /// <summary>Updates the combined heat transfer coefficients on both sides.</summary>
     private void UpdateFilmCoefficient()
@@ -592,15 +592,15 @@ namespace Popolo.Core.Building.Envelope
     #region 入射角特性関連の処理
 
     /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerNumber">層番号</param>
+    /// <param name="layerIndex">層番号</param>
     /// <param name="coefTF">F側透過特性の近似係数</param>
     /// <param name="coefTB">B側透過特性の近似係数</param>
     /// <param name="coefRF">F側反射特性の近似係数</param>
     /// <param name="coefRB">B側反射特性の近似係数</param>
     public void SetAngleDependence
-      (int layerNumber, double[] coefTF, double[] coefTB, double[] coefRF, double[] coefRB)
+      (int layerIndex, double[] coefTF, double[] coefTB, double[] coefRF, double[] coefRB)
     {
-      int ln = layerNumber;
+      int ln = layerIndex;
       tau_CF[ln] = coefTF;
       tau_CB[ln] = coefTB;
       rho_CF[ln] = coefRF;
@@ -636,14 +636,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerNumber">層番号</param>
+    /// <param name="layerIndex">層番号</param>
     /// <param name="type">ガラス種類</param>
-    public void SetAngleDependence(int layerNumber, GlassTypes type)
+    public void SetAngleDependence(int layerIndex, GlassTypes type)
     {
       switch (type)
       {
         case GlassTypes.HeatAbsorbing:
-          SetAngleDependence(layerNumber,
+          SetAngleDependence(layerIndex,
             new double[] { 1.760, 3.770, -14.901, 16.422, -6.052 },
             new double[] { 1.760, 3.770, -14.901, 16.422, -6.052 },
             new double[] { 5.189, -12.392, 16.593, -11.851, 3.461 },
@@ -651,7 +651,7 @@ namespace Popolo.Core.Building.Envelope
             );
           return;
         case GlassTypes.HeatReflecting:
-          SetAngleDependence(layerNumber,
+          SetAngleDependence(layerIndex,
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
             new double[] { 5.842, -15.264, -21.642, -15.948, 4.727 },
@@ -659,7 +659,7 @@ namespace Popolo.Core.Building.Envelope
             );
           return;
         case GlassTypes.LowEmissivity:
-          SetAngleDependence(layerNumber,
+          SetAngleDependence(layerIndex,
             new double[] { 2.273, 1.631, -10.358, 11.769, -4.316 },
             new double[] { 2.273, 1.631, -10.358, 11.769, -4.316 },
             new double[] { 5.084, -12.646, 18.213, -13.967, 4.316 },
@@ -667,7 +667,7 @@ namespace Popolo.Core.Building.Envelope
             );
           return;
         default:
-          SetAngleDependence(layerNumber,
+          SetAngleDependence(layerIndex,
             new double[] { 2.552, 1.364, -11.388, 13.617, -5.146 },
             new double[] { 2.552, 1.364, -11.388, 13.617, -5.146 },
             new double[] { 5.189, -12.392, 16.593, -11.851, 3.461 },

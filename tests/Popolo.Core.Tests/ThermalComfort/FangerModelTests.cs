@@ -192,7 +192,7 @@ namespace Popolo.Core.Tests.ThermalComfort
         public void GetDrybulbTemperature_AtPMVZero_RecoversPMVZero()
         {
             // PMV=0 となる乾球温度を逆算し、それを代入してPMVが0に戻ることを確認
-            double dbt = FangerModel.GetDrybulbTemperature(0.0, 22, 50, 0.1, 1.0, 1.2, 0.0);
+            double dbt = FangerModel.GetDryBulbTemperature(0.0, 22, 50, 0.1, 1.0, 1.2, 0.0);
             double pmv = PMV(dbt, 22, 50, 0.1, 1.0, 1.2);
             Assert.InRange(pmv, -0.05, 0.05);
         }
@@ -201,8 +201,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         [Fact]
         public void GetDrybulbTemperature_HighMRT_RequiresLowerDrybulb()
         {
-            double dbt_mrt20 = FangerModel.GetDrybulbTemperature(0.0, 20, 50, 0.1, 1.0, 1.2, 0.0);
-            double dbt_mrt30 = FangerModel.GetDrybulbTemperature(0.0, 30, 50, 0.1, 1.0, 1.2, 0.0);
+            double dbt_mrt20 = FangerModel.GetDryBulbTemperature(0.0, 20, 50, 0.1, 1.0, 1.2, 0.0);
+            double dbt_mrt30 = FangerModel.GetDryBulbTemperature(0.0, 30, 50, 0.1, 1.0, 1.2, 0.0);
             Assert.True(dbt_mrt20 > dbt_mrt30,
                 $"Higher MRT needs lower DBT for PMV=0: dbt(MRT20)={dbt_mrt20:F2} > dbt(MRT30)={dbt_mrt30:F2}");
         }

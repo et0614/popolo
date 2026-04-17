@@ -1,4 +1,4 @@
-/* CrossFinCondensor.cs
+/* CrossFinCondenser.cs
  * 
  * Copyright (C) 2015 E.Togashi
  * 
@@ -24,7 +24,7 @@ using Popolo.Core.Physics;
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Cross-fin (plate-fin-and-tube) air-cooled condenser.</summary>
-  public class CrossFinCondensor : IReadOnlyCrossFinCondensor
+  public class CrossFinCondenser : IReadOnlyCrossFinCondenser
   {
 
     #region 定数宣言
@@ -95,7 +95,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
     /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
-    public CrossFinCondensor
+    public CrossFinCondenser
       (double cndTemperature, double heatTransfer, double airFlowRate,
       double inletAirTemperature, double inletAirHumidityRatio)
     {

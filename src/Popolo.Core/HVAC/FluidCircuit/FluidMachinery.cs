@@ -158,17 +158,17 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="rotationRatio">Rotation speed ratio [-].</param>
     /// <param name="resistanceCoefficient">Resistance coefficient [kPa/(m³/s)²].</param>
     /// <param name="actualHead">Actual head [kPa].</param>
-    /// <param name="operatingNumber">Number of operating units.</param>
+    /// <param name="activeUnitCount">Number of operating units.</param>
     /// <param name="totalFlowRate">Total flow rate [m³/s].</param>
     internal void updateWithResistanceAndRotationRatio
       (double rotationRatio, double resistanceCoefficient,
-      double actualHead, int operatingNumber, out double totalFlowRate)
+      double actualHead, int activeUnitCount, out double totalFlowRate)
     {
       IsShutOff = false;
       RotationRatio = rotationRatio;
       totalFlowRate = GetFlowRate(RotationRatio, pressureCoefficient, resistanceCoefficient,
-        actualHead, operatingNumber, DesignFlowRate * operatingNumber);
-      VolumetricFlowRate = totalFlowRate / operatingNumber;
+        actualHead, activeUnitCount, DesignFlowRate * activeUnitCount);
+      VolumetricFlowRate = totalFlowRate / activeUnitCount;
       Pressure = resistanceCoefficient * totalFlowRate * totalFlowRate + actualHead;
     }
 
@@ -371,22 +371,22 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="pressureCoef">Pressure characteristic coefficients.</param>
     /// <param name="resistanceCoefficient">Resistance coefficient [kPa/(m³/s)²].</param>
     /// <param name="actualHead">Actual head [kPa].</param>
-    /// <param name="operatingNumber">Number of operating units.</param>
+    /// <param name="activeUnitCount">Number of operating units.</param>
     /// <param name="initialFlowRate">Initial volumetric flow rate [m³/s].</param>
     /// <returns>Volumetric flow rate [m³/s].</returns>
     public static double GetFlowRate
       (double rotationRatio, double[] pressureCoef, double resistanceCoefficient,
-      double actualHead, int operatingNumber, double initialFlowRate)
+      double actualHead, int activeUnitCount, double initialFlowRate)
     {
       double r2 = rotationRatio * rotationRatio;
       Roots.ErrorFunction eFnc = delegate (double vf)
       {
         return r2 * GetPolynomial
-        (vf / (operatingNumber * rotationRatio), pressureCoef) - (vf * vf * resistanceCoefficient + actualHead);
+        (vf / (activeUnitCount * rotationRatio), pressureCoef) - (vf * vf * resistanceCoefficient + actualHead);
       };
       Roots.ErrorFunction eFncD = delegate (double vf)
       {
-        return r2 * GetPolynomialD(vf, 1 / (operatingNumber * rotationRatio), pressureCoef)
+        return r2 * GetPolynomialD(vf, 1 / (activeUnitCount * rotationRatio), pressureCoef)
           - 2 * vf * resistanceCoefficient;
       };
       return Roots.Newton(eFnc, eFncD, initialFlowRate, 1e-4, 1e-4, 20);

@@ -17,8 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-using Popolo.Core.Geometry;
-
 namespace Popolo.Core.Geometry
 {
   /// <summary>3次元空間の直線を表すクラス</summary>

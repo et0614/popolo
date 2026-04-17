@@ -34,10 +34,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double BypassFlowRate { get; }
   
       /// <summary>Gets the number of operating units [units].</summary>
-      int OperatingNumber { get; }
+      int ActivePumpCount { get; }
   
       /// <summary>Gets the number of pumps [units].</summary>
-      int PumpNumber { get; }
+      int PumpCount { get; }
   
       /// <summary>Gets the actual head [kPa].</summary>
       double ActualHead { get; }

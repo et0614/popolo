@@ -30,7 +30,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     /// <summary>Gets the total target flow rate of the circuit [m³/s].</summary>
     /// <returns>Total target flow rate of the circuit [m³/s].</returns>
-    double GetTotalFlowSetPoint();
+    double GetTotalFlowSetpoint();
 
     /// <summary>Gets the required minimum differential pressure [kPa].</summary>
     /// <returns>Required minimum differential pressure [kPa].</returns>

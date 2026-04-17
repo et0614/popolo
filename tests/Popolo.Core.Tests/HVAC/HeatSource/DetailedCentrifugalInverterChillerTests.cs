@@ -47,7 +47,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
                 chilledWaterFlowRate:           10.0,
                 coolingWaterFlowRate:           15.0);
             c.IsOperating = true;
-            c.ChilledWaterOutletSetPointTemperature = 7.0;
+            c.ChilledWaterOutletSetpointTemperature = 7.0;
             return c;
         }
 
@@ -202,7 +202,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             var c = new DetailedCentrifugalInverterChiller(
                 350.0, 0.3, 12.0, 7.0, 32.0, 10.0, 15.0, p);
             c.IsOperating = true;
-            c.ChilledWaterOutletSetPointTemperature = 7.0;
+            c.ChilledWaterOutletSetpointTemperature = 7.0;
             var ex = Record.Exception(() => c.Update(32.0, 12.0, 15.0, 10.0));
             Assert.Null(ex);
         }

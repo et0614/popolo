@@ -101,7 +101,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
                 VRFSystem.MakeIndoorUnit(NOM_IHEX_AFLOW, 0, -IHEX_CAP_C, 0, IHEX_CAP_H)
             };
             vrf.AddIndoorUnit(iHexes);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
             return (vrf, iHexes);
         }
@@ -134,7 +134,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
         public void AddIndoorUnit_IndoorUnitNumberIsCorrect()
         {
             var (vrf, _) = MakeCoolingOnlySystem();
-            Assert.Equal(2, vrf.IndoorUnitNumber);
+            Assert.Equal(2, vrf.IndoorUnitCount);
         }
 
         #endregion
@@ -151,13 +151,13 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeCoolingOnlySystem();
             double oHmd = HR_from_DBT_WBT(35, 24);
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = oHmd;
 
             double iHmd = HR_from_DBT_WBT(27, 19);
             // 定格負荷を SolveHeatLoad で設定
             iHexes[0].SolveHeatLoad(-IHEX_CAP_C, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf.SetIndoorUnitSetpointTemperature(i, iHexes[0].OutletAirTemperature);
@@ -174,11 +174,11 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeCoolingOnlySystem();
             double oHmd = HR_from_DBT_WBT(35, 24);
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = oHmd;
             double iHmd = HR_from_DBT_WBT(27, 19);
             iHexes[0].SolveHeatLoad(-IHEX_CAP_C, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf.SetIndoorUnitSetpointTemperature(i, iHexes[0].OutletAirTemperature);
@@ -200,10 +200,10 @@ namespace Popolo.Core.Tests.HVAC.VRF
 
             var (vrf23, iH23) = MakeCoolingOnlySystem();
             double oHmd23 = HR_from_DBT_WBT(23, 14);
-            vrf23.OutdoorAirDrybulbTemperature = 23;
+            vrf23.OutdoorAirDryBulbTemperature = 23;
             vrf23.OutdoorAirHumidityRatio = oHmd23;
             iH23[0].SolveHeatLoad(-IHEX_CAP_C * 0.7, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf23.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf23.IndoorUnitCount; i++)
             {
                 vrf23.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf23.SetIndoorUnitSetpointTemperature(i, iH23[0].OutletAirTemperature);
@@ -213,10 +213,10 @@ namespace Popolo.Core.Tests.HVAC.VRF
 
             var (vrf35, iH35) = MakeCoolingOnlySystem();
             double oHmd35 = HR_from_DBT_WBT(35, 24);
-            vrf35.OutdoorAirDrybulbTemperature = 35;
+            vrf35.OutdoorAirDryBulbTemperature = 35;
             vrf35.OutdoorAirHumidityRatio = oHmd35;
             iH35[0].SolveHeatLoad(-IHEX_CAP_C * 0.7, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf35.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf35.IndoorUnitCount; i++)
             {
                 vrf35.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf35.SetIndoorUnitSetpointTemperature(i, iH35[0].OutletAirTemperature);
@@ -234,11 +234,11 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeCoolingOnlySystem();
             double oHmd = HR_from_DBT_WBT(35, 24);
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = oHmd;
             double iHmd = HR_from_DBT_WBT(27, 19);
             iHexes[0].SolveHeatLoad(-IHEX_CAP_C, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf.SetIndoorUnitSetpointTemperature(i, iHexes[0].OutletAirTemperature);
@@ -262,13 +262,13 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeHeatPumpSystem();
             double oHmd = HR_from_DBT_WBT(7, 6);
-            vrf.OutdoorAirDrybulbTemperature = 7;
+            vrf.OutdoorAirDryBulbTemperature = 7;
             vrf.OutdoorAirHumidityRatio = oHmd;
 
             double iHmd = HR_from_DBT_WBT(20, 15);
             iHexes[0].SolveHeatLoad(IHEX_CAP_H / 2.0, NOM_IHEX_AFLOW, 20, iHmd, false);
             double tSP = iHexes[0].OutletAirTemperature;
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
                 vrf.SetIndoorUnitSetpointTemperature(i, tSP);
@@ -285,12 +285,12 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeHeatPumpSystem();
             double oHmd = HR_from_DBT_WBT(7, 6);
-            vrf.OutdoorAirDrybulbTemperature = 7;
+            vrf.OutdoorAirDryBulbTemperature = 7;
             vrf.OutdoorAirHumidityRatio = oHmd;
             double iHmd = HR_from_DBT_WBT(20, 15);
             iHexes[0].SolveHeatLoad(IHEX_CAP_H / 2.0, NOM_IHEX_AFLOW, 20, iHmd, false);
             double tSP = iHexes[0].OutletAirTemperature;
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
                 vrf.SetIndoorUnitSetpointTemperature(i, tSP);
@@ -310,10 +310,10 @@ namespace Popolo.Core.Tests.HVAC.VRF
             double iHmd = HR_from_DBT_WBT(20, 15);
 
             var (vrf19, iH19) = MakeHeatPumpSystem();
-            vrf19.OutdoorAirDrybulbTemperature = 19;
+            vrf19.OutdoorAirDryBulbTemperature = 19;
             vrf19.OutdoorAirHumidityRatio = HR_from_DBT_WBT(19, 16);
             iH19[0].SolveHeatLoad(IHEX_CAP_H * 0.5, NOM_IHEX_AFLOW, 20, iHmd, false);
-            for (int i = 0; i < vrf19.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf19.IndoorUnitCount; i++)
             {
                 vrf19.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
                 vrf19.SetIndoorUnitSetpointTemperature(i, iH19[0].OutletAirTemperature);
@@ -322,10 +322,10 @@ namespace Popolo.Core.Tests.HVAC.VRF
             double ec19 = vrf19.CompressorElectricity;
 
             var (vrf7, iH7) = MakeHeatPumpSystem();
-            vrf7.OutdoorAirDrybulbTemperature = 7;
+            vrf7.OutdoorAirDryBulbTemperature = 7;
             vrf7.OutdoorAirHumidityRatio = HR_from_DBT_WBT(7, 6);
             iH7[0].SolveHeatLoad(IHEX_CAP_H * 0.5, NOM_IHEX_AFLOW, 20, iHmd, false);
-            for (int i = 0; i < vrf7.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf7.IndoorUnitCount; i++)
             {
                 vrf7.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
                 vrf7.SetIndoorUnitSetpointTemperature(i, iH7[0].OutletAirTemperature);
@@ -351,7 +351,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeCoolingOnlySystem();
             vrf.CurrentMode = VRFSystem.Mode.ShutOff;
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = HR_from_DBT_WBT(35, 24);
             vrf.UpdateState(false);
             Assert.Equal(0.0, vrf.CompressorElectricity);
@@ -368,9 +368,9 @@ namespace Popolo.Core.Tests.HVAC.VRF
             vrf.MinEvaporatingTemperature = 5;
             vrf.MaxEvaporatingTemperature = 30;
             vrf.TargetEvaporatingTemperature = 12;
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = HR_from_DBT_WBT(35, 24);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf.SetIndoorUnitInletAirState(i, 25, 0.010);
@@ -390,11 +390,11 @@ namespace Popolo.Core.Tests.HVAC.VRF
         {
             var (vrf, iHexes) = MakeCoolingOnlySystem();
             double oHmd = HR_from_DBT_WBT(35, 24);
-            vrf.OutdoorAirDrybulbTemperature = 35;
+            vrf.OutdoorAirDryBulbTemperature = 35;
             vrf.OutdoorAirHumidityRatio = oHmd;
             double iHmd = HR_from_DBT_WBT(27, 19);
             iHexes[0].SolveHeatLoad(-IHEX_CAP_C, NOM_IHEX_AFLOW, 27, iHmd, false);
-            for (int i = 0; i < vrf.IndoorUnitNumber; i++)
+            for (int i = 0; i < vrf.IndoorUnitCount; i++)
             {
                 vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
                 vrf.SetIndoorUnitSetpointTemperature(i, iHexes[0].OutletAirTemperature);

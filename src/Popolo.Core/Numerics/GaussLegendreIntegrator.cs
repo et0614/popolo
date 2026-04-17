@@ -43,19 +43,19 @@ namespace Popolo.Core.Numerics
 
     /// <summary>コンストラクタ</summary>
     /// <param name="iFnc">被積分関数</param>
-    /// <param name="nodeNumber">分点の数（1以上）</param>
+    /// <param name="nodeCount">分点の数（1以上）</param>
     /// <exception cref="PopoloArgumentException">
-    /// nodeNumber が1未満の場合。
+    /// nodeCount が1未満の場合。
     /// </exception>
-    public GaussLegendreIntegrator(IntegrateFunction iFnc, int nodeNumber)
+    public GaussLegendreIntegrator(IntegrateFunction iFnc, int nodeCount)
     {
-      if (nodeNumber < 1)
+      if (nodeCount < 1)
         throw new PopoloArgumentException(
-            $"nodeNumber must be at least 1. Got: {nodeNumber}",
-            nameof(nodeNumber));
+            $"nodeCount must be at least 1. Got: {nodeCount}",
+            nameof(nodeCount));
 
       this.iFnc = iFnc;
-      ComputeNodesAndWeights(nodeNumber, out x, out w);
+      ComputeNodesAndWeights(nodeCount, out x, out w);
     }
 
     /// <summary>区間abで定積分する</summary>
@@ -68,18 +68,18 @@ namespace Popolo.Core.Numerics
     }
 
     /// <summary>分点の数を更新する</summary>
-    /// <param name="nodeNumber">分点の数（1以上）</param>
+    /// <param name="nodeCount">分点の数（1以上）</param>
     /// <exception cref="PopoloArgumentException">
-    /// nodeNumber が1未満の場合。
+    /// nodeCount が1未満の場合。
     /// </exception>
-    public void UpdateNodeNumber(int nodeNumber)
+    public void UpdateNodeCount(int nodeCount)
     {
-      if (nodeNumber < 1)
+      if (nodeCount < 1)
         throw new PopoloArgumentException(
-            $"nodeNumber must be at least 1. Got: {nodeNumber}",
-            nameof(nodeNumber));
+            $"nodeCount must be at least 1. Got: {nodeCount}",
+            nameof(nodeCount));
 
-      ComputeNodesAndWeights(nodeNumber, out x, out w);
+      ComputeNodesAndWeights(nodeCount, out x, out w);
     }
 
     /// <summary>分点と重みを計算する</summary>

@@ -22,7 +22,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     double MaxAirFlowRate { get; }
 
     /// <summary>Gets the outdoor wet-bulb temperature [°C].</summary>
-    double OutdoorWetbulbTemperature { get; }
+    double OutdoorWetBulbTemperature { get; }
 
     /// <summary>Gets the outdoor humidity ratio [kg/kg].</summary>
     double OutdoorHumidityRatio { get; }
@@ -34,7 +34,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     double OutletWaterTemperature { get; }
 
     /// <summary>Gets the outlet water temperature setpoint [°C].</summary>
-    double OutletWaterSetPointTemperature { get; }
+    double OutletWaterSetpointTemperature { get; }
 
     /// <summary>Gets the heat rejection rate [kW].</summary>
     double HeatRejection { get; }

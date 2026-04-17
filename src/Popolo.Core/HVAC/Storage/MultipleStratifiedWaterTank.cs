@@ -93,7 +93,7 @@ namespace Popolo.Core.HVAC.Storage
     public bool IsDownFlow { get; private set; }
 
     /// <summary>Gets the number of layers.</summary>
-    public int LayerNumber { get { return temperatures.Length; } }
+    public int LayerCount { get { return temperatures.Length; } }
 
     #endregion
 
@@ -104,20 +104,20 @@ namespace Popolo.Core.HVAC.Storage
     /// <param name="sectionalArea">Horizontal cross-sectional area [m²].</param>
     /// <param name="pipeDiameter">Port diameter [m].</param>
     /// <param name="pipeInstallationHeight">Installation height of the upper port [m].</param>
-    /// <param name="layerNumber">Number of layers.</param>
+    /// <param name="layerCount">Total number of layers.</param>
     public MultipleStratifiedWaterTank
-      (double waterDepth, double sectionalArea, double pipeDiameter, double pipeInstallationHeight, int layerNumber)
+      (double waterDepth, double sectionalArea, double pipeDiameter, double pipeInstallationHeight, int layerCount)
     {
       this.WaterDepth = waterDepth;
       this.SectionalArea = sectionalArea;
       this.PipeDiameter = pipeDiameter;
-      wMat = new Matrix(3, layerNumber);
-      wVec1 = new Vector(layerNumber);
-      wVec2 = new Vector(layerNumber);
-      temperatures = new Vector(layerNumber);
+      wMat = new Matrix(3, layerCount);
+      wVec1 = new Vector(layerCount);
+      wVec2 = new Vector(layerCount);
+      temperatures = new Vector(layerCount);
       temperatures.Initialize(20);
 
-      double dz = WaterDepth / LayerNumber;
+      double dz = WaterDepth / LayerCount;
       PipeInstallationLayer = (int)Math.Floor(pipeInstallationHeight / dz);
     }
 
@@ -132,9 +132,9 @@ namespace Popolo.Core.HVAC.Storage
 
     /// <summary>Initializes the temperature distribution [°C].</summary>
     /// <param name="temperature">Temperature to initialize [°C].</param>
-    /// <param name="layerNumber">Zero-based layer index.</param>
-    public void InitializeTemperature(int layerNumber, double temperature)
-    { this.temperatures[layerNumber] = temperature; }
+    /// <param name="layerIndex">Zero-based layer index.</param>
+    public void InitializeTemperature(int layerIndex, double temperature)
+    { this.temperatures[layerIndex] = temperature; }
 
     /// <summary>Sets the temperature distribution from an array.</summary>
     /// <param name="temperatures">Array of layer temperatures [°C].</param>
@@ -142,9 +142,9 @@ namespace Popolo.Core.HVAC.Storage
     { for (int i = 0; i < temperatures.Length; i++) this.temperatures[i] = temperatures[i]; }
 
     /// <summary>Gets the temperature of the specified layer [°C].</summary>
-    /// <param name="layerNumber">Zero-based layer index.</param>
+    /// <param name="layerIndex">Zero-based layer index.</param>
     /// <returns>Layer temperature [°C].</returns>
-    public double GetTemperature(int layerNumber) { return temperatures[layerNumber]; }
+    public double GetTemperature(int layerIndex) { return temperatures[layerIndex]; }
 
     /// <summary>Copies the temperature distribution into the provided array.</summary>
     /// <param name="temperatures">Output array to receive the layer temperatures.</param>

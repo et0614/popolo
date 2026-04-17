@@ -60,13 +60,13 @@ namespace Popolo.Core.HVAC.SystemModel
     public IReadOnlyCoolingTower CoolingTower { get { return cTower; } }
 
     /// <summary>Gets the total number of chiller units.</summary>
-    public int ChillerNumber { get; private set; }
+    public int ChillerCount { get; private set; }
 
     /// <summary>Gets the number of cooling tower cells per chiller unit.</summary>
-    public int CoolingTowerNumber { get; private set; }
+    public int CoolingTowerCount { get; private set; }
 
     /// <summary>Gets the number of operating units.</summary>
-    public int OperatingChillerNumber { get; private set; }
+    public int ActiveChillerCount { get; private set; }
 
     /// <summary>Gets or sets a value indicating whether to operate cooling towers one-to-one with chillers.</summary>
     public bool OperateCoolingTowerOneOnOne { get; set; } = true;
@@ -143,11 +143,11 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the maximum chilled water flow rate [kg/s].</summary>
     public double MaxChilledWaterFlowRate
-    { get { return chiller.MaxChilledWaterFlowRate * ChillerNumber; } }
+    { get { return chiller.MaxChilledWaterFlowRate * ChillerCount; } }
 
     /// <summary>Gets the minimum chilled water flow rate ratio [-].</summary>
     public double MinChilledWaterFlowRatio
-    { get { return chiller.MinChilledWaterFlowRatio / ChillerNumber; } }
+    { get { return chiller.MinChilledWaterFlowRatio / ChillerCount; } }
 
     /// <summary>Gets or sets the outdoor air conditions.</summary>
     public IReadOnlyMoistAir OutdoorAir { get; set; } = new MoistAir(35, 0.0185);
@@ -156,7 +156,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public void ShutOff()
     {
       IsOverLoad_C = IsOverLoad_H = false;
-      OperatingChillerNumber = 0;
+      ActiveChillerCount = 0;
       chiller.ShutOff();
       chwPump.ShutOff();
       cdwPump.ShutOff();
@@ -178,23 +178,23 @@ namespace Popolo.Core.HVAC.SystemModel
       }
 
       chiller.IsOperating = true;
-      cTower.SetOutdoorAirState(OutdoorAir.WetbulbTemperature, OutdoorAir.HumidityRatio);
+      cTower.SetOutdoorAirState(OutdoorAir.WetBulbTemperature, OutdoorAir.HumidityRatio);
 
-      OperatingChillerNumber = (int)Math.Ceiling(chilledWaterFlowRate / chiller.MaxChilledWaterFlowRate);
-      OperatingChillerNumber = Math.Min(ChillerNumber, OperatingChillerNumber);
-      chiller.ChilledWaterOutletSetPointTemperature = ChilledWaterSupplyTemperatureSetpoint;
+      ActiveChillerCount = (int)Math.Ceiling(chilledWaterFlowRate / chiller.MaxChilledWaterFlowRate);
+      ActiveChillerCount = Math.Min(ChillerCount, ActiveChillerCount);
+      chiller.ChilledWaterOutletSetpointTemperature = ChilledWaterSupplyTemperatureSetpoint;
       while (true)
       {
         //冷水・冷却水流量を計算
-        double chwFlow = chilledWaterFlowRate / OperatingChillerNumber;
+        double chwFlow = chilledWaterFlowRate / ActiveChillerCount;
         double pLoad = chwFlow / chiller.MaxChilledWaterFlowRate;
         double cdwFlow;
         //2026.04.17 Bugfix
         if (AutoControlCoolingWaterFlowRate || CoolingWaterFlowSetpoint == 0) 
-          cdwFlow = cTower.MaxWaterFlowRate * CoolingTowerNumber * Math.Max(pLoad, MinimumCoolingWaterFlowRatio);
+          cdwFlow = cTower.MaxWaterFlowRate * CoolingTowerCount * Math.Max(pLoad, MinimumCoolingWaterFlowRatio);
         else cdwFlow = CoolingWaterFlowSetpoint;
-        if (!OperateCoolingTowerOneOnOne) cdwFlow /= ChillerNumber;
-        cTower.WaterFlowRate = cdwFlow / CoolingTowerNumber;
+        if (!OperateCoolingTowerOneOnOne) cdwFlow /= ChillerCount;
+        cTower.WaterFlowRate = cdwFlow / CoolingTowerCount;
 
         //ポンプによる昇温を評価
         cdwPump.UpdateState(0.001 * cdwFlow);
@@ -208,7 +208,7 @@ namespace Popolo.Core.HVAC.SystemModel
         if (ControlCoolingWaterTemperature)
         {
           chiller.Update(CoolingWaterTemperatureSetpoint + dCDT, twi, cdwFlow, chwFlow);
-          cTower.OutletWaterSetPointTemperature = CoolingWaterTemperatureSetpoint;
+          cTower.OutletWaterSetpointTemperature = CoolingWaterTemperatureSetpoint;
           cTower.Update(chiller.CoolingWaterOutletTemperature, true);
           if (cTower.IsOverLoad) needIteration = true;
         }
@@ -226,8 +226,8 @@ namespace Popolo.Core.HVAC.SystemModel
           else Roots.Bisection(eFnc, 10, 32, 0.01, 0.001, 10);
         }
 
-        if (OperatingChillerNumber == ChillerNumber || !chiller.IsOverLoad) break;
-        else OperatingChillerNumber++;
+        if (ActiveChillerCount == ChillerCount || !chiller.IsOverLoad) break;
+        else ActiveChillerCount++;
       }
 
       IsOverLoad_C = chiller.IsOverLoad;
@@ -247,18 +247,18 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="chwPump">Chilled water pump.</param>
     /// <param name="cdwPump">Cooling water pump.</param>
     /// <param name="cTower">Cooling tower.</param>
-    /// <param name="chillerNumber">Number of chiller units.</param>
-    /// <param name="coolingTowerNumber">Number of cooling tower units per chiller.</param>
+    /// <param name="chillerCount">Total number of chiller units.</param>
+    /// <param name="coolingTowerCount">Total number of cooling tower units per chiller.</param>
     public CentrifugalChillerSystem
       (ICentrifugalChiller chiller, CentrifugalPump chwPump,
-      CentrifugalPump cdwPump, CoolingTower cTower, int chillerNumber, int coolingTowerNumber)
+      CentrifugalPump cdwPump, CoolingTower cTower, int chillerCount, int coolingTowerCount)
     {
       this.chiller = chiller;
       this.chwPump = chwPump;
       this.cdwPump = cdwPump;
       this.cTower = cTower;
-      this.ChillerNumber = chillerNumber;
-      this.CoolingTowerNumber = coolingTowerNumber;
+      this.ChillerCount = chillerCount;
+      this.CoolingTowerCount = coolingTowerCount;
       
       Mode = HeatSourceSystemModel.OperatingMode.ShutOff;
     }

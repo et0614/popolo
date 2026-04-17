@@ -84,11 +84,11 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <summary>Gets or sets a value indicating whether to maximise operating efficiency by adjusting the number of active units.</summary>
     public bool MaximizeEfficiency { get; set; } = true;
 
-    /// <summary>Gets the total number of modules.</summary>
-    public int NumberOfUnits { get; private set; }
+    /// <summary>Gets the total number of units.</summary>
+    public int UnitCount { get; private set; }
 
     /// <summary>Gets the number of currently operating units.</summary>
-    public int OperatingNumber { get; private set; }
+    public int ActiveUnitCount { get; private set; }
 
     /// <summary>Gets a value indicating whether the unit is a heat-pump model (supports both heating and cooling).</summary>
     public bool IsHeatPumpModel { get; private set; }
@@ -109,7 +109,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double WaterOutletTemperature { get; private set; }
 
     /// <summary>Gets or sets the water outlet temperature setpoint [°C].</summary>
-    public double WaterOutletSetPointTemperature { get; set; }
+    public double WaterOutletSetpointTemperature { get; set; }
 
     /// <summary>Gets the water inlet temperature [°C].</summary>
     public double WaterInletTemperature { get; private set; }
@@ -144,7 +144,7 @@ namespace Popolo.Core.HVAC.HeatSource
       {
         if (ElectricConsumption != 0)
           return Math.Abs(WaterOutletTemperature - WaterInletTemperature)
-            * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate / (ElectricConsumption * OperatingNumber);
+            * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate / (ElectricConsumption * ActiveUnitCount);
         else return 0;
       }
     }
@@ -206,14 +206,14 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="heatingAirTemperature">Heating-mode ambient air temperature [°C].</param>
     /// <param name="heatingAirFlowRate">Heating-mode air mass flow rate per unit [kg/s].</param>
     /// <param name="heatingElectricity">Heating-mode electric power consumption per unit [kW].</param>
-    /// <param name="numberOfUnits">Number of modules.</param>
+    /// <param name="unitCount">Total number of units.</param>
     /// <param name="auxiliaryElectricConsumption">Auxiliary electric power consumption per unit [kW].</param>
     public AirHeatSourceModularChillers(
       double coolingCapacity, double chilledWaterOutletTemperature, double chilledWaterFlowRate, 
       double coolingAirTemperature, double coolingAirFlowRate, double coolingElectricity,
       double heatingCapacity, double hotWaterOutletTemperature, double hotWaterFlowRate, 
       double heatingAirTemperature, double heatingAirFlowRate, double heatingElectricity,
-      int numberOfUnits, double auxiliaryElectricConsumption)
+      int unitCount, double auxiliaryElectricConsumption)
     {
       IsHeatPumpModel = true;
 
@@ -221,10 +221,10 @@ namespace Popolo.Core.HVAC.HeatSource
       this.heatingAirFlowRate = heatingAirFlowRate;
       this.NominalCoolingCapacity = coolingCapacity;
       this.NominalHeatingCapacity = heatingCapacity;
-      this.NumberOfUnits = numberOfUnits;
+      this.UnitCount = unitCount;
       this.auxElec = auxiliaryElectricConsumption;
-      this.MaxChilledWaterFlowRate = chilledWaterFlowRate * numberOfUnits;
-      this.MaxHotWaterFlowRate = hotWaterFlowRate * numberOfUnits;
+      this.MaxChilledWaterFlowRate = chilledWaterFlowRate * unitCount;
+      this.MaxHotWaterFlowRate = hotWaterFlowRate * unitCount;
       this.MinChilledWaterFlowRate = chilledWaterFlowRate * 0.4;
       this.MinHotWaterFlowRate = hotWaterFlowRate * 0.4;
 
@@ -232,14 +232,14 @@ namespace Popolo.Core.HVAC.HeatSource
       double mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       double mcma = (1.005 + 1.846 * 0.020) * coolingAirFlowRate;
       double tao = coolingAirTemperature + (coolingElectricity + coolingCapacity) / mcma;
-      copFLRT_C = (chilledWaterOutletTemperature + 273.15) / (tao - chilledWaterOutletTemperature);
+      copFLRT_C = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature) / (tao - chilledWaterOutletTemperature);
       NominalCoolingCOP = coolingCapacity / coolingElectricity;
 
       //暖房運転COPの計算
       mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate;
       mcma = (1.005 + 1.846 * 0.002) * heatingAirFlowRate;
       tao = heatingAirTemperature + (heatingElectricity - heatingCapacity) / mcma;
-      copFLRT_H = (hotWaterOutletTemperature + 273.15) / (hotWaterOutletTemperature - tao);
+      copFLRT_H = PhysicsConstants.ToKelvin(hotWaterOutletTemperature) / (hotWaterOutletTemperature - tao);
       NominalHeatingCOP = heatingCapacity / heatingElectricity;
 
       //停止させる
@@ -253,18 +253,18 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="coolingAirTemperature">Cooling-mode ambient air temperature [°C].</param>
     /// <param name="coolingAirFlowRate">Cooling-mode air mass flow rate per unit [kg/s].</param>
     /// <param name="coolingElectricity">Cooling-mode electric power consumption per unit [kW].</param>
-    /// <param name="numberOfUnits">Number of modules.</param>
+    /// <param name="unitCount">Total number of units.</param>
     /// <param name="auxiliaryElectricConsumption">Auxiliary electric power consumption per unit [kW].</param>
     public AirHeatSourceModularChillers(
       double coolingCapacity, double chilledWaterOutletTemperature, double chilledWaterFlowRate,
       double coolingAirTemperature, double coolingAirFlowRate, double coolingElectricity,
-      int numberOfUnits, double auxiliaryElectricConsumption)
+      int unitCount, double auxiliaryElectricConsumption)
     {
       IsHeatPumpModel = false;
 
       this.coolingAirFlowRate = coolingAirFlowRate;
       this.NominalCoolingCapacity = coolingCapacity;      
-      this.NumberOfUnits = numberOfUnits;
+      this.UnitCount = unitCount;
       this.auxElec = auxiliaryElectricConsumption;
       this.heatingAirFlowRate = this.NominalHeatingCapacity = 0;
 
@@ -272,7 +272,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       double mcma = (1.005 + 1.846 * 0.020) * coolingAirFlowRate;
       double tao = coolingAirTemperature + (coolingElectricity + coolingCapacity) / mcma;
-      copFLRT_C = (chilledWaterOutletTemperature + 273.15) / (tao - chilledWaterOutletTemperature);
+      copFLRT_C = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature) / (tao - chilledWaterOutletTemperature);
       NominalCoolingCOP = coolingCapacity / coolingElectricity;
 
       //停止させる
@@ -296,7 +296,7 @@ namespace Popolo.Core.HVAC.HeatSource
       WaterOutletTemperature = WaterInletTemperature;
       ElectricConsumption = 0;
       AuxiliaryElectricConsumption = 0;
-      OperatingNumber = 0;
+      ActiveUnitCount = 0;
     }
 
     #endregion
@@ -312,14 +312,14 @@ namespace Popolo.Core.HVAC.HeatSource
       if (Mode == OperatingMode.ShutOff) return 0;
       else if (Mode == OperatingMode.Cooling)
       {
-        double two = Math.Min(15, Math.Max(3, waterOutletTemperature)) + 273.15;
-        double tai = Math.Min(43, Math.Max(20, ambientTemperature)) + 273.15;
+        double two = PhysicsConstants.ToKelvin(Math.Min(15, Math.Max(3, waterOutletTemperature)));
+        double tai = PhysicsConstants.ToKelvin(Math.Min(43, Math.Max(20, ambientTemperature)));
         return NominalCoolingCapacity * (tai * (two * aMax_C[0] + aMax_C[1]) + two * aMax_C[2] + aMax_C[3]);
       }
       else
       {
-        double two = Math.Min(55, Math.Max(35, waterOutletTemperature)) + 273.15;
-        double tai = Math.Min(21, Math.Max(-15, ambientTemperature)) + 273.15;
+        double two = PhysicsConstants.ToKelvin(Math.Min(55, Math.Max(35, waterOutletTemperature)));
+        double tai = PhysicsConstants.ToKelvin(Math.Min(21, Math.Max(-15, ambientTemperature)));
         return NominalHeatingCapacity * (tai * (two * aMax_H[0] + aMax_H[1]) + two * aMax_H[2] + aMax_H[3]);
       }
     }
@@ -332,14 +332,14 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="load">Required load [kW].</param>
     /// <param name="mCap">Maximum capacity per unit [kW].</param>
     /// <returns>Number of units to operate.</returns>
-    private int GetOperatingNumber(double load, double mCap)
+    private int GetActiveUnitCount(double load, double mCap)
     {
       //部分負荷運転により機器効率を最大化させる場合
       if (MaximizeEfficiency)
       {
         double optCap = mCap * (-0.5 * a_PL[1] / a_PL[0]);
         int optNum = (int)Math.Floor(load / optCap);
-        if (NumberOfUnits <= optNum) return NumberOfUnits;
+        if (UnitCount <= optNum) return UnitCount;
         else
         {
           double plf1 = GetPartialLoadFactor(load / (optNum * mCap));
@@ -349,7 +349,7 @@ namespace Popolo.Core.HVAC.HeatSource
         }
       }
       //最大負荷で運転時間を最小化させる場合（機器寿命重視）
-      else return (int)Math.Min(Math.Ceiling(load / mCap), NumberOfUnits);
+      else return (int)Math.Min(Math.Ceiling(load / mCap), UnitCount);
     }
 
     /// <summary>Computes the partial load efficiency factor [-].</summary>
@@ -382,9 +382,9 @@ namespace Popolo.Core.HVAC.HeatSource
       double load = 0;  //ShutOffの場合には0になる
       double mcw = WaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       if (Mode == OperatingMode.Cooling)
-        load = mcw * (WaterInletTemperature - WaterOutletSetPointTemperature);
+        load = mcw * (WaterInletTemperature - WaterOutletSetpointTemperature);
       else if (Mode == OperatingMode.Heating && IsHeatPumpModel)
-        load = mcw * (WaterOutletSetPointTemperature - WaterInletTemperature);
+        load = mcw * (WaterOutletSetpointTemperature - WaterInletTemperature);
 
       //負荷0ならば停止処理
       if (load <= 0)
@@ -394,9 +394,9 @@ namespace Popolo.Core.HVAC.HeatSource
       }
 
       //過負荷判定//最適運転台数を計算する
-      double cap = GetMaxCapacity(WaterOutletSetPointTemperature, AmbientTemperature);
-      OperatingNumber = GetOperatingNumber(load, cap);
-      double qLD = load / OperatingNumber;
+      double cap = GetMaxCapacity(WaterOutletSetpointTemperature, AmbientTemperature);
+      ActiveUnitCount = GetActiveUnitCount(load, cap);
+      double qLD = load / ActiveUnitCount;
       IsOverLoad = cap < qLD;
       if (IsOverLoad) qLD = cap;
 
@@ -421,11 +421,11 @@ namespace Popolo.Core.HVAC.HeatSource
       }
 
       //3次方程式の係数計算
-      WaterOutletTemperature = WaterInletTemperature + sg * qLD * OperatingNumber / mcw;
-      double abf0 = copFLRT / (WaterOutletTemperature + 273.15);
+      WaterOutletTemperature = WaterInletTemperature + sg * qLD * ActiveUnitCount / mcw;
+      double abf0 = copFLRT / PhysicsConstants.ToKelvin(WaterOutletTemperature);
       double abf1 = 2 * aCOP[0] * copFLRT + sg * aCOP[1];
       double abf2 = copFLRT * (aCOP[0] * copFLRT + sg * aCOP[1]) + aCOP[2];
-      double abf3 = mcma * (AmbientTemperature + 273.15) - sg * qLD;
+      double abf3 = mcma * PhysicsConstants.ToKelvin(AmbientTemperature) - sg * qLD;
       double[] aTau = new double[4];
       aTau[0] = abf0 * abf0 * aCOP[0] * mcma;
       aTau[1] = -abf0 * (mcma * abf1 + abf0 * aCOP[0] * abf3);
@@ -440,15 +440,15 @@ namespace Popolo.Core.HVAC.HeatSource
         double dt;
         if (Mode == OperatingMode.Cooling) dt = qLD / NominalCoolingCOP;
         else dt = qLD / NominalHeatingCOP;
-        double tao2 = AmbientTemperature + (dt - sg * qLD) / mcma + 273.15;
+        double tao2 = PhysicsConstants.ToKelvin(AmbientTemperature + (dt - sg * qLD) / mcma);
         double x1er = Math.Abs(tao2 - x1);
         double x2er = Math.Abs(tao2 - x2);
         double x3er = Math.Abs(tao2 - x3);
-        if (x1er < x2er && x1er < x3er) tao = x1 - 273.15;
-        else if (x2er < x3er) tao = x2 - 273.15;
-        else tao = x3 - 273.15;
+        if (x1er < x2er && x1er < x3er) tao = PhysicsConstants.ToCelsius(x1);
+        else if (x2er < x3er) tao = PhysicsConstants.ToCelsius(x2);
+        else tao = PhysicsConstants.ToCelsius(x3);
       }
-      else tao = x1 - 273.15;
+      else tao = PhysicsConstants.ToCelsius(x1);
 
       //出力設定
       ElectricConsumption = mcma * (tao - AmbientTemperature) + sg * qLD;

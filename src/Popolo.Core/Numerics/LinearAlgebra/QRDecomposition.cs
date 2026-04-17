@@ -18,14 +18,14 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     double[] wa;
 
     /// <summary>コンストラクタ</summary>
-    /// <param name="rowNumber">行数</param>
-    /// <param name="columnNumber">列数</param>
-    public QRDecomposer(int rowNumber, int columnNumber)
+    /// <param name="rowCount">行数</param>
+    /// <param name="columnCount">列数</param>
+    public QRDecomposer(int rowCount, int columnCount)
     {
-      iPivot = new int[columnNumber];
-      rdiag = new double[columnNumber];
-      acnorm = new double[columnNumber];
-      wa = new double[columnNumber];
+      iPivot = new int[columnCount];
+      rdiag = new double[columnCount];
+      acnorm = new double[columnCount];
+      wa = new double[columnCount];
     }
 
     /// <summary>QR分解を行う</summary>

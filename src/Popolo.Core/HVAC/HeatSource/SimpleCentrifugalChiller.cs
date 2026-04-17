@@ -45,7 +45,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double ChilledWaterOutletTemperature { get; private set; }
 
     /// <summary>Gets or sets the chilled water outlet temperature setpoint [°C].</summary>
-    public double ChilledWaterOutletSetPointTemperature { get; set; }
+    public double ChilledWaterOutletSetpointTemperature { get; set; }
 
     /// <summary>Gets the chilled water inlet temperature [°C].</summary>
     public double ChilledWaterInletTemperature { get; private set; }
@@ -115,10 +115,10 @@ namespace Popolo.Core.HVAC.HeatSource
       this.NominalInput = nominalInput;
       this.MinimumPartialLoadRatio = minimumPartialLoadRatio;
       this.HasInverter = hasInverter;
-      this.theoreticalCOP = (chilledWaterOutletTemperature + 273.15)
+      this.theoreticalCOP = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature)
         / (coolingWaterOutletTemperature - chilledWaterOutletTemperature);
       this.NominalCOP = NominalCapacity / NominalInput;
-      this.ChilledWaterOutletSetPointTemperature = chilledWaterOutletTemperature;
+      this.ChilledWaterOutletSetpointTemperature = chilledWaterOutletTemperature;
 
       //INV機の特性係数
       if (HasInverter) coef = new double[] { 4.425e-4, -2.532e-1, 4.256e-1, 3.098e-1, 6.910e-2, 4.482e-1 };
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double mccd = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * CoolingWaterFlowRate;
 
       //負荷[kW]を計算
-      CoolingLoad = mcch * (ChilledWaterInletTemperature - ChilledWaterOutletSetPointTemperature);
+      CoolingLoad = mcch * (ChilledWaterInletTemperature - ChilledWaterOutletSetpointTemperature);
 
       //過負荷の場合には出口温度を補正
       IsOverLoad = NominalCapacity < CoolingLoad;
@@ -175,14 +175,14 @@ namespace Popolo.Core.HVAC.HeatSource
         CoolingLoad = NominalCapacity;
         ChilledWaterOutletTemperature = ChilledWaterInletTemperature - CoolingLoad / mcch;
       }
-      else ChilledWaterOutletTemperature = ChilledWaterOutletSetPointTemperature;
+      else ChilledWaterOutletTemperature = ChilledWaterOutletSetpointTemperature;
 
       //容量制御下限値未満の場合には下限値として消費電力を計算
       double load = Math.Max(MinimumPartialLoadRatio * NominalCapacity, CoolingLoad);
 
       //冷却水出口温度の計算
-      double tcho = ChilledWaterOutletTemperature + 273.15;
-      double tcdi = coolingWaterInletTemperature + 273.15;
+      double tcho = PhysicsConstants.ToKelvin(ChilledWaterOutletTemperature);
+      double tcdi = PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       double pL = load / NominalCapacity;
       double dcd = (coef[2] + coef[3] * pL) * theoreticalCOP;
       double ecd = coef[0] + pL * (coef[1] + coef[5] * pL);
@@ -191,7 +191,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double ccd = tcho * tcho * (acd - dcd + ecd + (load + tcdi * mccd) / NominalInput);
 
       //2次方程式の解の公式
-      CoolingWaterOutletTemperature = (-bcd - Math.Sqrt(bcd * bcd - 4 * acd * ccd)) / (2d * acd) - 273.15;
+      CoolingWaterOutletTemperature = PhysicsConstants.ToCelsius((-bcd - Math.Sqrt(bcd * bcd - 4 * acd * ccd)) / (2d * acd));
 
       //消費電力の計算
       double tCop = tcho / (CoolingWaterOutletTemperature - ChilledWaterOutletTemperature);

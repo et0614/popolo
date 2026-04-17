@@ -40,10 +40,10 @@ namespace Popolo.Core.Utilities
     private readonly List<double[]> _seriesValues;
 
     /// <summary>Gets the number of data nodes.</summary>
-    public int NumberOfNodes => _dTimes.Length;
+    public int NodeCount => _dTimes.Length;
 
     /// <summary>Gets the number of data series.</summary>
-    public int NumberOfSeries => _seriesValues.Count;
+    public int SeriesCount => _seriesValues.Count;
 
     #endregion
 
@@ -76,16 +76,16 @@ namespace Popolo.Core.Utilities
       for (int i = 1; i < dateTimes.Length; i++)
         if (dateTimes[i] < dateTimes[i - 1])
           throw new PopoloArgumentException(
-              nameof(dateTimes),
-              "DateTime array must be sorted in ascending order.");
+              "DateTime array must be sorted in ascending order.", 
+              nameof(dateTimes));
 
       //データ数確認
       for (int i = 0; i < boundaryValues.Count; i++)
-        if (boundaryValues[i].Length != NumberOfNodes)
+        if (boundaryValues[i].Length != NodeCount)
           throw new PopoloArgumentException(
-              nameof(boundaryValues),
               $"Series[{i}]: length {boundaryValues[i].Length} "
-              + $"does not match NumberOfNodes ({NumberOfNodes}).");
+              + $"does not match NumberOfNodes ({NodeCount}).",
+              nameof(boundaryValues));
 
       _seriesValues = boundaryValues;
     }
@@ -104,7 +104,7 @@ namespace Popolo.Core.Utilities
     {
       int iIndex = GetIntervalIndex(dateTime);
       if (iIndex < 0) return _seriesValues[seriesIndex][0];
-      if (iIndex >= NumberOfNodes) return _seriesValues[seriesIndex][NumberOfNodes - 1];
+      if (iIndex >= NodeCount) return _seriesValues[seriesIndex][NodeCount - 1];
 
       double[] slps = ComputeSlopes(iIndex, seriesIndex);
 
@@ -128,8 +128,8 @@ namespace Popolo.Core.Utilities
     /// <returns>Array of interpolated values, one per series.</returns>
     public double[] InterpolateAllSeries(DateTime dateTime)
     {
-      var values = new double[NumberOfSeries];
-      for (int i = 0; i < NumberOfSeries; i++)
+      var values = new double[SeriesCount];
+      for (int i = 0; i < SeriesCount; i++)
         values[i] = Interpolate(dateTime, i);
       return values;
     }
@@ -137,17 +137,17 @@ namespace Popolo.Core.Utilities
     /// <summary>
     /// Adds a new series of values.
     /// </summary>
-    /// <param name="sValues">Array of values with length equal to <see cref="NumberOfNodes"/>.</param>
+    /// <param name="sValues">Array of values with length equal to <see cref="NodeCount"/>.</param>
     /// <exception cref="PopoloArgumentException">
     /// Thrown when the length of <paramref name="sValues"/> does not match
-    /// <see cref="NumberOfNodes"/>.
+    /// <see cref="NodeCount"/>.
     /// </exception>
     public void AddSeries(double[] sValues)
     {
-      if (sValues.Length != NumberOfNodes)
+      if (sValues.Length != NodeCount)
         throw new PopoloArgumentException(
-            nameof(sValues),
-            $"Length {sValues.Length} does not match NumberOfNodes ({NumberOfNodes}).");
+            $"Length {sValues.Length} does not match NumberOfNodes ({NodeCount}).",
+            nameof(sValues));
       _seriesValues.Add(sValues);
     }
 
@@ -170,7 +170,7 @@ namespace Popolo.Core.Utilities
     private double[] ComputeSlopes(int intervalIndex, int seriesIndex)
     {
       bool isLeftEnd = intervalIndex == 0;
-      bool isRightEnd = intervalIndex == NumberOfNodes - 2;
+      bool isRightEnd = intervalIndex == NodeCount - 2;
 
       double[] h = new double[3];
       double[] delta = new double[3];

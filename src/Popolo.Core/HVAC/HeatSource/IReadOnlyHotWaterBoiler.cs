@@ -16,7 +16,7 @@ namespace Popolo.Core.HVAC.HeatSource
     double OutletWaterTemperature { get; }
 
     /// <summary>Gets the outlet water temperature setpoint [°C].</summary>
-    double OutletWaterSetPointTemperature { get; }
+    double OutletWaterSetpointTemperature { get; }
 
     /// <summary>Gets the inlet water temperature [°C].</summary>
     double InletWaterTemperature { get; }

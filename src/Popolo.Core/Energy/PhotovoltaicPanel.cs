@@ -131,33 +131,33 @@ namespace Popolo.Core.Energy
     /// <summary>
     /// Gets the power output [W] from the ambient conditions and tilted surface irradiance.
     /// </summary>
-    /// <param name="drybulbTemperature">Outdoor dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Outdoor dry-bulb temperature [°C]</param>
     /// <param name="velocity">Wind speed [m/s]</param>
     /// <param name="totalIrradiance">
     /// Total irradiance on the tilted surface [W/m²] (direct + diffuse).
     /// </param>
     /// <returns>Power output [W]</returns>
     public double GetPower(
-        double drybulbTemperature, double velocity, double totalIrradiance)
+        double dryBulbTemperature, double velocity, double totalIrradiance)
     {
-      return GetPower(drybulbTemperature, velocity, totalIrradiance,
+      return GetPower(dryBulbTemperature, velocity, totalIrradiance,
           PeakPower, InverterEfficiency, Mount, Material);
     }
 
     /// <summary>
     /// Gets the power output [W] from the ambient conditions and solar state.
     /// </summary>
-    /// <param name="drybulbTemperature">Outdoor dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Outdoor dry-bulb temperature [°C]</param>
     /// <param name="velocity">Wind speed [m/s]</param>
     /// <param name="sun">Solar state</param>
     /// <returns>Power output [W]</returns>
     public double GetPower(
-        double drybulbTemperature, double velocity, IReadOnlySun sun)
+        double dryBulbTemperature, double velocity, IReadOnlySun sun)
     {
       double totalIrradiance =
           Incline.GetDirectSolarRadiationRate(sun) * sun.DirectNormalRadiation
           + Incline.ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation;
-      return GetPower(drybulbTemperature, velocity, totalIrradiance);
+      return GetPower(dryBulbTemperature, velocity, totalIrradiance);
     }
 
     #endregion
@@ -167,7 +167,7 @@ namespace Popolo.Core.Energy
     /// <summary>
     /// Gets the power output [W] from the specified conditions and panel parameters.
     /// </summary>
-    /// <param name="drybulbTemperature">Outdoor dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Outdoor dry-bulb temperature [°C]</param>
     /// <param name="velocity">Wind speed [m/s]</param>
     /// <param name="totalIrradiance">Total irradiance on the tilted surface [W/m²]</param>
     /// <param name="peakPower">Peak power output [W] under STC</param>
@@ -176,18 +176,18 @@ namespace Popolo.Core.Energy
     /// <param name="material">Cell material type</param>
     /// <returns>Power output [W]</returns>
     public static double GetPower(
-        double drybulbTemperature, double velocity, double totalIrradiance,
+        double dryBulbTemperature, double velocity, double totalIrradiance,
         double peakPower, double inverterEfficiency,
         MountType mount, MaterialType material)
     {
       double kpt = GetTemperatureRiseCorrectionFactor(
-          drybulbTemperature, velocity, totalIrradiance, mount, material);
+          dryBulbTemperature, velocity, totalIrradiance, mount, material);
       return totalIrradiance / 1000.0 * kpt * peakPower * inverterEfficiency;
     }
 
     /// <summary>パネル温度上昇による出力補正係数を計算する（湯川ら 1996）</summary>
     private static double GetTemperatureRiseCorrectionFactor(
-        double drybulbTemperature, double velocity, double totalIrradiance,
+        double dryBulbTemperature, double velocity, double totalIrradiance,
         MountType mount, MaterialType material)
     {
       double a, b;
@@ -204,7 +204,7 @@ namespace Popolo.Core.Energy
           break;
       }
       //パネル温度を計算する（湯川ら 式1）
-      double tp = drybulbTemperature
+      double tp = dryBulbTemperature
           + (a / (b * Math.Pow(velocity, 0.8) + 1) + 2) * totalIrradiance / 1000.0
           - 2.0;
 

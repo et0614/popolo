@@ -49,7 +49,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
                 chilledWaterFlowRate:      10.0,
                 hasInverter:               hasInverter);
             c.IsOperating = true;
-            c.ChilledWaterOutletSetPointTemperature = 7.0;
+            c.ChilledWaterOutletSetpointTemperature = 7.0;
             return c;
         }
 
@@ -195,7 +195,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var c = MakeChiller();
             // 冷水入口温度を非常に高くして過負荷を引き起こす
-            c.ChilledWaterOutletSetPointTemperature = 7.0;
+            c.ChilledWaterOutletSetpointTemperature = 7.0;
             c.Update(32.0, 40.0, 15.0, 10.0);
             Assert.True(c.IsOverLoad);
             Assert.InRange(c.CoolingLoad, c.NominalCapacity - 0.1, c.NominalCapacity + 0.1);

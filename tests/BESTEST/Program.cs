@@ -318,7 +318,7 @@ namespace Popolo.Core.Validation.BESTEST
           // 予備計算（起動時の24時間暖機運転）
           if (isStarting)
           {
-            bModel.ControlDrybulbTemperature(0, 0, 20);
+            bModel.ControlDryBulbTemperature(0, 0, 20);
             if (testCase == TestCase.C960) bModel.ControlHeatSupply(0, 1, 0); // SunZoneはFreeFloat
             for (int i = 0; i < 24; i++)
             {
@@ -330,11 +330,11 @@ namespace Popolo.Core.Validation.BESTEST
 
           // 熱流の向きに応じた室内側対流熱伝達率の更新
           // （SunspaceとGroundCouplingは非対応）
-          if (walls[0].Temperatures[walls[0].NodeNumber - 1] < zones[0].Temperature)
+          if (walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature)
             walls[0].ConvectiveCoefficientB = 6.13 - 5.13;
           else
             walls[0].ConvectiveCoefficientB = 9.26 - 5.13;
-          if (walls[1].Temperatures[walls[1].NodeNumber - 1] < zones[0].Temperature)
+          if (walls[1].Temperatures[walls[1].NodeCount - 1] < zones[0].Temperature)
             walls[1].ConvectiveCoefficientB = 9.26 - 5.13;
           else
             walls[1].ConvectiveCoefficientB = 6.13 - 5.13;
@@ -344,33 +344,33 @@ namespace Popolo.Core.Validation.BESTEST
           bModel.ForecastHeatTransfer();
           if (isBangBang)
           {
-            bModel.ControlDrybulbTemperature(0, 0, 20);
+            bModel.ControlDryBulbTemperature(0, 0, 20);
           }
           else if (isDeadBand)
           {
-            if (zones[0].Temperature < 20) bModel.ControlDrybulbTemperature(0, 0, 20);
-            else if (27 < zones[0].Temperature) bModel.ControlDrybulbTemperature(0, 0, 27);
+            if (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);
+            else if (27 < zones[0].Temperature) bModel.ControlDryBulbTemperature(0, 0, 27);
           }
           else if (isSetBack)
           {
             if (27 < zones[0].Temperature)
-              bModel.ControlDrybulbTemperature(0, 0, 27);
+              bModel.ControlDryBulbTemperature(0, 0, 27);
             else if ((7 <= dt.Hour && dt.Hour < 23) && zones[0].Temperature < 20)
-              bModel.ControlDrybulbTemperature(0, 0, 20);
+              bModel.ControlDryBulbTemperature(0, 0, 20);
             else if (zones[0].Temperature < 10)
-              bModel.ControlDrybulbTemperature(0, 0, 10);
+              bModel.ControlDryBulbTemperature(0, 0, 10);
           }
           else if (testCase == TestCase.C650 || testCase == TestCase.C950)
           {
             if ((7 <= dt.Hour && dt.Hour < 18) && 27 < zones[0].Temperature)
-              bModel.ControlDrybulbTemperature(0, 0, 27);
+              bModel.ControlDryBulbTemperature(0, 0, 27);
           }
           else if (testCase == TestCase.C900_J2)
           {
             if (8 <= dt.Hour && dt.Hour < 17)
             {
-              if (zones[0].Temperature < 20) bModel.ControlDrybulbTemperature(0, 0, 20);
-              else if (27 < zones[0].Temperature) bModel.ControlDrybulbTemperature(0, 0, 27);
+              if (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);
+              else if (27 < zones[0].Temperature) bModel.ControlDryBulbTemperature(0, 0, 27);
             }
           }
 

@@ -116,7 +116,7 @@ namespace Popolo.Core.ThermalComfort
 
     /// <summary>Updates the thermoregulatory state for one time step.</summary>
     /// <param name="timeStep">Time step [s].</param>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     /// <param name="velocity">Relative air velocity [m/s].</param>
@@ -125,7 +125,7 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="externalWork">External mechanical work [W/m²].</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa].</param>
     public void UpdateState
-      (double timeStep, double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity, 
+      (double timeStep, double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity, 
       double velocity, double clothing, double metabolicRate, double externalWork, double atmosphericPressure)
     {
       //定数宣言
@@ -141,7 +141,7 @@ namespace Popolo.Core.ThermalComfort
       double metab = BasalMetabolism * metabolicRate / 0.7;
       
       //水蒸気分圧[kPa]の計算
-      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(drybulbTemperature);
+      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(dryBulbTemperature);
       //着衣抵抗[m2K/W]の計算
       double rcl = 0.155 * clothing;
       //着衣面積率[-]の計算
@@ -172,7 +172,7 @@ namespace Popolo.Core.ThermalComfort
           //空気層顕熱抵抗[(m2K)/W]の計算
           ra = 1 / (clothRate * hcr);
           //作用温度[C]の計算
-          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * drybulbTemperature) / hcr;
+          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * dryBulbTemperature) / hcr;
           //衣服温度[C]の計算
           ClothTemperature = (ra * SkinTemperature + rcl * operatingTemp) / (ra + rcl);
           //衣服温度の更新量が0.01C以下で収束と判定
@@ -240,7 +240,7 @@ namespace Popolo.Core.ThermalComfort
 
         //呼吸による熱損失量[W/m2]の計算
         LatentHeatLossByRespiration = metabolism * 0.017251 * (5.8662 - pa);
-        SensibleHeatLossByRespiration = metabolism * 0.0014 * (34 - drybulbTemperature);
+        SensibleHeatLossByRespiration = metabolism * 0.0014 * (34 - dryBulbTemperature);
 
         //コアと皮膚への熱流[W/m2]を計算
         double scr = metabolism - hfcs - LatentHeatLossByRespiration - SensibleHeatLossByRespiration - externalWork;
@@ -271,7 +271,7 @@ namespace Popolo.Core.ThermalComfort
     #region staticメソッド
 
     /// <summary>Computes the steady-state thermoregulatory conditions.</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     /// <param name="velocity">Relative air velocity [m/s].</param>
@@ -288,7 +288,7 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="latentRespiration">Output: latent heat loss by respiration [W/m²].</param>
     /// <param name="wettedness">Output: mean skin wettedness [-].</param>
     public static void GetSteadyState
-      (double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity, 
+      (double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity, 
       double clothing, double basalMetabolism, double externalWork, 
       out double skinTemperature, out double coreTemperature, out double bodyTemperature, 
       out double clothTemperature, out double sensibleHFSkin, out double latentHFSkin, 
@@ -307,7 +307,7 @@ namespace Popolo.Core.ThermalComfort
       const double CRITICAL_WETTEDNESS = 0.85;//最大濡れ率[-]
 
       //水蒸気分圧[kPa]の計算
-      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(drybulbTemperature);
+      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(dryBulbTemperature);
       //着衣抵抗[m2K/W]の計算
       double rcl = 0.155 * clothing;
       //着衣面積率[-]の計算
@@ -330,7 +330,7 @@ namespace Popolo.Core.ThermalComfort
 
       //Δt=1minとして60minの繰り返し計算を行う
       const int DELTA_T = 1;
-      clothTemperature = (skinTemperature + drybulbTemperature) / 2d;
+      clothTemperature = (skinTemperature + dryBulbTemperature) / 2d;
       for (int tim = 0; tim < 60; tim += DELTA_T)
       {
         //衣服の表面温度を収束計算
@@ -346,7 +346,7 @@ namespace Popolo.Core.ThermalComfort
           //空気層顕熱抵抗[(m2K)/W]の計算
           ra = 1 / (clothRate * hcr);
           //作用温度[C]の計算
-          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * drybulbTemperature) / hcr;
+          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * dryBulbTemperature) / hcr;
           //衣服温度[C]の計算
           clothTemperature = (ra * skinTemperature + rcl * operatingTemp) / (ra + rcl);
           //衣服温度の更新量が0.01C以下で収束と判定
@@ -360,7 +360,7 @@ namespace Popolo.Core.ThermalComfort
 
         //呼吸による熱損失量[W/m2]の計算
         latentRespiration = metabolism * 0.017251 * (5.8662 - pa);
-        sensibleRespiration = metabolism * 0.0014 * (34 - drybulbTemperature);
+        sensibleRespiration = metabolism * 0.0014 * (34 - dryBulbTemperature);
 
         //コアと皮膚への熱流[W/m2]を計算
         double scr = metabolism - hfcs - latentRespiration - sensibleRespiration - externalWork;
@@ -432,7 +432,7 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="age">Age [years].</param>
     /// <param name="height">Height [m].</param>
     /// <param name="weight">Weight [kg].</param>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     /// <param name="velocity">Relative air velocity [m/s].</param>
@@ -450,7 +450,7 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="wettedness">Output: mean skin wettedness [-].</param>
     public static void GetSteadyState
       (int age, double height, double weight, 
-      double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity,
+      double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity,
       double clothing, double basalMetabolism, double externalWork,
       out double skinTemperature, out double coreTemperature, out double bodyTemperature,
       out double clothTemperature, out double sensibleHFSkin, out double latentHFSkin,
@@ -470,7 +470,7 @@ namespace Popolo.Core.ThermalComfort
       double normalBloodFlow = 3.14 + age * (-6.55e-2 + age * (4.55e-4 + age * (9.71e-6 - 1.17e-7 * age)));
 
       //水蒸気分圧[kPa]の計算
-      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(drybulbTemperature);
+      double pa = relativeHumidity / 100 * Water.GetSaturationPressure(dryBulbTemperature);
       //着衣抵抗[m2K/W]の計算
       double rcl = 0.155 * clothing;
       //着衣面積率[-]の計算
@@ -493,7 +493,7 @@ namespace Popolo.Core.ThermalComfort
 
       //Δt=1minとして60minの繰り返し計算を行う
       const int DELTA_T = 1;
-      clothTemperature = (skinTemperature + drybulbTemperature) / 2d;
+      clothTemperature = (skinTemperature + dryBulbTemperature) / 2d;
       for (int tim = 0; tim < 60; tim += DELTA_T)
       {
         //衣服の表面温度を収束計算
@@ -509,7 +509,7 @@ namespace Popolo.Core.ThermalComfort
           //空気層顕熱抵抗[(m2K)/W]の計算
           ra = 1 / (clothRate * hcr);
           //作用温度[C]の計算
-          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * drybulbTemperature) / hcr;
+          operatingTemp = (hr * meanRadiantTemperature + convectiveHTransCoef * dryBulbTemperature) / hcr;
           //衣服温度[C]の計算
           clothTemperature = (ra * skinTemperature + rcl * operatingTemp) / (ra + rcl);
           //衣服温度の更新量が0.01C以下で収束と判定
@@ -523,7 +523,7 @@ namespace Popolo.Core.ThermalComfort
 
         //呼吸による熱損失量[W/m2]の計算
         latentRespiration = metabolism * 0.017251 * (5.8662 - pa);
-        sensibleRespiration = metabolism * 0.0014 * (34 - drybulbTemperature);
+        sensibleRespiration = metabolism * 0.0014 * (34 - dryBulbTemperature);
 
         //コアと皮膚への熱流[W/m2]を計算
         double scr = metabolism - hfcs - latentRespiration - sensibleRespiration - externalWork;
@@ -592,7 +592,7 @@ namespace Popolo.Core.ThermalComfort
     }
 
     /// <summary>Computes SET* [°C] directly from ambient conditions.</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="velocity">Relative air velocity [m/s].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
@@ -601,11 +601,11 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="externalWork">External mechanical work [W/m²].</param>
     /// <returns>SET*[C]</returns>
     public static double GetSETStarFromAmbientCondition
-      (double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity, 
+      (double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity, double velocity, 
       double clothing, double basalMetabolism, double externalWork)
     {
       double st, ct, bt, clt, ss, ls, sr, lr, wd;
-      GetSteadyState(drybulbTemperature, meanRadiantTemperature, relativeHumidity,
+      GetSteadyState(dryBulbTemperature, meanRadiantTemperature, relativeHumidity,
         velocity, clothing, basalMetabolism, externalWork,
         out st, out ct, out bt, out clt, out ss, out ls, out sr, out lr, out wd);
       return GetSETStar(meanRadiantTemperature, basalMetabolism, externalWork, clt, st, ss, ls, wd);

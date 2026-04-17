@@ -68,16 +68,16 @@ namespace Popolo.Core.Numerics
     #region プロパティ
 
     /// <summary>関数の数を取得する</summary>
-    public int NumberOfFunctions { get; private set; }
+    public int FunctionCount { get; private set; }
 
     /// <summary>状態の数を取得する</summary>
-    public int NumberOfVariables { get; private set; }
+    public int VariableCount { get; private set; }
 
     /// <summary>誤差関数評価回数を取得する</summary>
-    public int NumberOfFunctionEvaluates { get; private set; }
+    public int FunctionEvaluateCount { get; private set; }
 
     /// <summary>誤差関数評価回数上限を設定・取得する</summary>
-    public int MaxNumberOfFunctionEvaluate
+    public int MaxFunctionEvaluateCount
     {
       get { return maxfev; }
       set { if (0 < value) maxfev = value; }
@@ -192,8 +192,8 @@ namespace Popolo.Core.Numerics
       this.eFnc = eFnc;
       epsfcn = gtol = ftol = xtol = 1e-6;
       this.maxfev = numberOfFunctions * 10000;
-      this.NumberOfFunctions = numberOfFunctions;
-      this.NumberOfVariables = numberOfVariables;
+      this.FunctionCount = numberOfFunctions;
+      this.VariableCount = numberOfVariables;
       this.MaxIteration = 1000;
 
       //計算に備えて計算領域を確保
@@ -215,15 +215,15 @@ namespace Popolo.Core.Numerics
       info = 0;
       this.inputs = inputs;
       double factor = 100d;
-      NumberOfFunctionEvaluates = 0;
-      int m = NumberOfFunctions;
-      int n = NumberOfVariables;
+      FunctionEvaluateCount = 0;
+      int m = FunctionCount;
+      int n = VariableCount;
       double xnorm = 0.0;
       double delta = 0.0;
 
       //evaluate the function at the starting point and calculate its norm.
       eFnc(inputs, ref outputs);
-      NumberOfFunctionEvaluates = 1;
+      FunctionEvaluateCount = 1;
       double fnorm = outputs.ComputeEuclideanNorm();
 
       //initialize levenberg-marquardt parameter and iteration counter.
@@ -235,7 +235,7 @@ namespace Popolo.Core.Numerics
       {
         //calculate the jacobian matrix.
         double eps = Math.Sqrt(Math.Max(epsfcn, MECH_EPS));
-        for (int j = 0; j < NumberOfVariables; j++)
+        for (int j = 0; j < VariableCount; j++)
         {
           double tmp = inputs[j];
           double h = eps * Math.Abs(tmp);
@@ -243,10 +243,10 @@ namespace Popolo.Core.Numerics
           inputs[j] = tmp + h;
           eFnc(inputs, ref wa4);
           inputs[j] = tmp;
-          for (int i = 0; i < NumberOfFunctions; i++)
+          for (int i = 0; i < FunctionCount; i++)
             fjac[i, j] = (wa4[i] - outputs[i]) / h;
         }
-        NumberOfFunctionEvaluates += NumberOfFunctions;
+        FunctionEvaluateCount += FunctionCount;
 
         //compute the qr factorization of the jacobian.
         QrFac(ref fjac, ref wa1, ref wa2, ref wa3, ref ipvt);
@@ -331,7 +331,7 @@ namespace Popolo.Core.Numerics
 
           //evaluate the function at x + p and calculate its norm.
           eFnc(wa2, ref wa4);
-          NumberOfFunctionEvaluates++;
+          FunctionEvaluateCount++;
           double fnorm1 = wa4.ComputeEuclideanNorm();
 
           //compute the scaled actual reduction.
@@ -399,7 +399,7 @@ namespace Popolo.Core.Numerics
           if (info != 0) return;
 
           //test for termination and stringent tolerances.
-          if (maxfev <= NumberOfFunctionEvaluates) info = 5;
+          if (maxfev <= FunctionEvaluateCount) info = 5;
           if (Math.Abs(actred) <= MECH_EPS
             && prered <= MECH_EPS && 0.5 * ratio <= 1.0)
             info = 6;

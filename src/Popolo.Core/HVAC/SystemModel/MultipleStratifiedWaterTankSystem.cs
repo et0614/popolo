@@ -88,10 +88,10 @@ namespace Popolo.Core.HVAC.SystemModel
     public IReadOnlyMultipleStratifiedWaterTank WaterTank { get { return wTank; } }
 
     /// <summary>Gets the total number of chiller units.</summary>
-    public int ChillerNumber { get; private set; }
+    public int ChillerCount { get; private set; }
 
     /// <summary>Gets the number of cooling tower cells per chiller unit.</summary>
-    public int CoolingTowerNumber { get; private set; }
+    public int CoolingTowerCount { get; private set; }
 
     /// <summary>Gets or sets a value indicating whether to control cooling water temperature.</summary>
     public bool ControlCoolingWaterTemperature { get; set; }
@@ -112,8 +112,8 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <summary>Gets or sets the thermal storage temperature [°C].</summary>
     public double StorageTemperature
     {
-      get { return chiller.ChilledWaterOutletSetPointTemperature; }
-      set { chiller.ChilledWaterOutletSetPointTemperature = value; }
+      get { return chiller.ChilledWaterOutletSetpointTemperature; }
+      set { chiller.ChilledWaterOutletSetpointTemperature = value; }
     }
 
     /// <summary>Gets a value indicating whether the system is in thermal storage charge mode.</summary>
@@ -211,7 +211,7 @@ namespace Popolo.Core.HVAC.SystemModel
     {
       ChilledWaterFlowRate = chilledWaterFlowRate;
       HotWaterFlowRate = hotWaterFlowRate;
-      cTower.SetOutdoorAirState(OutdoorAir.WetbulbTemperature, OutdoorAir.HumidityRatio);
+      cTower.SetOutdoorAirState(OutdoorAir.WetBulbTemperature, OutdoorAir.HumidityRatio);
 
       //水槽内温度分布の一時保存と復元
       if (isForecasting) wTank.InitializeTemperature(oldTemps);
@@ -329,7 +329,7 @@ namespace Popolo.Core.HVAC.SystemModel
     private void CalcHexHeatTransfer(double hexFlow, double rtnTmp)
     {
       //水槽内の流れ方向を確定
-      double ttlChilFlow = chiller.MaxChilledWaterFlowRate * ChillerNumber;
+      double ttlChilFlow = chiller.MaxChilledWaterFlowRate * ChillerCount;
       bool isDownFlow = ttlChilFlow < hexFlow;
 
       //ターボ冷凍機供給温度を仮定
@@ -387,7 +387,7 @@ namespace Popolo.Core.HVAC.SystemModel
       if (ControlCoolingWaterTemperature)
       {
         chiller.Update(CoolingWaterTemperatureSetpoint + dtCoolingPump, inletChilledWaterTemp, mcd, mch);
-        cTower.OutletWaterSetPointTemperature = CoolingWaterTemperatureSetpoint;
+        cTower.OutletWaterSetpointTemperature = CoolingWaterTemperatureSetpoint;
         cTower.Update(chiller.CoolingWaterOutletTemperature, true);
         if (cTower.IsOverLoad) needIteration = true;
       }
@@ -400,10 +400,10 @@ namespace Popolo.Core.HVAC.SystemModel
           cTower.Update(chiller.CoolingWaterOutletTemperature, cTower.MaxAirFlowRate);
           return cTower.OutletWaterTemperature - cdt;
         };
-        double fmax = eFnc(OutdoorAir.WetbulbTemperature);
+        double fmax = eFnc(OutdoorAir.WetBulbTemperature);
         double fmin = eFnc(37);
         if (0 <= fmin && fmax <= 0)
-          Roots.Bisection(eFnc, 37, OutdoorAir.WetbulbTemperature, fmin, fmax, 0.01, 0.01, 10);
+          Roots.Bisection(eFnc, 37, OutdoorAir.WetBulbTemperature, fmin, fmax, 0.01, 0.01, 10);
       }
     }
 
@@ -423,12 +423,12 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="chargePump">Thermal storage charge pump.</param>
     /// <param name="dischargePump">Thermal storage discharge pump.</param>
     /// <param name="cTower">Cooling tower.</param>
-    /// <param name="chillerNumber">Number of chiller units.</param>
-    /// <param name="coolingTowerNumber">Number of cooling tower units per chiller.</param>
+    /// <param name="chillerCount">Total number of chiller units.</param>
+    /// <param name="coolingTowerCount">Total number of cooling tower units per chiller.</param>
     public MultipleStratifiedWaterTankSystem
       (MultipleStratifiedWaterTank waterTank, PlateHeatExchanger plateHex, ICentrifugalChiller chiller,
       CentrifugalPump chwPump, CentrifugalPump cdwPump, CentrifugalPump chargePump,
-      CentrifugalPump dischargePump, CoolingTower cTower, int chillerNumber, int coolingTowerNumber)
+      CentrifugalPump dischargePump, CoolingTower cTower, int chillerCount, int coolingTowerCount)
     {
       this.chiller = chiller;
       this.chwPump = chwPump;
@@ -438,9 +438,9 @@ namespace Popolo.Core.HVAC.SystemModel
       this.cTower = cTower;
       this.pHex = plateHex;
       this.wTank = waterTank;
-      this.ChillerNumber = chillerNumber;
-      this.CoolingTowerNumber = coolingTowerNumber;
-      oldTemps = new double[WaterTank.LayerNumber];
+      this.ChillerCount = chillerCount;
+      this.CoolingTowerCount = coolingTowerCount;
+      oldTemps = new double[WaterTank.LayerCount];
 
       //冷凍機ポンプの昇温幅を計算・保存
       chgPump.UpdateState(chgPump.DesignFlowRate);

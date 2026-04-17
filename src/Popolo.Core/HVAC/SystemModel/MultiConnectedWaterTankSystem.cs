@@ -97,10 +97,10 @@ namespace Popolo.Core.HVAC.SystemModel
     public double HeatSourceInletHotWaterTemperatureSP { get; set; } = 40;
 
     /// <summary>Gets the number of heat source units.</summary>
-    public int HeatSourceNumber { get; private set; }
+    public int HeatSourceCount { get; private set; }
 
     /// <summary>Gets or sets the number of operating heat source units.</summary>
-    public int OperatingHeatSourceNumber { get; set; }
+    public int ActiveHeatSourceCount { get; set; }
 
     #endregion
 
@@ -199,21 +199,21 @@ namespace Popolo.Core.HVAC.SystemModel
       }
 
       //AHPのモード設定
-      if (Mode == HeatSourceSystemModel.OperatingMode.ShutOff) OperatingHeatSourceNumber = 0;
-      bool charging = (0 < OperatingHeatSourceNumber);
+      if (Mode == HeatSourceSystemModel.OperatingMode.ShutOff) ActiveHeatSourceCount = 0;
+      bool charging = (0 < ActiveHeatSourceCount);
       bool isCooling = (Mode == HeatSourceSystemModel.OperatingMode.Cooling);
       if (charging)
       {
         if (isCooling)
         {
           ahp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
-          ahp.WaterOutletSetPointTemperature = ChilledWaterStorageTemperature;
+          ahp.WaterOutletSetpointTemperature = ChilledWaterStorageTemperature;
           pHex.SupplyTemperatureSetpoint = ChilledWaterSupplyTemperatureSetpoint;
         }
         else 
         {
           ahp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
-          ahp.WaterOutletSetPointTemperature = HotWaterStorageTemperature;
+          ahp.WaterOutletSetpointTemperature = HotWaterStorageTemperature;
           pHex.SupplyTemperatureSetpoint = HotWaterSupplyTemperatureSetpoint;
         }
       }
@@ -263,11 +263,11 @@ namespace Popolo.Core.HVAC.SystemModel
 
           //水槽内温度更新処理
           double tTNKin;
-          bool isFwdFlow = pHex.HeatSourceFlowRate < (ahp.WaterFlowRate - ahpBypass) * OperatingHeatSourceNumber;
+          bool isFwdFlow = pHex.HeatSourceFlowRate < (ahp.WaterFlowRate - ahpBypass) * ActiveHeatSourceCount;
           if (isFwdFlow) tTNKin = ahp.WaterOutletTemperature;
           else tTNKin = pHex.HeatSourceOutletTemperature
               + rlsPump1.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
-          wTank.ForecastState(tTNKin, 0.001 * Math.Abs((ahp.WaterFlowRate - ahpBypass) * OperatingHeatSourceNumber - pHex.HeatSourceFlowRate), isFwdFlow);
+          wTank.ForecastState(tTNKin, 0.001 * Math.Abs((ahp.WaterFlowRate - ahpBypass) * ActiveHeatSourceCount - pHex.HeatSourceFlowRate), isFwdFlow);
         }
         //AHP非稼働+二次側負荷有り（放熱運転）
         else if (0 < chFlow)
@@ -305,12 +305,12 @@ namespace Popolo.Core.HVAC.SystemModel
           chgPump.UpdateState(chgPump.DesignFlowRate);
 
           //三方弁による熱源入口温度制御
-          double tAHPout = ahp.WaterOutletSetPointTemperature;
+          double tAHPout = ahp.WaterOutletSetpointTemperature;
           double rf = GetFirstTankWaterFlowRate(0, 0, tAHPout);
-          double ahpIn = rf * tAHPout + (1 - rf) * wTank.GetTemperature(wTank.TankNumber - 1);
+          double ahpIn = rf * tAHPout + (1 - rf) * wTank.GetTemperature(wTank.TankCount - 1);
           ahp.Update(ahpIn + dtChgPump, 1000 * chgPump.DesignFlowRate, OutdoorAir.DryBulbTemperature);
           wTank.ForecastState
-            (ahp.WaterOutletTemperature, chgPump.DesignFlowRate * OperatingHeatSourceNumber * (1 - rf), true);
+            (ahp.WaterOutletTemperature, chgPump.DesignFlowRate * ActiveHeatSourceCount * (1 - rf), true);
           IsOverLoad_C = IsOverLoad_H = false;
         }
         //AHP非稼働+二次側負荷無し（蓄熱槽熱損失のみ）
@@ -338,7 +338,7 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="rtnTmp">Chilled/hot water return temperature including pump heat gain [°C].</param>
     private void CalcHexHeatTransfer(double hexFlow, double rtnTmp)
     {
-      double tAHPout = ahp.WaterOutletSetPointTemperature;
+      double tAHPout = ahp.WaterOutletSetpointTemperature;
 
       for (int i = 0; i < 2; i++)
       {
@@ -348,15 +348,14 @@ namespace Popolo.Core.HVAC.SystemModel
         double dtRlsPump = rlsPump1.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hexFlow);
 
         //放熱熱交換器の計算//バイパス流量は0と仮定する
-        double rAH = Math.Min(1, chgPump.DesignFlowRate * OperatingHeatSourceNumber / rlsPump1.DesignFlowRate);
+        double rAH = Math.Min(1, chgPump.DesignFlowRate * ActiveHeatSourceCount / rlsPump1.DesignFlowRate);
         double tHexIn = tAHPout * rAH + wTank.FirstTankTemperature * (1 - rAH);
         pHex.Update(tHexIn + dtRlsPump, rtnTmp, hexFlow, chFlow);
 
         //水槽内の流れ方向を確定
         double rF = GetFirstTankWaterFlowRate(hexFlowVol, pHex.HeatSourceOutletTemperature, tAHPout);
         ahpBypass = ahp.WaterFlowRate * rF;
-        //double ahpCrc = rF * chgPump.DesignFlowRate * OperatingHeatSourceNumber;
-        double ahpFlw = (1 - rF) * chgPump.DesignFlowRate * OperatingHeatSourceNumber;
+        double ahpFlw = (1 - rF) * chgPump.DesignFlowRate * ActiveHeatSourceCount;
         double fwdFlw = ahpFlw - hexFlowVol;
         double tH = 0 < fwdFlw ?
           (fwdFlw * wTank.LastTankTemperature + hexFlowVol * pHex.HeatSourceOutletTemperature) / (fwdFlw + hexFlowVol) :
@@ -378,7 +377,7 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="tAHPout">AHP outlet water temperature [°C].</param>
     private double GetFirstTankWaterFlowRate(double hexFlow, double tHexRtn, double tAHPout)
     {
-      double rr = hexFlow / (chgPump.DesignFlowRate * OperatingHeatSourceNumber);
+      double rr = hexFlow / (chgPump.DesignFlowRate * ActiveHeatSourceCount);
 
       if (Mode == HeatSourceSystemModel.OperatingMode.Cooling)
       {
@@ -420,10 +419,10 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="chgPump">Thermal storage charge pump.</param>
     /// <param name="rlsPump1">Primary discharge pump.</param>
     /// <param name="rlsPump2">Secondary discharge pump.</param>
-    /// <param name="ahpNumber">Number of air-heat-source heat pump units.</param>
+    /// <param name="ashpCount">Number of air-heat-source heat pump units.</param>
     public MultiConnectedWaterTankSystem
       (MultiConnectedWaterTank waterTank, PlateHeatExchanger plateHex, AirHeatSourceModularChillers ahp,
-      CentrifugalPump chgPump, CentrifugalPump rlsPump1, CentrifugalPump rlsPump2, int ahpNumber)
+      CentrifugalPump chgPump, CentrifugalPump rlsPump1, CentrifugalPump rlsPump2, int ashpCount)
     {
       this.ahp = ahp;
       this.chgPump = chgPump;
@@ -431,8 +430,8 @@ namespace Popolo.Core.HVAC.SystemModel
       this.rlsPump2 = rlsPump2;
       this.pHex = plateHex;
       this.wTank = waterTank;
-      this.HeatSourceNumber = this.OperatingHeatSourceNumber = ahpNumber;
-      oldTemps = new double[WaterTank.TankNumber];
+      this.HeatSourceCount = this.ActiveHeatSourceCount = ashpCount;
+      oldTemps = new double[WaterTank.TankCount];
 
       //冷凍機ポンプの昇温幅を計算・保存
       this.chgPump.UpdateState(chgPump.DesignFlowRate);

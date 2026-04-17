@@ -105,7 +105,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Normal_OutletReachesSetpoint()
         {
             var boiler = MakeBoiler();
-            boiler.OutletWaterSetPointTemperature = 80.0;
+            boiler.OutletWaterSetpointTemperature = 80.0;
             boiler.Update(60.0, 1.0);
             if (!boiler.IsOverLoad)
                 Assert.InRange(boiler.OutletWaterTemperature, 79.5, 80.5);
@@ -135,7 +135,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_SetpointBelowInlet_ShutOff()
         {
             var boiler = MakeBoiler();
-            boiler.OutletWaterSetPointTemperature = 50.0;
+            boiler.OutletWaterSetpointTemperature = 50.0;
             boiler.Update(60.0, 1.0); // 入口60°C > 設定50°C → 停止
             Assert.Equal(0.0, boiler.HeatLoad);
         }
@@ -156,11 +156,11 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_HigherSetpoint_MoreFuelConsumption()
         {
             var boiler = MakeBoiler();
-            boiler.OutletWaterSetPointTemperature = 70.0;
+            boiler.OutletWaterSetpointTemperature = 70.0;
             boiler.Update(60.0, 1.0);
             double fc70 = boiler.FuelConsumption;
 
-            boiler.OutletWaterSetPointTemperature = 80.0;
+            boiler.OutletWaterSetpointTemperature = 80.0;
             boiler.Update(60.0, 1.0);
             double fc80 = boiler.FuelConsumption;
 
@@ -179,7 +179,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var boiler = MakeBoiler();
             // 設定温度を非常に高くして過負荷を引き起こす
-            boiler.OutletWaterSetPointTemperature = 200.0;
+            boiler.OutletWaterSetpointTemperature = 200.0;
             boiler.Update(60.0, 1.0);
             Assert.True(boiler.IsOverLoad);
         }

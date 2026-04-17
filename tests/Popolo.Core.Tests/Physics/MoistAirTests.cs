@@ -77,7 +77,7 @@ namespace Popolo.Core.Tests.Physics
       Assert.Equal(src.HumidityRatio, dst.HumidityRatio);
       Assert.Equal(src.RelativeHumidity, dst.RelativeHumidity);
       Assert.Equal(src.Enthalpy, dst.Enthalpy);
-      Assert.Equal(src.WetbulbTemperature, dst.WetbulbTemperature);
+      Assert.Equal(src.WetBulbTemperature, dst.WetBulbTemperature);
       Assert.Equal(src.SpecificVolume, dst.SpecificVolume);
       Assert.Equal(src.AtmosphericPressure, dst.AtmosphericPressure);
     }
@@ -401,7 +401,7 @@ namespace Popolo.Core.Tests.Physics
       Assert.Equal(src.HumidityRatio, dst.HumidityRatio);
       Assert.Equal(src.RelativeHumidity, dst.RelativeHumidity);
       Assert.Equal(src.Enthalpy, dst.Enthalpy);
-      Assert.Equal(src.WetbulbTemperature, dst.WetbulbTemperature);
+      Assert.Equal(src.WetBulbTemperature, dst.WetBulbTemperature);
       Assert.Equal(src.SpecificVolume, dst.SpecificVolume);
       Assert.Equal(src.AtmosphericPressure, dst.AtmosphericPressure);
     }

@@ -342,12 +342,12 @@ namespace Popolo.Core.HVAC.SystemModel
     public void SetOperatingMode(int subSystemIndex, OperatingMode mode) { subSystems[subSystemIndex].Mode = mode; }
 
     /// <summary>Gets a value indicating whether the given mode matches the current mode.</summary>
-    /// <param name="subsystemNumber">Sub-system index.</param>
+    /// <param name="subsystemIndex">Sub-system index.</param>
     /// <param name="cooling">True for cooling mode; false for heating mode.</param>
     /// <returns>True if the mode matches; false otherwise.</returns>
-    private bool IsModeAdapts(int subsystemNumber, bool cooling)
+    private bool IsModeAdapts(int subsystemIndex, bool cooling)
     {
-      IHeatSourceSubSystem ss = subSystems[subsystemNumber];
+      IHeatSourceSubSystem ss = subSystems[subsystemIndex];
       if (ss.Mode == OperatingMode.ShutOff) return false;
       if (cooling && ss.Mode == OperatingMode.Heating) return false;
       if (!cooling && ss.Mode == OperatingMode.Cooling) return false;

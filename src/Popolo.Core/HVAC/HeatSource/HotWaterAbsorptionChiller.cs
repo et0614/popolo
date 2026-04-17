@@ -42,7 +42,7 @@ namespace Popolo.Core.HVAC.HeatSource
     private double evaporatorKA;
 
     /// <summary>Condenser overall heat transfer conductance [kW/K].</summary>
-    private double condensorKA;
+    private double condenserKA;
 
     /// <summary>Desorber overall heat transfer conductance [kW/K].</summary>
     private double desorborKA;
@@ -51,13 +51,13 @@ namespace Popolo.Core.HVAC.HeatSource
     private double solutionHexKA;
 
     /// <summary>Minimum chilled water flow rate ratio [-].</summary>
-    private double chilledWaterMinimumFLowRatio = 0.4;
+    private double chilledWaterMinimumFlowRatio = 0.4;
 
     /// <summary>Minimum cooling water flow rate ratio [-].</summary>
-    private double coolingWaterMinimumFLowRatio = 0.4;
+    private double coolingWaterMinimumFlowRatio = 0.4;
 
     /// <summary>Minimum hot water flow rate ratio [-].</summary>
-    private double hotWaterMinimumFLowRatio = 0.4;
+    private double hotWaterMinimumFlowRatio = 0.4;
 
     /// <summary>Nominal solution (refrigerant) flow rate [kg/s].</summary>
     private double nominalSolutionFlowRate;
@@ -69,7 +69,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double ChilledWaterOutletTemperature { get; private set; }
 
     /// <summary>Gets or sets the chilled water outlet temperature setpoint [°C].</summary>
-    public double ChilledWaterOutletSetPointTemperature { get; set; }
+    public double ChilledWaterOutletSetpointTemperature { get; set; }
 
     /// <summary>Gets the chilled water inlet temperature [°C].</summary>
     public double ChilledWaterInletTemperature { get; private set; }
@@ -108,24 +108,24 @@ namespace Popolo.Core.HVAC.HeatSource
     public double NominalCapacity { get; private set; }
 
     /// <summary>Gets or sets the minimum chilled water flow rate ratio [-].</summary>
-    public double ChilledWaterMinimumFLowRatio
+    public double ChilledWaterMinimumFlowRatio
     {
-      get { return chilledWaterMinimumFLowRatio; }
-      private set { chilledWaterMinimumFLowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return chilledWaterMinimumFlowRatio; }
+      private set { chilledWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum cooling water flow rate ratio [-].</summary>
-    public double CoolingWaterMinimumFLowRatio
+    public double CoolingWaterMinimumFlowRatio
     {
-      get { return coolingWaterMinimumFLowRatio; }
-      private set { coolingWaterMinimumFLowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return coolingWaterMinimumFlowRatio; }
+      private set { coolingWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum hot water flow rate ratio [-].</summary>
-    public double HotWaterMinimumFLowRatio
+    public double HotWaterMinimumFlowRatio
     {
-      get { return hotWaterMinimumFLowRatio; }
-      private set { hotWaterMinimumFLowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return hotWaterMinimumFlowRatio; }
+      private set { hotWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets the current cooling load [kW].</summary>
@@ -167,13 +167,13 @@ namespace Popolo.Core.HVAC.HeatSource
         (chilledWaterInletTemperature, chilledWaterOutletTemperature, chilledWaterFlowRate,
         coolingWaterInletTemperature, coolingWaterOutletTemperature, coolingWaterFlowRate,
         hotWaterInletTemperature, hotWaterFlowRate, DESORB_TEMPERATURE_APPROACH, out evaporatorKA,
-        out condensorKA, out desorborKA, out solutionHexKA, out nominalSolutionFlowRate, out dsvHL);
+        out condenserKA, out desorborKA, out solutionHexKA, out nominalSolutionFlowRate, out dsvHL);
 
       //熱損失率[-]を計算    
       double qHW = (hotWaterInletTemperature - hotWaterOutletTemperature) * hotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       heatLossRate = (qHW - dsvHL) / qHW;
 
-      this.ChilledWaterOutletSetPointTemperature = chilledWaterOutletTemperature;
+      this.ChilledWaterOutletSetpointTemperature = chilledWaterOutletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.ChilledWaterInletTemperature = chilledWaterInletTemperature;
       this.HotWaterInletTemperature = hotWaterInletTemperature;
@@ -208,30 +208,30 @@ namespace Popolo.Core.HVAC.HeatSource
       this.HotWaterInletTemperature = hotWaterInletTemperature;
       double rch = chilledWaterFlowRate / NominalChilledWaterFlowRate;
       this.ChilledWaterFlowRate =
-        Math.Max(ChilledWaterMinimumFLowRatio, Math.Min(1, rch)) * NominalChilledWaterFlowRate;
+        Math.Max(ChilledWaterMinimumFlowRatio, Math.Min(1, rch)) * NominalChilledWaterFlowRate;
       double rcd = coolingWaterFlowRate / NominalCoolingWaterFlowRate;
       this.CoolingWaterFlowRate =
-        Math.Max(CoolingWaterMinimumFLowRatio, Math.Min(1, rcd)) * NominalCoolingWaterFlowRate;
+        Math.Max(CoolingWaterMinimumFlowRatio, Math.Min(1, rcd)) * NominalCoolingWaterFlowRate;
       double rht = hotWaterFlowRate / NominalHotWaterFlowRate;
-      this.HotWaterFlowRate = Math.Max(HotWaterMinimumFLowRatio, Math.Min(1, rht)) * NominalHotWaterFlowRate;
+      this.HotWaterFlowRate = Math.Max(HotWaterMinimumFlowRatio, Math.Min(1, rht)) * NominalHotWaterFlowRate;
 
       //冷却運転
-      if (ChilledWaterOutletSetPointTemperature < chilledWaterInletTemperature)
+      if (ChilledWaterOutletSetpointTemperature < chilledWaterInletTemperature)
       {
         double cho, cdo, ho;
         //成り行きの出口状態を計算
         AbsorptionRefrigerationCycle.GetOutletTemperatures
           (ChilledWaterInletTemperature, ChilledWaterFlowRate, CoolingWaterInletTemperature,
-          CoolingWaterFlowRate, HotWaterInletTemperature, HotWaterFlowRate, evaporatorKA, condensorKA,
+          CoolingWaterFlowRate, HotWaterInletTemperature, HotWaterFlowRate, evaporatorKA, condenserKA,
           desorborKA, solutionHexKA, nominalSolutionFlowRate, out cho, out cdo, out ho);
 
         //処理可能の場合
-        if (cho < ChilledWaterOutletSetPointTemperature)
+        if (cho < ChilledWaterOutletSetpointTemperature)
         {
-          cho = ChilledWaterOutletSetPointTemperature;
+          cho = ChilledWaterOutletSetpointTemperature;
           AbsorptionRefrigerationCycle.GetOutletTemperatures
             (ChilledWaterInletTemperature, ChilledWaterFlowRate, CoolingWaterInletTemperature,
-            CoolingWaterFlowRate, HotWaterInletTemperature, HotWaterFlowRate, evaporatorKA, condensorKA,
+            CoolingWaterFlowRate, HotWaterInletTemperature, HotWaterFlowRate, evaporatorKA, condenserKA,
             desorborKA, solutionHexKA, nominalSolutionFlowRate, cho, out cdo, out ho);
         }
 

@@ -15,10 +15,10 @@ namespace Popolo.Core.HVAC.HeatSource
     bool MaximizeEfficiency { get; }
 
     /// <summary>Gets the total number of modules.</summary>
-    int NumberOfUnits { get; }
+    int UnitCount { get; }
 
     /// <summary>Gets the number of currently operating units.</summary>
-    int OperatingNumber { get; }
+    int ActiveUnitCount { get; }
 
     /// <summary>Gets a value indicating whether the unit is a heat-pump model (supports both heating and cooling).</summary>
     bool IsHeatPumpModel { get; }
@@ -39,7 +39,7 @@ namespace Popolo.Core.HVAC.HeatSource
     double WaterOutletTemperature { get; }
 
     /// <summary>Gets the water outlet temperature setpoint [°C].</summary>
-    double WaterOutletSetPointTemperature { get; }
+    double WaterOutletSetpointTemperature { get; }
 
     /// <summary>Gets the water inlet temperature [°C].</summary>
     double WaterInletTemperature { get; }

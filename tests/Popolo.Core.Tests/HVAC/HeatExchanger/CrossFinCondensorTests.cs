@@ -10,7 +10,7 @@ using Popolo.Core.HVAC.HeatExchanger;
 
 namespace Popolo.Core.Tests.HVAC.HeatExchanger
 {
-  /// <summary>Unit tests for <see cref="CrossFinCondensor"/>.</summary>
+  /// <summary>Unit tests for <see cref="CrossFinCondenser"/>.</summary>
   /// <remarks>
   /// CrossFinCondensor models an air-cooled plate-fin-and-tube condenser.
   /// Heat is rejected from the refrigerant (at condensing temperature) to air.
@@ -32,8 +32,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     /// 標準的な凝縮器を生成する。
     /// 定格: 凝縮温度50°C, 熱交換量10kW, 風量1kg/s, 外気35°C/W=0.018。
     /// </summary>
-    private static CrossFinCondensor MakeCond()
-        => new CrossFinCondensor(50.0, 10.0, 1.0, 35.0, 0.018);
+    private static CrossFinCondenser MakeCond()
+        => new CrossFinCondenser(50.0, 10.0, 1.0, 35.0, 0.018);
 
     #endregion
 

@@ -109,7 +109,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double CoolingWaterFlowRate { get; private set; }
 
     /// <summary>Gets or sets the chilled water outlet temperature setpoint [°C].</summary>
-    public double ChilledWaterSetPoint { get; set; }
+    public double ChilledWaterSetpoint { get; set; }
 
     /// <summary>Gets the chilled water inlet temperature [°C].</summary>
     public double ChilledWaterInletTemperature { get; private set; }
@@ -136,7 +136,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double HeatSourceWaterFlowRate { get; private set; }
 
     /// <summary>Gets or sets the hot water outlet temperature setpoint [°C].</summary>
-    public double HotWaterSetPoint { get; set; }
+    public double HotWaterSetpoint { get; set; }
 
     /// <summary>Gets the hot water inlet temperature [°C].</summary>
     public double HotWaterInletTemperature { get; private set; }
@@ -214,7 +214,7 @@ namespace Popolo.Core.HVAC.HeatSource
       NominalCoolingEnergyConsumption = coolingEnergyConsumption;
       NominalChilledWaterFlowRate = chilledWaterFlowRate;
       NominalCoolingWaterFlowRate = coolingWaterFlowRate;
-      ChilledWaterSetPoint = ChilledWaterInletTemperature = ChilledWaterOutletTemperature = chilledWaterOutletTemperature;
+      ChilledWaterSetpoint = ChilledWaterInletTemperature = ChilledWaterOutletTemperature = chilledWaterOutletTemperature;
       tEvpoN_C = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature);
       tCndoN_C = (coolingCapacity + coolingEnergyConsumption) / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * coolingWaterFlowRate)
         + PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
@@ -225,7 +225,7 @@ namespace Popolo.Core.HVAC.HeatSource
       NominalHeatingEnergyConsumption = heatingEnergyConsumption;
       NominalHotWaterFlowRate = hotWaterFlowRate;
       NominalHeatSourceWaterFlowRate = heatSourceWaterFlowRate;
-      HotWaterSetPoint = HotWaterInletTemperature = HotWaterOutletTemperature = hotWaterOutletTemperature;
+      HotWaterSetpoint = HotWaterInletTemperature = HotWaterOutletTemperature = hotWaterOutletTemperature;
       tEvpoN_H = - (heatingCapacity - heatingEnergyConsumption) / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * heatSourceWaterFlowRate)
         + PhysicsConstants.ToKelvin(heatSourceWaterInletTemperature); 
       tCndoN_H = PhysicsConstants.ToKelvin(hotWaterOutletTemperature);
@@ -260,7 +260,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       //負荷が無ければ停止
       double mcSpy = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
-      CoolingLoad = mcSpy * (chilledWaterInletTemperature - ChilledWaterSetPoint);
+      CoolingLoad = mcSpy * (chilledWaterInletTemperature - ChilledWaterSetpoint);
       if (CoolingLoad <= 0)
       {
         ShutOff();
@@ -271,7 +271,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double mcSce = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * coolingWaterFlowRate;
       double tScei = PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       double tSpyi = PhysicsConstants.ToKelvin(chilledWaterInletTemperature);
-      double tSpyo = PhysicsConstants.ToKelvin(ChilledWaterSetPoint);
+      double tSpyo = PhysicsConstants.ToKelvin(ChilledWaterSetpoint);
 
       double tSceo, maxQSpy;
       bool isOverLoad;
@@ -320,7 +320,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       //負荷が無ければ停止
       double mcSpy = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate;
-      HeatingLoad = mcSpy * (HotWaterSetPoint - hotWaterInletTemperature);
+      HeatingLoad = mcSpy * (HotWaterSetpoint - hotWaterInletTemperature);
       if (HeatingLoad <= 0)
       {
         ShutOff();
@@ -331,7 +331,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double mcSce = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * heatSourceWaterFlowRate;
       double tScei = PhysicsConstants.ToKelvin(heatSourceWaterInletTemperature);
       double tSpyi = PhysicsConstants.ToKelvin(hotWaterInletTemperature);
-      double tSpyo = PhysicsConstants.ToKelvin(HotWaterSetPoint);
+      double tSpyo = PhysicsConstants.ToKelvin(HotWaterSetpoint);
 
       double tSceo, maxQSpy;
       bool isOverLoad;

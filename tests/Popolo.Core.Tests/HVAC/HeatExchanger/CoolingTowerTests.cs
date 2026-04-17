@@ -43,13 +43,13 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
       var ct = new CoolingTower(
           inletWaterTemperature: 37.0,
           outletWaterTemperature: 32.0,
-          wetbulbTemperature: 27.0,
+          wetBulbTemperature: 27.0,
           waterFlowRate: 10.0,
           airFlowType: CoolingTower.AirFlowDirection.CounterFlow,
           hasInverter: hasInverter);
       ct.SetOutdoorAirState(27.0, 0.0182); // 湿球27°C相当
       ct.WaterFlowRate = 10.0;
-      ct.OutletWaterSetPointTemperature = 32.0;
+      ct.OutletWaterSetpointTemperature = 32.0;
       return ct;
     }
 
@@ -82,8 +82,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     public void OutletWaterSetPointTemperature_SetAndGet_RoundTrip()
     {
       var ct = MakeTower();
-      ct.OutletWaterSetPointTemperature = 30.0;
-      Assert.InRange(ct.OutletWaterSetPointTemperature, 29.99, 30.01);
+      ct.OutletWaterSetpointTemperature = 30.0;
+      Assert.InRange(ct.OutletWaterSetpointTemperature, 29.99, 30.01);
     }
 
     #endregion
@@ -97,7 +97,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     {
       var ct = MakeTower();
       ct.SetOutdoorAirState(25.0, 0.016);
-      Assert.InRange(ct.OutdoorWetbulbTemperature, 24.5, 25.5);
+      Assert.InRange(ct.OutdoorWetBulbTemperature, 24.5, 25.5);
     }
 
     /// <summary>ShutOff 後は HeatRejection = 0 かつ ElectricConsumption = 0。</summary>

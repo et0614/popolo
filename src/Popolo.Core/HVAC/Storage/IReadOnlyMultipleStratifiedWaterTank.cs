@@ -62,12 +62,12 @@ namespace Popolo.Core.HVAC.Storage
     bool IsDownFlow { get; }
 
     /// <summary>Gets the number of layers.</summary>
-    int LayerNumber { get; }
+    int LayerCount { get; }
 
     /// <summary>Gets the temperature of the specified layer [°C].</summary>
-    /// <param name="layerNumber">Zero-based layer index.</param>
+    /// <param name="layerCount">Zero-based layer index.</param>
     /// <returns>Layer temperature [°C].</returns>
-    double GetTemperature(int layerNumber);
+    double GetTemperature(int layerCount);
 
     /// <summary>Computes the stored heat [MJ] relative to a reference temperature (positive for hot, negative for cold storage).</summary>
     /// <param name="referenceTemperature">Reference temperature [°C].</param>

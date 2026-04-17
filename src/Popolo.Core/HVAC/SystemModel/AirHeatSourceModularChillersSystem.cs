@@ -52,10 +52,10 @@ namespace Popolo.Core.HVAC.SystemModel
     public IReadOnlyCentrifugalPump HotWaterPump { get { return hwPump; } }
 
     /// <summary>Gets the total number of modular chiller sets.</summary>
-    public int ChillerNumber { get; private set; }
+    public int ChillerCount { get; private set; }
 
     /// <summary>Gets the number of operating units.</summary>
-    public int OperatingChillerNumber { get; private set; }
+    public int ActiveChillerCount { get; private set; }
 
     #endregion
 
@@ -93,7 +93,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the maximum hot water flow rate [kg/s].</summary>
     public double MaxHotWaterFlowRate
-    { get { return mChiller.MaxHotWaterFlowRate * ChillerNumber; } }
+    { get { return mChiller.MaxHotWaterFlowRate * ChillerCount; } }
 
     /// <summary>Gets the minimum hot water flow rate ratio [-].</summary>
     public double MinHotWaterFlowRatio
@@ -113,7 +113,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the maximum chilled water flow rate [kg/s].</summary>
     public double MaxChilledWaterFlowRate
-    { get { return mChiller.MaxChilledWaterFlowRate * ChillerNumber; } }
+    { get { return mChiller.MaxChilledWaterFlowRate * ChillerCount; } }
 
     /// <summary>Gets the minimum chilled water flow rate ratio [-].</summary>
     public double MinChilledWaterFlowRatio
@@ -126,7 +126,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public void ShutOff()
     {
       IsOverLoad_C = IsOverLoad_H = false;
-      OperatingChillerNumber = 0;
+      ActiveChillerCount = 0;
       mChiller.ShutOff();
       chwPump.ShutOff();
       hwPump.ShutOff();
@@ -157,20 +157,20 @@ namespace Popolo.Core.HVAC.SystemModel
       mChiller.Mode = HeatSource.AirHeatSourceModularChillers.OperatingMode.Heating;
       ChilledWaterSupplyTemperature = ChilledWaterReturnTemperature;
 
-      OperatingChillerNumber = (int)Math.Ceiling(hotWaterFlowRate / mChiller.MaxHotWaterFlowRate);
-      OperatingChillerNumber = Math.Min(ChillerNumber, OperatingChillerNumber);
-      mChiller.WaterOutletSetPointTemperature = HotWaterSupplyTemperatureSetpoint;
+      ActiveChillerCount = (int)Math.Ceiling(hotWaterFlowRate / mChiller.MaxHotWaterFlowRate);
+      ActiveChillerCount = Math.Min(ChillerCount, ActiveChillerCount);
+      mChiller.WaterOutletSetpointTemperature = HotWaterSupplyTemperatureSetpoint;
       while (true)
       {
         //ポンプによる昇温を評価
-        double hwFlow = hotWaterFlowRate / OperatingChillerNumber;
+        double hwFlow = hotWaterFlowRate / ActiveChillerCount;
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
 
         mChiller.Update(twi, hwFlow, OutdoorAir.DryBulbTemperature);
         IsOverLoad_H = mChiller.IsOverLoad;
-        if (OperatingChillerNumber == ChillerNumber || !IsOverLoad_H) break;
-        else OperatingChillerNumber++;
+        if (ActiveChillerCount == ChillerCount || !IsOverLoad_H) break;
+        else ActiveChillerCount++;
       }
 
       if (mChiller.IsOverLoad) HotWaterSupplyTemperature = mChiller.WaterOutletTemperature;
@@ -189,20 +189,20 @@ namespace Popolo.Core.HVAC.SystemModel
       mChiller.Mode = HeatSource.AirHeatSourceModularChillers.OperatingMode.Cooling;
       HotWaterSupplyTemperature = HotWaterReturnTemperature;
 
-      OperatingChillerNumber = (int)Math.Ceiling(chilledWaterFlowRate / mChiller.MaxChilledWaterFlowRate);
-      OperatingChillerNumber = Math.Min(ChillerNumber, OperatingChillerNumber);
-      mChiller.WaterOutletSetPointTemperature = ChilledWaterSupplyTemperatureSetpoint;
+      ActiveChillerCount = (int)Math.Ceiling(chilledWaterFlowRate / mChiller.MaxChilledWaterFlowRate);
+      ActiveChillerCount = Math.Min(ChillerCount, ActiveChillerCount);
+      mChiller.WaterOutletSetpointTemperature = ChilledWaterSupplyTemperatureSetpoint;
       while (true)
       {
         //ポンプによる昇温を評価
-        double chwFlow = chilledWaterFlowRate / OperatingChillerNumber;
+        double chwFlow = chilledWaterFlowRate / ActiveChillerCount;
         chwPump.UpdateState(0.001 * chwFlow);
         double twi = ChilledWaterReturnTemperature + chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow);
 
         mChiller.Update(twi, chwFlow, OutdoorAir.DryBulbTemperature);
         IsOverLoad_C = mChiller.IsOverLoad;
-        if (OperatingChillerNumber == ChillerNumber || !IsOverLoad_C) break;
-        else OperatingChillerNumber++;
+        if (ActiveChillerCount == ChillerCount || !IsOverLoad_C) break;
+        else ActiveChillerCount++;
       }
 
       if (mChiller.IsOverLoad) ChilledWaterSupplyTemperature = mChiller.WaterOutletTemperature;
@@ -220,12 +220,12 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="mChiller">Modular chiller/heat pump unit.</param>
     /// <param name="chwPump">Chilled water pump.</param>
     /// <param name="hwPump">Hot water pump.</param>
-    /// <param name="number">Number of modular chiller units.</param>
+    /// <param name="count">Total number of modular chiller units.</param>
     public AirHeatSourceModularChillersSystem
-      (AirHeatSourceModularChillers mChiller, CentrifugalPump chwPump, CentrifugalPump hwPump, int number)
+      (AirHeatSourceModularChillers mChiller, CentrifugalPump chwPump, CentrifugalPump hwPump, int count)
     {
       this.mChiller = mChiller;
-      this.ChillerNumber = number;
+      this.ChillerCount = count;
       this.chwPump = chwPump;
       this.hwPump = hwPump;
 

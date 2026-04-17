@@ -12,7 +12,7 @@ namespace Popolo.Core.HVAC.HeatSource
     new bool IsOperating { get; set; }
 
     /// <summary>Gets or sets the chilled water outlet temperature setpoint [°C].</summary>
-    new double ChilledWaterOutletSetPointTemperature { get; set; }
+    new double ChilledWaterOutletSetpointTemperature { get; set; }
 
     /// <summary>Shuts off the chiller.</summary>
     void ShutOff();
@@ -39,7 +39,7 @@ namespace Popolo.Core.HVAC.HeatSource
     double ChilledWaterOutletTemperature { get; }
 
     /// <summary>Gets the chilled water outlet temperature setpoint [°C].</summary>
-    double ChilledWaterOutletSetPointTemperature { get; }
+    double ChilledWaterOutletSetpointTemperature { get; }
 
     /// <summary>Gets the chilled water inlet temperature [°C].</summary>
     double ChilledWaterInletTemperature { get; }

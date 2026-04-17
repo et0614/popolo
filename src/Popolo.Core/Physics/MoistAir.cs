@@ -44,7 +44,7 @@ namespace Popolo.Core.Physics
     public const double VaporIsobaricSpecificHeat = 1.805;
 
     /// <summary>Isobaric specific heat of water at 0 °C [kJ/(kg·K)].</summary>
-    public const double WaterIsobaricSpecificHeat = 4.186;
+    public const double WaterIsobaricSpecificHeat = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
     /// <summary>Latent heat of vaporization of water at 0 °C [kJ/kg].</summary>
     public const double VaporizationLatentHeat = 2501.0;
@@ -75,7 +75,7 @@ namespace Popolo.Core.Physics
     public double DryBulbTemperature { get; set; }
 
     /// <summary>Gets or sets the wet-bulb temperature [°C].</summary>
-    public double WetbulbTemperature { get; set; }
+    public double WetBulbTemperature { get; set; }
 
     /// <summary>Gets or sets the humidity ratio [kg/kg(DA)].</summary>
     public double HumidityRatio { get; set; }
@@ -105,23 +105,23 @@ namespace Popolo.Core.Physics
     /// Initializes a new instance from dry-bulb temperature and humidity ratio
     /// at standard atmospheric pressure.
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
-    public MoistAir(double drybulbTemperature, double humidityRatio)
+    public MoistAir(double dryBulbTemperature, double humidityRatio)
     {
-      ValidateTemperature(drybulbTemperature, nameof(drybulbTemperature));
+      ValidateTemperature(dryBulbTemperature, nameof(dryBulbTemperature));
       ValidateHumidityRatio(humidityRatio, nameof(humidityRatio));
       AtmosphericPressure = PhysicsConstants.StandardAtmosphericPressure;
-      DryBulbTemperature = drybulbTemperature;
+      DryBulbTemperature = dryBulbTemperature;
       HumidityRatio = humidityRatio;
       RelativeHumidity = GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       Enthalpy = GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio);
-      WetbulbTemperature = GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio);
+      WetBulbTemperature = GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
+          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       SpecificVolume = GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ namespace Popolo.Core.Physics
       HumidityRatio = moistAir.HumidityRatio;
       RelativeHumidity = moistAir.RelativeHumidity;
       Enthalpy = moistAir.Enthalpy;
-      WetbulbTemperature = moistAir.WetbulbTemperature;
+      WetBulbTemperature = moistAir.WetBulbTemperature;
       SpecificVolume = moistAir.SpecificVolume;
     }
 
@@ -790,7 +790,7 @@ namespace Popolo.Core.Physics
     /// from the wet-bulb temperature [°C], specific volume [m³/kg],
     /// and atmospheric pressure [kPa].
     /// </summary>
-    /// <param name="wetbulbTemperature">Wet-bulb temperature [°C]</param>
+    /// <param name="wetBulbTemperature">Wet-bulb temperature [°C]</param>
     /// <param name="specificVolume">Specific volume [m³/kg]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Dry-bulb temperature [°C]</returns>
@@ -798,7 +798,7 @@ namespace Popolo.Core.Physics
     /// Thrown when the iterative calculation fails to converge.
     /// </exception>
     public static double GetDryBulbTemperatureFromWetBulbTemperatureAndSpecificVolume(
-        double wetbulbTemperature, double specificVolume, double atmosphericPressure)
+        double wetBulbTemperature, double specificVolume, double atmosphericPressure)
     {
       const double DELTA = 1.0e-10;
       const double TOL = 1.0e-9;
@@ -807,12 +807,12 @@ namespace Popolo.Core.Physics
       while (true)
       {
         double err1 = GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
-            dbt, wetbulbTemperature, atmosphericPressure)
+            dbt, wetBulbTemperature, atmosphericPressure)
             - GetHumidityRatioFromDryBulbTemperatureAndSpecificVolume(
             dbt, specificVolume, atmosphericPressure);
         if (Math.Abs(err1) < TOL) break;
         double err2 = GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
-            dbt + DELTA, wetbulbTemperature, atmosphericPressure)
+            dbt + DELTA, wetBulbTemperature, atmosphericPressure)
             - GetHumidityRatioFromDryBulbTemperatureAndSpecificVolume(
             dbt + DELTA, specificVolume, atmosphericPressure);
         dbt -= err1 / ((err2 - err1) / DELTA);
@@ -995,12 +995,12 @@ namespace Popolo.Core.Physics
     /// Gets the dynamic viscosity of moist air [Pa·s]
     /// from the dry-bulb temperature [°C].
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <returns>Dynamic viscosity [Pa·s]</returns>
-    public static double GetViscosity(double drybulbTemperature)
+    public static double GetViscosity(double dryBulbTemperature)
     {
-      return (0.0074237 / (drybulbTemperature + 390.15))
-          * Math.Pow(PhysicsConstants.ToKelvin(drybulbTemperature) / 293.15, 1.5);
+      return (0.0074237 / (dryBulbTemperature + 390.15))
+          * Math.Pow(PhysicsConstants.ToKelvin(dryBulbTemperature) / 293.15, 1.5);
     }
 
     /// <summary>
@@ -1008,38 +1008,38 @@ namespace Popolo.Core.Physics
     /// from the dry-bulb temperature [°C], humidity ratio [kg/kg(DA)],
     /// and atmospheric pressure [kPa].
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Kinematic viscosity [m²/s]</returns>
     public static double GetDynamicViscosity(
-        double drybulbTemperature, double humidityRatio, double atmosphericPressure)
+        double dryBulbTemperature, double humidityRatio, double atmosphericPressure)
     {
       return GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio, atmosphericPressure)
-          * GetViscosity(drybulbTemperature);
+          dryBulbTemperature, humidityRatio, atmosphericPressure)
+          * GetViscosity(dryBulbTemperature);
     }
 
     /// <summary>
     /// Gets the thermal conductivity of moist air [W/(m·K)]
     /// from the dry-bulb temperature [°C].
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <returns>Thermal conductivity [W/(m·K)]</returns>
-    public static double GetThermalConductivity(double drybulbTemperature)
+    public static double GetThermalConductivity(double dryBulbTemperature)
     {
-      return 0.0241 + 0.000077 * drybulbTemperature;
+      return 0.0241 + 0.000077 * dryBulbTemperature;
     }
 
     /// <summary>
     /// Gets the volumetric thermal expansion coefficient of moist air [1/K]
     /// from the dry-bulb temperature [°C].
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <returns>Volumetric thermal expansion coefficient [1/K]</returns>
-    public static double GetExpansionCoefficient(double drybulbTemperature)
+    public static double GetExpansionCoefficient(double dryBulbTemperature)
     {
-      return 1.0 / PhysicsConstants.ToKelvin(drybulbTemperature);
+      return 1.0 / PhysicsConstants.ToKelvin(dryBulbTemperature);
     }
 
     /// <summary>
@@ -1047,17 +1047,17 @@ namespace Popolo.Core.Physics
     /// from the dry-bulb temperature [°C], humidity ratio [kg/kg(DA)],
     /// and atmospheric pressure [kPa].
     /// </summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Thermal diffusivity [m²/s]</returns>
     public static double GetThermalDiffusivity(
-        double drybulbTemperature, double humidityRatio, double atmosphericPressure)
+        double dryBulbTemperature, double humidityRatio, double atmosphericPressure)
     {
-      double lambda = GetThermalConductivity(drybulbTemperature);
+      double lambda = GetThermalConductivity(dryBulbTemperature);
       double cp = GetSpecificHeat(humidityRatio);
       double v = GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio(
-          drybulbTemperature, humidityRatio, atmosphericPressure);
+          dryBulbTemperature, humidityRatio, atmosphericPressure);
       return lambda / (1000.0 * cp * v);
     }
 
@@ -1106,20 +1106,20 @@ namespace Popolo.Core.Physics
         hrSum += air[i].HumidityRatio * volume[i];
       }
 
-      double drybulbTempOut, absHumidOut;
+      double dryBulbTempOut, absHumidOut;
       if (rSum >= 1.0e-5d)
       {
-        drybulbTempOut = trSum / rSum;
+        dryBulbTempOut = trSum / rSum;
         absHumidOut = hrSum / rSum;
       }
       else
       {
         //割合の積算が小さい場合は発散を防ぐために混合空気の数で割る
-        drybulbTempOut = tSum / airNum;
+        dryBulbTempOut = tSum / airNum;
         absHumidOut = hSum / airNum;
       }
       //出口空気状態を計算（飽和した場合の処理は未実装）
-      return new MoistAir(drybulbTempOut, absHumidOut);
+      return new MoistAir(dryBulbTempOut, absHumidOut);
     }
 
     /// <summary>
@@ -1156,7 +1156,7 @@ namespace Popolo.Core.Physics
     {
       destination.AtmosphericPressure = AtmosphericPressure;
       destination.DryBulbTemperature = DryBulbTemperature;
-      destination.WetbulbTemperature = WetbulbTemperature;
+      destination.WetBulbTemperature = WetBulbTemperature;
       destination.HumidityRatio = HumidityRatio;
       destination.RelativeHumidity = RelativeHumidity;
       destination.Enthalpy = Enthalpy;

@@ -47,7 +47,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       return new BuriedPipe(
           pitch: 0.20,   // 配管敷設ピッチ [m]
           length: 10.0,   // 配管総延長 [m]
-          branchNumber: 1,      // 分岐数
+          branchCount: 1,      // 分岐数
           iDiameter: 0.013,  // 内径 [m]
           oDiameter: 0.015,  // 外径 [m]
           tubeConductivity: 380.0,  // 配管熱伝導率 [W/(m·K)]（銅）
@@ -71,7 +71,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
       Assert.Equal(0.20, pipe.Pitch, precision: 6);
       Assert.Equal(10.0, pipe.Length, precision: 6);
-      Assert.Equal(1, pipe.BranchNumber);
+      Assert.Equal(1, pipe.BranchCount);
       Assert.Equal(0.013, pipe.InnerDiameter, precision: 6);
       Assert.Equal(0.015, pipe.OuterDiameter, precision: 6);
       Assert.Equal(380.0, pipe.ThermalConductivityOfTube, precision: 6);

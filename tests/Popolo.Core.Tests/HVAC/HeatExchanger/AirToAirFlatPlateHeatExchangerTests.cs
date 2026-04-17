@@ -87,8 +87,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
       var hex = MakeTotalHex();
       // SA: 0°C/50%, EA: 22°C/50%
       hex.UpdateState(SA_Flow, EA_Flow, 0.0, 0.003, 22.0, 0.008);
-      Assert.True(hex.SupplyAirOutletDrybulbTemperature > hex.SupplyAirInletDrybulbTemperature,
-          $"SA outlet={hex.SupplyAirOutletDrybulbTemperature:F2}°C > inlet=0°C");
+      Assert.True(hex.SupplyAirOutletDryBulbTemperature > hex.SupplyAirInletDryBulbTemperature,
+          $"SA outlet={hex.SupplyAirOutletDryBulbTemperature:F2}°C > inlet=0°C");
     }
 
     /// <summary>
@@ -99,8 +99,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     {
       var hex = MakeTotalHex();
       hex.UpdateState(SA_Flow, EA_Flow, 0.0, 0.003, 22.0, 0.008);
-      Assert.True(hex.ExhaustAirOutletDrybulbTemperature < hex.ExhaustAirInletDrybulbTemperature,
-          $"EA outlet={hex.ExhaustAirOutletDrybulbTemperature:F2}°C < inlet=22°C");
+      Assert.True(hex.ExhaustAirOutletDryBulbTemperature < hex.ExhaustAirInletDryBulbTemperature,
+          $"EA outlet={hex.ExhaustAirOutletDryBulbTemperature:F2}°C < inlet=22°C");
     }
 
     /// <summary>
@@ -142,8 +142,8 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
       var hex = MakeTotalHex();
       // SA: 35°C/W=0.018 (高温多湿外気), EA: 26°C/W=0.010 (室内)
       hex.UpdateState(SA_Flow, EA_Flow, 35.0, 0.018, 26.0, 0.010);
-      Assert.True(hex.SupplyAirOutletDrybulbTemperature < hex.SupplyAirInletDrybulbTemperature,
-          $"SA outlet={hex.SupplyAirOutletDrybulbTemperature:F2}°C < inlet=35°C");
+      Assert.True(hex.SupplyAirOutletDryBulbTemperature < hex.SupplyAirInletDryBulbTemperature,
+          $"SA outlet={hex.SupplyAirOutletDryBulbTemperature:F2}°C < inlet=35°C");
     }
 
     #endregion
@@ -157,7 +157,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     {
       var hex = MakeTotalHex();
       hex.UpdateState(0.0, EA_Flow, 0.0, 0.003, 22.0, 0.008);
-      Assert.InRange(hex.SupplyAirOutletDrybulbTemperature, -0.01, 0.01);
+      Assert.InRange(hex.SupplyAirOutletDryBulbTemperature, -0.01, 0.01);
       Assert.Equal(0.0, hex.SensibleEfficiency);
     }
 
@@ -200,9 +200,9 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
       AirToAirFlatPlateHeatExchanger.GetSensibleEffectiveness(
           supplyAirMassFlowRate: 500.0 / 3600.0 * 1.2,
           exhaustAirMassFlowRate: 500.0 / 3600.0 * 1.2,
-          supplyAirDrybulbTemperature: 0.0,
+          supplyAirDryBulbTemperature: 0.0,
           supplyAirHumidityRatio: 0.003,
-          exhaustAirDrybulbTemperature: 22.0,
+          exhaustAirDryBulbTemperature: 22.0,
           exhaustAirHumitidyRatio: 0.008,
           heatTransferCoefficient: 1.0,
           flow: AirToAirFlatPlateHeatExchanger.AirFlow.CounterFlow,

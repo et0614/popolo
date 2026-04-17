@@ -28,16 +28,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
     double ExhaustAirFlowVolume { get; }
 
     /// <summary>Gets the supply air inlet dry-bulb temperature [°C].</summary>
-    double SupplyAirInletDrybulbTemperature { get; }
+    double SupplyAirInletDryBulbTemperature { get; }
 
     /// <summary>Gets the exhaust air inlet dry-bulb temperature [°C].</summary>
-    double ExhaustAirInletDrybulbTemperature { get; }
+    double ExhaustAirInletDryBulbTemperature { get; }
 
     /// <summary>Gets the supply air outlet dry-bulb temperature [°C].</summary>
-    double SupplyAirOutletDrybulbTemperature { get; }
+    double SupplyAirOutletDryBulbTemperature { get; }
 
     /// <summary>Gets the exhaust air outlet dry-bulb temperature [°C].</summary>
-    double ExhaustAirOutletDrybulbTemperature { get; }
+    double ExhaustAirOutletDryBulbTemperature { get; }
 
     /// <summary>Gets the supply air inlet humidity ratio [kg/kg].</summary>
     double SupplyAirInletHumidityRatio { get; }

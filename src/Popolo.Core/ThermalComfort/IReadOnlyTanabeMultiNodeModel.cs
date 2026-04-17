@@ -83,7 +83,7 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Gets the dry-bulb temperature [°C] for the specified body segment.</summary>
     /// <param name="node">Body segment node.</param>
     /// <returns>Dry-bulb temperature [°C].</returns>
-    double GetDrybulbTemperature(TanabeMultiNodeModel.Node node);
+    double GetDryBulbTemperature(TanabeMultiNodeModel.Node node);
 
     /// <summary>Gets the equivalent (operative) temperature [°C] for the specified body segment.</summary>
     /// <param name="node">Body segment node.</param>

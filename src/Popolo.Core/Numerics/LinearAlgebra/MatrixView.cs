@@ -32,10 +32,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     private IMatrix matrix;
 
     /// <summary>部分行列開始行番号</summary>
-    private int rowStartNumber;
+    private int rowStartIndex;
 
     /// <summary>部分行列開始列番号</summary>
-    private int columnStartNumber;
+    private int columnStartIndex;
 
     #endregion
 
@@ -64,7 +64,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
               $"Column index {column} is out of range. Valid range is 0 to {Columns - 1}.",
               nameof(column));
 
-        return matrix[row + rowStartNumber, column + columnStartNumber];
+        return matrix[row + rowStartIndex, column + columnStartIndex];
       }
       set
       {
@@ -77,7 +77,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
               $"Column index {column} is out of range. Valid range is 0 to {Columns - 1}.",
               nameof(column));
 
-        matrix[row + rowStartNumber, column + columnStartNumber] = value;
+        matrix[row + rowStartIndex, column + columnStartIndex] = value;
       }
     }
 
@@ -87,13 +87,13 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="matrix">もとの行列</param>
     /// <param name="rowSize">行数</param>
     /// <param name="columnSize">列数</param>
-    /// <param name="rowStartNumber">部分行列開始行番号</param>
-    /// <param name="columnStartNumber">部分行列開始列番号</param>
-    public MatrixView(IMatrix matrix, int rowSize, int columnSize, int rowStartNumber, int columnStartNumber)
+    /// <param name="rowStartIndex">部分行列開始行番号</param>
+    /// <param name="columnStartIndex">部分行列開始列番号</param>
+    public MatrixView(IMatrix matrix, int rowSize, int columnSize, int rowStartIndex, int columnStartIndex)
     {
       this.matrix = matrix;
-      this.rowStartNumber = rowStartNumber;
-      this.columnStartNumber = columnStartNumber;
+      this.rowStartIndex = rowStartIndex;
+      this.columnStartIndex = columnStartIndex;
       this.Rows = rowSize;
       this.Columns = columnSize;
     }
@@ -104,7 +104,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     {
       for (int i = 0; i < Rows; i++)
         for (int j = 0; j < Columns; j++)
-          matrix[i + rowStartNumber, j + columnStartNumber] = val;
+          matrix[i + rowStartIndex, j + columnStartIndex] = val;
     }
 
   }

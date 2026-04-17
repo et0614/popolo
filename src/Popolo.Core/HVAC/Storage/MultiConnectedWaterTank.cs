@@ -78,7 +78,7 @@ namespace Popolo.Core.HVAC.Storage
     public bool IsForwardFlow { get; private set; }
 
     /// <summary>Gets the number of tanks.</summary>
-    public int TankNumber { get { return temperatures.Length; } }
+    public int TankCount { get { return temperatures.Length; } }
 
     /// <summary>Gets the temperature of the first tank [°C].</summary>
     public double FirstTankTemperature { get { return temperatures[0]; } }

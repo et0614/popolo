@@ -484,7 +484,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
     public void Regulator_DesignPressure_LiftIsOne()
     {
       var reg = new Regulator(0.03, 100, 0.5, 0.5);
-      reg.VolumetricFlowRateSetPoint = 0.03;
+      reg.VolumetricFlowRateSetpoint = 0.03;
       reg.UpdateLift(100); // 設計差圧 = 設計点 → 全開
       Assert.InRange(reg.Lift, 0.99, 1.01);
     }
@@ -513,7 +513,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
     public void Regulator_PressureBelowDesign_LiftIsOne()
     {
       var reg = new Regulator(0.03, 100, 0.5, 0.5);
-      reg.VolumetricFlowRateSetPoint = 0.03;
+      reg.VolumetricFlowRateSetpoint = 0.03;
       reg.UpdateLift(50); // 設計差圧の半分 → 必要抵抗 < minResistance
       Assert.InRange(reg.Lift, 0.99, 1.01);
     }
@@ -543,13 +543,13 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
           new IFlowControllableBranch[] { floor0, floor1 });
 
       // 設計流量
-      ahu00.FlowRateSetPoint = ahu10.FlowRateSetPoint = 2.11e-3;
-      ahu01.FlowRateSetPoint = ahu11.FlowRateSetPoint = 1.85e-3;
+      ahu00.FlowRateSetpoint = ahu10.FlowRateSetpoint = 2.11e-3;
+      ahu01.FlowRateSetpoint = ahu11.FlowRateSetpoint = 1.85e-3;
       double pFull = system.GetMinimumPressure();
 
       // 50% に低減
-      ahu00.FlowRateSetPoint = ahu10.FlowRateSetPoint = 2.11e-3 * 0.5;
-      ahu01.FlowRateSetPoint = ahu11.FlowRateSetPoint = 1.85e-3 * 0.5;
+      ahu00.FlowRateSetpoint = ahu10.FlowRateSetpoint = 2.11e-3 * 0.5;
+      ahu01.FlowRateSetpoint = ahu11.FlowRateSetpoint = 1.85e-3 * 0.5;
       double pHalf = system.GetMinimumPressure();
 
       Assert.True(pFull > pHalf,
@@ -564,8 +564,8 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
       var ahu1 = new ControllableSeriesFlow(1.455e6, 3.055e7);
       var system = new ControllableParallelFlow(
           new IFlowControllableBranch[] { ahu0, ahu1 });
-      ahu0.FlowRateSetPoint = 2.11e-3;
-      ahu1.FlowRateSetPoint = 1.85e-3;
+      ahu0.FlowRateSetpoint = 2.11e-3;
+      ahu1.FlowRateSetpoint = 1.85e-3;
       Assert.True(system.GetMinimumPressure() > 0);
     }
 
@@ -574,7 +574,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
     public void ControllableSeriesFlow_TotalResistance_IsPositive()
     {
       var ahu = new ControllableSeriesFlow(1.121e6, 2.354e7);
-      ahu.FlowRateSetPoint = 2.11e-3;
+      ahu.FlowRateSetpoint = 2.11e-3;
       Assert.True(ahu.GetTotalResistance() > 0);
     }
 

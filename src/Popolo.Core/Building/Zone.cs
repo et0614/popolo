@@ -18,9 +18,7 @@
  */
 
 using Popolo.Core.Building.Envelope;
-using Popolo.Core.Numerics;
 using Popolo.Core.Physics;
-using System;
 using System.Collections.Generic;
 
 namespace Popolo.Core.Building
@@ -171,7 +169,7 @@ namespace Popolo.Core.Building
 
     /// <summary>Enables dry-bulb temperature control with the specified setpoint.</summary>
     /// <param name="setpoint">Temperature setpoint [°C].</param>
-    public void ControlDrybulbTemperature(double setpoint)
+    public void ControlDryBulbTemperature(double setpoint)
     {
       TemperatureControlled = true;
       TemperatureSetpoint = setpoint;

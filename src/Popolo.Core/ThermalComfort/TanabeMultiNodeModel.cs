@@ -48,12 +48,6 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Blood flow rate of the reference standard body [mL/s].</summary>
     private const double STANDARD_BLOOD_FLOW = 290.004 / 3.6;
 
-    /// <summary>Weight of the reference standard body [kg].</summary>
-    private const double STANDARD_WEIGHT = 74.43;
-
-    /// <summary>Standard atmospheric pressure [kPa].</summary>
-    private const double ATMOSPHERIC_PRESSURE = 101.325;
-
     /// <summary>Isobaric specific heat of bone [J/(kg·K)].</summary>
     private const double SPECIFIC_HEAT_BORN = 2092;
 
@@ -62,12 +56,6 @@ namespace Popolo.Core.ThermalComfort
 
     /// <summary>Isobaric specific heat of other body tissues [J/(kg·K)].</summary>
     private const double SPECIFIC_HEAT_ELSE = 3766;
-
-    /// <summary>Stefan–Boltzmann constant [W/(m²·K⁴)].</summary>
-    private const double BLACK_CONSTANT = 5.67e-8;
-
-    /// <summary>Offset for converting Celsius to Kelvin [K].</summary>
-    private const double CONVERT_C_TO_K = 273.15;
 
     /// <summary>Clothing moisture permeability index [K/kPa].</summary>
     private const double I_CLS = 0.45;
@@ -160,10 +148,10 @@ namespace Popolo.Core.ThermalComfort
     private IVector tVector = new Vector(115);
 
     /// <summary>Mean setpoint temperature of the core layer [°C].</summary>
-    private double averageCoreSetPoint;
+    private double averageCoreSetpoint;
 
     /// <summary>Mean setpoint temperature of the skin layer [°C].</summary>
-    private double averageSkinSetPoint;
+    private double averageSkinSetpoint;
 
     #endregion
 
@@ -279,11 +267,11 @@ namespace Popolo.Core.ThermalComfort
       InitializeTemperature(36);
 
       //セットポイント初期化
-      InitializeSetPoint();
+      InitializeSetpoint();
     }
 
     /// <summary>Initializes thermoregulatory setpoint temperatures.</summary>
-    private void InitializeSetPoint()
+    private void InitializeSetpoint()
     {
       //制御をOFF
       foreach (Node nd in parts.Keys)
@@ -303,8 +291,8 @@ namespace Popolo.Core.ThermalComfort
       foreach (Node nd in parts.Keys)
       {
         parts[nd].initializing = false;
-        parts[nd].setPoint_Skin = parts[nd].temperatures[Layer.Skin];
-        parts[nd].setPoint_Core = parts[nd].temperatures[Layer.Core];
+        parts[nd].setpoint_Skin = parts[nd].temperatures[Layer.Skin];
+        parts[nd].setpoint_Core = parts[nd].temperatures[Layer.Core];
       }
 
       //平均セットポイントを作成
@@ -312,15 +300,15 @@ namespace Popolo.Core.ThermalComfort
       Layer core = Layer.Core;
       double capSum = parts[Node.Chest].heatCapacity[core]
         + parts[Node.Pelvis].heatCapacity[core] + parts[Node.Back].heatCapacity[core];
-      averageCoreSetPoint =
-        (parts[Node.Chest].setPoint_Core * parts[Node.Chest].heatCapacity[core]
-        + parts[Node.Pelvis].setPoint_Core * parts[Node.Pelvis].heatCapacity[core]
-        + parts[Node.Back].setPoint_Core * parts[Node.Back].heatCapacity[core]) / capSum;
+      averageCoreSetpoint =
+        (parts[Node.Chest].setpoint_Core * parts[Node.Chest].heatCapacity[core]
+        + parts[Node.Pelvis].setpoint_Core * parts[Node.Pelvis].heatCapacity[core]
+        + parts[Node.Back].setpoint_Core * parts[Node.Back].heatCapacity[core]) / capSum;
 
       //全身の皮膚
-      averageSkinSetPoint = 0;
-      foreach (Node bp in parts.Keys) averageSkinSetPoint += parts[bp].setPoint_Skin * parts[bp].surfaceArea;
-      averageSkinSetPoint /= SurfaceArea;
+      averageSkinSetpoint = 0;
+      foreach (Node bp in parts.Keys) averageSkinSetpoint += parts[bp].setpoint_Skin * parts[bp].surfaceArea;
+      averageSkinSetpoint /= SurfaceArea;
     }
 
     /// <summary>Initializes body segment temperatures to the specified value.</summary>
@@ -434,7 +422,7 @@ namespace Popolo.Core.ThermalComfort
 
       //胸部の呼吸の項を追加
       bodyPart head = parts[Node.Head];
-      HeatLossByBreathing = mr * (0.0014 * (34 - head.drybulbTemperature)
+      HeatLossByBreathing = mr * (0.0014 * (34 - head.dryBulbTemperature)
         + 0.017251 * (5.8662 - head.waterVaporPressure));
       zVector[13] -= HeatLossByBreathing;
 
@@ -476,7 +464,7 @@ namespace Popolo.Core.ThermalComfort
 
       //頭部の核の温冷感信号
       Layer core = Layer.Core;
-      double sHead = parts[Node.Head].temperatures[core] - parts[Node.Head].setPoint_Core;
+      double sHead = parts[Node.Head].temperatures[core] - parts[Node.Head].setpoint_Core;
 
       //発汗・ふるえ・血管収縮・血管拡張の信号を計算
       double sfRate = SurfaceArea / STANDARD_SURFACE_AREA;
@@ -498,10 +486,10 @@ namespace Popolo.Core.ThermalComfort
       //全身の平均皮膚温を計算
       double atSkin = GetAverageSkinTemperature();
       //AVA開度の計算
-      double ovaHand = 0.265 * (atSkin - (averageSkinSetPoint - 0.43))
-          + 0.953 * (aveCore - (averageCoreSetPoint - 0.1905)) + 0.9126;
-      double ovaFoot = 0.265 * (atSkin - (averageSkinSetPoint - 0.97))
-          + 0.953 * (aveCore - (averageCoreSetPoint + 0.0095)) + 0.9126;
+      double ovaHand = 0.265 * (atSkin - (averageSkinSetpoint - 0.43))
+          + 0.953 * (aveCore - (averageCoreSetpoint - 0.1905)) + 0.9126;
+      double ovaFoot = 0.265 * (atSkin - (averageSkinSetpoint - 0.97))
+          + 0.953 * (aveCore - (averageCoreSetpoint + 0.0095)) + 0.9126;
 
       //皮膚血管運動・発汗・ふるえ熱生産・AVA血流を計算
       foreach (Node bp in parts.Keys)
@@ -547,31 +535,31 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Updates thermal boundary conditions for all body segments.</summary>
     /// <param name="velocity">Air velocity [m/s].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     public void UpdateBoundary
-      (double velocity, double meanRadiantTemperature, double drybulbTemperature, double relativeHumidity)
+      (double velocity, double meanRadiantTemperature, double dryBulbTemperature, double relativeHumidity)
     {
       double hr = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-        (drybulbTemperature, relativeHumidity, ATMOSPHERIC_PRESSURE);
-      double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(hr, ATMOSPHERIC_PRESSURE);
+        (dryBulbTemperature, relativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
+      double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(hr, PhysicsConstants.StandardAtmosphericPressure);
       foreach (Node bp in parts.Keys)
-        parts[bp].updateBoundary(velocity, meanRadiantTemperature, drybulbTemperature, wvp);
+        parts[bp].updateBoundary(velocity, meanRadiantTemperature, dryBulbTemperature, wvp);
     }
 
     /// <summary>Updates thermal boundary conditions for all body segments.</summary>
     /// <param name="node">Body segment node to update.</param>
     /// <param name="velocity">Air velocity [m/s].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     public void UpdateBoundary
-      (Node node, double velocity, double meanRadiantTemperature, double drybulbTemperature, double relativeHumidity)
+      (Node node, double velocity, double meanRadiantTemperature, double dryBulbTemperature, double relativeHumidity)
     {
       double hr = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-        (drybulbTemperature, relativeHumidity, ATMOSPHERIC_PRESSURE);
-      double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(hr, ATMOSPHERIC_PRESSURE);
-      parts[node].updateBoundary(velocity, meanRadiantTemperature, drybulbTemperature, wvp);
+        (dryBulbTemperature, relativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
+      double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(hr, PhysicsConstants.StandardAtmosphericPressure);
+      parts[node].updateBoundary(velocity, meanRadiantTemperature, dryBulbTemperature, wvp);
     }
 
     /// <summary>Sets the clothing insulation [clo].</summary>
@@ -605,7 +593,7 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Gets the ambient dry-bulb temperature [°C].</summary>
     /// <param name="node">Body segment node.</param>
     /// <returns>Dry-bulb temperature [°C].</returns>
-    public double GetDrybulbTemperature(Node node) { return parts[node].drybulbTemperature; }
+    public double GetDryBulbTemperature(Node node) { return parts[node].dryBulbTemperature; }
 
     /// <summary>Gets the equivalent temperature [°C].</summary>
     /// <param name="node">Body segment node.</param>
@@ -618,9 +606,9 @@ namespace Popolo.Core.ThermalComfort
     public double GetRelativeHumidity(Node node)
     {
       double hr = MoistAir.GetHumidityRatioFromWaterVaporPartialPressure
-        (parts[node].waterVaporPressure, ATMOSPHERIC_PRESSURE);
+        (parts[node].waterVaporPressure, PhysicsConstants.StandardAtmosphericPressure);
       return MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (parts[node].drybulbTemperature, hr, ATMOSPHERIC_PRESSURE);
+        (parts[node].dryBulbTemperature, hr, PhysicsConstants.StandardAtmosphericPressure);
     }
 
     /// <summary>Gets the clothing insulation [clo].</summary>

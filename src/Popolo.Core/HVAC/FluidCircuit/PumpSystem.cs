@@ -45,10 +45,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double BypassFlowRate { get; private set; }
 
     /// <summary>Gets the number of operating units [units].</summary>
-    public int OperatingNumber { get; private set; }
+    public int ActivePumpCount { get; private set; }
 
     /// <summary>Gets the number of pumps [units].</summary>
-    public int PumpNumber { get; private set; }
+    public int PumpCount { get; private set; }
 
     /// <summary>Gets the actual head [kPa].</summary>
     public double ActualHead { get; private set; }
@@ -69,12 +69,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="designPressure">Design pressure [kPa].</param>
     /// <param name="designFlowRate">Design flow rate [m³/s].</param>
     /// <param name="actualHead">Actual head [kPa].</param>
-    /// <param name="pumpNumber">Number of pumps.</param>
+    /// <param name="pumpCount">Number of pumps.</param>
     public PumpSystem
-      (CentrifugalPump pump, double designPressure, double designFlowRate, double actualHead, int pumpNumber)
+      (CentrifugalPump pump, double designPressure, double designFlowRate, double actualHead, int pumpCount)
     {
       this.pump = pump;
-      PumpNumber = pumpNumber;
+      PumpCount = pumpCount;
       PressureSetpoint = designPressure;
       ActualHead = actualHead;
 
@@ -90,24 +90,24 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public void UpdateState()
     {
       //運転台数を確定
-      OperatingNumber = GetOperatingNumber(TotalFlowRate);
-      if (OperatingNumber == 0)
+      ActivePumpCount = GetActivePumpCount(TotalFlowRate);
+      if (ActivePumpCount == 0)
       {
         ShutOff();
         return;
       }
       //過負荷の場合
-      if (PumpNumber < OperatingNumber)
+      if (PumpCount < ActivePumpCount)
       {
-        OperatingNumber = PumpNumber;
+        ActivePumpCount = PumpCount;
         double tf;
-        pump.updateWithResistanceAndRotationRatio(1.0, resistanceCoefficient, ActualHead, PumpNumber, out tf);
+        pump.updateWithResistanceAndRotationRatio(1.0, resistanceCoefficient, ActualHead, PumpCount, out tf);
         TotalFlowRate = tf;
         BypassFlowRate = 0;
       }
       else
       {
-        double vFlow = TotalFlowRate / OperatingNumber;
+        double vFlow = TotalFlowRate / ActivePumpCount;
         //最小吐出圧制御の場合：
         if (Pump.Control == CentrifugalPump.ControlMethod.MinimumPressure)
         {
@@ -118,13 +118,13 @@ namespace Popolo.Core.HVAC.FluidCircuit
           {
             double tf;
             pump.updateWithResistanceAndRotationRatio
-              (Pump.MinimumRotationRatio, resistanceCoefficient, ActualHead, OperatingNumber, out tf);
+              (Pump.MinimumRotationRatio, resistanceCoefficient, ActualHead, ActivePumpCount, out tf);
           }
         }
         //吐出圧一定制御・バイパス制御の場合
         else pump.UpdateState(vFlow);
 
-        BypassFlowRate = (Pump.VolumetricFlowRate * OperatingNumber) - TotalFlowRate;
+        BypassFlowRate = (Pump.VolumetricFlowRate * ActivePumpCount) - TotalFlowRate;
       }
     }
 
@@ -134,12 +134,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
       pump.ShutOff();
       BypassFlowRate = 0;
       TotalFlowRate = 0;
-      OperatingNumber = 0;
+      ActivePumpCount = 0;
     }
 
     /// <summary>Gets the power consumption [kW].</summary>
     public double GetElectricConsumption()
-    { return Pump.GetElectricConsumption() * OperatingNumber; }
+    { return Pump.GetElectricConsumption() * ActivePumpCount; }
 
     #endregion
 
@@ -148,7 +148,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <summary>Computes the required number of operating pumps.</summary>
     /// <param name="flowRate">Required water flow rate [m³/s].</param>
     /// <returns>Required number of operating units.</returns>
-    private int GetOperatingNumber(double flowRate)
+    private int GetActivePumpCount(double flowRate)
     {
       if (flowRate <= 0) return 0;
 
@@ -171,7 +171,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
           if (flowRate < tf) break;
           else opNum++;
           if (50 < opNum) throw new PopoloNumericalException(
-            "PumpSystem.GetOperatingNumber",
+            "PumpSystem.GetActivePumpCount",
             $"Failed to determine operating pump count within 50 units; required flow rate may be too large.");
         }
         return opNum;

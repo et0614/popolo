@@ -34,6 +34,7 @@ namespace Popolo.Core.ThermalComfort
     private const double CONVERT_MET_TO_W = 58.15;
 
     /// <summary>Offset for converting Celsius to Kelvin [K].</summary>
+    /// <remarks>Fanger 1970 original formula uses integer 273 (not 273.15)</remarks>
     private const double CONVERT_C_TO_K = 273;
 
     #endregion
@@ -100,7 +101,7 @@ namespace Popolo.Core.ThermalComfort
       /// <summary>Other: exercise (3.5 met).</summary>
       Other_Leisure_Exercise,
       /// <summary>Other: tennis (3.8 met).</summary>
-      Other_Leisure_Tennes,
+      Other_Leisure_Tennis,
       /// <summary>Other: basketball (5.8 met).</summary>
       Other_Leisure_Basketball,
       /// <summary>Other: wrestling (7.8 met).</summary>
@@ -112,7 +113,7 @@ namespace Popolo.Core.ThermalComfort
     #region publicメソッド
 
     /// <summary>Computes the thermal load on the human body [W/m²] using the Fanger heat balance equation.</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     /// <param name="relativeAirVelocity">Relative air velocity [m/s].</param>
@@ -121,14 +122,14 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="externalWork">External work [met].</param>
     /// <returns>Thermal load on the human body [W/m²].</returns>
     public static double GetThermalLoad
-      (double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity,
+      (double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity,
       double relativeAirVelocity, double clothing, double metabolicRate, double externalWork)
     {
-      double dbtA = CONVERT_C_TO_K + drybulbTemperature;
+      double dbtA = CONVERT_C_TO_K + dryBulbTemperature;
       double mrtA = CONVERT_C_TO_K + meanRadiantTemperature;
 
       //周囲の水蒸気分圧[kPa]の計算
-      double pa = relativeHumidity / 100d * Water.GetSaturationPressure(drybulbTemperature);
+      double pa = relativeHumidity / 100d * Water.GetSaturationPressure(dryBulbTemperature);
 
       //代謝量[W/m2]の計算
       double m = metabolicRate * CONVERT_MET_TO_W;
@@ -145,7 +146,7 @@ namespace Popolo.Core.ThermalComfort
       double hcf = 12.1 * Math.Sqrt(relativeAirVelocity);
 
       //着衣表面温度の反復計算
-      double tcla = dbtA + (35.5 - drybulbTemperature) / (3.5 * rcl + 0.1);//初期値
+      double tcla = dbtA + (35.5 - dryBulbTemperature) / (3.5 * rcl + 0.1);//初期値
       double p1 = rcl * fcl;
       double p2 = p1 * 3.96;
       double p3 = p1 * 100;
@@ -175,16 +176,16 @@ namespace Popolo.Core.ThermalComfort
       double ediff = 3.05 * (5.733 - 0.00699 * mw - pa);      //皮膚表面からの潜熱損失[W/m2]
       double esw = 0.42 * Math.Max(0, mw - CONVERT_MET_TO_W); //発汗による潜熱損失[W/m2]
       double lres = 0.017 * m * (5.867 - pa);                 //呼吸による潜熱損失[W/m2]
-      double dres = 0.0014 * m * (34.0 - drybulbTemperature); //呼吸による顕熱損失[W/m2]
+      double dres = 0.0014 * m * (34.0 - dryBulbTemperature); //呼吸による顕熱損失[W/m2]
       double r = 3.96 * fcl * (Math.Pow(xn, 4) - Math.Pow(mrtA / 100.0, 4)); //着衣表面からの放射熱損失[W/m2]      
-      double c = fcl * hc * (tcl - drybulbTemperature);       //着衣表面からの対流熱損失[W/m2]
+      double c = fcl * hc * (tcl - dryBulbTemperature);       //着衣表面からの対流熱損失[W/m2]
 
       //集計
       return mw - (ediff + esw + lres + dres + r + c);
     }
 
     /// <summary>Computes the Predicted Mean Vote (PMV) [-].</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="meanRadiantTemperature">Mean radiant temperature [°C].</param>
     /// <param name="relativeHumidity">Relative humidity [%].</param>
     /// <param name="relativeAirVelocity">Relative air velocity [m/s].</param>
@@ -193,10 +194,10 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="externalWork">External work [met].</param>
     /// <returns>PMV value [-].</returns>
     public static double GetPMV
-      (double drybulbTemperature, double meanRadiantTemperature, double relativeHumidity,
+      (double dryBulbTemperature, double meanRadiantTemperature, double relativeHumidity,
       double relativeAirVelocity, double clothing, double metabolicRate, double externalWork)
     {
-      double thermalLoad = GetThermalLoad(drybulbTemperature, meanRadiantTemperature,
+      double thermalLoad = GetThermalLoad(dryBulbTemperature, meanRadiantTemperature,
         relativeHumidity, relativeAirVelocity, clothing, metabolicRate, externalWork);
       return GetPMV(metabolicRate, thermalLoad);
     }
@@ -229,7 +230,7 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="metabolicRate">Metabolic rate [met].</param>
     /// <param name="externalWork">External work [met].</param>
     /// <returns>Dry-bulb temperature [°C].</returns>
-    public static double GetDrybulbTemperature
+    public static double GetDryBulbTemperature
       (double pmv, double meanRadiantTemperature, double relativeHumidity, double relativeAirVelocity,
       double clothing, double metabolicRate, double externalWork)
     {
@@ -323,7 +324,7 @@ namespace Popolo.Core.ThermalComfort
           return 3.4;
         case Tasks.Other_Leisure_Exercise:
           return 3.5;
-        case Tasks.Other_Leisure_Tennes:
+        case Tasks.Other_Leisure_Tennis:
           return 3.8;
         case Tasks.Other_Leisure_Wrestling:
           return 7.8;

@@ -72,11 +72,11 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     /// <summary>Gets the total target flow rate of the circuit [m³/s].</summary>
     /// <returns>Total target flow rate of the circuit [m³/s].</returns>
-    public double GetTotalFlowSetPoint()
+    public double GetTotalFlowSetpoint()
     {
       double ttlFlw = 0;
       for (int i = 0; i < branches.Length; i++)
-        ttlFlw += branches[i].GetTotalFlowSetPoint();
+        ttlFlw += branches[i].GetTotalFlowSetpoint();
       return ttlFlw;
     }
 
@@ -84,7 +84,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
     /// <returns>Required minimum differential pressure [kPa].</returns>
     public double GetMinimumPressure()
     {
-      double ttlFlw = GetTotalFlowSetPoint();
+      double ttlFlw = GetTotalFlowSetpoint();
       double prlP = 0;
       double minP = 0;
       for (int i = 0; i < branches.Length; i++)
@@ -92,7 +92,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
         prlP += ttlFlw * ttlFlw
           * (SupplyResistances[i] + ReturnResistances[i]);
         minP = Math.Max(prlP + branches[i].GetMinimumPressure(), minP);
-        ttlFlw -= branches[i].GetTotalFlowSetPoint();
+        ttlFlw -= branches[i].GetTotalFlowSetpoint();
       }
       return minP;
     }

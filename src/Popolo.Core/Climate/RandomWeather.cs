@@ -60,10 +60,10 @@ namespace Popolo.Core.Climate
     /// <summary>Solar calculator for the calculation site.</summary>
     private Sun _sun = null!;
 
-    /// <summary>Standard deviations of the trend component (drybulb temp, humidity ratio, atm. transmissivity).</summary>
+    /// <summary>Standard deviations of the trend component (dryBulb temp, humidity ratio, atm. transmissivity).</summary>
     private double _sdevTDT, _sdevTHR, _sdevTAT;
 
-    /// <summary>VAR model coefficients for drybulb temperature and humidity ratio.</summary>
+    /// <summary>VAR model coefficients for dryBulb temperature and humidity ratio.</summary>
     private double[] _iDTCof, _iHRCof;
 
     /// <summary>AR model coefficient and white noise standard deviations.</summary>
@@ -452,15 +452,15 @@ namespace Popolo.Core.Climate
     /// Generates stochastic weather data for the specified number of years (non-leap year).
     /// </summary>
     /// <param name="year">Number of years to generate.</param>
-    /// <param name="drybulbTemperature">Output: dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Output: dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Output: humidity ratio [g/kg]</param>
     /// <param name="radiation">Output: global horizontal irradiance [W/m²]</param>
     /// <param name="isFair">Output: true if fair weather (cloud cover &lt; 10)</param>
     public void MakeWeather
-      (int year, out double[] drybulbTemperature,
+      (int year, out double[] dryBulbTemperature,
       out double[] humidityRatio, out double[] radiation, out bool[] isFair)
     {
-      MakeWeather(year, false, out drybulbTemperature, out humidityRatio, out radiation, out isFair);
+      MakeWeather(year, false, out dryBulbTemperature, out humidityRatio, out radiation, out isFair);
     }
 
     /// <summary>
@@ -468,12 +468,12 @@ namespace Popolo.Core.Climate
     /// </summary>
     /// <param name="year">Number of years to generate.</param>
     /// <param name="isLeapYear">If true, each year has 366 days.</param>
-    /// <param name="drybulbTemperature">Output: dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Output: dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Output: humidity ratio [g/kg]</param>
     /// <param name="radiation">Output: global horizontal irradiance [W/m²]</param>
     /// <param name="isFair">Output: true if fair weather (cloud cover &lt; 10)</param>
     public void MakeWeather
-      (int year, bool isLeapYear, out double[] drybulbTemperature,
+      (int year, bool isLeapYear, out double[] dryBulbTemperature,
       out double[] humidityRatio, out double[] radiation, out bool[] isFair)
     {
       DateTime dt = new DateTime(2001, 1, 1, 0, 0, 0);
@@ -481,7 +481,7 @@ namespace Popolo.Core.Climate
 
       int totalDay = year * days;
       int totalHour = totalDay * 24;
-      drybulbTemperature = new double[totalHour];
+      dryBulbTemperature = new double[totalHour];
       humidityRatio = new double[totalHour];
       radiation = new double[totalHour];
       double[] swing = new double[totalDay];
@@ -619,14 +619,14 @@ namespace Popolo.Core.Climate
         {
           int ch = tHour + j;
           UpdateRandomComponent(_nRnd, ref idbt, ref ihrt);
-          drybulbTemperature[ch] = trendDT[cYear] + 
+          dryBulbTemperature[ch] = trendDT[cYear] + 
             idbt[idbt.Length - 1] * caDTSIG[yHour] + dbtRnd[ch] + ccDBT[j] * swing[ch];
           humidityRatio[ch] = trendHR[cYear] + hrtRnd[ch] + ccHRT[j];
           double hrtMax = MoistAir.GetSaturationHumidityRatioFromDryBulbTemperature
-            (drybulbTemperature[ch], 101.325) * 1000 - humidityRatio[ch];
+            (dryBulbTemperature[ch], PhysicsConstants.StandardAtmosphericPressure) * 1000 - humidityRatio[ch];
           double hrtMin =
             MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-            (drybulbTemperature[ch], _minimumRelativeHumidity, 101.325) * 1000;
+            (dryBulbTemperature[ch], _minimumRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure) * 1000;
           hrtMin -= humidityRatio[ch];
           ihrt[2] = (Math.Max(Math.Min(ihrt[2] * caHRSIG[yHour], hrtMax), hrtMin));
           ihrt[2] /= caHRSIG[yHour];
@@ -641,7 +641,7 @@ namespace Popolo.Core.Climate
     #region 周期成分の計算
 
     /// <summary>Computes daily annual cycle component arrays.</summary>
-    /// <param name="drybulbTemperature">Annual cycle of dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Annual cycle of dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Annual cycle of humidity ratio [g/kg]</param>
     /// <param name="atmTransmissivity">Annual cycle of atmospheric transmissivity [-]</param>
     /// <param name="fairToFair">Transition probability: fair → fair [-]</param>
@@ -650,14 +650,14 @@ namespace Popolo.Core.Climate
     /// <param name="hrtSigma">Annual cycle of humidity ratio irregular component std. dev.</param>
     /// <param name="isLeapYear">If true, 366 days are used.</param>
     private void MakeAnnualData
-      (out double[] drybulbTemperature, out double[] humidityRatio, out double[] atmTransmissivity, 
+      (out double[] dryBulbTemperature, out double[] humidityRatio, out double[] atmTransmissivity, 
       out double[] fairToFair, out double[] cloudToCloud, out double[] dbtSigma, out double[] hrtSigma, bool isLeapYear)
     {
       //うるう年の場合には366日
       int days = isLeapYear ? 366 : 365;
 
       //日別年周期データを作成
-      drybulbTemperature = new double[days];
+      dryBulbTemperature = new double[days];
       humidityRatio = new double[days];
       atmTransmissivity = new double[days];
       fairToFair = new double[days];
@@ -671,7 +671,7 @@ namespace Popolo.Core.Climate
         {
           double cwk = Math.Cos(wk * j);
           double swk = Math.Sin(wk * j);
-          drybulbTemperature[j] += _acaDT[i] * cwk - _bcaDT[i] * swk;
+          dryBulbTemperature[j] += _acaDT[i] * cwk - _bcaDT[i] * swk;
           humidityRatio[j] += _acaHR[i] * cwk - _bcaHR[i] * swk;
           atmTransmissivity[j] += _acaAT[i] * cwk - _bcaAT[i] * swk;
           fairToFair[j] += _acFF[i] * cwk - _bcFF[i] * swk;
@@ -683,16 +683,16 @@ namespace Popolo.Core.Climate
     }
 
     /// <summary>Computes hourly circadian cycle component arrays.</summary>
-    /// <param name="drybulbTemperature">Circadian cycle of dry-bulb temperature [°C]</param>
+    /// <param name="dryBulbTemperature">Circadian cycle of dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Circadian cycle of humidity ratio [g/kg]</param>
     /// <param name="atmTransFair">Circadian cycle of atmospheric transmissivity on fair days [-]</param>
     /// <param name="atmTransCloudy">Circadian cycle of atmospheric transmissivity on cloudy days [-]</param>
     private void MakeCircadianData
-      (out double[] drybulbTemperature, out double[] humidityRatio,
+      (out double[] dryBulbTemperature, out double[] humidityRatio,
        out double[] atmTransFair, out double[] atmTransCloudy)
     {
       //時刻別データを作成
-      drybulbTemperature = new double[24];
+      dryBulbTemperature = new double[24];
       humidityRatio = new double[24];
       atmTransCloudy = new double[24];
       atmTransFair = new double[24];
@@ -703,7 +703,7 @@ namespace Popolo.Core.Climate
         {
           double cwk = Math.Cos(wk * j);
           double swk = Math.Sin(wk * j);
-          drybulbTemperature[j] += _accDT[i] * cwk - _bccDT[i] * swk;
+          dryBulbTemperature[j] += _accDT[i] * cwk - _bccDT[i] * swk;
           humidityRatio[j] += _accHR[i] * cwk - _bccHR[i] * swk;
           atmTransCloudy[j] += _acCLD[i] * cwk - _bcCLD[i] * swk;
           atmTransFair[j] += _acFAR[i] * cwk - _bcFAR[i] * swk;
@@ -717,24 +717,24 @@ namespace Popolo.Core.Climate
 
     /// <summary>Advances the VAR model by one step to update the irregular components.</summary>
     /// <param name="nRnd">Normal random number generator.</param>
-    /// <param name="drybulbTemperature">Standardized irregular component of dry-bulb temperature (lag buffer).</param>
+    /// <param name="dryBulbTemperature">Standardized irregular component of dry-bulb temperature (lag buffer).</param>
     /// <param name="humidityRatio">Standardized irregular component of humidity ratio (lag buffer).</param>
     private void UpdateRandomComponent
-      (NormalRandom nRnd, ref double[] drybulbTemperature, ref double[] humidityRatio)
+      (NormalRandom nRnd, ref double[] dryBulbTemperature, ref double[] humidityRatio)
     {
       double nrnd1 = nRnd.NextDouble();
       double nrnd2 = nRnd.NextDouble();
       double dbt = nrnd1 * _iDTSD +
-        drybulbTemperature[2] * _iDTCof[0] + humidityRatio[2] * _iDTCof[1] +
-        drybulbTemperature[1] * _iDTCof[2] + humidityRatio[1] * _iDTCof[3] +
-        drybulbTemperature[0] * _iDTCof[4] + humidityRatio[0] * _iDTCof[5];
+        dryBulbTemperature[2] * _iDTCof[0] + humidityRatio[2] * _iDTCof[1] +
+        dryBulbTemperature[1] * _iDTCof[2] + humidityRatio[1] * _iDTCof[3] +
+        dryBulbTemperature[0] * _iDTCof[4] + humidityRatio[0] * _iDTCof[5];
       double hrt = nrnd2 * _iHRSD +
-        drybulbTemperature[2] * _iHRCof[0] + humidityRatio[2] * _iHRCof[1] +
-        drybulbTemperature[1] * _iHRCof[2] + humidityRatio[1] * _iHRCof[3] +
-        drybulbTemperature[0] * _iHRCof[4] + humidityRatio[0] * _iHRCof[5];
-      drybulbTemperature[0] = drybulbTemperature[1];
-      drybulbTemperature[1] = drybulbTemperature[2];
-      drybulbTemperature[2] = dbt;
+        dryBulbTemperature[2] * _iHRCof[0] + humidityRatio[2] * _iHRCof[1] +
+        dryBulbTemperature[1] * _iHRCof[2] + humidityRatio[1] * _iHRCof[3] +
+        dryBulbTemperature[0] * _iHRCof[4] + humidityRatio[0] * _iHRCof[5];
+      dryBulbTemperature[0] = dryBulbTemperature[1];
+      dryBulbTemperature[1] = dryBulbTemperature[2];
+      dryBulbTemperature[2] = dbt;
       humidityRatio[0] = humidityRatio[1];
       humidityRatio[1] = humidityRatio[2];
       humidityRatio[2] = hrt;

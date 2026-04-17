@@ -20,7 +20,7 @@ namespace Popolo.Core.HVAC.VRF
     double TotalEfficiencyOfGasEngineHeatpump { get; }
 
     /// <summary>Gets the number of indoor units.</summary>
-    int IndoorUnitNumber { get; }
+    int IndoorUnitCount { get; }
 
     /// <summary>Gets the list of indoor unit heat exchangers.</summary>
     IReadOnlyVRFUnit[] IndoorUnits { get; }
@@ -53,7 +53,7 @@ namespace Popolo.Core.HVAC.VRF
     double MinimumPartialLoadRate { get; }
 
     /// <summary>Gets the outdoor air dry-bulb temperature [°C].</summary>
-    double OutdoorAirDrybulbTemperature { get; }
+    double OutdoorAirDryBulbTemperature { get; }
 
     /// <summary>Gets the outdoor air humidity ratio [kg/kg].</summary>
     double OutdoorAirHumidityRatio { get; }

@@ -28,15 +28,6 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class CrossFinHeatExchanger : IReadOnlyCrossFinHeatExchanger
   {
 
-    #region 定数宣言
-
-    /// <summary>Approximate density of moist air [kg/m³].</summary>
-    private const double AIR_SPECIFIC_WEIGHT = 1.2;
-
-
-
-    #endregion
-
     #region 列挙型定義
 
     /// <summary>Water flow circuit type.</summary>
@@ -165,8 +156,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="depth">Coil depth [m].</param>
     /// <param name="width">Coil width [m].</param>
     /// <param name="height">Coil height [m].</param>
-    /// <param name="rowNumber">Number of tube columns (perpendicular to air flow).</param>
-    /// <param name="columnNumber">Number of tube rows in the air-flow direction.</param>
+    /// <param name="rowCount">Total number of tube columns (perpendicular to air flow).</param>
+    /// <param name="columnCount">Total number of tube rows in the air-flow direction.</param>
     /// <param name="finPitch">Fin pitch [m].</param>
     /// <param name="finThickness">Fin thickness [m].</param>
     /// <param name="thermalConductivity">Thermal conductivity of the fin material [W/(m·K)].</param>
@@ -182,13 +173,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="flowType">Water flow circuit type.</param>
     /// <param name="heatTransfer">Rated heat transfer capacity [kW].</param>
     /// <param name="useCorrectionFactor">True to apply the correction factor to the heat transfer coefficients.</param>
-    public CrossFinHeatExchanger(double depth, double width, double height, int rowNumber, int columnNumber,
+    public CrossFinHeatExchanger(double depth, double width, double height, int rowCount, int columnCount,
       double finPitch, double finThickness, double thermalConductivity, double innerDiameter,
       double outerDiameter, double ratedAirFlowRate, double ratedInletAirTemperature,
       double ratedInletAirHumidityRatio, double borderRelativeHumidity, double ratedWaterFlowRate,
       double maxWaterFlowRate, double ratedInletWaterTemperature, WaterFlowType flowType,
       double heatTransfer, bool useCorrectionFactor)
-      : this(depth, width, height, rowNumber, columnNumber, finPitch, finThickness, thermalConductivity,
+      : this(depth, width, height, rowCount, columnCount, finPitch, finThickness, thermalConductivity,
           innerDiameter, outerDiameter, ratedAirFlowRate, ratedInletAirTemperature,
           ratedInletAirHumidityRatio, borderRelativeHumidity, ratedWaterFlowRate, maxWaterFlowRate,
           ratedInletWaterTemperature, GetFlowFactor(flowType), heatTransfer, useCorrectionFactor)
@@ -197,8 +188,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Initializes a new instance using the detailed model with automatic UA estimation.</summary>
     /// <param name="width">Coil width [m].</param>
     /// <param name="height">Coil height [m].</param>
-    /// <param name="rowNumber">Number of tube columns (perpendicular to air flow).</param>
-    /// <param name="columnNumber">Number of tube rows in the air-flow direction.</param>
+    /// <param name="rowCount">Total number of tube columns (perpendicular to air flow).</param>
+    /// <param name="columnount">Total number of tube rows in the air-flow direction.</param>
     /// <param name="ratedAirFlowRate">Nominal air mass flow rate [kg/s].</param>
     /// <param name="ratedInletAirTemperature">Nominal inlet air dry-bulb temperature [°C].</param>
     /// <param name="ratedInletAirHumidityRatio">Nominal inlet air humidity ratio [kg/kg].</param>
@@ -210,11 +201,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="heatTransfer">Rated heat transfer capacity [kW].</param>
     /// <param name="useCorrectionFactor">True to apply the correction factor to the heat transfer coefficients.</param>
     public CrossFinHeatExchanger(
-      double width, double height, int rowNumber, int columnNumber, double ratedAirFlowRate,
+      double width, double height, int rowCount, int columnount, double ratedAirFlowRate,
       double ratedInletAirTemperature, double ratedInletAirHumidityRatio, double borderRelativeHumidity,
       double ratedWaterFlowRate, double maxWaterFlowRate, double ratedInletWaterTemperature,
       WaterFlowType flowType, double heatTransfer, bool useCorrectionFactor)
-      : this(rowNumber * 0.0329, width, height, rowNumber, columnNumber, 0.0029, 0.0002, 237, 0.0146, 0.0158,
+      : this(rowCount * 0.0329, width, height, rowCount, columnount, 0.0029, 0.0002, 237, 0.0146, 0.0158,
           ratedAirFlowRate, ratedInletAirTemperature, ratedInletAirHumidityRatio, borderRelativeHumidity,
           ratedWaterFlowRate, maxWaterFlowRate, ratedInletWaterTemperature, GetFlowFactor(flowType),
           heatTransfer, useCorrectionFactor)
@@ -235,8 +226,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="depth">Coil depth [m].</param>
     /// <param name="width">Coil width [m].</param>
     /// <param name="height">Coil height [m].</param>
-    /// <param name="rowNumber">Number of tube columns (perpendicular to air flow).</param>
-    /// <param name="columnNumber">Number of tube rows in the air-flow direction.</param>
+    /// <param name="rowCount">Total number of tube columns (perpendicular to air flow).</param>
+    /// <param name="columnCount">Total number of tube rows in the air-flow direction.</param>
     /// <param name="finPitch">Fin pitch [m].</param>
     /// <param name="finThickness">Fin thickness [m].</param>
     /// <param name="thermalConductivity">Thermal conductivity of the fin material [W/(m·K)].</param>
@@ -252,7 +243,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="flowFactor">Flow factor [-].</param>
     /// <param name="heatTransfer">Rated heat transfer capacity [kW].</param>
     /// <param name="useCorrectionFactor">True to apply the correction factor to the heat transfer coefficients.</param>
-    public CrossFinHeatExchanger(double depth, double width, double height, int rowNumber, int columnNumber,
+    public CrossFinHeatExchanger(double depth, double width, double height, int rowCount, int columnCount,
       double finPitch, double finThickness, double thermalConductivity, double innerDiameter,
       double outerDiameter, double ratedAirFlowRate, double ratedInletAirTemperature,
       double ratedInletAirHumidityRatio, double borderRelativeHumidity, double ratedWaterFlowRate,
@@ -264,7 +255,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
       //コイルの幾何学形状を計算
       double asr, car, eqr, eqd, asa;
-      GetGeometricCompfigulation(depth, width, height, rowNumber, columnNumber, finPitch, finThickness,
+      GetGeometricCompfigulation(depth, width, height, rowCount, columnCount, finPitch, finThickness,
         innerDiameter, outerDiameter, out asr, out car, out eqr, out eqd, out asa);
 
       //コイル仕様を保存
@@ -272,7 +263,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       this.coreArea = car;
       this.equivalentFinRadius = eqr;
       this.equivalentDiameter = eqd;
-      this.waterPath = flowFactor * columnNumber;
+      this.waterPath = flowFactor * columnCount;
       this.finThickness = finThickness;
       this.thermalConductivity = thermalConductivity;
       this.innerDiameter = innerDiameter;
@@ -301,11 +292,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
         SurfaceArea = GetSurfaceArea(ratedInletAirTemperature, ratedInletAirHumidityRatio,
           borderRelativeHumidity, ratedInletWaterTemperature, ratedAirFlowRate, ratedWaterFlowRate,
           heatTransfer, kd, kw);
-        CorrectionFactor = SurfaceArea / (asa * rowNumber);
+        CorrectionFactor = SurfaceArea / (asa * rowCount);
       }
       else
       {
-        SurfaceArea = asa * rowNumber;
+        SurfaceArea = asa * rowCount;
         CorrectionFactor = 1.0d;
       }
     }
@@ -726,19 +717,19 @@ namespace Popolo.Core.HVAC.HeatExchanger
     }
 
     /// <summary>Computes the linearisation coefficients for saturation enthalpy as a function of dry-bulb temperature.</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="a">Coefficient for the dry-bulb temperature term.</param>
     /// <param name="b">Intercept of the linearised saturation enthalpy equation.</param>
     private static void GetSaturationEnthalpyCoefficients
-      (double drybulbTemperature, out double a, out double b)
+      (double dryBulbTemperature, out double a, out double b)
     {
       const double DELTA = 0.001;
       double hws1 = MoistAir.GetSaturationEnthalpyFromDryBulbTemperature
-        (drybulbTemperature, PhysicsConstants.StandardAtmosphericPressure);
+        (dryBulbTemperature, PhysicsConstants.StandardAtmosphericPressure);
       double hws2 = MoistAir.GetSaturationEnthalpyFromDryBulbTemperature
-        (drybulbTemperature + DELTA, PhysicsConstants.StandardAtmosphericPressure);
+        (dryBulbTemperature + DELTA, PhysicsConstants.StandardAtmosphericPressure);
       a = (hws2 - hws1) / DELTA;
-      b = hws1 - a * drybulbTemperature;
+      b = hws1 - a * dryBulbTemperature;
     }
 
     /// <summary>Computes the air-side heat transfer surface area [m²].</summary>
@@ -855,8 +846,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="depth">Coil depth [m].</param>
     /// <param name="width">Coil width [m].</param>
     /// <param name="height">Coil height [m].</param>
-    /// <param name="rowNumber">Number of tube columns (perpendicular to air flow).</param>
-    /// <param name="columnNumber">Number of tube rows in the air-flow direction.</param>
+    /// <param name="rowCount">Total number of tube columns (perpendicular to air flow).</param>
+    /// <param name="columnCount">Total number of tube rows in the air-flow direction.</param>
     /// <param name="finPitch">Fin pitch [m].</param>
     /// <param name="finThickness">Fin thickness [m].</param>
     /// <param name="innerDiameter">Tube inner diameter [m].</param>
@@ -867,31 +858,31 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="equivalentDiameter">Equivalent hydraulic diameter [m].</param>
     /// <param name="surfaceArea">Air-side heat transfer surface area [m²].</param>
     public static void GetGeometricCompfigulation
-      (double depth, double width, double height, int rowNumber, int columnNumber,
+      (double depth, double width, double height, int rowCount, int columnCount,
       double finPitch, double finThickness, double innerDiameter, double outerDiameter,
       out double airWaterSurfaceRatio, out double coreArea, out double equivalentFinRadius,
       out double equivalentDiameter, out double surfaceArea)
     {
       //空気側伝熱面積[m2]の計算
-      double sf = 2 * (height * depth / rowNumber 
-        - outerDiameter * outerDiameter / 4 * Math.PI * columnNumber) * width / finPitch;
-      double sto = outerDiameter * Math.PI * columnNumber * width * (1 - finThickness / finPitch);
+      double sf = 2 * (height * depth / rowCount 
+        - outerDiameter * outerDiameter / 4 * Math.PI * columnCount) * width / finPitch;
+      double sto = outerDiameter * Math.PI * columnCount * width * (1 - finThickness / finPitch);
       surfaceArea = sf + sto;
 
       //水側伝熱面積[m2]の計算
-      double wSurface = innerDiameter * Math.PI * columnNumber * width;
+      double wSurface = innerDiameter * Math.PI * columnCount * width;
 
       //空気側・水側伝熱面積比[-]の計算
       airWaterSurfaceRatio = surfaceArea / wSurface;
 
       //コア面積[m2]の計算
-      coreArea = (width * height - outerDiameter * width * columnNumber) * (1 - finThickness / finPitch);
+      coreArea = (width * height - outerDiameter * width * columnCount) * (1 - finThickness / finPitch);
 
       //環状フィンの相当半径[m]の計算
-      equivalentFinRadius = Math.Sqrt((depth / rowNumber) * (height / columnNumber) / Math.PI);
+      equivalentFinRadius = Math.Sqrt((depth / rowCount) * (height / columnCount) / Math.PI);
 
       //等価直径[m]の計算
-      equivalentDiameter = 4 * coreArea / (surfaceArea * rowNumber / depth);
+      equivalentDiameter = 4 * coreArea / (surfaceArea * rowCount / depth);
     }
 
     /// <summary>Computes the overall heat transfer coefficients (dry and wet).</summary>
@@ -932,7 +923,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
 
       //実風速の計算[m/s]
-      double coreVelocity = airFlowRate * AIR_SPECIFIC_WEIGHT / coreArea;
+      double coreVelocity = airFlowRate * PhysicsConstants.NominalMoistAirDensity / coreArea;
 
       //レイノルズ数[-]の計算
       double re = coreVelocity * equivalentDiameter / dVis;

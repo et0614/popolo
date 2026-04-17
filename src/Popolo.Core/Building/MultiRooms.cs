@@ -90,7 +90,7 @@ namespace Popolo.Core.Building
     private List<int>[] rZones = null!;
 
     /// <summary>Serial indices of surfaces, organized as [room][zone][surface].</summary>
-    private int[][][] wsNumber = null!;
+    private int[][][] wsIndex = null!;
 
     /// <summary>True while a sensible heat balance forecast is in progress.</summary>
     private bool forecastingHeatTransfer = false;
@@ -137,10 +137,10 @@ namespace Popolo.Core.Building
     public IReadOnlySun Sun { get; set; } = null!;
 
     /// <summary>Gets the number of rooms.</summary>
-    public int RoomNumber { get; private set; }
+    public int RoomCount { get; private set; }
 
     /// <summary>Gets the number of zones.</summary>
-    public int ZoneNumber { get; private set; }
+    public int ZoneCount { get; private set; }
 
     /// <summary>Gets the array of zones in this multi-room system.</summary>
     public IReadOnlyZone[] Zones { get { return zones; } }
@@ -171,29 +171,29 @@ namespace Popolo.Core.Building
     #region コンストラクタ
 
     /// <summary>Initializes a new multi-room thermal model.</summary>
-    /// <param name="rmNumber">Number of rooms.</param>
+    /// <param name="rmCount">Total number of rooms.</param>
     /// <param name="zones">Array of thermal zones.</param>
     /// <param name="walls">Array of wall assemblies.</param>
     /// <param name="windows">Array of window assemblies.</param>
-    public MultiRooms(int rmNumber, Zone[] zones, Wall[] walls, Window[] windows)
+    public MultiRooms(int rmCount, Zone[] zones, Wall[] walls, Window[] windows)
     {
-      RoomNumber = rmNumber;
-      ZoneNumber = zones.Length;
+      RoomCount = rmCount;
+      ZoneCount = zones.Length;
       this.walls = walls;
       this.windows = windows;
       this.zones = zones;
-      formFactor = new IMatrix[RoomNumber];
-      rZones = new List<int>[RoomNumber];
-      radToSurf_L = new double[RoomNumber];
-      wsNumber = new int[RoomNumber][][];
-      zoneVent = new double[ZoneNumber, ZoneNumber];
+      formFactor = new IMatrix[RoomCount];
+      rZones = new List<int>[RoomCount];
+      radToSurf_L = new double[RoomCount];
+      wsIndex = new int[RoomCount][][];
+      zoneVent = new double[ZoneCount, ZoneCount];
       wSWEmissivity = new double[windows.Length];
-      zoneTemp = new double[ZoneNumber];
-      zoneHumid = new double[ZoneNumber];
+      zoneTemp = new double[ZoneCount];
+      zoneHumid = new double[ZoneCount];
       swDistFloor = new Dictionary<Window, BoundarySurface>();
       swDistRate = new Dictionary<Window, double>();
-      for (int i = 0; i < RoomNumber; i++) rZones[i] = new List<int>();
-      for (int i = 0; i < ZoneNumber; i++)
+      for (int i = 0; i < RoomCount; i++) rZones[i] = new List<int>();
+      for (int i = 0; i < ZoneCount; i++)
       {
         AddZone(0, i);
         zones[i].MultiRoom = this;
@@ -209,7 +209,7 @@ namespace Popolo.Core.Building
           break;
         }
       }
-      int num = ZoneNumber;
+      int num = ZoneCount;
       if (SolveMoistureTransferSimultaneously) num *= 2;
       matD = new Matrix(num, num);
       vecEJ = new Vector(num);
@@ -241,8 +241,8 @@ namespace Popolo.Core.Building
       bool[] ctrl = new bool[matK.Columns];
       for (int i = 0; i < ctrl.Length; i++)
       {
-        if (i < ZoneNumber) ctrl[i] = zones[i].TemperatureControlled;
-        else ctrl[i] = zones[i - ZoneNumber].HumidityControlled;
+        if (i < ZoneCount) ctrl[i] = zones[i].TemperatureControlled;
+        else ctrl[i] = zones[i - ZoneCount].HumidityControlled;
       }
 
       matK.Initialize(0);
@@ -261,20 +261,20 @@ namespace Popolo.Core.Building
         {
           if (ctrl[j])
           {
-            if (j < ZoneNumber) vecTH[i] -= matI[i, j] * zones[j].TemperatureSetpoint;
-            else vecTH[i] -= matI[i, j] * zones[j - ZoneNumber].HumidityRatioSetpoint;
+            if (j < ZoneCount) vecTH[i] -= matI[i, j] * zones[j].TemperatureSetpoint;
+            else vecTH[i] -= matI[i, j] * zones[j - ZoneCount].HumidityRatioSetpoint;
           }
         }
         if (!ctrl[i])
         {
-          if (i < ZoneNumber) vecTH[i] += zones[i].HeatSupply;
-          else vecTH[i] += zones[i - ZoneNumber].MoistureSupply;
+          if (i < ZoneCount) vecTH[i] += zones[i].HeatSupply;
+          else vecTH[i] += zones[i - ZoneCount].MoistureSupply;
         }
       }
 
       //連立方程式を解く（温湿度を計算）
       LinearAlgebraOperations.SolveLinearEquations(matK, vecTH);
-      for (int i = 0; i < ZoneNumber; i++)
+      for (int i = 0; i < ZoneCount; i++)
       {
         if (zones[i].TemperatureControlled)
         {
@@ -286,10 +286,10 @@ namespace Popolo.Core.Building
         {
           if (zones[i].HumidityControlled)
           {
-            zones[i].MoistureSupply = vecTH[i + ZoneNumber];
+            zones[i].MoistureSupply = vecTH[i + ZoneCount];
             zones[i].HumidityRatio = zones[i].HumidityRatioSetpoint;
           }
-          else zones[i].HumidityRatio = vecTH[i + ZoneNumber];
+          else zones[i].HumidityRatio = vecTH[i + ZoneCount];
         }
       }
     }
@@ -300,29 +300,29 @@ namespace Popolo.Core.Building
       forecastingHeatTransfer = false;
 
       //壁表面温度を計算
-      for (int i = 0; i < ZoneNumber; i++)
+      for (int i = 0; i < ZoneCount; i++)
       {
         vecTH[i] = zones[i].Temperature;
-        if (SolveMoistureTransferSimultaneously) vecTH[i + ZoneNumber] = zones[i].HumidityRatio;
+        if (SolveMoistureTransferSimultaneously) vecTH[i + ZoneCount] = zones[i].HumidityRatio;
       }
       LinearAlgebraOperations.Multiplicate(matB, vecTH, vecC, 1, 1);
       LinearAlgebraOperations.Multiplicate(matAInv, vecC, vecTWS, 1, 0);
 
       //温湿度条件を設定
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
-        for (int j = 0; j < wsNumber[i].Length; j++)
+        for (int j = 0; j < wsIndex[i].Length; j++)
         {
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             //相当温度
-            BoundarySurface ws1 = surfaces[wsNumber[i][j][k]];
+            BoundarySurface ws1 = surfaces[wsIndex[i][j][k]];
             ws1.SolAirTemperature = 0;
-            for (int m = 0; m < wsNumber[i].Length; m++)
+            for (int m = 0; m < wsIndex[i].Length; m++)
             {
-              for (int n = 0; n < wsNumber[i][m].Length; n++)
+              for (int n = 0; n < wsIndex[i][m].Length; n++)
               {
-                int s2 = surfaces[wsNumber[i][m][n]].Index;
+                int s2 = surfaces[wsIndex[i][m][n]].Index;
                 ws1.SolAirTemperature += gMatL[ws1.Index, s2] * vecTWS[s2];
               }
             }
@@ -364,23 +364,23 @@ namespace Popolo.Core.Building
       int nS = surfaces.Length;
       matA.Initialize(0);
       matB.Initialize(0);
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
-        for (int j = 0; j < wsNumber[i].Length; j++)
+        for (int j = 0; j < wsIndex[i].Length; j++)
         {
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            int s1 = wsNumber[i][j][k];
+            int s1 = wsIndex[i][j][k];
             BoundarySurface ws1 = surfaces[s1];
             BoundarySurface ws1R = ws1.ReverseSideSurface;
 
             //行列Aを作成
             //同一室
-            for (int m = 0; m < wsNumber[i].Length; m++)
+            for (int m = 0; m < wsIndex[i].Length; m++)
             {
-              for (int n = 0; n < wsNumber[i][m].Length; n++)
+              for (int n = 0; n < wsIndex[i][m].Length; n++)
               {
-                int s2 = wsNumber[i][m][n];
+                int s2 = wsIndex[i][m][n];
                 if (s1 == s2)
                 {
                   matA[s1, s2] += 1;
@@ -398,11 +398,11 @@ namespace Popolo.Core.Building
             if (!isSFboundary[s1])
             {
               int rvRm = zones[ws1R.ZoneIndex].RoomIndex;
-              for (int m = 0; m < wsNumber[rvRm].Length; m++)
+              for (int m = 0; m < wsIndex[rvRm].Length; m++)
               {
-                for (int n = 0; n < wsNumber[rvRm][m].Length; n++)
+                for (int n = 0; n < wsIndex[rvRm][m].Length; n++)
                 {
-                  int s2 = wsNumber[rvRm][m][n];
+                  int s2 = wsIndex[rvRm][m][n];
                   if (ws1R.Index != s2)
                   {
                     double bf = ws1R.RadiativeRate * gMatL[ws1R.Index, s2];
@@ -416,7 +416,7 @@ namespace Popolo.Core.Building
             //行列Bを作成
             for (int q = 0; q < zones.Length; q++)
             {
-              int nQ = ZoneNumber;
+              int nQ = ZoneCount;
               if (rZones[i][j] == q)
               {
                 matB[s1, q] += ws1.FFS2 * ws1.ConvectiveRate;
@@ -450,13 +450,13 @@ namespace Popolo.Core.Building
     private void MakeCVector()
     {
       int nS = surfaces.Length;
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
-        for (int j = 0; j < wsNumber[i].Length; j++)
+        for (int j = 0; j < wsIndex[i].Length; j++)
         {
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            int s1 = wsNumber[i][j][k];
+            int s1 = wsIndex[i][j][k];
             BoundarySurface ws1 = surfaces[s1];
             BoundarySurface ws1R = ws1.ReverseSideSurface;
 
@@ -490,19 +490,19 @@ namespace Popolo.Core.Building
       int nQ = zones.Length;
       matD.Initialize(0);
       matF.Initialize(0);
-      for (int q1 = 0; q1 < ZoneNumber; q1++)
+      for (int q1 = 0; q1 < ZoneCount; q1++)
       {
         Zone zq1 = zones[q1];
         double capSZN = (zq1.HeatCapacity + zq1.AirMass * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat) / TimeStep;
         double capLZN = (zq1.MoistureCapacity + zq1.AirMass) / TimeStep;
 
         //行列Dを作成
-        for (int q2 = 0; q2 < ZoneNumber; q2++)
+        for (int q2 = 0; q2 < ZoneCount; q2++)
         {
           if (q1 == q2)
           {
             double bf = zq1.VentilationRate + zq1.SupplyAirFlowRate + zq1._supplyAirFlowRate2;
-            for (int q3 = 0; q3 < ZoneNumber; q3++)
+            for (int q3 = 0; q3 < ZoneCount; q3++)
               if (zoneVent[q1, q3] != 0) bf += zoneVent[q1, q3];
             matD[q1, q1] = bf * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat + capSZN;
             if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q1 + nQ] = bf + capLZN;
@@ -596,7 +596,7 @@ namespace Popolo.Core.Building
       else
       {
         //温湿度を一時保存
-        for (int i = 0; i < ZoneNumber; i++)
+        for (int i = 0; i < ZoneCount; i++)
         {
           zoneTemp[i] = zones[i].Temperature;
           zoneHumid[i] = zones[i].HumidityRatio;
@@ -610,7 +610,7 @@ namespace Popolo.Core.Building
 
         //長波長・短波長放射を分配
         for (int i = 0; i < radToSurf_S.Length; i++) radToSurf_S[i] = 0;
-        for (int i = 0; i < RoomNumber; i++) radToSurf_L[i] = 0;
+        for (int i = 0; i < RoomCount; i++) radToSurf_L[i] = 0;
         DistributeShortwaveRad();
         DistributeLongwaveRad();
 
@@ -629,7 +629,7 @@ namespace Popolo.Core.Building
     {
       if (forecastingHeatTransfer)
       {
-        for (int i = 0; i < ZoneNumber; i++)
+        for (int i = 0; i < ZoneCount; i++)
         {
           zones[i].Temperature = zoneTemp[i];
           zones[i].HumidityRatio = zoneHumid[i];
@@ -659,7 +659,7 @@ namespace Popolo.Core.Building
             (ws.SurfaceTemperature - zone.Temperature);
 
       zoneAirChange = 0;
-      for (int q1 = 0; q1 < ZoneNumber; q1++)
+      for (int q1 = 0; q1 < ZoneCount; q1++)
       {
         if (zoneVent[q1, zoneIndex] != 0)
           zoneAirChange += zoneVent[q1, zoneIndex] * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat *
@@ -704,26 +704,26 @@ namespace Popolo.Core.Building
     internal void ForecastMoistureTransfer()
     {
       if (forecastingMoistureTransfer)
-        for (int i = 0; i < ZoneNumber; i++) zones[i].HumidityRatio = zoneHumid[i];
+        for (int i = 0; i < ZoneCount; i++) zones[i].HumidityRatio = zoneHumid[i];
       else
       {
-        for (int i = 0; i < ZoneNumber; i++) zoneHumid[i] = zones[i].HumidityRatio;
+        for (int i = 0; i < ZoneCount; i++) zoneHumid[i] = zones[i].HumidityRatio;
         forecastingMoistureTransfer = true;
       }
 
       //熱平衡を計算
-      for (int q1 = 0; q1 < ZoneNumber; q1++)
+      for (int q1 = 0; q1 < ZoneCount; q1++)
       {
         Zone zq1 = zones[q1];
         double capLZN = (zq1.MoistureCapacity + zq1.AirMass) / TimeStep;
 
         //行列AWを作成
-        for (int q2 = 0; q2 < ZoneNumber; q2++)
+        for (int q2 = 0; q2 < ZoneCount; q2++)
         {
           if (q1 == q2)
           {
             matAW[q1, q1] = zq1.VentilationRate + zq1.SupplyAirFlowRate + zq1._supplyAirFlowRate2 + capLZN;
-            for (int q3 = 0; q3 < ZoneNumber; q3++) matAW[q1, q1] += zoneVent[q1, q3];
+            for (int q3 = 0; q3 < ZoneCount; q3++) matAW[q1, q1] += zoneVent[q1, q3];
           }
           else matAW[q1, q2] = -zoneVent[q1, q2];
         }
@@ -735,24 +735,24 @@ namespace Popolo.Core.Building
 
       //潜熱平衡を計算
       matCW.Initialize(0);
-      for (int i = 0; i < ZoneNumber; i++)
+      for (int i = 0; i < ZoneCount; i++)
       {
         //CW行列を作成
-        for (int j = 0; j < ZoneNumber; j++)
+        for (int j = 0; j < ZoneCount; j++)
         {
           if (!zones[j].HumidityControlled) matCW[i, j] = matAW[i, j];
           else if (zones[j].HumidityControlled && (i == j)) matCW[i, j] = -1;
         }
 
         //DWベクトルを作成
-        for (int j = 0; j < ZoneNumber; j++)
+        for (int j = 0; j < ZoneCount; j++)
           if (zones[j].HumidityControlled) vecWH[i] -= matAW[i, j] * zones[j].HumidityRatioSetpoint;
         if (!zones[i].HumidityControlled) vecWH[i] += zones[i].MoistureSupply;
       }
 
       //連立方程式を解く（湿度を計算）
       LinearAlgebraOperations.SolveLinearEquations(matCW, vecWH);
-      for (int i = 0; i < ZoneNumber; i++)
+      for (int i = 0; i < ZoneCount; i++)
       {
         if (zones[i].HumidityControlled)
         {
@@ -790,7 +790,7 @@ namespace Popolo.Core.Building
       Zone zone = zones[zoneIndex];
 
       zoneAirChange = 0;
-      for (int q1 = 0; q1 < ZoneNumber; q1++)
+      for (int q1 = 0; q1 < ZoneCount; q1++)
       {
         if (zoneVent[q1, zoneIndex] != 0)
           zoneAirChange += zoneVent[q1, zoneIndex] * (zones[q1].HumidityRatio - zone.HumidityRatio);
@@ -817,12 +817,12 @@ namespace Popolo.Core.Building
         MakeSerialNumber(); //通し番号付与
 
         //形態係数の計算（自動推定）
-        for (int i = 0; i < RoomNumber; i++)
+        for (int i = 0; i < RoomCount; i++)
         {
           List<double> area = new List<double>();
-          for (int j = 0; j < wsNumber[i].Length; j++)
-            for (int k = 0; k < wsNumber[i][j].Length; k++)
-              area.Add(surfaces[wsNumber[i][j][k]].Area);
+          for (int j = 0; j < wsIndex[i].Length; j++)
+            for (int k = 0; k < wsIndex[i][j].Length; k++)
+              area.Add(surfaces[wsIndex[i][j][k]].Area);
 
           formFactor[i] = ComputeFormFactor(area.ToArray());
         }
@@ -837,24 +837,24 @@ namespace Popolo.Core.Building
     {
       List<BoundarySurface> sfs = new List<BoundarySurface>();
       int wsIndex = 0;
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
-        wsNumber[i] = new int[rZones[i].Count][];
-        for (int j = 0; j < wsNumber[i].Length; j++)
+        this.wsIndex[i] = new int[rZones[i].Count][];
+        for (int j = 0; j < this.wsIndex[i].Length; j++)
         {
           Zone zn = zones[rZones[i][j]];
-          wsNumber[i][j] = new int[zn.Surfaces.Count];
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
+          this.wsIndex[i][j] = new int[zn.Surfaces.Count];
+          for (int k = 0; k < this.wsIndex[i][j].Length; k++)
           {
             sfs.Add(zn.Surfaces[k]);
-            zn.Surfaces[k].Index = wsNumber[i][j][k] = wsIndex;
+            zn.Surfaces[k].Index = this.wsIndex[i][j][k] = wsIndex;
             wsIndex++;
           }
         }
       }
       surfaces = sfs.ToArray();
       int sNum = surfaces.Length;
-      int zNum = ZoneNumber;
+      int zNum = ZoneCount;
       isSFboundary = new bool[sNum];
       for (int i = 0; i < sfs.Count; i++) isSFboundary[i] = !sfs.Contains(sfs[i].ReverseSideSurface);
       radToSurf_S = new double[sNum];
@@ -984,13 +984,13 @@ namespace Popolo.Core.Building
     /// <summary>Computes the Gebhart absorption factor matrices for long-wave and short-wave radiation.</summary>
     private void ComputeGebhartMatrix()
     {
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
         //壁番号を保存
         List<int> wInd = new List<int>();
         for (int j = 0; j < rZones[i].Count; j++)
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
-            wInd.Add(wsNumber[i][j][k]);
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
+            wInd.Add(wsIndex[i][j][k]);
 
         int wsn = wInd.Count;
         IMatrix ffRhoL = new Matrix(wsn, wsn);
@@ -1042,14 +1042,14 @@ namespace Popolo.Core.Building
     /// <summary>Distributes long-wave radiation among interior surfaces.</summary>
     private void DistributeLongwaveRad()
     {
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
         radToSurf_L[i] = 0;
         double saSum = 0;
         for (int j = 0; j < rZones[i].Count; j++)
         {
           radToSurf_L[i] += zones[rZones[i][j]].IntegrateRadiativeHeatGains();
-          for (int k = 0; k < wsNumber[i][j].Length; k++) saSum += surfaces[wsNumber[i][j][k]].Area;
+          for (int k = 0; k < wsIndex[i][j].Length; k++) saSum += surfaces[wsIndex[i][j][k]].Area;
         }
         radToSurf_L[i] /= saSum;
       }
@@ -1075,16 +1075,16 @@ namespace Popolo.Core.Building
     private void DistributeShortwaveRad()
     {
       //窓面からの日射を各表面に分配
-      for (int i = 0; i < RoomNumber; i++)
+      for (int i = 0; i < RoomCount; i++)
       {
-        for (int j = 0; j < wsNumber[i].Length; j++)
+        for (int j = 0; j < wsIndex[i].Length; j++)
         {
-          for (int k = 0; k < wsNumber[i][j].Length; k++)
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            BoundarySurface ws1 = surfaces[wsNumber[i][j][k]];
+            BoundarySurface ws1 = surfaces[wsIndex[i][j][k]];
             if (!ws1.IsWall)
             {
-              int indx1 = wsNumber[i][j][k];
+              int indx1 = wsIndex[i][j][k];
               //窓からの透過・吸収日射を計算
               Window win = ws1.Window;
               double dir, dif;
@@ -1118,11 +1118,11 @@ namespace Popolo.Core.Building
               //同じ室に属する壁表面に分配
               if (0 < rad)
               {
-                for (int j2 = 0; j2 < wsNumber[i].Length; j2++)
+                for (int j2 = 0; j2 < wsIndex[i].Length; j2++)
                 {
-                  for (int k2 = 0; k2 < wsNumber[i][j2].Length; k2++)
+                  for (int k2 = 0; k2 < wsIndex[i][j2].Length; k2++)
                   {
-                    int indx2 = wsNumber[i][j2][k2];
+                    int indx2 = wsIndex[i][j2][k2];
                     BoundarySurface wsf2 = surfaces[indx2];
                     double ibsw = gMatS[indx1, indx2] * rad;
                     //床面からの放射を加算
@@ -1261,11 +1261,11 @@ namespace Popolo.Core.Building
 
     /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
     /// <param name="wallIndex">Wall (floor) index.</param>
-    /// <param name="mNumber">Node index.</param>
+    /// <param name="mIndex">Node index.</param>
     /// <param name="flowRate">Water mass flow rate [kg/s].</param>
     /// <param name="temperature">Inlet water temperature [°C].</param>
-    public void SetBuriedPipeWaterState(int wallIndex, int mNumber, double flowRate, double temperature)
-    { walls[wallIndex].SetInletWater(mNumber, flowRate, temperature); }
+    public void SetBuriedPipeWaterState(int wallIndex, int mIndex, double flowRate, double temperature)
+    { walls[wallIndex].SetInletWater(mIndex, flowRate, temperature); }
 
     /// <summary>Sets the base heat gain values for the specified zone.</summary>
     /// <param name="zone">Zone.</param>
@@ -1325,7 +1325,7 @@ namespace Popolo.Core.Building
     public void AddZone(int roomIndex, int zoneIndex)
     {
       needInitialize = true;
-      for (int i = 0; i < RoomNumber; i++) rZones[i].Remove(zoneIndex);
+      for (int i = 0; i < RoomCount; i++) rZones[i].Remove(zoneIndex);
       rZones[roomIndex].Add(zoneIndex);
       zones[zoneIndex].RoomIndex = roomIndex;
     }
@@ -1348,7 +1348,7 @@ namespace Popolo.Core.Building
       else sf = walls[wallIndex].SurfaceB;
 
       bndSurfaces.Remove(sf);
-      for (int i = 0; i < ZoneNumber; i++) zones[i].Surfaces.Remove(sf);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(sf);
       zones[zoneIndex].Surfaces.Add(sf);
       sf.ZoneIndex = zoneIndex;
     }
@@ -1408,7 +1408,7 @@ namespace Popolo.Core.Building
       ws.Incline = incline;
       ws.ZoneIndex = -1;
       ws.IsGroundWall = false;
-      for (int i = 0; i < ZoneNumber; i++) zones[i].Surfaces.Remove(ws);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
       bndSurfaces.Add(ws);
     }
 
@@ -1435,7 +1435,7 @@ namespace Popolo.Core.Building
       ws.IsGroundWall = true;
       ws.ConvectiveCoefficient = groundWallConductance;
       ws.RadiativeCoefficient = 0;
-      for (int i = 0; i < ZoneNumber; i++) zones[i].Surfaces.Remove(ws);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
       bndSurfaces.Add(ws);
     }
 
@@ -1461,7 +1461,7 @@ namespace Popolo.Core.Building
       ws.AdjacentSpaceFactor = adjacentSpaceFactor;
       ws.ZoneIndex = -1;
       ws.IsGroundWall = false;
-      for (int i = 0; i < ZoneNumber; i++) zones[i].Surfaces.Remove(ws);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
       bndSurfaces.Add(ws);
     }
 
@@ -1479,7 +1479,7 @@ namespace Popolo.Core.Building
     {
       needInitialize = true;
       Window win = windows[windowIndex];
-      for (int i = 0; i < ZoneNumber; i++) zones[i].Surfaces.Remove(win.InsideSurface);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(win.InsideSurface);
       zones[zoneIndex].Surfaces.Add(win.InsideSurface);
       win.InsideSurface.ZoneIndex = zoneIndex;
     }
@@ -1571,8 +1571,8 @@ namespace Popolo.Core.Building
     /// <summary>Enables dry-bulb temperature control for the specified zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
     /// <param name="setpoint">Temperature setpoint [°C].</param>
-    public void ControlDrybulbTemperature(int zoneIndex, double setpoint)
-    { zones[zoneIndex].ControlDrybulbTemperature(setpoint); }
+    public void ControlDryBulbTemperature(int zoneIndex, double setpoint)
+    { zones[zoneIndex].ControlDryBulbTemperature(setpoint); }
 
     /// <summary>Disables temperature control and sets a fixed sensible heat supply for the specified zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>

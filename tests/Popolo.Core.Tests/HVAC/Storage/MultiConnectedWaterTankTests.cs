@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     public void Constructor_TankNumber_MatchesInput()
     {
       var tank = MakeTank(4);
-      Assert.Equal(4, tank.TankNumber);
+      Assert.Equal(4, tank.TankCount);
     }
 
     /// <summary>InitializeTemperature(double) で全タンクが指定温度になる。</summary>
@@ -69,7 +69,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     {
       var tank = MakeTank(3);
       tank.InitializeTemperature(15.0);
-      for (int i = 0; i < tank.TankNumber; i++)
+      for (int i = 0; i < tank.TankCount; i++)
         Assert.InRange(tank.GetTemperature(i), 14.99, 15.01);
     }
 
@@ -146,7 +146,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tank = MakeTank(3);
       tank.TimeStep = 60;
       tank.ForecastState(20.0, 0.01, isForwardFlow: true);
-      for (int i = 0; i < tank.TankNumber; i++)
+      for (int i = 0; i < tank.TankCount; i++)
         Assert.InRange(tank.GetTemperature(i), 19.99, 20.01);
     }
 

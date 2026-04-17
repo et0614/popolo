@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double OutletWaterTemperature { get; private set; }
 
     /// <summary>Gets or sets the outlet water temperature setpoint [°C].</summary>
-    public double OutletWaterSetPointTemperature { get; set; }
+    public double OutletWaterSetpointTemperature { get; set; }
 
     /// <summary>Gets the inlet water temperature [°C].</summary>
     public double InletWaterTemperature { get; private set; }
@@ -131,7 +131,7 @@ namespace Popolo.Core.HVAC.HeatSource
       NominalFuelConsumption = fuelConsumption;
       ElectricConsumption = electricConsumption;
       AmbientTemperature = ambientTemperature;
-      OutletWaterSetPointTemperature = nomOutletWaterTemperature = outletWaterTemperature;
+      OutletWaterSetpointTemperature = nomOutletWaterTemperature = outletWaterTemperature;
       MaxWaterFlowRate  = WaterFlowRate = waterFlowRate;
       NominalCapacity = (outletWaterTemperature - inletWaterTemperature) * WaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
@@ -158,15 +158,15 @@ namespace Popolo.Core.HVAC.HeatSource
       WaterFlowRate = waterFlowRate;
 
       //流量0、設定温度<入口温度で停止
-      if (WaterFlowRate <= 0 || OutletWaterSetPointTemperature < InletWaterTemperature)
+      if (WaterFlowRate <= 0 || OutletWaterSetpointTemperature < InletWaterTemperature)
       {
         ShutOff();
         return;
       }
 
       //燃料消費量を計算
-      double hl = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * waterFlowRate * (OutletWaterSetPointTemperature - inletWaterTemperature);
-      FuelConsumption = Boiler.GetFuelConsumption(hl, OutletWaterSetPointTemperature, AmbientTemperature, Fuel,
+      double hl = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * waterFlowRate * (OutletWaterSetpointTemperature - inletWaterTemperature);
+      FuelConsumption = Boiler.GetFuelConsumption(hl, OutletWaterSetpointTemperature, AmbientTemperature, Fuel,
         nominalSmokeTemperature, airRatio, heatLossCoefficient, AmbientTemperature, nomOutletWaterTemperature);
 
       //過負荷の場合には成り行き計算
@@ -180,7 +180,7 @@ namespace Popolo.Core.HVAC.HeatSource
           AirRatio, heatLossCoefficient, AmbientTemperature, nomOutletWaterTemperature, out to, out hl);
         OutletWaterTemperature = to;
       }
-      else OutletWaterTemperature = OutletWaterSetPointTemperature;
+      else OutletWaterTemperature = OutletWaterSetpointTemperature;
       HeatLoad = hl;
     }
 

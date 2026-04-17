@@ -706,9 +706,9 @@ namespace Popolo.Core.HVAC.VRF
             if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
             {
               double wbt = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio
-                (OutletAirSetpointTemperature, OutletAirSetpointHumidityRatio, 101.325);
+                (OutletAirSetpointTemperature, OutletAirSetpointHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
               newTO = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature
-                (InletAirHumidityRatio, wbt, 101.325);
+                (InletAirHumidityRatio, wbt, PhysicsConstants.StandardAtmosphericPressure);
             }
 
             double tRate = 1.0 - (InletAirTemperature - newTO) / (InletAirTemperature - OutletAirTemperature);
@@ -738,9 +738,9 @@ namespace Popolo.Core.HVAC.VRF
               if (OutletAirSetpointTemperature <= OutletAirTemperature)
               {
                 double wbt = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio
-                  (OutletAirTemperature, OutletAirHumidityRatio, 101.325);
+                  (OutletAirTemperature, OutletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
                 OutletAirHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
-                  (OutletAirTemperature, wbt, 101.325);
+                  (OutletAirTemperature, wbt, PhysicsConstants.StandardAtmosphericPressure);
               }
             }
           }
@@ -1164,9 +1164,9 @@ namespace Popolo.Core.HVAC.VRF
           if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
           {
             double wbt = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio
-              (OutletAirSetpointTemperature, OutletAirSetpointHumidityRatio, 101.325);
+              (OutletAirSetpointTemperature, OutletAirSetpointHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
             newTO = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature
-              (InletAirHumidityRatio, wbt, 101.325);
+              (InletAirHumidityRatio, wbt, PhysicsConstants.StandardAtmosphericPressure);
           }
 
           ControlOutletAirTemperature(

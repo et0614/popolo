@@ -225,7 +225,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         {
             var c = MakeChiller();
             c.IsCoolingMode = false;
-            c.OutletWaterSetPointTemperature = 55.0;
+            c.OutletWaterSetpointTemperature = 55.0;
             c.Update(32.0, 45.0, CdWM, HtWM);
             Assert.True(c.HeatingLoad > 0,
                 $"HeatingLoad={c.HeatingLoad:F2} kW > 0");

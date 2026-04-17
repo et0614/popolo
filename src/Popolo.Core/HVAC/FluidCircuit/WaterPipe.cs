@@ -25,13 +25,6 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class WaterPipe : IReadOnlyWaterPipe, ICircuitBranch
   {
 
-    #region 定数宣言
-
-    /// <summary>Atmospheric pressure fixed at 101.325 kPa (sea level).</summary>
-    private const double ATMOSPHERIC_PRESSURE = 101.325;
-
-    #endregion
-
     #region 列挙型の定義
 
     /// <summary>Pipe material.</summary>
@@ -389,24 +382,24 @@ namespace Popolo.Core.HVAC.FluidCircuit
     }
 
     /// <summary>Computes the natural convection heat transfer coefficient at the outer pipe surface [W/(m²·K)].</summary>
-    /// <param name="drybulbTemperature">Dry-bulb temperature [°C].</param>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg].</param>
     /// <param name="diameter">Diameter [m].</param>
     /// <param name="surfaceTemperature">Pipe surface temperature [°C].</param>
     /// <returns>Natural convection heat transfer coefficient at the outer pipe surface [W/(m²·K)].</returns>
     public static double GetOutSideHeatTransferCoefficient
-      (double drybulbTemperature, double humidityRatio, double diameter, double surfaceTemperature)
+      (double dryBulbTemperature, double humidityRatio, double diameter, double surfaceTemperature)
     {
       //湿り空気の物性を計算
       //動粘性係数[m2/s], 熱拡散率[m2/s], 膨張率[1/K], 熱伝導率[W/(m·K)]
-      double v = MoistAir.GetDynamicViscosity(drybulbTemperature, humidityRatio, ATMOSPHERIC_PRESSURE);
-      double a = MoistAir.GetThermalDiffusivity(drybulbTemperature, humidityRatio, ATMOSPHERIC_PRESSURE);
-      double beta = MoistAir.GetExpansionCoefficient(drybulbTemperature);
-      double lam = MoistAir.GetThermalConductivity(drybulbTemperature);
+      double v = MoistAir.GetDynamicViscosity(dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+      double a = MoistAir.GetThermalDiffusivity(dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+      double beta = MoistAir.GetExpansionCoefficient(dryBulbTemperature);
+      double lam = MoistAir.GetThermalConductivity(dryBulbTemperature);
 
       //グラフホフ数の計算
       double grNumber = 9.8 * Math.Pow(diameter, 3) * beta *
-        Math.Abs(surfaceTemperature - drybulbTemperature) / (v * v);
+        Math.Abs(surfaceTemperature - dryBulbTemperature) / (v * v);
 
       //プラントル数の計算
       double prNumber = v / a;

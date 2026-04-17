@@ -40,7 +40,7 @@ namespace Popolo.Core.HVAC.VRF
     #region 定数宣言
 
     /// <summary>Temperature conversion constant.</summary>
-    private const double KTOC = 273.15;
+    private const double KTOC = PhysicsConstants.CelsiusToKelvinOffset;
 
     #region JIS8616, JIS8615-3条件
 
@@ -82,7 +82,7 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Nominal evaporating temperature for indoor units [°C].</summary>
     /// <remarks>The EnergyPlus model specifies a control range of 3–13.</remarks>
-    public const double NOMINAL_EVPORATING_TEMPERATURE = 10;
+    public const double NOMINAL_EVAPORATING_TEMPERATURE = 10;
 
     /// <summary>Nominal superheat degree [°C].</summary>
     private const double SUPER_HEAT_NOM = 1;
@@ -137,7 +137,7 @@ namespace Popolo.Core.HVAC.VRF
     private List<VRFUnit> indoorUnits = new List<VRFUnit>();
 
     /// <summary>Gets the number of indoor units.</summary>
-    public int IndoorUnitNumber { get { return indoorUnits.Count; } }
+    public int IndoorUnitCount { get { return indoorUnits.Count; } }
 
     /// <summary>Outdoor unit heat exchanger for cooling mode (acts as condenser).</summary>
     private VRFUnit outdoorUnit_C;
@@ -168,8 +168,8 @@ namespace Popolo.Core.HVAC.VRF
     {
       get
       {
-        if (CurrentMode == Mode.Cooling) return outdoorUnit_C.FanElectricity * ((double)OutdoorUnitOperatingNumber / NumberOfOutdoorUnitDivisions);
-        else if (CurrentMode == Mode.Heating && outdoorUnit_H != null) return outdoorUnit_H.FanElectricity * ((double)OutdoorUnitOperatingNumber / NumberOfOutdoorUnitDivisions);
+        if (CurrentMode == Mode.Cooling) return outdoorUnit_C.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
+        else if (CurrentMode == Mode.Heating && outdoorUnit_H != null) return outdoorUnit_H.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
         else return 0;
       }
     }
@@ -206,7 +206,7 @@ namespace Popolo.Core.HVAC.VRF
     public double MinimumPartialLoadRate { get; set; } = 0.15;
 
     /// <summary>Gets or sets the outdoor air dry-bulb temperature [°C].</summary>
-    public double OutdoorAirDrybulbTemperature
+    public double OutdoorAirDryBulbTemperature
     {
       get { return outdoorUnit_C.InletAirTemperature; }
       set
@@ -265,10 +265,10 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Gets a value indicating whether the system is in on/off (bang-bang) operation.</summary>
     public bool IsOnOffOperation
-    { get { return PartialLoadRate < MinimumPartialLoadRate / NumberOfOutdoorUnitDivisions; } }
+    { get { return PartialLoadRate < MinimumPartialLoadRate / OutdoorUnitDivisionCount; } }
 
     /// <summary>Gets or sets the number of outdoor unit divisions.</summary>
-    public int NumberOfOutdoorUnitDivisions
+    public int OutdoorUnitDivisionCount
     {
       get { return numberOfOutdoorUnitDivisions; }
       set { numberOfOutdoorUnitDivisions = Math.Max(1, value); }
@@ -278,7 +278,7 @@ namespace Popolo.Core.HVAC.VRF
     private int numberOfOutdoorUnitDivisions = 1;
 
     /// <summary>Gets the number of operating outdoor unit modules.</summary>
-    public int OutdoorUnitOperatingNumber { private set; get; }
+    public int ActiveOutdoorUnitCount { private set; get; }
 
     #endregion
 
@@ -310,13 +310,13 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Gets the minimum evaporating temperature in cooling mode [°C].</summary>
     /// <remarks>Currently, the temperature cannot be lowered below the nominal value, except in heating mode.</remarks>
-    public double MinEvaporatingTemperature { get; set; } = NOMINAL_EVPORATING_TEMPERATURE;
+    public double MinEvaporatingTemperature { get; set; } = NOMINAL_EVAPORATING_TEMPERATURE;
 
     /// <summary>Gets or sets the minimum condensing temperature in cooling mode [°C].</summary>
     public double MinCondensingTemperatureOnCoolingMode { get; set; } = 25;
 
     /// <summary>Gets or sets the target evaporating temperature for free-running calculation [°C].</summary>
-    public double TargetEvaporatingTemperature { get; set; } = NOMINAL_EVPORATING_TEMPERATURE;
+    public double TargetEvaporatingTemperature { get; set; } = NOMINAL_EVAPORATING_TEMPERATURE;
 
     #endregion
 
@@ -600,7 +600,7 @@ namespace Popolo.Core.HVAC.VRF
 
       //入口空気をJIS定格標準条件に戻す
       outdoorUnit_H.InletAirTemperature = JIS_OA_DBT_NOM_H;
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       outdoorUnit_H.InletAirHumidityRatio = oHmd;
     }
 
@@ -651,7 +651,7 @@ namespace Popolo.Core.HVAC.VRF
 
       //入口空気をJIS定格標準条件に戻す
       outdoorUnit_C.InletAirTemperature = JIS_OA_DBT_NOM_C;
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       outdoorUnit_C.InletAirHumidityRatio = oHmd;
     }
 
@@ -707,7 +707,7 @@ namespace Popolo.Core.HVAC.VRF
 
       //入口空気をJIS定格標準条件に戻す
       outdoorUnit_C.InletAirTemperature = JIS_OA_DBT_NOM_C;
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       outdoorUnit_C.InletAirHumidityRatio = oHmd;
     }
 
@@ -879,11 +879,11 @@ namespace Popolo.Core.HVAC.VRF
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
-      for (nOP = NumberOfOutdoorUnitDivisions; 1 < nOP; nOP--)
-        if ((double)nOP / NumberOfOutdoorUnitDivisions * MinimumPartialLoadRate < PartialLoadRate)
+      for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
+        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRate < PartialLoadRate)
           break;
-      OutdoorUnitOperatingNumber = nOP;
-      double plUnit = PartialLoadRate * NumberOfOutdoorUnitDivisions / OutdoorUnitOperatingNumber;
+      ActiveOutdoorUnitCount = nOP;
+      double plUnit = PartialLoadRate * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
       //連続運転
@@ -1049,11 +1049,11 @@ namespace Popolo.Core.HVAC.VRF
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
-      for (nOP = NumberOfOutdoorUnitDivisions; 1 < nOP; nOP--)
-        if ((double)nOP / NumberOfOutdoorUnitDivisions * MinimumPartialLoadRate < PartialLoadRate)
+      for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
+        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRate < PartialLoadRate)
           break;
-      OutdoorUnitOperatingNumber = nOP;
-      double plUnit = PartialLoadRate * NumberOfOutdoorUnitDivisions / OutdoorUnitOperatingNumber;
+      ActiveOutdoorUnitCount = nOP;
+      double plUnit = PartialLoadRate * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
       //連続運転
@@ -1496,50 +1496,50 @@ namespace Popolo.Core.HVAC.VRF
     #region 屋内機情報設定
 
     /// <summary>Sets the supply air temperature setpoint for an indoor unit [°C].</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="setpointTemperature">Supply air temperature setpoint [°C].</param>
     public void SetIndoorUnitSetpointTemperature
-      (int indoorUnitNumber, double setpointTemperature)
-    { indoorUnits[indoorUnitNumber].OutletAirSetpointTemperature = setpointTemperature; }
+      (int indoorUnitIndex, double setpointTemperature)
+    { indoorUnits[indoorUnitIndex].OutletAirSetpointTemperature = setpointTemperature; }
 
     /// <summary>Sets the supply air humidity ratio setpoint for an indoor unit [kg/kg].</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="setpointHumidityRatio">Supply air humidity ratio setpoint [kg/kg].</param>
     public void SetIndoorUnitSetpointHumidityRatio
-      (int indoorUnitNumber, double setpointHumidityRatio)
-    { indoorUnits[indoorUnitNumber].OutletAirSetpointHumidityRatio = setpointHumidityRatio; }
+      (int indoorUnitIndex, double setpointHumidityRatio)
+    { indoorUnits[indoorUnitIndex].OutletAirSetpointHumidityRatio = setpointHumidityRatio; }
 
     /// <summary>Sets the operating mode of an indoor unit.</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="mode">Operating mode.</param>
     public void SetIndoorUnitMode
-      (int indoorUnitNumber, VRFUnit.Mode mode)
-    { indoorUnits[indoorUnitNumber].CurrentMode = mode; }
+      (int indoorUnitIndex, VRFUnit.Mode mode)
+    { indoorUnits[indoorUnitIndex].CurrentMode = mode; }
 
     /// <summary>Sets the operating mode of an indoor unit.</summary>
     /// <param name="mode">Operating mode.</param>
     public void SetIndoorUnitMode(VRFUnit.Mode mode)
     { 
-      for(int i=0;i<IndoorUnitNumber;i++)
+      for(int i=0;i<IndoorUnitCount;i++)
         indoorUnits[i].CurrentMode = mode;
     }
 
     /// <summary>Sets the air flow rate for an indoor unit [kg/s].</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     public void SetIndoorUnitAirFlowRate
-      (int indoorUnitNumber, double airFlowRate)
-    { indoorUnits[indoorUnitNumber].AirFlowRate = airFlowRate; }
+      (int indoorUnitIndex, double airFlowRate)
+    { indoorUnits[indoorUnitIndex].AirFlowRate = airFlowRate; }
 
     /// <summary>Sets the inlet air conditions for an indoor unit.</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
     /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
     public void SetIndoorUnitInletAirState
-      (int indoorUnitNumber, double inletAirTemperature, double inletAirHumidityRatio)
+      (int indoorUnitIndex, double inletAirTemperature, double inletAirHumidityRatio)
     {
-      indoorUnits[indoorUnitNumber].InletAirTemperature = inletAirTemperature;
-      indoorUnits[indoorUnitNumber].InletAirHumidityRatio = inletAirHumidityRatio;
+      indoorUnits[indoorUnitIndex].InletAirTemperature = inletAirTemperature;
+      indoorUnits[indoorUnitIndex].InletAirHumidityRatio = inletAirHumidityRatio;
     }
 
     /// <summary>Sets the minimum fan electric power rate for indoor units [-].</summary>
@@ -1550,7 +1550,7 @@ namespace Popolo.Core.HVAC.VRF
     /// </remarks>
     public void SetMinimumFanElectricityRate(double minimumRate)
     {
-      for (int i = 0; i < IndoorUnitNumber; i++)
+      for (int i = 0; i < IndoorUnitCount; i++)
         indoorUnits[i].MinimumFanElectricityRate = minimumRate;
     }
 
@@ -1595,9 +1595,9 @@ namespace Popolo.Core.HVAC.VRF
     }
 
     /// <summary>Gets the indoor unit heat load [kW] (positive = heating, negative = cooling).</summary>
-    /// <param name="indoorUnitNumber">Indoor unit index.</param>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <returns>Indoor unit heat load [kW] (positive = heating, negative = cooling).</returns>
-    public double GetHeatLoad(int indoorUnitNumber)
+    public double GetHeatLoad(int indoorUnitIndex)
     {
       //デフロスト負荷があれば負担する
       if (CurrentMode == Mode.Heating && outdoorUnit_H!.DefrostLoad != 0)
@@ -1605,12 +1605,12 @@ namespace Popolo.Core.HVAC.VRF
         double hSum = 0;
         foreach (VRFUnit iHex in indoorUnits)
           hSum += iHex.HeatTransfer;
-        double rate = indoorUnits[indoorUnitNumber].HeatTransfer / hSum;
-        return Math.Max(0, indoorUnits[indoorUnitNumber].HeatTransfer - outdoorUnit_H.DefrostLoad * rate);
+        double rate = indoorUnits[indoorUnitIndex].HeatTransfer / hSum;
+        return Math.Max(0, indoorUnits[indoorUnitIndex].HeatTransfer - outdoorUnit_H.DefrostLoad * rate);
       }
       //なければ室内機負荷をそのまま出力
       else 
-        return indoorUnits[indoorUnitNumber].HeatTransfer;
+        return indoorUnits[indoorUnitIndex].HeatTransfer;
     }
 
     /// <summary>Gets the total system electric power consumption [kW].</summary>
@@ -1661,14 +1661,14 @@ namespace Popolo.Core.HVAC.VRF
 
       //配管長補正条件の蒸発器入口比エンタルピー
       double cndTempAdj = JIS_OA_DBT_NOM_C - pipeCorrectionFactor * (JIS_OA_DBT_NOM_C - cndTemp);  //凝縮温度の補正
-      double evpTempAdj = JIS_IA_DBT_C - pipeCorrectionFactor * (JIS_IA_DBT_C - NOMINAL_EVPORATING_TEMPERATURE);
+      double evpTempAdj = JIS_IA_DBT_C - pipeCorrectionFactor * (JIS_IA_DBT_C - NOMINAL_EVAPORATING_TEMPERATURE);
       refrigerant.GetSaturatedPropertyFromTemperature(cndTempAdj + KTOC, out rhoLiq, out _, out double cndPressurePC);
       double hIHexInPC = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTempAdj - SUB_COOL_NOM + KTOC, rhoLiq);
 
       //圧縮機入口冷媒状態
       double hIHexOutRef;
-      refrigerant.GetSaturatedPropertyFromTemperature(NOMINAL_EVPORATING_TEMPERATURE + KTOC, out _, out _, out double evpPressureRef);
-      refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, NOMINAL_EVPORATING_TEMPERATURE + KTOC + SUPER_HEAT_NOM, out _, out _, out hIHexOutRef, out _);
+      refrigerant.GetSaturatedPropertyFromTemperature(NOMINAL_EVAPORATING_TEMPERATURE + KTOC, out _, out _, out double evpPressureRef);
+      refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, NOMINAL_EVAPORATING_TEMPERATURE + KTOC + SUPER_HEAT_NOM, out _, out _, out hIHexOutRef, out _);
 
       //配管長補正条件の圧縮機入口冷媒状態
       double hIHexOutPC;
@@ -1705,7 +1705,7 @@ namespace Popolo.Core.HVAC.VRF
       nominalHead = nmHead;
       
       //屋外機伝熱面積
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       outdoorHex = new VRFUnit
         (oHexAirFlowRate, fanElectricity, cndTemp, -coolingCapacity + nmHead, JIS_OA_DBT_NOM_C, oHmd);
       outdoorHex.CurrentMode = VRFUnit.Mode.Heating;
@@ -1732,7 +1732,7 @@ namespace Popolo.Core.HVAC.VRF
       double evpPressure, cndPressure;  //蒸発圧力と凝縮圧力
       double hIHexOut, rhoIHexOut;  //蒸発器出口状態
 
-      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, 101.325);
+      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       indoorHex.CurrentMode = VRFUnit.Mode.Cooling;
 
       //中間標準条件の計算*****************************
@@ -1746,7 +1746,7 @@ namespace Popolo.Core.HVAC.VRF
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out rhoIHexOut, out hIHexOut, out _);
 
       //圧縮ヘッドを収束計算
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc2 = delegate (double head)
       {
         //凝縮器出口比エンタルピー
@@ -1778,7 +1778,7 @@ namespace Popolo.Core.HVAC.VRF
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out rhoIHexOut, out hIHexOut, out _);
 
       //圧縮ヘッドを収束計算
-      oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_MID_C, JIS_OA_WBT_MID_C, 101.325);
+      oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_MID_C, JIS_OA_WBT_MID_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc3 = delegate (double head)
       {
         //凝縮器出口比エンタルピー
@@ -1818,7 +1818,7 @@ namespace Popolo.Core.HVAC.VRF
       VRFUnit outdoorHex, VRFUnit indoorHex,
       double midCapacity1, out double midHead1)
     {
-      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, 101.325);
+      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       indoorHex.CurrentMode = VRFUnit.Mode.Cooling;
 
       //中間標準条件の計算*****************************
@@ -1832,7 +1832,7 @@ namespace Popolo.Core.HVAC.VRF
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out double rhoIHexOut, out double hIHexOut, out _);
 
       //圧縮ヘッドを収束計算
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc2 = delegate (double head)
       {
         //凝縮器出口比エンタルピー
@@ -1871,15 +1871,15 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="iHexAirFlowRate">Indoor unit air mass flow rate [kg/s].</param>
     /// <param name="fanElectricity">Fan electric power [kW].</param>
     /// <param name="coolingCapacity">Cooling capacity [kW] (negative = cooling).</param>
-    /// <param name="borderRelativeHumdity">Relative humidity at the dry/wet boundary [%].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%].</param>
     /// <returns>Initialized indoor unit.</returns>
     public static VRFUnit MakeIndoorUnit_Cooling(
-      double iHexAirFlowRate, double fanElectricity, double coolingCapacity, double borderRelativeHumdity)
+      double iHexAirFlowRate, double fanElectricity, double coolingCapacity, double borderRelativeHumidity)
     {
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
-        (JIS_IA_DBT_C, JIS_IA_WBT_C, 101.325);
+        (JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
-        (iHexAirFlowRate, fanElectricity, NOMINAL_EVPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd, borderRelativeHumdity);
+        (iHexAirFlowRate, fanElectricity, NOMINAL_EVAPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd, borderRelativeHumidity);
       iUnit.CurrentMode = VRFUnit.Mode.Cooling;
       return iUnit;
     }
@@ -2004,7 +2004,7 @@ namespace Popolo.Core.HVAC.VRF
       pipeResistanceCoefficient = pipeCoef;
 
       //屋外機伝熱面積
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       double nmRcv = Math.Max(0, totalEnergyRecover - nominalHead);
       outdoorHex = new VRFUnit
         (oHexAirFlowRate, fanElectricity, evpTempRef, -(heatingCapacity - nominalHead - nmRcv), JIS_OA_DBT_NOM_H, oHmd, 95);
@@ -2029,7 +2029,7 @@ namespace Popolo.Core.HVAC.VRF
       double midCapacity, out double midHead)
     {
       indoorHex.CurrentMode = VRFUnit.Mode.Heating;
-      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, 101.325);
+      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
 
       //中間標準条件の計算*****************************
       //凝縮器出口状態
@@ -2042,7 +2042,7 @@ namespace Popolo.Core.HVAC.VRF
         (cndPressure, indoorHex.RefrigerantTemperature - SUB_COOL_NOM + KTOC, out _, out _, out double hOHexIn, out _);
 
       //圧縮ヘッドを収束計算
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, 101.325);
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc = delegate (double head)
       {
         //廃熱回収
@@ -2089,7 +2089,7 @@ namespace Popolo.Core.HVAC.VRF
       VRFUnit outdoorHex, VRFUnit indoorHex,
       double midCapacity1, double midCapacity2, out double midHead1, out double midHead2)
     {
-      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, 101.325);
+      double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
 
       midHead1 = midHead2 = 0;
       for (int css = 0; css < 2; css++)
@@ -2105,7 +2105,7 @@ namespace Popolo.Core.HVAC.VRF
           (cndPressure, indoorHex.RefrigerantTemperature - SUB_COOL_NOM + KTOC, out _, out _, out double hOHexIn, out _);
 
         //圧縮ヘッドを収束計算
-        double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, 101.325);
+        double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
         Roots.ErrorFunction eFnc2 = delegate (double head)
         {
           //凝縮器出口比エンタルピー
@@ -2156,22 +2156,22 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="iHexAirFlowRate">Indoor unit air mass flow rate [kg/s].</param>
     /// <param name="coolingFanElectricity">Fan electric power in cooling mode [kW].</param>
     /// <param name="coolingCapacity">Cooling capacity [kW] (negative = cooling).</param>
-    /// <param name="borderRelativeHumdiity">Relative humidity at the dry/wet boundary [%].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%].</param>
     /// <param name="heatingFanElectricity">Fan electric power in heating mode [kW].</param>
     /// <param name="heatingCapacity">Heating capacity [kW] (positive = heating).</param>
     /// <returns>Initialized indoor unit.</returns>
     public static VRFUnit MakeIndoorUnit(
       double iHexAirFlowRate,
-      double coolingFanElectricity, double coolingCapacity, double borderRelativeHumdiity,
+      double coolingFanElectricity, double coolingCapacity, double borderRelativeHumidity,
       double heatingFanElectricity, double heatingCapacity)
     {
       double iHmd_C = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
-        (JIS_IA_DBT_C, JIS_IA_WBT_C, 101.325);
+        (JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       double iHmd_H = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
-        (JIS_IA_DBT_H, JIS_IA_WBT_H, 101.325);
+        (JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
         (iHexAirFlowRate,
-        NOMINAL_EVPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd_C, borderRelativeHumdiity, coolingFanElectricity,
+        NOMINAL_EVAPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd_C, borderRelativeHumidity, coolingFanElectricity,
         NOMINAL_CONDENSING_TEMPERATURE, heatingCapacity, JIS_IA_DBT_H, iHmd_H, heatingFanElectricity);
       iUnit.CurrentMode = VRFUnit.Mode.Cooling;
       return iUnit;
@@ -2186,7 +2186,7 @@ namespace Popolo.Core.HVAC.VRF
       double iHexAirFlowRate, double fanElectricity, double heatingCapacity)
     {
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
-        (JIS_IA_DBT_H, JIS_IA_WBT_H, 101.325);
+        (JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
         (iHexAirFlowRate, fanElectricity, NOMINAL_CONDENSING_TEMPERATURE, heatingCapacity, JIS_IA_DBT_H, iHmd);
       iUnit.CurrentMode = VRFUnit.Mode.Heating;

@@ -547,7 +547,7 @@ namespace Popolo.Core.Building.Envelope
           Initialize("Acrylic Resin", 0.210, 1666.0, thickness);
           break;
         default:
-          throw new Popolo.Core.Exceptions.PopoloArgumentException("material", "Wall material is not defined.");
+          throw new Exceptions.PopoloArgumentException("Wall material is not defined.", "material");
       }
     }
 

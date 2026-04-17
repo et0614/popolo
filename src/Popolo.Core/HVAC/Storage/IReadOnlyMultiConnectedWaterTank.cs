@@ -40,8 +40,8 @@ namespace Popolo.Core.HVAC.Storage
     /// <summary>Gets a value indicating whether flow is in the forward direction.</summary>
     bool IsForwardFlow { get; }
 
-    /// <summary>Gets the number of tanks.</summary>
-    int TankNumber { get; }
+    /// <summary>Gets the total number of tanks.</summary>
+    int TankCount { get; }
 
     /// <summary>Gets the temperature of the first tank [°C].</summary>
     double FirstTankTemperature { get; }

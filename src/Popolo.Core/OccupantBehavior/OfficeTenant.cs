@@ -283,10 +283,10 @@ namespace Popolo.Core.OccupantBehavior
     public IReadOnlyOfficeWorker[] OfficeWorkers { get { return workers; } }
 
     /// <summary>Gets the total number of workers.</summary>
-    public uint OfficeWorkerNumber { get { return (uint)OfficeWorkers.Length; } }
+    public uint OfficeWorkerCount { get { return (uint)OfficeWorkers.Length; } }
 
     /// <summary>Gets the number of workers currently in the office.</summary>
-    public uint StayWorkerNumber { get; private set; }
+    public uint StayWorkerCount { get; private set; }
 
     /// <summary>Worker count array [sex × employment × job]: male/female × permanent/non-permanent × managerial/technical/clerical/sales.</summary>
     private Dictionary<bool, Dictionary<bool, uint[]>> owNumbers = new Dictionary<bool, Dictionary<bool, uint[]>>();
@@ -568,7 +568,7 @@ namespace Popolo.Core.OccupantBehavior
     /// <param name="isPermanent">True for non-permanent employee.</param>
     /// <param name="job">Job category.</param>
     /// <returns>Number of workers [persons].</returns>
-    public uint GetNumber(bool isMale, bool isPermanent, CategoryOfJob job)
+    public uint GetWorkerCount(bool isMale, bool isPermanent, CategoryOfJob job)
     {
       switch (job)
       {
@@ -595,9 +595,9 @@ namespace Popolo.Core.OccupantBehavior
       for (int i = 0; i < workers.Length; i++)
         workers[i].UpdateStatus(dTime);
 
-      StayWorkerNumber = 0;
+      StayWorkerCount = 0;
       for (int i = 0; i < workers.Length; i++)
-        if (workers[i].StayInOffice) StayWorkerNumber++;
+        if (workers[i].StayInOffice) StayWorkerCount++;
     }
 
     /// <summary>Adds a special holiday.</summary>

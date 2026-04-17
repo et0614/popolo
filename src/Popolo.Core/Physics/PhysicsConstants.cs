@@ -63,9 +63,17 @@ namespace Popolo.Core.Physics
 
     /// <summary>
     /// Nominal isobaric specific heat of liquid water [J/(kg·K)] used as a
-    /// representative value for building energy simulation (approximately valid for 5–60°C).
+    /// representative value for building energy simulation.
     /// </summary>
-    public const double NominalWaterIsobaricSpecificHeat = 4182.0;
+    /// <remarks>
+    /// 4186 J/(kg·K) is the established engineering convention in ASHRAE,
+    /// Japanese HVAC handbooks, and major building simulation tools
+    /// (EnergyPlus, DOE-2, BEST). The true value varies by ±0.2% over
+    /// 5–60 °C (NIST IAPWS-IF97: 4179–4184 J/(kg·K)); 4186 is chosen
+    /// for consistency with the engineering literature rather than
+    /// exact thermodynamic minimization.
+    /// </remarks>
+    public const double NominalWaterIsobaricSpecificHeat = 4186.0;
 
     #endregion
 

@@ -36,7 +36,7 @@ namespace Popolo.Core.Building.Envelope
     public double WaterFlowRate { get; private set; }
 
     /// <summary>Gets the number of parallel pipe branches.</summary>
-    public int BranchNumber { get; private set; }
+    public int BranchCount { get; private set; }
 
     /// <summary>Gets the pipe laying pitch [m].</summary>
     public double Pitch { get; private set; }
@@ -69,7 +69,7 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Initializes a new instance with pipe and fin geometry.</summary>
     /// <param name="pitch">Pipe laying pitch [m].</param>
     /// <param name="length">Total pipe length [m].</param>
-    /// <param name="branchNumber">Number of parallel branches.</param>
+    /// <param name="branchCount">Total number of parallel branches.</param>
     /// <param name="iDiameter">Inner diameter [m].</param>
     /// <param name="oDiameter">Outer diameter [m].</param>
     /// <param name="tubeConductivity">Pipe thermal conductivity [W/(m·K)].</param>
@@ -79,13 +79,13 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="lowerFinResistance">Lower fin thermal resistance [(m²·K)/W].</param>
     /// <param name="upperFinThickness">Upper fin thickness [m].</param>
     /// <param name="lowerFinThickness">Lower fin thickness [m].</param>
-    public BuriedPipe(double pitch, double length, int branchNumber, double iDiameter, double oDiameter,
+    public BuriedPipe(double pitch, double length, int branchCount, double iDiameter, double oDiameter,
       double tubeConductivity, double upperFinConductivity, double lowerFinConductivity,
       double upperFinResistance, double lowerFinResistance, double upperFinThickness, double lowerFinThickness)
     {
       Pitch = pitch;
       Length = length;
-      BranchNumber = branchNumber;
+      BranchCount = branchCount;
       InnerDiameter = iDiameter;
       OuterDiameter = oDiameter;
       ThermalConductivityOfTube = tubeConductivity;
@@ -130,7 +130,7 @@ namespace Popolo.Core.Building.Envelope
       double lambda = Water.GetLiquidThermalConductivity(InletWaterTemperature);
 
       //配管内流速[m/s]を計算
-      double vFlow = WaterFlowRate / (PhysicsConstants.NominalWaterDensity * BranchNumber);
+      double vFlow = WaterFlowRate / (PhysicsConstants.NominalWaterDensity * BranchCount);
       double u = vFlow / (Math.Pow(InnerDiameter / 2, 2) * Math.PI);
 
       //ヌセルト数を計算
@@ -164,7 +164,7 @@ namespace Popolo.Core.Building.Envelope
     double WaterFlowRate { get; }
 
     /// <summary>Gets the number of parallel pipe branches.</summary>
-    int BranchNumber { get; }
+    int BranchCount { get; }
 
     /// <summary>Gets the pipe laying pitch [m].</summary>
     double Pitch { get; }

@@ -75,7 +75,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double MaxAirFlowRate { get; private set; }
 
     /// <summary>Gets the outdoor wet-bulb temperature [°C].</summary>
-    public double OutdoorWetbulbTemperature { get; private set; } = 27;
+    public double OutdoorWetBulbTemperature { get; private set; } = 27;
 
     /// <summary>Gets the outdoor humidity ratio [kg/kg].</summary>
     public double OutdoorHumidityRatio { get; private set; } = 0.0195;
@@ -87,7 +87,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double OutletWaterTemperature { get; private set; }
 
     /// <summary>Gets or sets the outlet water temperature setpoint [°C].</summary>
-    public double OutletWaterSetPointTemperature { get; set; }
+    public double OutletWaterSetpointTemperature { get; set; }
 
     /// <summary>Gets the heat rejection rate [kW].</summary>
     public double HeatRejection { get; private set; }
@@ -148,18 +148,18 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Initializes a new instance.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
     /// <param name="outletWaterTemperature">Outlet water temperature [°C].</param>
-    /// <param name="wetbulbTemperature">Outdoor wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Outdoor wet-bulb temperature [°C].</param>
     /// <param name="waterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     /// <param name="airFlowType">Air flow direction type.</param>
     /// <param name="powerConsumption">Fan power consumption [kW].</param>
     /// <param name="hasInverter">True if the fan has an inverter drive.</param>
     public CoolingTower
-      (double inletWaterTemperature, double outletWaterTemperature, double wetbulbTemperature, double waterFlowRate,
+      (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature, double waterFlowRate,
       double airFlowRate, AirFlowDirection airFlowType, double powerConsumption, bool hasInverter)
     {
       //定格条件を保存
-      OutletWaterSetPointTemperature = outletWaterTemperature;
+      OutletWaterSetpointTemperature = outletWaterTemperature;
       MaxAirFlowRate = AirFlowRate = airFlowRate;
       MaxWaterFlowRate = WaterFlowRate = waterFlowRate;
       HasInverter = hasInverter;
@@ -168,7 +168,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
       //定格条件にもとづき特性係数c[-]を初期化
       coefC = GetCoolingTowerCoefficient
-        (inletWaterTemperature, outletWaterTemperature, wetbulbTemperature, waterFlowRate, airFlowRate, airFlowType);
+        (inletWaterTemperature, outletWaterTemperature, wetBulbTemperature, waterFlowRate, airFlowRate, airFlowType);
 
       //出口状態を初期化
       Update(inletWaterTemperature, false);
@@ -177,14 +177,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Initializes a new instance.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
     /// <param name="outletWaterTemperature">Outlet water temperature [°C].</param>
-    /// <param name="wetbulbTemperature">Outdoor wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Outdoor wet-bulb temperature [°C].</param>
     /// <param name="waterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="airFlowType">Air flow direction type.</param>
     /// <param name="hasInverter">True if the fan has an inverter drive.</param>
     public CoolingTower
-      (double inletWaterTemperature, double outletWaterTemperature, double wetbulbTemperature,
+      (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature,
       double waterFlowRate, AirFlowDirection airFlowType, bool hasInverter)
-      : this(inletWaterTemperature, outletWaterTemperature, wetbulbTemperature,
+      : this(inletWaterTemperature, outletWaterTemperature, wetBulbTemperature,
           waterFlowRate, waterFlowRate * 0.8, airFlowType,
          GetFanPower((inletWaterTemperature - outletWaterTemperature) * waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat),
          hasInverter)
@@ -212,11 +212,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     #region インスタンスメソッド
 
     /// <summary>Sets the outdoor air conditions.</summary>
-    /// <param name="wetbulbTemperature">Wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Wet-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Air humidity ratio [kg/kg].</param>
-    public void SetOutdoorAirState(double wetbulbTemperature, double humidityRatio)
+    public void SetOutdoorAirState(double wetBulbTemperature, double humidityRatio)
     {
-      OutdoorWetbulbTemperature = wetbulbTemperature;
+      OutdoorWetBulbTemperature = wetBulbTemperature;
       OutdoorHumidityRatio = humidityRatio;
     }
 
@@ -238,7 +238,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       else
       {
         HeatRejection = GetHeatRejection
-          (InletWaterTemperature, OutdoorWetbulbTemperature, WaterFlowRate, AirFlowRate, coefC, AirFlowType);
+          (InletWaterTemperature, OutdoorWetBulbTemperature, WaterFlowRate, AirFlowRate, coefC, AirFlowType);
         OutletWaterTemperature = InletWaterTemperature - HeatRejection / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate);
       }
     }
@@ -250,7 +250,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       else ElectricConsumption = GetPowerConsumptionWithOutInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption);
       double ew, dw, bw;
       double hOA = MoistAir.GetEnthalpyFromHumidityRatioAndWetBulbTemperature
-        (OutdoorHumidityRatio, OutdoorWetbulbTemperature, PhysicsConstants.StandardAtmosphericPressure);
+        (OutdoorHumidityRatio, OutdoorWetBulbTemperature, PhysicsConstants.StandardAtmosphericPressure);
       GetMakeupWater(HeatRejection, hOA, OutdoorHumidityRatio, WaterFlowRate,
         AirFlowRate, MaxAirFlowRate, DriftWaterRate, ConcentrationRatio, out ew, out dw, out bw);
       EvaporationWater = ew;
@@ -279,12 +279,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       //出口温度を制御する場合には風量を調整
       if (controlOutletWaterTemperature)
       {
-        if (InletWaterTemperature <= OutletWaterSetPointTemperature) ShutOff();
+        if (InletWaterTemperature <= OutletWaterSetpointTemperature) ShutOff();
         else
         {
           bool oload;
           double af = GetAirFlowRate
-            (inletWaterTemperature, OutletWaterSetPointTemperature, OutdoorWetbulbTemperature,
+            (inletWaterTemperature, OutletWaterSetpointTemperature, OutdoorWetBulbTemperature,
             WaterFlowRate, MaxAirFlowRate, coefC, AirFlowType, out oload);
           IsOverLoad = oload;
           UpdateHeatExchange(inletWaterTemperature, af);
@@ -339,13 +339,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Computes the cooling tower characteristic coefficient c [-] from operating conditions.</summary>
     /// <param name="inletWaterTemperature">Cooling water inlet temperature [°C].</param>
     /// <param name="outletWaterTemperature">Cooling water outlet temperature [°C].</param>
-    /// <param name="wetbulbTemperature">Inlet air wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Inlet air wet-bulb temperature [°C].</param>
     /// <param name="waterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     /// <param name="airFlowType">Air flow direction type.</param>
     /// <returns>Cooling tower characteristic coefficient c [-].</returns>
     public static double GetCoolingTowerCoefficient
-      (double inletWaterTemperature, double outletWaterTemperature, double wetbulbTemperature,
+      (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature,
       double waterFlowRate, double airFlowRate, AirFlowDirection airFlowType)
     {
       //熱交換量[kW]を計算
@@ -358,7 +358,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         (outletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       //入口空気の飽和エンタルピーを計算
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
-        (wetbulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
+        (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
       //平均的な比熱で熱容量流量比を計算
       double cs = (hswi - hswo) / (inletWaterTemperature - outletWaterTemperature);
@@ -386,14 +386,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     /// <summary>Computes the heat rejection rate [kW] from the given conditions.</summary>
     /// <param name="inletWaterTemperature">Cooling water inlet temperature [°C].</param>
-    /// <param name="wetbulbTemperature">Inlet air wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Inlet air wet-bulb temperature [°C].</param>
     /// <param name="waterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     /// <param name="coolingTowerCoefficient">Cooling tower characteristic coefficient c [-].</param>
     /// <param name="airFlowType">Air flow direction type.</param>
     /// <returns>Heat rejection rate [kW].</returns>
     public static double GetHeatRejection
-      (double inletWaterTemperature, double wetbulbTemperature, double waterFlowRate, double airFlowRate,
+      (double inletWaterTemperature, double wetBulbTemperature, double waterFlowRate, double airFlowRate,
       double coolingTowerCoefficient, AirFlowDirection airFlowType)
     {
       //冷却水温度に相当する空気の飽和エンタルピーを計算
@@ -401,7 +401,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         (inletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       //入口空気の飽和エンタルピーを計算
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
-        (wetbulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
+        (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       //NTUwを計算
       double ntuw = coolingTowerCoefficient * Math.Pow(waterFlowRate / airFlowRate, EXP_N);
 
@@ -441,7 +441,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Computes the required air flow rate [kg/s] to achieve the target outlet water temperature.</summary>
     /// <param name="inletWaterTemperature">Cooling water inlet temperature [°C].</param>
     /// <param name="outletWaterTemperature">Cooling water outlet temperature [°C].</param>
-    /// <param name="wetbulbTemperature">Inlet air wet-bulb temperature [°C].</param>
+    /// <param name="wetBulbTemperature">Inlet air wet-bulb temperature [°C].</param>
     /// <param name="waterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="maxAirFlowRate">Maximum air mass flow rate [kg/s].</param>
     /// <param name="coolingTowerCoefficient">Cooling tower characteristic coefficient c [-].</param>
@@ -449,7 +449,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="isOverLoad">True if the tower is operating at maximum capacity.</param>
     /// <returns>Heat rejection rate [kW].</returns>
     public static double GetAirFlowRate
-      (double inletWaterTemperature, double outletWaterTemperature, double wetbulbTemperature,
+      (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature,
       double waterFlowRate, double maxAirFlowRate, double coolingTowerCoefficient,
       AirFlowDirection airFlow, out bool isOverLoad)
     {
@@ -460,7 +460,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         (outletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       //入口空気の飽和エンタルピー
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
-        (wetbulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
+        (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
       //加熱してしまう条件の場合には風量0とする
       if (hswi < hai)

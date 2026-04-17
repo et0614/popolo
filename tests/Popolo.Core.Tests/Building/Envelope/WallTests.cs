@@ -73,7 +73,7 @@ namespace Popolo.Core.Tests.Building.Envelope
             var wall = MakeRCWall(2.5);
 
             Assert.Equal(2.5, wall.Area,       precision: 6);
-            Assert.Equal(2,   wall.NodeNumber); // 1層→質点数=2
+            Assert.Equal(2,   wall.NodeCount); // 1層→質点数=2
             Assert.False(wall.ComputeMoistureTransfer);
         }
 
@@ -92,7 +92,7 @@ namespace Popolo.Core.Tests.Building.Envelope
         public void Constructor_MultiLayer_CorrectNodeNumber()
         {
             var wall = MakeInsulatedWall();
-            Assert.Equal(3, wall.NodeNumber); // 2層→質点数=3
+            Assert.Equal(3, wall.NodeCount); // 2層→質点数=3
         }
 
         #endregion

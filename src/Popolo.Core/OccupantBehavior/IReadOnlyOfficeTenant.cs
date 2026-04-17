@@ -34,10 +34,10 @@ namespace Popolo.Core.OccupantBehavior
     IReadOnlyOfficeWorker[] OfficeWorkers { get; }
 
     /// <summary>Gets the number of workers currently in the office.</summary>
-    uint StayWorkerNumber { get; }
+    uint StayWorkerCount { get; }
 
     /// <summary>Gets the total number of workers.</summary>
-    uint OfficeWorkerNumber { get; }
+    uint OfficeWorkerCount { get; }
 
     /// <summary>Gets the regular holiday days of the week.</summary>
     OfficeTenant.DaysOfWeek Holidays { get; }
@@ -71,7 +71,7 @@ namespace Popolo.Core.OccupantBehavior
     /// <param name="isPermanent">True for non-permanent employee.</param>
     /// <param name="job">Job category.</param>
     /// <returns>Number of workers [persons].</returns>
-    uint GetNumber(bool isMale, bool isPermanent, OfficeTenant.CategoryOfJob job);
+    uint GetWorkerCount(bool isMale, bool isPermanent, OfficeTenant.CategoryOfJob job);
 
     /// <summary>Determines whether the specified date is a holiday.</summary>
     /// <param name="dTime">Date to check.</param>

@@ -64,7 +64,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="hotWaterFlowRate">Hot water mass flow rate [kg/s].</param>
     /// <param name="dsbTemperatureApploach">Desorption temperature approach [°C].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser (absorber) overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser (absorber) overall heat transfer conductance [kW/K].</param>
     /// <param name="desorborKA">Desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="hexKA">Solution heat exchanger overall heat transfer conductance [kW/K].</param>
     /// <param name="solFlowRate">Dilute solution circulation rate [kg/s].</param>
@@ -72,12 +72,12 @@ namespace Popolo.Core.HVAC.HeatSource
     public static void GetHeatTransferCoefficients
       (double chWaterITemperature, double chWaterOTemperature, double chWaterFlowRate, double cdWaterITemperature,
       double cdWaterOTemperature, double cdWaterFlowRate, double htWaterITemperature, double hotWaterFlowRate, 
-      double dsbTemperatureApploach, out double evaporatorKA, out double condensorKA, out double desorborKA,
+      double dsbTemperatureApploach, out double evaporatorKA, out double condenserKA, out double desorborKA,
       out double hexKA, out double solFlowRate, out double desorbHeat)
     {
       //凝縮器（吸収器）と蒸発器の伝熱係数KA[kW/K]
       evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NOM_EVP_TEMP);
-      condensorKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
+      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
 
       //再生器投入熱量[kW]
       double qE = chWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (chWaterITemperature - chWaterOTemperature);
@@ -130,7 +130,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="htWaterITemperature">Hot water inlet temperature [°C].</param>
     /// <param name="htWaterFlowRate">Hot water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="desorborKA">Desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="hexKA">Solution heat exchanger overall heat transfer conductance [kW/K].</param>
     /// <param name="solFlowRate">Solution mass flow rate [kg/s].</param>
@@ -140,7 +140,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public static void GetOutletTemperatures
       (double chWaterITemperature, double chWaterFlowRate, double cdWaterITemperature, 
       double cdWaterFlowRate, double htWaterITemperature, double htWaterFlowRate, double evaporatorKA, 
-      double condensorKA, double desorborKA, double hexKA, double solFlowRate,
+      double condenserKA, double desorborKA, double hexKA, double solFlowRate,
       out double chWaterOTemperature, out double cdWaterOTemperature, out double htWaterOTemperature)
     {
       double tcdo = 0;
@@ -148,7 +148,7 @@ namespace Popolo.Core.HVAC.HeatSource
       Minimization.MinimizeFunction mFnc = delegate (double tcho)
       {
         return GetError(chWaterITemperature, chWaterFlowRate, cdWaterITemperature, cdWaterFlowRate,
-          htWaterITemperature, htWaterFlowRate, evaporatorKA, condensorKA, desorborKA, hexKA, solFlowRate, tcho, 
+          htWaterITemperature, htWaterFlowRate, evaporatorKA, condenserKA, desorborKA, hexKA, solFlowRate, tcho, 
           out tcdo, out tho);
       };
 
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="htWaterITemperature">Hot water inlet temperature [°C].</param>
     /// <param name="htWaterFlowRate">Hot water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="desorborKA">Desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="hexKA">Solution heat exchanger overall heat transfer conductance [kW/K].</param>
     /// <param name="solFlowRate">Solution mass flow rate [kg/s].</param>
@@ -175,7 +175,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="htWaterOTemperature">Output: hot water outlet temperature [°C].</param>
     public static void GetOutletTemperatures(double chWaterITemperature, double chWaterFlowRate,
       double cdWaterITemperature, double cdWaterFlowRate, double htWaterITemperature, double htWaterFlowRate,
-      double evaporatorKA, double condensorKA, double desorborKA, double hexKA, double solFlowRate,
+      double evaporatorKA, double condenserKA, double desorborKA, double hexKA, double solFlowRate,
       double chWaterOTemperatureSP, out double cdWaterOTemperature, out double htWaterOTemperature)
     {
       double tcdo = 0;
@@ -183,7 +183,7 @@ namespace Popolo.Core.HVAC.HeatSource
       Minimization.MinimizeFunction mFnc = delegate (double hwr)
       {
         return GetError(chWaterITemperature, chWaterFlowRate, cdWaterITemperature, cdWaterFlowRate,
-          htWaterITemperature, htWaterFlowRate * hwr, evaporatorKA, condensorKA, desorborKA, hexKA,
+          htWaterITemperature, htWaterFlowRate * hwr, evaporatorKA, condenserKA, desorborKA, hexKA,
           solFlowRate, chWaterOTemperatureSP, out tcdo, out tho);
       };
 
@@ -201,7 +201,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="htWaterITemperature">Hot water inlet temperature [°C].</param>
     /// <param name="htWaterFlowRate">Hot water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="desorborKA">Desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="hexKA">Solution heat exchanger overall heat transfer conductance [kW/K].</param>
     /// <param name="solFlowRate">Solution mass flow rate [kg/s].</param>
@@ -211,7 +211,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Single-effect absorption cycle error value.</returns>
     private static double GetError(double chWaterITemperature, double chWaterFlowRate,
       double cdWaterITemperature, double cdWaterFlowRate, double htWaterITemperature,
-      double htWaterFlowRate, double evaporatorKA, double condensorKA, double desorborKA, double hexKA,
+      double htWaterFlowRate, double evaporatorKA, double condenserKA, double desorborKA, double hexKA,
       double solFlowRate, double chWaterOTemperature,
       out double cdWaterOTemperature, out double htWaterOTemperature)
     {
@@ -232,7 +232,7 @@ namespace Popolo.Core.HVAC.HeatSource
         double qCDAB = qE + dsvH;
         tcdo = cdWaterITemperature + qCDAB / (cdWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat);
         condensingTemperature = GetRefrigerantTemperature
-        (cdWaterITemperature, tcdo, cdWaterFlowRate, condensorKA);
+        (cdWaterITemperature, tcdo, cdWaterFlowRate, condenserKA);
         double hRVDo = Water.GetSaturatedVaporEnthalpy(condensingTemperature);
         double hRLCDo = Water.GetSaturatedLiquidEnthalpy(condensingTemperature);
 
@@ -243,9 +243,9 @@ namespace Popolo.Core.HVAC.HeatSource
 
         //吸収器・再生器の出口水溶液状態
         lbAo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (condensingTemperature + 273.15, evaporatingTemperature + 273.15);
+        (PhysicsConstants.ToKelvin(condensingTemperature), PhysicsConstants.ToKelvin(evaporatingTemperature));
         lbDo = LithiumBromide.MakeFromVaporTemperatureAndMassFraction
-        (condensingTemperature + 273.15, aW / (aW - 1) * lbAo.MassFraction);
+        (PhysicsConstants.ToKelvin(condensingTemperature), aW / (aW - 1) * lbAo.MassFraction);
 
         //冷却水熱量にもとづく溶液熱交換器の処理熱量
         double qAB = qCDAB - mR * (hRVDo - hRLCDo);
@@ -272,17 +272,17 @@ namespace Popolo.Core.HVAC.HeatSource
       LithiumBromide lbDi = LithiumBromide.MakeFromEnthalpyAndMassFraction
         (lbAo.Enthalpy + qX / solFlowRate, lbAo.MassFraction);
       LithiumBromide lbDi2 = LithiumBromide.MakeFromEnthalpyAndVaporTemperature
-        (lbDi.Enthalpy, condensingTemperature + 273.15);
+        (lbDi.Enthalpy, PhysicsConstants.ToKelvin(condensingTemperature));
       double desorbTemp = GetDesorbTemperature
         (desorborKA, desorbHeat, htWaterFlowRate, lbDi2, lbDo, solFlowRate);
 
       //温水入口温度が必要温度未満の場合
-      if (0 < desorbTemp - (htWaterITemperature + 273.15))
-        return desorbTemp - (htWaterITemperature + 273.15);
+      if (0 < desorbTemp - (PhysicsConstants.ToKelvin(htWaterITemperature)))
+        return desorbTemp - (PhysicsConstants.ToKelvin(htWaterITemperature));
       //必要温度以上の場合には余剰温水流量を計算
       else
         return htWaterFlowRate - GetHotWaterFlowRate
-          (desorborKA, desorbHeat, htWaterITemperature + 273.15, lbDi2, lbDo, solFlowRate);
+          (desorborKA, desorbHeat, PhysicsConstants.ToKelvin(htWaterITemperature), lbDi2, lbDo, solFlowRate);
     }
 
     #endregion
@@ -297,7 +297,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="chWaterFlowRate">Chilled water mass flow rate [kg/s].</param>
     /// <param name="cdWaterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser (absorber) overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser (absorber) overall heat transfer conductance [kW/K].</param>
     /// <param name="lowDesorborKA">Low-temperature desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="lHexKA">Low-temperature solution heat exchanger conductance [kW/K].</param>
     /// <param name="solFlowRate">Dilute solution circulation rate [kg/s].</param>
@@ -305,12 +305,12 @@ namespace Popolo.Core.HVAC.HeatSource
     public static void GetHeatTransferCoefficients
       (double chWaterITemperature, double chWaterOTemperature, double chWaterFlowRate,
       double cdWaterITemperature, double cdWaterOTemperature, double cdWaterFlowRate,
-      out double evaporatorKA, out double condensorKA, out double lowDesorborKA, 
+      out double evaporatorKA, out double condenserKA, out double lowDesorborKA, 
       out double lHexKA, out double solFlowRate, out double desorbHeat)
     {
       //凝縮器（吸収器）と蒸発器の伝熱係数KA[kW/K]
       evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NOM_EVP_TEMP);
-      condensorKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
+      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
 
       //再生器投入熱量[kW]の計算
       double qE = chWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (chWaterITemperature - chWaterOTemperature);
@@ -319,11 +319,11 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //水溶液状態の計算
       LithiumBromide lbHDo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (NOM_DSB_LIQ_TEMP + 273.15, NOM_DSB_VAP_TEMP + 273.15);
+        (PhysicsConstants.ToKelvin(NOM_DSB_LIQ_TEMP), PhysicsConstants.ToKelvin(NOM_DSB_VAP_TEMP));
       LithiumBromide lbAo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (NOM_CND_TEMP + 273.15, NOM_EVP_TEMP + 273.15);
+        (PhysicsConstants.ToKelvin(NOM_CND_TEMP), PhysicsConstants.ToKelvin(NOM_EVP_TEMP));
       LithiumBromide lbLDo = LithiumBromide.MakeFromVaporTemperatureAndMassFraction
-        (NOM_CND_TEMP + 273.15, lbHDo.MassFraction);
+        (PhysicsConstants.ToKelvin(NOM_CND_TEMP), lbHDo.MassFraction);
 
       //溶液循環比[-]
       double aW = lbHDo.MassFraction / (lbHDo.MassFraction - lbAo.MassFraction);
@@ -378,10 +378,10 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //低温再生器の伝熱係数KA[kW/K]の計算
       LithiumBromide lbLDi2 = LithiumBromide.MakeFromEnthalpyAndVaporTemperature
-        (lbLDi.Enthalpy, NOM_CND_TEMP + 273.15);
+        (lbLDi.Enthalpy, PhysicsConstants.ToKelvin(NOM_CND_TEMP));
       double cp = GetSolutionAverageSpecificHeat(lbLDi2, lbLDo);
       double effectiveness = (lbLDo.LiquidTemperature - lbLDi2.LiquidTemperature) 
-        / (NOM_DSB_VAP_TEMP + 273.15 - lbLDi2.LiquidTemperature);
+        / (PhysicsConstants.ToKelvin(NOM_DSB_VAP_TEMP) - lbLDi2.LiquidTemperature);
       lowDesorborKA = -Math.Log(1 - effectiveness) * (cp * (mRL * aW));
 
       //溶液熱交換器の伝熱係数KA[kW/K]の計算
@@ -398,7 +398,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="cdWaterITemperature">Cooling water inlet temperature [°C].</param>
     /// <param name="cdWaterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="lowDesorborKA">Low-temperature desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="lHexKA">Low-temperature solution heat exchanger conductance [kW/K].</param>
     /// <param name="solFlowRate">Solution mass flow rate [kg/s].</param>
@@ -412,7 +412,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Chilled water outlet temperature [°C].</returns>
     public static double GetChilledWaterOutletTemperature
       (double chWaterITemperature, double chWaterFlowRate, double cdWaterITemperature, double cdWaterFlowRate,
-      double evaporatorKA, double condensorKA, double lowDesorborKA, double lHexKA, double solFlowRate,
+      double evaporatorKA, double condenserKA, double lowDesorborKA, double lHexKA, double solFlowRate,
       double desorbHeat, out double cdWaterOTemperature, out double dsbTemperature, out double evpTemperature, 
       out double cndTemperature, out double thinMFraction, out double thickMFraction)
     {
@@ -425,7 +425,7 @@ namespace Popolo.Core.HVAC.HeatSource
       {
 
         return GetError(chWaterITemperature, chWaterFlowRate, cdWaterITemperature, cdWaterFlowRate, 
-          evaporatorKA, condensorKA, lowDesorborKA, lHexKA, desorbHeat, solFlowRate, tcho,
+          evaporatorKA, condenserKA, lowDesorborKA, lHexKA, desorbHeat, solFlowRate, tcho,
           out tcdo, out tdsv, out tevp, out tcnd, out wth, out wtk);
       };
 
@@ -447,7 +447,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="cdWaterITemperature">Cooling water inlet temperature [°C].</param>
     /// <param name="cdWaterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="lowDesorborKA">Low-temperature desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="lHexKA">Low-temperature solution heat exchanger conductance [kW/K].</param>
     /// <param name="solFlowRate">Solution mass flow rate [kg/s].</param>
@@ -461,7 +461,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>High-temperature desorber heat input [kW].</returns>
     public static double GetDesorbHeat
       (double chWaterITemperature, double chWaterFlowRate, double cdWaterITemperature, double cdWaterFlowRate,
-      double evaporatorKA, double condensorKA, double lowDesorborKA, double lHexKA, double solFlowRate,
+      double evaporatorKA, double condenserKA, double lowDesorborKA, double lHexKA, double solFlowRate,
       double chWaterOTemperature, out double cdWaterOTemperature, out double dsbTemperature,
       out double evpTemperature, out double cndTemperature, out double thinMFraction, out double thickMFraction)
     {
@@ -474,7 +474,7 @@ namespace Popolo.Core.HVAC.HeatSource
       Roots.ErrorFunction eFnc = delegate (double dsvH)
       {
         return GetError
-        (chWaterITemperature, chWaterFlowRate, cdWaterITemperature, cdWaterFlowRate, evaporatorKA, condensorKA,
+        (chWaterITemperature, chWaterFlowRate, cdWaterITemperature, cdWaterFlowRate, evaporatorKA, condenserKA,
         lowDesorborKA, lHexKA, dsvH, solFlowRate, chWaterOTemperature,
         out tcdo, out tdsv, out tevp, out tcnd, out wth, out wtk);
       };
@@ -529,7 +529,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="cdWaterITemperature">Cooling water inlet temperature [°C].</param>
     /// <param name="cdWaterFlowRate">Cooling water mass flow rate [kg/s].</param>
     /// <param name="evaporatorKA">Evaporator overall heat transfer conductance [kW/K].</param>
-    /// <param name="condensorKA">Condenser overall heat transfer conductance [kW/K].</param>
+    /// <param name="condenserKA">Condenser overall heat transfer conductance [kW/K].</param>
     /// <param name="lowDesorborKA">Low-temperature desorber overall heat transfer conductance [kW/K].</param>
     /// <param name="lHexKA">Low-temperature solution heat exchanger conductance [kW/K].</param>
     /// <param name="desorbHeat">High-temperature desorber heat input [kW].</param>
@@ -544,7 +544,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Double-effect absorption cycle error value.</returns>
     private static double GetError
       (double chWaterITemperature, double chWaterFlowRate, double cdWaterITemperature, double cdWaterFlowRate, 
-      double evaporatorKA, double condensorKA, double lowDesorborKA, double lHexKA, double desorbHeat,
+      double evaporatorKA, double condenserKA, double lowDesorborKA, double lHexKA, double desorbHeat,
       double solFlowRate, double chWaterOTemperature, out double cdWaterOTemperature, out double dsbTemperature,
       out double evpTemperature, out double cndTemperature, out double thinMFraction, out double thickMFraction)
     {
@@ -557,7 +557,7 @@ namespace Popolo.Core.HVAC.HeatSource
       evpTemperature = GetRefrigerantTemperature
         (chWaterITemperature, chWaterOTemperature, chWaterFlowRate, evaporatorKA);
       cndTemperature = GetRefrigerantTemperature
-        (cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, condensorKA);
+        (cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, condenserKA);
 
       //凝縮・蒸発温度における冷媒エンタルピー
       double hRVLDo = Water.GetSaturatedVaporEnthalpy(cndTemperature);
@@ -569,14 +569,14 @@ namespace Popolo.Core.HVAC.HeatSource
       double aW = solFlowRate / mR;
 
       LithiumBromide lbAo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (cndTemperature + 273.15, evpTemperature + 273.15);
+        (PhysicsConstants.ToKelvin(cndTemperature), PhysicsConstants.ToKelvin(evpTemperature));
       LithiumBromide lbLDo = LithiumBromide.MakeFromVaporTemperatureAndMassFraction
-        (cndTemperature + 273.15, aW / (aW - 1) * lbAo.MassFraction);
+        (PhysicsConstants.ToKelvin(cndTemperature), aW / (aW - 1) * lbAo.MassFraction);
 
       double mSAo = solFlowRate;
       double mSAi = solFlowRate - mR;
       double tDesorb = 0;
-      double tcndK = cndTemperature + 273.15;
+      double tcndK = PhysicsConstants.ToKelvin(cndTemperature);
       Roots.ErrorFunction eFnc = delegate (double rRatio)
       {
         //冷媒・水溶液流量
@@ -595,8 +595,8 @@ namespace Popolo.Core.HVAC.HeatSource
         tDesorb = GetDesorbTemperature(lowDesorborKA, mSLDi, lbLDi2, lbLDo);
 
         //低温再生器の処理熱量1[kW]
-        double hRVHD = Water.GetSaturatedVaporEnthalpy(tDesorb - 273.15);
-        double hRLHD = Water.GetSaturatedLiquidEnthalpy(tDesorb - 273.15);
+        double hRVHD = Water.GetSaturatedVaporEnthalpy(PhysicsConstants.ToCelsius(tDesorb));
+        double hRLHD = Water.GetSaturatedLiquidEnthalpy(PhysicsConstants.ToCelsius(tDesorb));
         double qLD1 = (hRVHD - hRLHD) * mRH;
         //低温再生器の処理熱量2[kW]
         double qLD2 = hRVLDo * mRL + lbLDo.Enthalpy * mSLDo - lbLDi.Enthalpy * mSLDi;
@@ -612,8 +612,8 @@ namespace Popolo.Core.HVAC.HeatSource
       Roots.Newton(eFnc, 0.5, 0.001, 0.0001, 0.0001, 20);
 
       //再生温度と溶液質量分率を出力
-      dsbTemperature = LithiumBromide.GetLiquidTemperatureFromVaporTemperatureAndMassFraction
-        (tDesorb, lbLDo.MassFraction) - 273.15;
+      dsbTemperature = PhysicsConstants.ToCelsius(
+        LithiumBromide.GetLiquidTemperatureFromVaporTemperatureAndMassFraction(tDesorb, lbLDo.MassFraction));
       thinMFraction = lbAo.MassFraction;
       thickMFraction = lbLDo.MassFraction;
 
@@ -717,7 +717,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Specific heat of the solution mixture relative to solution 1 [kJ/(kg·K)].</returns>
     private static double GetSolutionAverageSpecificHeat(LithiumBromide sol1, LithiumBromide sol2)
     {
-      double hw = Water.GetSaturatedVaporEnthalpy(sol1.VaporTemperature - 273.15);
+      double hw = Water.GetSaturatedVaporEnthalpy(PhysicsConstants.ToCelsius(sol1.VaporTemperature));
       double slRate = sol1.MassFraction / sol2.MassFraction;
       double hco = sol2.Enthalpy * slRate + hw * (1 - slRate);
       return (hco - sol1.Enthalpy) / (sol2.LiquidTemperature - sol1.LiquidTemperature);

@@ -35,7 +35,7 @@ namespace Popolo.Core.Building.Envelope
     bool ComputeMoistureTransfer { get; }
 
     /// <summary>Gets the number of nodes in the finite difference model.</summary>
-    int NodeNumber { get; }
+    int NodeCount { get; }
 
     /// <summary>Gets the temperature distribution vector [°C].</summary>
     IVector Temperatures { get; }
@@ -103,14 +103,14 @@ namespace Popolo.Core.Building.Envelope
     IReadOnlyBuriedPipe GetPipe(int node);
 
     /// <summary>Gets the heat transfer rate from the buried pipe at the specified node [W].</summary>
-    /// <param name="mNumber">Node index.</param>
+    /// <param name="mIndex">Node index.</param>
     /// <returns>Heat transfer rate from the pipe [W].</returns>
-    double GetHeatTransferFromPipe(int mNumber);
+    double GetHeatTransferFromPipe(int mIndex);
 
     /// <summary>Gets the outlet water temperature of the buried pipe at the specified node [°C].</summary>
-    /// <param name="mNumber">Node index.</param>
+    /// <param name="mIndex">Node index.</param>
     /// <returns>Outlet water temperature [°C].</returns>
-    double GetOutletWaterTemperature(int mNumber);
+    double GetOutletWaterTemperature(int mIndex);
 
     /// <summary>Gets the wall layer array.</summary>
     IReadOnlyWallLayer[] Layers { get; }

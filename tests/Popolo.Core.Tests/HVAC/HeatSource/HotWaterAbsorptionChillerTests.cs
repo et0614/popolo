@@ -44,7 +44,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
                 12.5, 7.0, ChWM,
                 31.0, 35.0, CdWM,
                 88.0, 83.0, HtWM);
-            c.ChilledWaterOutletSetPointTemperature = 0; // 成り行き運転
+            c.ChilledWaterOutletSetpointTemperature = 0; // 成り行き運転
             return c;
         }
 
@@ -168,11 +168,11 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_LowerCoolingWaterTemp_HigherCOP(double cdHot, double cdCold)
         {
             var cHot = MakeChiller();
-            cHot.ChilledWaterOutletSetPointTemperature = 7.0;
+            cHot.ChilledWaterOutletSetpointTemperature = 7.0;
             cHot.Update(ChWI, ChWM, cdHot, CdWM, HtWI, HtWM);
 
             var cCold = MakeChiller();
-            cCold.ChilledWaterOutletSetPointTemperature = 7.0;
+            cCold.ChilledWaterOutletSetpointTemperature = 7.0;
             cCold.Update(ChWI, ChWM, cdCold, CdWM, HtWI, HtWM);
 
             // 冷却水温度が低いほど COP が高い（または少なくとも冷凍能力が落ちない）

@@ -1,0 +1,26 @@
+# デフォルトは Git に自動判定させる
+* text=auto
+
+# 明示的にテキスト扱いして LF に統一するファイル
+*.cs        text eol=lf
+*.csproj    text eol=lf
+*.sln       text eol=lf eol=crlf
+*.md        text eol=lf
+*.json      text eol=lf
+*.xml       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# バイナリ(触らない)
+*.dll  binary
+*.pdb  binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.zip  binary
+*.xlsx binary
+*.pptx binary
+*.docx binary
+*.pdf  binary

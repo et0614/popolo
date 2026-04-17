@@ -63,7 +63,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double DesignPressure { get; private set; }
 
     /// <summary>Gets the maximum number of stages.</summary>
-    public int MaximumStageNumber { get; private set; }
+    public int MaxStageCount { get; private set; }
 
     /// <summary>Gets or sets the minimum differential pressure [kPa].</summary>
     /// <remarks>Differential pressure of the bypass circuit under full bypass conditions.</remarks>
@@ -77,18 +77,18 @@ namespace Popolo.Core.HVAC.FluidCircuit
     #region コンストラクタ
 
     /// <summary>Static constructor.</summary>
-    /// <param name="numberOfStages">Number of control stages.</param>
+    /// <param name="maxStageCount">Number of control stages.</param>
     /// <param name="designPressure">Design pressure [kPa].</param>
-    public ParallelFluidMachineries(int numberOfStages, double designPressure)
+    public ParallelFluidMachineries(int maxStageCount, double designPressure)
     {
-      if (numberOfStages <= 0) throw new PopoloOutOfRangeException(
-        nameof(numberOfStages), numberOfStages, 1, null);
-      MaximumStageNumber = numberOfStages;
+      if (maxStageCount <= 0) throw new PopoloOutOfRangeException(
+        nameof(maxStageCount), maxStageCount, 1, null);
+      MaxStageCount = maxStageCount;
       RotationRatio = 1.0;
       DesignPressure = designPressure;
       MinimumPressure = 20;
 
-      flds = new List<FluidMachinery>[numberOfStages];
+      flds = new List<FluidMachinery>[maxStageCount];
       for (int i = 0; i < flds.Length; i++) flds[i] = new List<FluidMachinery>();
     }
 
@@ -106,7 +106,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       foreach (FluidMachinery fm in allFlds) fm.ShutOff();
       pressure = Math.Max(MinimumPressure, pressure);
 
-      for (Stage = 1; Stage <= MaximumStageNumber; Stage++)
+      for (Stage = 1; Stage <= MaxStageCount; Stage++)
       {
         VolumetricFlowRate = 0;
         foreach (FluidMachinery fm in flds[Stage - 1])
@@ -134,7 +134,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
           return true;
         }
       }
-      Stage = MaximumStageNumber;
+      Stage = MaxStageCount;
       return false;
     }
 

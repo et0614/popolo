@@ -63,7 +63,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     }
     
     /// <summary>Gets or sets the target flow rate [m³/s].</summary>
-    public double VolumetricFlowRateSetPoint { get; set; }
+    public double VolumetricFlowRateSetpoint { get; set; }
 
     /// <summary>Gets or sets a value indicating whether the valve can be fully closed.</summary>
     public bool IsTotallyClosable { get; set; } = false;
@@ -80,7 +80,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public Regulator(double flowRate, double pressureDrop, double rangeAbility, double linearWeight)
     {
       DesignFlowRate = flowRate;
-      VolumetricFlowRateSetPoint = flowRate;
+      VolumetricFlowRateSetpoint = flowRate;
       minResistance = pressureDrop / (flowRate * flowRate);
       RangeAbility = rangeAbility;
       LinearCharactaristicWeight = linearWeight;
@@ -93,7 +93,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public Regulator(double cvValue, double rangeAbility, double linearWeight)
     {
       DesignFlowRate = cvValue * 6.31e-5;
-      VolumetricFlowRateSetPoint = DesignFlowRate;
+      VolumetricFlowRateSetpoint = DesignFlowRate;
       minResistance = 6.89 / (DesignFlowRate * DesignFlowRate);
       RangeAbility = rangeAbility;
       LinearCharactaristicWeight = linearWeight;
@@ -150,7 +150,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <summary>Adjusts the valve opening based on the current differential pressure [kPa].</summary>
     public void UpdateLift()
     {
-      if (VolumetricFlowRateSetPoint == 0) Lift = 0;
+      if (VolumetricFlowRateSetpoint == 0) Lift = 0;
 
       if (UpStreamNode == null || DownStreamNode == null)
         throw new PopoloInvalidOperationException(
@@ -165,7 +165,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="pressure">Differential pressure [kPa].</param>
     public void UpdateLift(double pressure)
     {
-      double res = pressure / (VolumetricFlowRateSetPoint * VolumetricFlowRateSetPoint);
+      double res = pressure / (VolumetricFlowRateSetpoint * VolumetricFlowRateSetpoint);
       if (res < minResistance) Lift = 1.0;
       else
       {

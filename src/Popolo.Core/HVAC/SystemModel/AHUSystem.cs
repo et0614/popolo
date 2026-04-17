@@ -134,20 +134,20 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <summary>Controls the zone temperature.</summary>
     /// <param name="ahuIndex">AHU index.</param>
     /// <param name="controlZoneIndex">Control zone index.</param>
-    /// <param name="setPointTemperature">Temperature setpoint [°C].</param>
+    /// <param name="setpointTemperature">Temperature setpoint [°C].</param>
     public void ControlZoneTemperature
-      (int ahuIndex, int controlZoneIndex, double setPointTemperature)
+      (int ahuIndex, int controlZoneIndex, double setpointTemperature)
     {
       if (Controllers[ahuIndex].IsCAVControl)
       {
-        Controllers[ahuIndex].SetpointTemperature = setPointTemperature;
+        Controllers[ahuIndex].SetpointTemperature = setpointTemperature;
         Controllers[ahuIndex].IsRATemperatureControl = false;
       }
       else
       {
         VolumeController vc = vlmCtrl[ahuIndex][controlZoneIndex];
         vc.IsShutOff = false;
-        vc.SetPointTemperature = setPointTemperature;
+        vc.SetpointTemperature = setpointTemperature;
       }
     }
 
@@ -159,15 +159,15 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the volume controller (VAV/CAV) at the specified index.</summary>
     /// <param name="ahuIndex">AHU index.</param>
-    /// <param name="vavNumber">VAV index.</param>
+    /// <param name="vavIndex">VAV index.</param>
     /// <returns>Volume controller (VAV/CAV).</returns>
-    public VolumeController GetVolumeController(int ahuIndex, int vavNumber)
-    { return vlmCtrl[ahuIndex][vavNumber]; }
+    public VolumeController GetVolumeController(int ahuIndex, int vavIndex)
+    { return vlmCtrl[ahuIndex][vavIndex]; }
 
-    /// <summary>Gets the number of volume controllers (VAV/CAV).</summary>
+    /// <summary>Gets the total number of volume controllers (VAV/CAV).</summary>
     /// <param name="ahuIndex">AHU index.</param>
-    /// <returns>Number of volume controllers.</returns>
-    public int GetVolumeControllerNumber(int ahuIndex)
+    /// <returns>Total number of volume controllers.</returns>
+    public int GetVolumeControllerCount(int ahuIndex)
     { return vlmCtrl[ahuIndex].Length; }
 
     #endregion
@@ -345,8 +345,8 @@ namespace Popolo.Core.HVAC.SystemModel
           {
             double sp;
             if (Controllers[i].IsCAVControl) sp = Controllers[i].SetpointTemperature;
-            else sp = vc.SetPointTemperature;
-            bModel.ControlDrybulbTemperature(vc.RoomIndex, vc.ZoneIndex, sp);
+            else sp = vc.SetpointTemperature;
+            bModel.ControlDryBulbTemperature(vc.RoomIndex, vc.ZoneIndex, sp);
             bModel.SetSupplyAir(vc.RoomIndex, vc.ZoneIndex, 0, 0, 0); //DEBUG
 
             //加湿系統は潜熱負荷を計算する
@@ -641,7 +641,7 @@ namespace Popolo.Core.HVAC.SystemModel
       public int ZoneIndex { get; internal set; }
 
       /// <summary>Gets the temperature setpoint [°C].</summary>
-      public double SetPointTemperature { get; internal set; }
+      public double SetpointTemperature { get; internal set; }
 
       /// <summary>Gets a value indicating whether the system is shut off.</summary>
       public bool IsShutOff { get; internal set; }

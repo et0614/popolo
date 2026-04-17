@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
     #region インスタンス変数・プロパティ
 
     /// <summary>Gets or sets the target flow rate [m³/s].</summary>
-    public double FlowRateSetPoint { get; set; }
+    public double FlowRateSetpoint { get; set; }
 
     /// <summary>Gets the minimum resistance coefficient [kPa/(m³/s)²].</summary>
     public double MinimumResistance { get; private set; }
@@ -75,13 +75,13 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     /// <summary>Gets the total target flow rate of the circuit [m³/s].</summary>
     /// <returns>Total target flow rate of the circuit [m³/s].</returns>
-    public double GetTotalFlowSetPoint()
-    { return FlowRateSetPoint; }
+    public double GetTotalFlowSetpoint()
+    { return FlowRateSetpoint; }
 
     /// <summary>Gets the required minimum differential pressure [kPa].</summary>
     /// <returns>Required minimum differential pressure [kPa].</returns>
     public double GetMinimumPressure()
-    { return FlowRateSetPoint * FlowRateSetPoint * (MinimumResistance + FixedResistance); }
+    { return FlowRateSetpoint * FlowRateSetpoint * (MinimumResistance + FixedResistance); }
 
     /// <summary>Gets the composite resistance of the entire circuit [kPa/(m³/s)²].</summary>
     /// <returns>Composite resistance of the entire circuit [kPa/(m³/s)²].</returns>
