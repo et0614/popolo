@@ -35,8 +35,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="HVAC\SystemModel\AirHeatSourceModularChillersSystem.cs" />
+	  <Compile Remove="HVAC\SystemModel\MultiConnectedWaterTankSystem.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Folder Include="HVAC\VRF\" />
-	  <Folder Include="HVAC\System\" />
 	</ItemGroup>
 
 </Project>

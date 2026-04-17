@@ -124,7 +124,24 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Gets or sets the surface area correction factor [-].</summary>
     public double CorrectionFactor { get; set; }
 
-    /// <summary>Gets the heat transfer rate [kW].</summary>
+    /// <summary>Gets the heat transfer rate [kW] from the water-side perspective.</summary>
+    /// <remarks>
+    /// Computed as (OutletWaterTemperature - InletWaterTemperature) × WaterFlowRate × cp.
+    /// <list type="bullet">
+    ///   <item>
+    ///     <description>
+    ///       <b>Cooling coil</b>: water is heated by the air → positive value.
+    ///     </description>
+    ///   </item>
+    ///   <item>
+    ///     <description>
+    ///       <b>Heating coil</b>: water is cooled by releasing heat to the air → negative value.
+    ///     </description>
+    ///   </item>
+    /// </list>
+    /// To obtain the magnitude of heating delivered to the air, use
+    /// <c>Math.Abs(HeatTransfer)</c>.
+    /// </remarks>
     public double HeatTransfer
     {
       get
