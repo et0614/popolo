@@ -39,8 +39,4 @@
 	  <Compile Remove="HVAC\SystemModel\MultiConnectedWaterTankSystem.cs" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="HVAC\VRF\" />
-	</ItemGroup>
-
 </Project>

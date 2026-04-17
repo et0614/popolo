@@ -22,8 +22,4 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="HVAC\VRF\" />
-  </ItemGroup>
-
 </Project>
