@@ -99,10 +99,25 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="bottomMargin">Bottom margin [m].</param>
     /// <param name="leftMargin">Left margin [m].</param>
     /// <param name="rightMargin">Right margin [m].</param>
-    internal SunShade(
+    /// <remarks>
+    /// <para>
+    /// <b>This constructor is intended for serialization/deserialization support.</b>
+    /// For normal application code, prefer the shape-specific factory methods
+    /// (<see cref="MakeEmptySunShade"/>, <see cref="MakeHorizontalSunShade(double,double,double,double,double,double,IReadOnlyIncline)"/>,
+    /// <see cref="MakeVerticalSunShade(double,double,double,double,bool,double,double,IReadOnlyIncline)"/>,
+    /// <see cref="MakeGridSunShade"/>, etc.), which express the correct combination
+    /// of shape and margins for each shading configuration.
+    /// </para>
+    /// <para>
+    /// This constructor accepts arbitrary combinations of shape and margins
+    /// without validation; margins that are not meaningful for the specified
+    /// shape are stored but ignored by shadow-area computations.
+    /// </para>
+    /// </remarks>
+    public SunShade(
       Shapes shape, IReadOnlyIncline incline,
-      double winHeight, double winWidth, double overhang, 
-      double topMargin, double bottomMargin, double leftMargin, double rightMargin) 
+      double winHeight, double winWidth, double overhang,
+      double topMargin, double bottomMargin, double leftMargin, double rightMargin)
     {
       Shape = shape;
       Incline = incline;
@@ -123,7 +138,7 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Copy constructor.</summary>
     /// <param name="sShade">The source shading device to copy.</param>
-    public SunShade(SunShade sShade) 
+    public SunShade(SunShade sShade)
     {
       Shape = sShade.Shape;
       Incline = new Incline(sShade.Incline);
@@ -233,7 +248,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="tMargin">Top margin [m].</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing a horizontal overhang.</returns>
-    public static SunShade MakeHorizontalSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeHorizontalSunShade(double wWidth, double wHeight, double depth,
       double lMargin, double rMargin, double tMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeHorizontalSunShade(wWidth, wHeight, depth, tMargin, incline);
@@ -251,7 +266,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="isLeftSide">True for the left side fin; false for the right.</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing an infinite vertical fin.</returns>
-    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth,
       double sMargin, bool isLeftSide, IReadOnlyIncline incline)
     {
       SunShade ss = new SunShade(incline);
@@ -281,7 +296,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="bMargin">Bottom margin [m].</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing a vertical side fin.</returns>
-    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth,
       double sMargin, bool isLeftSide, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, sMargin, isLeftSide, incline);
@@ -300,7 +315,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="rMargin">Right margin [m].</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing infinite fins on both sides.</returns>
-    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth,
       double lMargin, double rMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, lMargin, true, incline);
@@ -319,7 +334,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="bMargin">Bottom margin [m].</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing vertical fins on both sides.</returns>
-    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeVerticalSunShade(double wWidth, double wHeight, double depth,
       double lMargin, double rMargin, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, lMargin, rMargin, incline);
@@ -339,7 +354,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="bMargin">Bottom margin [m].</param>
     /// <param name="incline">Tilted surface.</param>
     /// <returns>A <see cref="SunShade"/> representing a grid louver.</returns>
-    public static SunShade MakeGridSunShade(double wWidth, double wHeight, double depth, 
+    public static SunShade MakeGridSunShade(double wWidth, double wHeight, double depth,
       double lMargin, double rMargin, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = new SunShade(incline);

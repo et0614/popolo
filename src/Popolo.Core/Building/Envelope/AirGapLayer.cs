@@ -26,6 +26,10 @@ namespace Popolo.Core.Building.Envelope
   public class AirGapLayer : WallLayer
   {
 
+    /// <summary>Gets the discriminator identifying this layer as an air gap.</summary>
+    /// <remarks>Returns <c>"airGapLayer"</c>, overriding the base class value.</remarks>
+    public override string Kind => "airGapLayer";
+
     /// <summary>Gets a value indicating whether the air gap is sealed (still air).</summary>
     public bool IsSealed { get; private set; }
 

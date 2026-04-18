@@ -220,6 +220,10 @@ namespace Popolo.Core.Building.Envelope
 
     #region プロパティ
 
+    /// <summary>Gets the discriminator identifying the concrete layer type.
+    /// Returns <c>"wallLayer"</c> for the base class; subtypes override this.</summary>
+    public virtual string Kind => "wallLayer";
+
     /// <summary>Gets or sets the name of the layer.</summary>
     public string Name { get; set; } = "";
 

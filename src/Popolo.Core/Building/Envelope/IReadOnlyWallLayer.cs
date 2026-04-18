@@ -25,6 +25,18 @@ namespace Popolo.Core.Building.Envelope
 
     #region プロパティ
 
+    /// <summary>Gets the discriminator identifying the concrete layer type.
+    /// Used by serializers to distinguish subtypes without reflection.</summary>
+    /// <remarks>
+    /// Expected values:
+    /// <list type="bullet">
+    ///   <item><description><c>"wallLayer"</c> — solid layer with thermal/moisture properties.</description></item>
+    ///   <item><description><c>"airGapLayer"</c> — air gap with fixed thermal resistance.</description></item>
+    /// </list>
+    /// Subtypes should override this property to return their own discriminator.
+    /// </remarks>
+    string Kind { get; }
+
     /// <summary>Gets or sets the name of the layer.</summary>
     string Name { get; }
 

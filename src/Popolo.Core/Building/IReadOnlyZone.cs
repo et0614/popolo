@@ -114,6 +114,8 @@ namespace Popolo.Core.Building
     /// <summary>Gets all windows facing this zone.</summary>
     /// <returns>Array of read-only window instances.</returns>
     IReadOnlyWindow[] GetWindows();
+    /// <summary>Gets references to all walls facing this zone (wall ID + side flag).</summary>
+    WallSurfaceReference[] GetWallReferences();
 
     /// <summary>Gets the sensible heat input from supply air [W].</summary>
     /// <returns>Supply air sensible heat [W].</returns>

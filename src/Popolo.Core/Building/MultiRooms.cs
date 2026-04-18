@@ -1472,6 +1472,65 @@ namespace Popolo.Core.Building
     public void UseAdjacentSpaceFactor(IReadOnlyWall wall, bool isSideF, double adjacentSpaceFactor)
     { UseAdjacentSpaceFactor(Array.IndexOf(walls, wall), isSideF, adjacentSpaceFactor); }
 
+    /// <summary>Gets references to all outside (outdoor-facing) wall surfaces.</summary>
+    /// <returns>Array of outside-wall references (wall ID, side flag, outdoor incline).</returns>
+    /// <remarks>
+    /// Outside walls are those added via <see cref="SetOutsideWall(int,bool,IReadOnlyIncline)"/>.
+    /// Primarily used by serialization and debug tooling.
+    /// </remarks>
+    public OutsideWallReference[] GetOutsideWallReferences()
+    {
+      List<OutsideWallReference> result = new List<OutsideWallReference>();
+      foreach (BoundarySurface ws in bndSurfaces)
+      {
+        if (!ws.IsWall) continue;
+        if (ws.IsGroundWall) continue;
+        if (ws.AdjacentSpaceFactor >= 0) continue;
+        if (ws.Incline is null) continue; // 予防的チェック
+        result.Add(new OutsideWallReference(ws.Wall.ID, ws.isSideF, ws.Incline));
+      }
+      return result.ToArray();
+    }
+
+    /// <summary>Gets references to all ground-contact wall surfaces.</summary>
+    /// <returns>Array of ground-wall references (wall ID, side flag, conductance).</returns>
+    /// <remarks>
+    /// Ground walls are those added via <see cref="SetGroundWall(int,bool,double)"/>.
+    /// The returned <see cref="GroundWallReference.Conductance"/> is the
+    /// soil-to-wall conductance originally passed to <c>SetGroundWall</c>.
+    /// </remarks>
+    public GroundWallReference[] GetGroundWallReferences()
+    {
+      List<GroundWallReference> result = new List<GroundWallReference>();
+      foreach (BoundarySurface ws in bndSurfaces)
+      {
+        if (!ws.IsWall) continue;
+        if (!ws.IsGroundWall) continue;
+        // SetGroundWall は ConvectiveCoefficient に conductance を入れる
+        result.Add(new GroundWallReference(ws.Wall.ID, ws.isSideF, ws.ConvectiveCoefficient));
+      }
+      return result.ToArray();
+    }
+
+    /// <summary>Gets references to all adjacent-space wall surfaces.</summary>
+    /// <returns>Array of adjacent-space wall references (wall ID, side flag, temperature-difference factor).</returns>
+    /// <remarks>
+    /// Adjacent-space walls are those added via <see cref="UseAdjacentSpaceFactor(int,bool,double)"/>.
+    /// They are neither outside walls nor ground walls.
+    /// </remarks>
+    public AdjacentSpaceWallReference[] GetAdjacentSpaceWallReferences()
+    {
+      List<AdjacentSpaceWallReference> result = new List<AdjacentSpaceWallReference>();
+      foreach (BoundarySurface ws in bndSurfaces)
+      {
+        if (!ws.IsWall) continue;
+        if (ws.IsGroundWall) continue;
+        if (ws.AdjacentSpaceFactor < 0) continue;
+        result.Add(new AdjacentSpaceWallReference(ws.Wall.ID, ws.isSideF, ws.AdjacentSpaceFactor));
+      }
+      return result.ToArray();
+    }
+
     /// <summary>Adds a window to the specified zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
     /// <param name="windowIndex">Window index.</param>

@@ -295,6 +295,22 @@ namespace Popolo.Core.Building
       return wins.ToArray();
     }
 
+    /// <summary>Gets references to all walls facing this zone.</summary>
+    /// <returns>Array of wall references (wall ID + side flag), in the order they were attached.</returns>
+    /// <remarks>
+    /// Each reference carries the wall's <see cref="Wall.ID"/> and a flag indicating
+    /// whether this zone faces the F side (true) or B side (false) of the wall.
+    /// Primarily used by serialization and debug tooling; consumers can resolve the
+    /// referenced walls against a wall collection by matching <see cref="WallSurfaceReference.WallId"/>.
+    /// </remarks>
+    public WallSurfaceReference[] GetWallReferences()
+    {
+      List<WallSurfaceReference> refs = new List<WallSurfaceReference>();
+      foreach (BoundarySurface wsf in Surfaces)
+        if (wsf.IsWall) refs.Add(new WallSurfaceReference(wsf.Wall.ID, wsf.isSideF));
+      return refs.ToArray();
+    }
+
     /// <summary>Gets the sensible heat input from supply air [W].</summary>
     /// <returns>Supply air sensible heat [W].</returns>
     public double GetSupplyAirHeat()

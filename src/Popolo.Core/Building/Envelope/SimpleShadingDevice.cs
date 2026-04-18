@@ -93,13 +93,16 @@ namespace Popolo.Core.Building.Envelope
           Transmittance = 0.00; Reflectance = 0.10;
           break;
         default:
-          throw new Exceptions.PopoloArgumentException("Shading device type is not defined.", "device");
+          throw new Exceptions.PopoloArgumentException("Shading device type is not defined.", nameof(device));
       }
     }
 
     #endregion
 
     #region プロパティ
+
+    /// <summary>Gets the discriminator; always <c>"simpleShadingDevice"</c>.</summary>
+    public string Kind => "simpleShadingDevice";
 
     /// <summary>Gets the normal-incidence transmittance [-].</summary>
     public double Transmittance { get; private set; }

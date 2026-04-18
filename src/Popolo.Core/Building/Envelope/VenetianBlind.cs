@@ -78,6 +78,9 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Slat angle [radian].</summary>
     private double sAngle;
 
+    /// <summary>Gets the discriminator; always <c>"venetianBlind"</c>.</summary>
+    public string Kind => "venetianBlind";
+
     /// <summary>Gets the slat width [mm].</summary>
     public double SlatWidth { get; private set; }
 

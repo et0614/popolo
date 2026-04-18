@@ -25,6 +25,21 @@ namespace Popolo.Core.Building.Envelope
   public interface IShadingDevice
   {
     /// <summary>
+    /// Gets the discriminator identifying the concrete shading device type.
+    /// Used by serializers to distinguish implementations without reflection.
+    /// </summary>
+    /// <remarks>
+    /// Expected values:
+    /// <list type="bullet">
+    ///   <item><description><c>"noShadingDevice"</c> — null-object (no shading).</description></item>
+    ///   <item><description><c>"simpleShadingDevice"</c> — simple constant transmittance/reflectance.</description></item>
+    ///   <item><description><c>"venetianBlind"</c> — venetian blind with adjustable slat angle.</description></item>
+    /// </list>
+    /// Implementations should return their own discriminator.
+    /// </remarks>
+    string Kind { get; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the shading device is deployed (pulled down).
     /// </summary>
     bool Pulldowned { get; set; }
@@ -62,6 +77,9 @@ namespace Popolo.Core.Building.Envelope
   /// </summary>
   public class NoShadingDevice : IShadingDevice
   {
+    /// <summary>Gets the discriminator; always <c>"noShadingDevice"</c>.</summary>
+    public string Kind => "noShadingDevice";
+
     /// <summary>
     /// Gets or sets a value indicating whether the device is deployed.
     /// Always false for <see cref="NoShadingDevice"/>.
