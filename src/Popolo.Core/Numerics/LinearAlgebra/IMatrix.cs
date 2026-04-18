@@ -22,7 +22,7 @@ using System;
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>行列インターフェース</summary>
-  public interface IMatrix : ImmutableIMatrix
+  public interface IMatrix : IReadOnlyMatrix
   {
     /// <summary>要素の値を設定・取得する</summary>
     /// <param name="row">行番号</param>
@@ -36,7 +36,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   }
 
   /// <summary>読み取り専用行列インターフェース</summary>
-  public interface ImmutableIMatrix
+  public interface IReadOnlyMatrix
   {
     /// <summary>行数を取得する</summary>
     int Rows { get; }

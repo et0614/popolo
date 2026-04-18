@@ -20,7 +20,7 @@
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>ベクトルインターフェース</summary>
-  public interface IVector : ImmutableIVector
+  public interface IVector : IReadOnlyVector
   {
     /// <summary>要素の値を設定・取得する</summary>
     /// <param name="index">要素番号</param>
@@ -33,7 +33,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   }
 
   /// <summary>読み取り専用ベクトルインターフェース</summary>
-  public interface ImmutableIVector
+  public interface IReadOnlyVector
   {
     /// <summary>ベクトル長を取得する</summary>
     int Length { get; }

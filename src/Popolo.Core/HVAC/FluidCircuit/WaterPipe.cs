@@ -452,9 +452,4 @@ namespace Popolo.Core.HVAC.FluidCircuit
     #endregion
 
   }
-
-  #region Immutable Interface
-
-  #endregion
-
 }

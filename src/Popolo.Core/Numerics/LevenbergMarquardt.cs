@@ -150,10 +150,10 @@ namespace Popolo.Core.Numerics
     }
 
     /// <summary>出力ベクトルを取得する</summary>
-    public ImmutableIVector Outputs { get { return outputs; } }
+    public IReadOnlyVector Outputs { get { return outputs; } }
 
     /// <summary>入力ベクトルを取得する</summary>
-    public ImmutableIVector? Inputs { get { return inputs; } }
+    public IReadOnlyVector? Inputs { get { return inputs; } }
 
     /// <summary>最大反復回数を設定・取得する</summary>
     public uint MaxIteration { get; set; }
