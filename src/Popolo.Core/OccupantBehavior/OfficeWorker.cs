@@ -81,9 +81,6 @@ namespace Popolo.Core.OccupantBehavior
       /// <summary>Lunch break end time model parameters.</summary>
       private static readonly double[] lncEdMdl = new double[] { -5.661, 74.93, 0.686, 0.905 };
 
-      //// <summary>Transition probability from in-office to in-office state.</summary>
-      //private static readonly double[] tProbII = new double[] { 0.973, 0.979, 0.986, 0.952, 0.960, 0.991, 0.964, 0.973, 0.989, 0.976 };
-
       /// <summary>Transition probability from out-of-office to out-of-office state.</summary>
       private static readonly double[] tProbOO = new double[] { 0.880, 0.773, 0.850, 0.765, 0.816, 0.905, 0.556, 0.417, 0.556, 0.710 };
 

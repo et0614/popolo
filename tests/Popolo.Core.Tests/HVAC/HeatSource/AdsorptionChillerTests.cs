@@ -157,12 +157,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     public void Update_DifferentCyclingTimeRate_CoolingLoadChanges()
     {
       var c1 = MakeChiller();
-      c1.CyclingTimeRate = 1.0;
+      c1.CyclingTimeRatio = 1.0;
       c1.Update(TChi, MChW, TCdi, MCdW, THi, MHW);
       double q1 = c1.CoolingLoad;
 
       var c2 = MakeChiller();
-      c2.CyclingTimeRate = 2.0;
+      c2.CyclingTimeRatio = 2.0;
       c2.Update(TChi, MChW, TCdi, MCdW, THi, MHW);
       double q2 = c2.CoolingLoad;
 

@@ -342,11 +342,11 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the convective fraction of the combined heat transfer coefficient [-].</summary>
-    public double ConvectiveRate
+    public double ConvectiveFraction
     { get { return ConvectiveCoefficient / FilmCoefficient; } }
 
     /// <summary>Gets the radiative fraction of the combined heat transfer coefficient [-].</summary>
-    public double RadiativeRate { get { return 1 - ConvectiveRate; } }
+    public double RadiativeFraction { get { return 1 - ConvectiveFraction; } }
 
     /// <summary>Gets or sets the direct solar irradiance on this surface [W/m²].</summary>
     public double DirectSolarIrradiance { get; set; }

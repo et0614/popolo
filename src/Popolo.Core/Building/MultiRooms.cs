@@ -388,7 +388,7 @@ namespace Popolo.Core.Building
                 }
                 else
                 {
-                  double bf = ws1.RadiativeRate * gMatL[s1, s2];
+                  double bf = ws1.RadiativeFraction * gMatL[s1, s2];
                   matA[s1, s2] += -ws1.FFS2 * bf;
                   if (SolveMoistureTransferSimultaneously) matA[s1 + nS, s2] += -ws1.FFS3 * bf;
                 }
@@ -405,7 +405,7 @@ namespace Popolo.Core.Building
                   int s2 = wsIndex[rvRm][m][n];
                   if (ws1R.Index != s2)
                   {
-                    double bf = ws1R.RadiativeRate * gMatL[ws1R.Index, s2];
+                    double bf = ws1R.RadiativeFraction * gMatL[ws1R.Index, s2];
                     matA[s1, s2] += -ws1.BFS2 * bf;
                     if (SolveMoistureTransferSimultaneously) matA[s1 + nS, s2] += -ws1.BFS3 * bf;
                   }
@@ -419,21 +419,21 @@ namespace Popolo.Core.Building
               int nQ = ZoneCount;
               if (rZones[i][j] == q)
               {
-                matB[s1, q] += ws1.FFS2 * ws1.ConvectiveRate;
+                matB[s1, q] += ws1.FFS2 * ws1.ConvectiveFraction;
                 if (SolveMoistureTransferSimultaneously)
                 {
                   matB[s1, q + nQ] += ws1.FFL2;
-                  matB[s1 + nS, q] += ws1.FFS3 * ws1.ConvectiveRate;
+                  matB[s1 + nS, q] += ws1.FFS3 * ws1.ConvectiveFraction;
                   matB[s1 + nS, q + nQ] += ws1.FFL3;
                 }
               }
               if (ws1R.ZoneIndex == q && !isSFboundary[s1])
               {
-                matB[s1, q] += ws1.BFS2 * ws1R.ConvectiveRate;
+                matB[s1, q] += ws1.BFS2 * ws1R.ConvectiveFraction;
                 if (SolveMoistureTransferSimultaneously)
                 {
                   matB[s1, q + nQ] += ws1.BFL2;
-                  matB[s1 + nS, q] += ws1.BFS3 * ws1R.ConvectiveRate;
+                  matB[s1 + nS, q] += ws1.BFS3 * ws1R.ConvectiveFraction;
                   matB[s1 + nS, q + nQ] += ws1.BFL3;
                 }
               }

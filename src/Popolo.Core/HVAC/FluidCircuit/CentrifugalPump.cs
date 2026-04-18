@@ -48,7 +48,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       /// <summary>Constant discharge pressure control (inverter).</summary>
       ConstantPressureWithInverter,
       /// <summary>Minimum discharge pressure control.</summary>
-      MinimumPressure
+      MinPressure
     }
 
     #endregion
@@ -120,9 +120,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
       {
         updateWithFlowRateAndPressure(flowRate, PressureSetpoint);
         //最小回転数比[-]未満の場合は最小回転数にしてバイパス流量を計算
-        if (RotationRatio < MinimumRotationRatio)
+        if (RotationRatio < MinRotationRatio)
         {
-          updateWithRotationRatioAndPressure(MinimumRotationRatio, PressureSetpoint);
+          updateWithRotationRatioAndPressure(MinRotationRatio, PressureSetpoint);
           BypassFlowRate = VolumetricFlowRate - flowRate;
         }
       }
@@ -132,9 +132,9 @@ namespace Popolo.Core.HVAC.FluidCircuit
         double ps = flowRate * flowRate * resistanceCoefficient + ActualHead;
         updateWithFlowRateAndPressure(flowRate, ps);
         //最小回転数比[-]未満の場合は最小回転数にしてバイパス流量を計算
-        if (RotationRatio < MinimumRotationRatio)
+        if (RotationRatio < MinRotationRatio)
         {
-          updateWithResistanceAndRotationRatio(MinimumRotationRatio);
+          updateWithResistanceAndRotationRatio(MinRotationRatio);
           BypassFlowRate = VolumetricFlowRate - flowRate;
         }
       }
@@ -145,7 +145,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public void UpdateStateWithRotationRatio(double rotationRatio)
     {
       updateWithResistanceAndRotationRatio
-        (Math.Min(1, Math.Max(MinimumRotationRatio, rotationRatio)));
+        (Math.Min(1, Math.Max(MinRotationRatio, rotationRatio)));
     }
 
     /// <summary>Shuts off the machine.</summary>

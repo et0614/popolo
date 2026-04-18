@@ -102,7 +102,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.MaximizeEfficiency = true;
-            hp.MinimumPartialLoadRate = 0.2;
+            hp.MinimumPartialLoadRatio = 0.2;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.True(hp.CoolingLoad > 0,
                 $"CoolingLoad={hp.CoolingLoad:F2} kW > 0");
@@ -173,7 +173,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
             hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.MaximizeEfficiency = true;
-            hp.MinimumPartialLoadRate = 0.2;
+            hp.MinimumPartialLoadRatio = 0.2;
             hp.Update(HeatingInletTemp(1.0), Mw, HeatingAirT);
             Assert.True(hp.HeatingLoad > 0,
                 $"HeatingLoad={hp.HeatingLoad:F2} kW > 0");

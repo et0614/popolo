@@ -81,7 +81,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public bool ControlCoolingWaterFlowRate { get; set; }
 
     /// <summary>Gets or sets the minimum cooling water flow rate ratio [-].</summary>
-    public double MinimumCoolingWaterFlowRatio { get; set; } = 0.5;
+    public double MinCoolingWaterFlowRatio { get; set; } = 0.5;
 
     /// <summary>Gets or sets the cooling water temperature setpoint [°C].</summary>
     public double CoolingWaterTemperatureSetpoint { get; set; } = 32;
@@ -238,7 +238,7 @@ namespace Popolo.Core.HVAC.SystemModel
         double pLoad = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow * (ChilledWaterReturnTemperature - ChilledWaterSupplyTemperatureSetpoint) / chiller.NominalCoolingCapacity;
         double cdwFlow;
         if (ControlCoolingWaterFlowRate) cdwFlow = cTower.WaterFlowRate 
-            = cTower.MaxWaterFlowRate * Math.Max(pLoad, MinimumCoolingWaterFlowRatio);  //2017.12.15 BugFix
+            = cTower.MaxWaterFlowRate * Math.Max(pLoad, MinCoolingWaterFlowRatio);  //2017.12.15 BugFix
         else cdwFlow = cTower.WaterFlowRate = cTower.MaxWaterFlowRate; //2017.12.15 BugFix
         if (!OperateCoolingTowerOneOnOne) cdwFlow /= ChillerCount;
 

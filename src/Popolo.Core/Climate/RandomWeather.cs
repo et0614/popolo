@@ -81,7 +81,7 @@ namespace Popolo.Core.Climate
       _accHR, _bccHR, _acCLD, _bcCLD, _acFAR, _bcFAR;
 
     /// <summary>Minimum relative humidity [%].</summary>
-    private double _minimumRelativeHumidity = 10;
+    private double _minRelativeHumidity = 10;
 
     /// <summary>Pseudo-random number generator (Mersenne Twister).</summary>
     private MersenneTwister _rnd;
@@ -626,7 +626,7 @@ namespace Popolo.Core.Climate
             (dryBulbTemperature[ch], PhysicsConstants.StandardAtmosphericPressure) * 1000 - humidityRatio[ch];
           double hrtMin =
             MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-            (dryBulbTemperature[ch], _minimumRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure) * 1000;
+            (dryBulbTemperature[ch], _minRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure) * 1000;
           hrtMin -= humidityRatio[ch];
           ihrt[2] = (Math.Max(Math.Min(ihrt[2] * caHRSIG[yHour], hrtMax), hrtMin));
           ihrt[2] /= caHRSIG[yHour];
@@ -799,7 +799,7 @@ namespace Popolo.Core.Climate
           bcFAR_Osaka.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Osaka;
+          _minRelativeHumidity = minimumRelativeHumidity_Osaka;
           break;
         case Location.Sapporo:
           _sun = new Sun(43, 3.5, 0, 141, 19.9, 0, 135, 0, 0);
@@ -850,7 +850,7 @@ namespace Popolo.Core.Climate
           bcFAR_Sapporo.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Sapporo;
+          _minRelativeHumidity = minimumRelativeHumidity_Sapporo;
           break;
         case Location.Sendai:
           _sun = new Sun(38, 15.5, 0, 140, 54.0, 0, 135, 0, 0);
@@ -901,7 +901,7 @@ namespace Popolo.Core.Climate
           bcFAR_Sendai.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Sendai;
+          _minRelativeHumidity = minimumRelativeHumidity_Sendai;
           break;
         case Location.Fukuoka:
           _sun = new Sun(33, 34.8, 0, 130, 22.6, 0, 135, 0, 0);
@@ -952,7 +952,7 @@ namespace Popolo.Core.Climate
           bcFAR_Fukuoka.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Fukuoka;
+          _minRelativeHumidity = minimumRelativeHumidity_Fukuoka;
           break;
         case Location.Naha:
           _sun = new Sun(26, 12.2, 0, 127, 41.3, 0, 135, 0, 0);
@@ -1003,7 +1003,7 @@ namespace Popolo.Core.Climate
           bcFAR_Naha.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Naha;
+          _minRelativeHumidity = minimumRelativeHumidity_Naha;
           break;
         default://東京
           _sun = new Sun(35, 41.2, 0, 139, 45.9, 0, 135, 0, 0);
@@ -1054,7 +1054,7 @@ namespace Popolo.Core.Climate
           bcFAR_Tokyo.CopyTo(_bcFAR, 0);
 
           //最小相対湿度
-          _minimumRelativeHumidity = minimumRelativeHumidity_Tokyo;
+          _minRelativeHumidity = minimumRelativeHumidity_Tokyo;
           break;
       }
     }

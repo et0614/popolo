@@ -179,33 +179,33 @@ namespace Popolo.Core.Numerics
 
     /// <summary>コンストラクタ</summary>
     /// <param name="eFnc">誤差関数</param>
-    /// <param name="numberOfFunctions">誤差関数の式の数</param>
-    /// <param name="numberOfVariables">変数の数</param>
+    /// <param name="functionCount">誤差関数の式の数</param>
+    /// <param name="variableCount">変数の数</param>
     public LevenbergMarquardt
-      (ErrorFunction eFnc, int numberOfFunctions, int numberOfVariables)
+      (ErrorFunction eFnc, int functionCount, int variableCount)
     {
-      if (numberOfFunctions < numberOfVariables)
+      if (functionCount < variableCount)
         throw new PopoloArgumentException(
-          $"numberOfFunctions ({numberOfFunctions}) must be greater than or equal to numberOfVariables ({numberOfVariables}).",
-          nameof(numberOfFunctions));
+          $"functionCount ({functionCount}) must be greater than or equal to variableCount ({variableCount}).",
+          nameof(functionCount));
 
       this.eFnc = eFnc;
       epsfcn = gtol = ftol = xtol = 1e-6;
-      this.maxfev = numberOfFunctions * 10000;
-      this.FunctionCount = numberOfFunctions;
-      this.VariableCount = numberOfVariables;
+      this.maxfev = functionCount * 10000;
+      this.FunctionCount = functionCount;
+      this.VariableCount = variableCount;
       this.MaxIteration = 1000;
 
       //計算に備えて計算領域を確保
-      outputs = new Vector(numberOfFunctions);
-      wa1 = new Vector(numberOfVariables);
-      wa2 = new Vector(numberOfVariables);
-      wa3 = new Vector(numberOfVariables);
-      wa4 = new Vector(numberOfFunctions);
-      diag = new Vector(numberOfVariables);
-      qtf = new Vector(numberOfVariables);
-      ipvt = new int[numberOfVariables];
-      fjac = new Matrix(numberOfFunctions, numberOfVariables);
+      outputs = new Vector(functionCount);
+      wa1 = new Vector(variableCount);
+      wa2 = new Vector(variableCount);
+      wa3 = new Vector(variableCount);
+      wa4 = new Vector(functionCount);
+      diag = new Vector(variableCount);
+      qtf = new Vector(variableCount);
+      ipvt = new int[variableCount];
+      fjac = new Matrix(functionCount, variableCount);
     }
 
     /// <summary>評価関数最小二乗和を最小化する入力ベクトルを求める</summary>

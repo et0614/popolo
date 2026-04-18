@@ -70,7 +70,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     double WaterConsumption { get; }
 
     /// <summary>Gets the minimum inverter rotation ratio [-].</summary>
-    double MinimumRotationRatio { get; }
+    double MinRotationRatio { get; }
 
     /// <summary>Gets the current inverter rotation ratio [-].</summary>
     double RotationRatio { get; }

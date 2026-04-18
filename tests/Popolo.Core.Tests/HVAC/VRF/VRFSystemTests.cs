@@ -376,7 +376,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
                 vrf.SetIndoorUnitInletAirState(i, 25, 0.010);
             }
             vrf.UpdateState(false); // 成り行き計算
-            Assert.InRange(vrf.PartialLoadRate, 0.0, 1.0);
+            Assert.InRange(vrf.PartialLoadRatio, 0.0, 1.0);
         }
 
         #endregion

@@ -32,13 +32,13 @@ namespace Popolo.Core.HVAC.HeatSource
 
 
     /// <summary>Minimum variable flow ratio for chilled/hot water [-].</summary>
-    private const double MINIMUM_WATERFLOW_RATIO = 0.5;
+    private const double MIN_WATERFLOW_RATIO = 0.5;
 
     /// <summary>Minimum variable flow ratio for solution [-].</summary>
-    private const double MINIMUM_SOLUTIONFLOW_RATIO = 0.5;
+    private const double MIN_SOLUTIONFLOW_RATIO = 0.5;
 
     /// <summary>Minimum partial load ratio [-].</summary>
-    private const double MINIMUM_PARTIALLOAD = 0.2;
+    private const double MIN_PARTIALLOAD = 0.2;
 
     /// <summary>Ambient temperature and combustion air temperature [°C].</summary>
     private const double AMB_TEMP = 25;
@@ -221,12 +221,12 @@ namespace Popolo.Core.HVAC.HeatSource
       this.CoolingWaterOutletTemperature = coolingWaterOutletTemperature;
       this.CoolingWaterFlowRate = coolingWaterFlowRate;
       this.WaterFlowRate = chilledWaterFlowRate;
-      this.MinCoolingWaterFlowRate = coolingWaterFlowRate * MINIMUM_WATERFLOW_RATIO;
+      this.MinCoolingWaterFlowRate = coolingWaterFlowRate * MIN_WATERFLOW_RATIO;
       this.MaxCoolingWaterFlowRate = coolingWaterFlowRate;
       this.MaxChilledWaterFlowRate = chilledWaterFlowRate;
       this.MaxHotWaterFlowRate = hotWaterFlowRate;
-      this.MinChilledWaterFlowRate = chilledWaterFlowRate * MINIMUM_WATERFLOW_RATIO;
-      this.MinHotWaterFlowRate = hotWaterFlowRate * MINIMUM_WATERFLOW_RATIO;
+      this.MinChilledWaterFlowRate = chilledWaterFlowRate * MIN_WATERFLOW_RATIO;
+      this.MinHotWaterFlowRate = hotWaterFlowRate * MIN_WATERFLOW_RATIO;
       this.NominalCoolingCapacity = chilledWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat
         * (chilledWaterInletTemperature - chilledWaterOutletTemperature);
       this.NominalHeatingCapacity = hotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat
@@ -281,7 +281,7 @@ namespace Popolo.Core.HVAC.HeatSource
         double pl = (InletWaterTemperature - OutletWaterSetpointTemperature)
           * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate / NominalCoolingCapacity;
         double ti = (InletWaterTemperature - OutletWaterSetpointTemperature)
-          / Math.Min(1, pl / MINIMUM_PARTIALLOAD) + OutletWaterSetpointTemperature;
+          / Math.Min(1, pl / MIN_PARTIALLOAD) + OutletWaterSetpointTemperature;
 
         double dsbH = 0;
         double tcdo, tdsb, tevp, tcnd, wtn, wtk;
@@ -311,7 +311,7 @@ namespace Popolo.Core.HVAC.HeatSource
               out tcdo, out tdsb, out tevp, out tcnd, out wtn, out wtk);
               return dsbH;
             };
-            double sf = solutionFlowRate * MINIMUM_SOLUTIONFLOW_RATIO;
+            double sf = solutionFlowRate * MIN_SOLUTIONFLOW_RATIO;
             Minimization.GoldenSection(ref sf, solutionFlowRate, mFnc);
           }
           else

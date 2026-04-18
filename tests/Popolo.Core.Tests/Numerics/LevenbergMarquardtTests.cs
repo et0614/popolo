@@ -39,8 +39,8 @@ namespace Popolo.Core.Tests.Numerics
 
       var ex = Assert.Throws<PopoloArgumentException>(
           () => new LevenbergMarquardt(eFnc,
-              numberOfFunctions: 1,
-              numberOfVariables: 2));
+              functionCount: 1,
+              variableCount: 2));
       Assert.Equal("numberOfFunctions", ex.ParamName);
     }
 
@@ -52,8 +52,8 @@ namespace Popolo.Core.Tests.Numerics
           (IVector inputs, ref IVector outputs) => { };
 
       var lm = new LevenbergMarquardt(eFnc,
-          numberOfFunctions: 2,
-          numberOfVariables: 2);
+          functionCount: 2,
+          variableCount: 2);
 
       Assert.Equal(2, lm.FunctionCount);
       Assert.Equal(2, lm.VariableCount);
@@ -80,8 +80,8 @@ namespace Popolo.Core.Tests.Numerics
           };
 
       var lm = new LevenbergMarquardt(eFnc,
-          numberOfFunctions: 3,
-          numberOfVariables: 2);
+          functionCount: 3,
+          variableCount: 2);
 
       IVector x = new Vector(new double[] { 1.0, 1.0 });
       lm.Minimize(ref x);
@@ -110,8 +110,8 @@ namespace Popolo.Core.Tests.Numerics
           };
 
       var lm = new LevenbergMarquardt(eFnc,
-          numberOfFunctions: 2,
-          numberOfVariables: 2);
+          functionCount: 2,
+          variableCount: 2);
 
       IVector x = new Vector(new double[] { 1.2, 1.3 });
       lm.Minimize(ref x);

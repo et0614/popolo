@@ -87,10 +87,10 @@ namespace Popolo.Core.HVAC.VRF
     double NominalFanElectricity_H { get; }
 
     /// <summary>Gets the current fan operating rate [-].</summary>
-    double FanOperatingRate { get; }
+    double FanOperatingRatio { get; }
 
     /// <summary>Gets the thermo-off time ratio [-].</summary>
-    double ThermoOffRate { get; }
+    double ThermoOffTimeRatio { get; }
 
     /// <summary>Gets the current fan electric power [kW].</summary>
     double FanElectricity { get; }

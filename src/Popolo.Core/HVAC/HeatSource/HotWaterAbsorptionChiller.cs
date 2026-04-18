@@ -51,13 +51,13 @@ namespace Popolo.Core.HVAC.HeatSource
     private double solutionHexKA;
 
     /// <summary>Minimum chilled water flow rate ratio [-].</summary>
-    private double chilledWaterMinimumFlowRatio = 0.4;
+    private double chilledWaterMinFlowRatio = 0.4;
 
     /// <summary>Minimum cooling water flow rate ratio [-].</summary>
-    private double coolingWaterMinimumFlowRatio = 0.4;
+    private double coolingWaterMinFlowRatio = 0.4;
 
     /// <summary>Minimum hot water flow rate ratio [-].</summary>
-    private double hotWaterMinimumFlowRatio = 0.4;
+    private double hotWaterMinFlowRatio = 0.4;
 
     /// <summary>Nominal solution (refrigerant) flow rate [kg/s].</summary>
     private double nominalSolutionFlowRate;
@@ -108,24 +108,24 @@ namespace Popolo.Core.HVAC.HeatSource
     public double NominalCapacity { get; private set; }
 
     /// <summary>Gets or sets the minimum chilled water flow rate ratio [-].</summary>
-    public double ChilledWaterMinimumFlowRatio
+    public double ChilledWaterMinFlowRatio
     {
-      get { return chilledWaterMinimumFlowRatio; }
-      private set { chilledWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return chilledWaterMinFlowRatio; }
+      private set { chilledWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum cooling water flow rate ratio [-].</summary>
-    public double CoolingWaterMinimumFlowRatio
+    public double CoolingWaterMinFlowRatio
     {
-      get { return coolingWaterMinimumFlowRatio; }
-      private set { coolingWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return coolingWaterMinFlowRatio; }
+      private set { coolingWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum hot water flow rate ratio [-].</summary>
-    public double HotWaterMinimumFlowRatio
+    public double HotWaterMinFlowRatio
     {
-      get { return hotWaterMinimumFlowRatio; }
-      private set { hotWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return hotWaterMinFlowRatio; }
+      private set { hotWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets the current cooling load [kW].</summary>
@@ -208,12 +208,12 @@ namespace Popolo.Core.HVAC.HeatSource
       this.HotWaterInletTemperature = hotWaterInletTemperature;
       double rch = chilledWaterFlowRate / NominalChilledWaterFlowRate;
       this.ChilledWaterFlowRate =
-        Math.Max(ChilledWaterMinimumFlowRatio, Math.Min(1, rch)) * NominalChilledWaterFlowRate;
+        Math.Max(ChilledWaterMinFlowRatio, Math.Min(1, rch)) * NominalChilledWaterFlowRate;
       double rcd = coolingWaterFlowRate / NominalCoolingWaterFlowRate;
       this.CoolingWaterFlowRate =
-        Math.Max(CoolingWaterMinimumFlowRatio, Math.Min(1, rcd)) * NominalCoolingWaterFlowRate;
+        Math.Max(CoolingWaterMinFlowRatio, Math.Min(1, rcd)) * NominalCoolingWaterFlowRate;
       double rht = hotWaterFlowRate / NominalHotWaterFlowRate;
-      this.HotWaterFlowRate = Math.Max(HotWaterMinimumFlowRatio, Math.Min(1, rht)) * NominalHotWaterFlowRate;
+      this.HotWaterFlowRate = Math.Max(HotWaterMinFlowRatio, Math.Min(1, rht)) * NominalHotWaterFlowRate;
 
       //冷却運転
       if (ChilledWaterOutletSetpointTemperature < chilledWaterInletTemperature)

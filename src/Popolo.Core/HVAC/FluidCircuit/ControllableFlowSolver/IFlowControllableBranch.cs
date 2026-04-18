@@ -34,7 +34,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     /// <summary>Gets the required minimum differential pressure [kPa].</summary>
     /// <returns>Required minimum differential pressure [kPa].</returns>
-    double GetMinimumPressure();
+    double GetMinPressure();
 
     /// <summary>Gets the composite resistance of the entire circuit [kPa/(m³/s)²].</summary>
     /// <returns>Composite resistance of the entire circuit [kPa/(m³/s)²].</returns>

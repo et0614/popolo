@@ -135,11 +135,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public bool IsOverLoad { get; private set; }
 
     /// <summary>Gets or sets the minimum inverter rotation ratio [-].</summary>
-    public double MinimumRotationRatio { get; set; } = 0.4;
+    public double MinRotationRatio { get; set; } = 0.4;
 
     /// <summary>Gets the current inverter rotation ratio [-].</summary>
     public double RotationRatio
-    { get { return Math.Max(MinimumRotationRatio, AirFlowRate / MaxAirFlowRate); } }
+    { get { return Math.Max(MinRotationRatio, AirFlowRate / MaxAirFlowRate); } }
 
     #endregion
 
@@ -246,7 +246,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Updates fan power consumption and water consumption.</summary>
     private void UpdateElectricyAndWater()
     {
-      if (HasInverter) ElectricConsumption = GetPowerConsumptionWithInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption, MinimumRotationRatio);
+      if (HasInverter) ElectricConsumption = GetPowerConsumptionWithInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption, MinRotationRatio);
       else ElectricConsumption = GetPowerConsumptionWithOutInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption);
       double ew, dw, bw;
       double hOA = MoistAir.GetEnthalpyFromHumidityRatioAndWetBulbTemperature

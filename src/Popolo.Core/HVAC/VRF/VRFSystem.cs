@@ -203,7 +203,7 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Gets or sets the minimum partial load rate for capacity control [-].</summary>
     /// <remarks>Below this value, capacity is controlled by unit staging or on/off switching.</remarks>
-    public double MinimumPartialLoadRate { get; set; } = 0.15;
+    public double MinimumPartialLoadRatio { get; set; } = 0.15;
 
     /// <summary>Gets or sets the outdoor air dry-bulb temperature [°C].</summary>
     public double OutdoorAirDryBulbTemperature
@@ -250,7 +250,7 @@ namespace Popolo.Core.HVAC.VRF
     { get { return CompressorInletPressure == 0 ? 0 : CompressorOutletPressure / CompressorInletPressure; } }
 
     /// <summary>Gets the partial load rate [-].</summary>
-    public double PartialLoadRate { get; private set; }
+    public double PartialLoadRatio { get; private set; }
 
     /// <summary>Gets or sets a value indicating whether water spray is applied to the outdoor unit.</summary>
     public bool UseWaterSpray
@@ -265,7 +265,7 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Gets a value indicating whether the system is in on/off (bang-bang) operation.</summary>
     public bool IsOnOffOperation
-    { get { return PartialLoadRate < MinimumPartialLoadRate / OutdoorUnitDivisionCount; } }
+    { get { return PartialLoadRatio < MinimumPartialLoadRatio / OutdoorUnitDivisionCount; } }
 
     /// <summary>Gets or sets the number of outdoor unit divisions.</summary>
     public int OutdoorUnitDivisionCount
@@ -743,7 +743,7 @@ namespace Popolo.Core.HVAC.VRF
     {
       EvaporatingTemperature = MaxEvaporatingTemperature;
       CondensingTemperature = MinCondensingTemperature;
-      PartialLoadRate = CompressorElectricity = CompressionHead = 0;
+      PartialLoadRatio = CompressorElectricity = CompressionHead = 0;
       CompressorInletPressure = CompressorOutletPressure = 0;
 
       outdoorUnit_C.ThermoOff();
@@ -785,7 +785,7 @@ namespace Popolo.Core.HVAC.VRF
         refrigerant.GetSaturatedPropertyFromPressure(condensingPressure, out _, out _, out double cndT);
         oUnt.UpdateWithRefrigerantTemperature
         (cndT - KTOC, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, false);
-        oUnt.FanOperatingRate = qCnd / oUnt.HeatTransfer; //2022.01.14 Debug
+        oUnt.FanOperatingRatio = qCnd / oUnt.HeatTransfer; //2022.01.14 Debug
       }
       CompressorOutletPressure = condensingPressure;
       refrigerant.GetStateFromPressureAndTemperature(condensingPressure, oUnt.RefrigerantTemperature + KTOC - SubCoolDegree,
@@ -875,26 +875,26 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="head">Compression head [kW].</param>
     private void CalculateElectricity_C(double head)
     {
-      PartialLoadRate = head / NominalHead_C; //システムとしての負荷率
+      PartialLoadRatio = head / NominalHead_C; //システムとしての負荷率
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
       for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
-        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRate < PartialLoadRate)
+        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRatio < PartialLoadRatio)
           break;
       ActiveOutdoorUnitCount = nOP;
-      double plUnit = PartialLoadRate * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
+      double plUnit = PartialLoadRatio * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
       //連続運転
-      if (MinimumPartialLoadRate <= plUnit)
+      if (MinimumPartialLoadRatio <= plUnit)
         eRate = HeadEfficiencyRatioCoefA_C * plUnit + HeadEfficiencyRatioCoefB_C;
       //発停運転
       else
       {
-        double eMin = HeadEfficiencyRatioCoefA_C * MinimumPartialLoadRate + HeadEfficiencyRatioCoefB_C;
+        double eMin = HeadEfficiencyRatioCoefA_C * MinimumPartialLoadRatio + HeadEfficiencyRatioCoefB_C;
         double rme = eMin * MIN_ER_RATE;
-        eRate = (eMin - rme) / MinimumPartialLoadRate * plUnit + rme;
+        eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
       CompressionHead = head;
       CompressorElectricity = head / (eRate * NominalEfficiency_C);
@@ -938,7 +938,7 @@ namespace Popolo.Core.HVAC.VRF
         refrigerant.GetSaturatedPropertyFromPressure(evaporatingPressure, out _, out _, out double evpT);
         oUnt.UpdateWithRefrigerantTemperature
         (evpT - KTOC, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true);
-        oUnt.FanOperatingRate = oUnt.HeatTransfer == 0 ? 0 : qEvp / oUnt.HeatTransfer; //2022.01.14 Debug
+        oUnt.FanOperatingRatio = oUnt.HeatTransfer == 0 ? 0 : qEvp / oUnt.HeatTransfer; //2022.01.14 Debug
       }
       CompressorInletPressure = evaporatingPressure;
       refrigerant.GetStateFromPressureAndTemperature(evaporatingPressure, oUnt.RefrigerantTemperature + KTOC + SuperHeatDegree,
@@ -1045,26 +1045,26 @@ namespace Popolo.Core.HVAC.VRF
     /// <returns>Compression head efficiency ratio [-].</returns>
     private double CalculateHeadEfficiency_H(double head)
     {
-      PartialLoadRate = head / NominalHead_H; //システムとしての負荷率
+      PartialLoadRatio = head / NominalHead_H; //システムとしての負荷率
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
       for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
-        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRate < PartialLoadRate)
+        if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRatio < PartialLoadRatio)
           break;
       ActiveOutdoorUnitCount = nOP;
-      double plUnit = PartialLoadRate * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
+      double plUnit = PartialLoadRatio * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
       //連続運転
-      if (MinimumPartialLoadRate <= plUnit)
+      if (MinimumPartialLoadRatio <= plUnit)
         eRate = HeadEfficiencyRatioCoefA_H * plUnit + HeadEfficiencyRatioCoefB_H;
       //発停運転
       else
       {
-        double eMin = HeadEfficiencyRatioCoefA_H * MinimumPartialLoadRate + HeadEfficiencyRatioCoefB_H;
+        double eMin = HeadEfficiencyRatioCoefA_H * MinimumPartialLoadRatio + HeadEfficiencyRatioCoefB_H;
         double rme = eMin * MIN_ER_RATE;
-        eRate = (eMin - rme) / MinimumPartialLoadRate * plUnit + rme;
+        eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
       return eRate * NominalEfficiency_H;
     }
@@ -1130,7 +1130,7 @@ namespace Popolo.Core.HVAC.VRF
           Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
           CompressorElectricity = NominalElectricity_C;
           CompressionHead = NominalHead_C;
-          PartialLoadRate = 1.0;
+          PartialLoadRatio = 1.0;
         }
         //蒸発温度を低くしないと成立しない場合
         else
@@ -1148,23 +1148,9 @@ namespace Popolo.Core.HVAC.VRF
             eFncHead(NominalHead_C);
             CompressorElectricity = NominalElectricity_C;
             CompressionHead = NominalHead_C;
-            PartialLoadRate = 1.0;
+            PartialLoadRatio = 1.0;
           }
         }
-
-        /*if (eFncEvpTmp(lmtTemp) < 0)
-        {
-          double hd = Roots.Bisection(eFncHead, 0, NominalHead_C, 0.001, 0.001, 20);
-          eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-          CalculateElectricity_C(hd);
-        }
-        else //圧縮機の能力不足による過負荷
-        {
-          Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_C;
-          CompressionHead = NominalHead_C;
-          PartialLoadRate = 1.0;
-        }*/
       }
       //軽負荷の場合にはヘッドを収束計算
       else
@@ -1257,7 +1243,7 @@ namespace Popolo.Core.HVAC.VRF
           lmtTemp = Roots.Bisection(eFncCndTmp, 15, lmtTemp, 0.001, 0.001, 20);
           CompressorElectricity = NominalElectricity_H;
           CompressionHead = NominalHead_H;
-          PartialLoadRate = 1.0;
+          PartialLoadRatio = 1.0;
           eFncCndTmp(lmtTemp);
         }
         //凝縮温度を上げないと成立しない場合
@@ -1276,24 +1262,9 @@ namespace Popolo.Core.HVAC.VRF
             eFncHead(NominalHead_H);
             CompressorElectricity = NominalElectricity_H;
             CompressionHead = NominalHead_H;
-            PartialLoadRate = 1.0;
+            PartialLoadRatio = 1.0;
           }
         }
-
-        /*if (eFncCndTmp(lmtTemp) < 0) //凝縮温度上限値を超えることによる過負荷
-        {
-          double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, NominalHead_H), 0.001, 0.001, 20);
-          eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-          CalculateElectricity_H(hd);
-        }
-        else //圧縮機能力が不足することによる過負荷
-        {
-          lmtTemp = Roots.Bisection(eFncCndTmp, 15, lmtTemp, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_H;
-          CompressionHead = NominalHead_H;
-          PartialLoadRate = 1.0;
-          eFncCndTmp(lmtTemp);
-        }*/
       }
       //軽負荷の場合にはヘッドを収束計算
       else
@@ -1382,7 +1353,7 @@ namespace Popolo.Core.HVAC.VRF
           Roots.Bisection(eFncEvpTmp, MinEvaporatingTemperature, 30, 0.001, 0.001, 20);
           CompressorElectricity = NominalElectricity_C;
           CompressionHead = NominalHead_C;
-          PartialLoadRate = 1.0;
+          PartialLoadRatio = 1.0;
         }
       }
       //軽負荷の場合にはヘッドを収束計算
@@ -1473,7 +1444,7 @@ namespace Popolo.Core.HVAC.VRF
           Roots.Bisection(eFncCndTmp, 15, MaxCondensingTemperature, 0.001, 0.001, 20);
           CompressorElectricity = NominalElectricity_H;
           CompressionHead = NominalHead_H;
-          PartialLoadRate = 1.0;
+          PartialLoadRatio = 1.0;
         }
       }
       //軽負荷の場合にはヘッドを収束計算
@@ -1542,16 +1513,16 @@ namespace Popolo.Core.HVAC.VRF
       indoorUnits[indoorUnitIndex].InletAirHumidityRatio = inletAirHumidityRatio;
     }
 
-    /// <summary>Sets the minimum fan electric power rate for indoor units [-].</summary>
-    /// <param name="minimumRate">Minimum electric power consumption rate [-].</param>
+    /// <summary>Sets the minimum fan electric power ratio for indoor units [-].</summary>
+    /// <param name="minRatio">Minimum electric power consumption ratio [-].</param>
     /// <remarks>
-    /// In practice, if the unit is running, the indoor fan rotates at a minimum rate even at zero load.
+    /// In practice, if the unit is running, the indoor fan rotates at a minimum ratio even at zero load.
     /// Therefore, a minimum indoor fan power rate is defined as a ratio to nominal power for startup accounting.
     /// </remarks>
-    public void SetMinimumFanElectricityRate(double minimumRate)
+    public void SetMinFanElectricityRatio(double minRatio)
     {
       for (int i = 0; i < IndoorUnitCount; i++)
-        indoorUnits[i].MinimumFanElectricityRate = minimumRate;
+        indoorUnits[i].MinFanElectricityRatio = minRatio;
     }
 
     #endregion

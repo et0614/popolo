@@ -23,7 +23,6 @@ using Popolo.Core.HVAC.Storage;
 using Popolo.Core.HVAC.HeatSource;
 using Popolo.Core.HVAC.FluidCircuit;
 using Popolo.Core.Physics;
-using Popolo.Core.HVAC.HeatExchanger;
 using Popolo.Core.Numerics;
 
 namespace Popolo.Core.HVAC.SystemModel
@@ -295,11 +294,18 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #region コンストラクタ
 
-    /// <summary></summary>
-    /// <param name="whp"></param>
-    /// <param name="gHex"></param>
-    /// <param name="groundWaterPump"></param>
-    /// <param name="supplyPump"></param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="whp">Water-source heat pump.</param>
+    /// <param name="gHex">Ground heat exchanger.</param>
+    /// <param name="groundWaterPump">Ground (heat-source) water pump.</param>
+    /// <param name="supplyPump">Chilled/hot water pump.</param>
+    /// <remarks>
+    /// The system connects the water-source heat pump to the ground heat
+    /// exchanger via the ground water pump (primary loop), and to the load
+    /// side via the supply pump (secondary loop). The ground water flow rate
+    /// setpoint is initialised from the design flow rate of
+    /// <paramref name="groundWaterPump"/>.
+    /// </remarks>
     public GroundHeatSourceHeatPumpSystem
       (WaterHeatPump whp, SimpleGroundHeatExchanger gHex, CentrifugalPump groundWaterPump, CentrifugalPump supplyPump)
     {

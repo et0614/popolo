@@ -352,7 +352,7 @@ namespace Popolo.Core.HVAC.SystemModel
             //加湿系統は潜熱負荷を計算する
             if (Controllers[i].Mode == OperatingMode.Heating 
               && ahu[i].Humidifier != AirHandlingUnit.HumidifierType.None)
-              bModel.ControlHumidityRatio(vc.RoomIndex, vc.ZoneIndex, Controllers[i].MinimumHumidity);
+              bModel.ControlHumidityRatio(vc.RoomIndex, vc.ZoneIndex, Controllers[i].MinHumidity);
           }
         }
       }
@@ -687,7 +687,7 @@ namespace Popolo.Core.HVAC.SystemModel
       public double SetpointTemperature { get; set; } = 24.0;
 
       /// <summary>Gets or sets the minimum supply air humidity ratio [kg/kg].</summary>
-      public double MinimumHumidity { get; set; }
+      public double MinHumidity { get; set; }
 
       /// <summary>Gets or sets the supply air humidity ratio setpoint [kg/kg].</summary>
       internal double splyHumidSP { get; set; }

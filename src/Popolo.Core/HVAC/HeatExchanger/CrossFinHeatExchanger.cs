@@ -104,7 +104,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double SurfaceArea { get; private set; }
 
     /// <summary>Gets the dry coil fraction [-].</summary>
-    public double DryRate { get; private set; }
+    public double DryFraction { get; private set; }
 
     /// <summary>Gets the overall heat transfer coefficient for the dry coil [kW/(m²·K)].</summary>
     public double DryHeatTransferCoefficient { get; private set; }
@@ -370,7 +370,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         OutletAirTemperature = InletAirTemperature;
         OutletAirHumidityRatio = InletAirHumidityRatio;
         OutletWaterTemperature = InletWaterTemperature;
-        DryRate = 1.0;
+        DryFraction = 1.0;
         return;
       }
 
@@ -406,7 +406,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       OutletAirTemperature = ta;
       OutletAirHumidityRatio = xa;
       OutletWaterTemperature = tw;
-      DryRate = dr;
+      DryFraction = dr;
     }
 
     /// <summary>Controls the outlet air temperature to the given setpoint by adjusting the water flow rate.</summary>
@@ -466,7 +466,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       OutletAirHumidityRatio = InletAirHumidityRatio;
       OutletWaterTemperature = InletWaterTemperature;
       WaterFlowRate = 0;
-      DryRate = 1;
+      DryFraction = 1;
     }
 
     #endregion
@@ -486,13 +486,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="outletAirTemperature">Output: outlet air dry-bulb temperature [°C].</param>
     /// <param name="outletAirHumidityRatio">Output: outlet air humidity ratio [kg/kg].</param>
     /// <param name="outletWaterTemperature">Output: outlet water temperature [°C].</param>
-    /// <param name="dryRate">Output: dry coil fraction [-].</param>
+    /// <param name="dryFraction">Output: dry coil fraction [-].</param>
     public static void GetOutletState
       (double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
       double inletWaterTemperature, double airFlowRate, double waterFlowRate,
       double dryHeatTransferCoefficient, double wetHeatTransferCoefficient, double surfaceArea,
       out double outletAirTemperature, out double outletAirHumidityRatio,
-      out double outletWaterTemperature, out double dryRate)
+      out double outletWaterTemperature, out double dryFraction)
     {
       //熱媒流量が0の場合は出口状態=入口状態
       if (airFlowRate <= 0 || waterFlowRate <= 0 ||
@@ -501,7 +501,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         outletAirTemperature = inletAirTemperature;
         outletAirHumidityRatio = inletAirHumidityRatio;
         outletWaterTemperature = inletWaterTemperature;
-        dryRate = 1;
+        dryFraction = 1;
         return;
       }
 
@@ -513,7 +513,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       //加熱コイルの場合
       if (inletAirTemperature < inletWaterTemperature)
       {
-        dryRate = 1.0;
+        dryFraction = 1.0;
 
         double mcMin = Math.Min(mcw, mca);
         double mcMax = Math.Max(mcw, mca);
@@ -575,8 +575,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
           return ba - bAirTemp;
         };
         //結露が生じる場合には乾きコイル面積比を収束計算
-        dryRate = 1.0;
-        if (0 < eFnc(dryRate)) dryRate = Roots.Brent(0, 1, 0.0001, eFnc);
+        dryFraction = 1.0;
+        if (0 < eFnc(dryFraction)) dryFraction = Roots.Brent(0, 1, 0.0001, eFnc);
 
         //出口水温[C]の計算
         outletWaterTemperature = inletAirTemperature - v2 * (inletAirTemperature - bWaterTemp);
@@ -584,7 +584,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         //出口空気状態の計算
         double iWaterEnthalpy = a * inletWaterTemperature + b;
         double oAirEnthalpy = v3 * bAirEnthalpy + v4 * iWaterEnthalpy;
-        if (dryRate < 1.0)
+        if (dryFraction < 1.0)
           outletAirHumidityRatio = MoistAir.GetHumidityRatioFromEnthalpyAndRelativeHumidity
             (oAirEnthalpy, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         else outletAirHumidityRatio = inletAirHumidityRatio;

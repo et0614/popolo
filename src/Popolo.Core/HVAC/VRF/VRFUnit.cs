@@ -187,17 +187,17 @@ namespace Popolo.Core.HVAC.VRF
     public double NominalFanElectricity_H { get; private set; }
 
     /// <summary>Gets or sets the fan operating rate [-].</summary>
-    public double FanOperatingRate { get; set; }
+    public double FanOperatingRatio { get; set; }
 
     /// <summary>Gets the thermo-off time ratio [-].</summary>
-    public double ThermoOffRate { get; private set; }
+    public double ThermoOffTimeRatio { get; private set; }
 
     /// <summary>Gets or sets the minimum fan electric power rate relative to nominal [-].</summary>
     /// <remarks>
     /// In practice, even at zero load, the fan runs at a minimum rate when the unit is on.
     /// Therefore, the minimum fan electric power rate is defined as a ratio to the nominal power.
     /// </remarks>
-    public double MinimumFanElectricityRate { get; set; } = 0.0;
+    public double MinFanElectricityRatio { get; set; } = 0.0;
 
     /// <summary>Gets the current fan electric power [kW].</summary>
     public double FanElectricity
@@ -205,9 +205,9 @@ namespace Popolo.Core.HVAC.VRF
       get
       {
         double eRate = IsInverterControlledFan ? AirFlowRate / NominalAirFlowRate : 1.0;
-        if (CurrentMode == Mode.Cooling) return NominalFanElectricity_C * Math.Max(MinimumFanElectricityRate, FanOperatingRate * eRate);
-        else if (CurrentMode == Mode.Heating) return NominalFanElectricity_H * Math.Max(MinimumFanElectricityRate, FanOperatingRate * eRate);
-        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalFanElectricity_C, NominalFanElectricity_H) * Math.Max(MinimumFanElectricityRate, FanOperatingRate * eRate); //この処理は良くない
+        if (CurrentMode == Mode.Cooling) return NominalFanElectricity_C * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
+        else if (CurrentMode == Mode.Heating) return NominalFanElectricity_H * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
+        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalFanElectricity_C, NominalFanElectricity_H) * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate); //この処理は良くない
         else return 0;
       }
     }
@@ -512,15 +512,15 @@ namespace Popolo.Core.HVAC.VRF
       if (CurrentMode == Mode.ShutOff || ShutoffFanWhenThermoOff)
       {
         AirFlowRate = 0.0;
-        FanOperatingRate = 0.0;
+        FanOperatingRatio = 0.0;
       }
       else
       {
         //AirFlowRate = NominalAirFlowRate; //2023.02.10,これだと成り行き運転の収束計算時に風量がリセットされてしまう
-        FanOperatingRate = 1.0;
+        FanOperatingRatio = 1.0;
       }
 
-      ThermoOffRate = 1.0;
+      ThermoOffTimeRatio = 1.0;
       OutletAirTemperature = InletAirTemperature;
       OutletAirHumidityRatio = InletAirHumidityRatio;
       DrySurfaceArea = SurfaceArea_Evaporator;
@@ -606,7 +606,7 @@ namespace Popolo.Core.HVAC.VRF
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
       //プロパティ設定
-      FanOperatingRate = 1.0;
+      FanOperatingRatio = 1.0;
       RefrigerantTemperature = refrigerantTemperature;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
@@ -661,15 +661,15 @@ namespace Popolo.Core.HVAC.VRF
               tRate = 1.0 - (inletH - outletH_SP) / (inletH - outletH);
             }
 
-            ThermoOffRate = Math.Max(0.0, Math.Min(1.0, tRate));
+            ThermoOffTimeRatio = Math.Max(0.0, Math.Min(1.0, tRate));
             //100%サーモオフの場合
-            if (ThermoOffRate == 1.0) ThermoOff();
-            else if (0.0 < ThermoOffRate) //サーモオフ時間で調整する
+            if (ThermoOffTimeRatio == 1.0) ThermoOff();
+            else if (0.0 < ThermoOffTimeRatio) //サーモオフ時間で調整する
             {
               OutletAirTemperature = OutletAirSetpointTemperature;
-              OutletAirHumidityRatio = ThermoOffRate * InletAirHumidityRatio + (1 - ThermoOffRate) * OutletAirHumidityRatio;
-              HeatTransfer *= (1 - ThermoOffRate);
-              DefrostLoad *= (1 - ThermoOffRate); //この処理は実際には不要か。
+              OutletAirHumidityRatio = ThermoOffTimeRatio * InletAirHumidityRatio + (1 - ThermoOffTimeRatio) * OutletAirHumidityRatio;
+              HeatTransfer *= (1 - ThermoOffTimeRatio);
+              DefrostLoad *= (1 - ThermoOffTimeRatio); //この処理は実際には不要か。
             }
           }
 
@@ -712,10 +712,10 @@ namespace Popolo.Core.HVAC.VRF
             }
 
             double tRate = 1.0 - (InletAirTemperature - newTO) / (InletAirTemperature - OutletAirTemperature);
-            ThermoOffRate = Math.Max(0.0, Math.Min(1.0, tRate));
+            ThermoOffTimeRatio = Math.Max(0.0, Math.Min(1.0, tRate));
             //100%サーモオフの場合
-            if (ThermoOffRate == 1.0) ThermoOff();
-            else if (0.0 < ThermoOffRate) //サーモオフ時間で調整する
+            if (ThermoOffTimeRatio == 1.0) ThermoOff();
+            else if (0.0 < ThermoOffTimeRatio) //サーモオフ時間で調整する
             {
               //加湿する場合
               if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
@@ -727,9 +727,9 @@ namespace Popolo.Core.HVAC.VRF
               else
               {
                 OutletAirTemperature = newTO;
-                OutletAirHumidityRatio = ThermoOffRate * InletAirHumidityRatio + (1 - ThermoOffRate) * OutletAirHumidityRatio;
+                OutletAirHumidityRatio = ThermoOffTimeRatio * InletAirHumidityRatio + (1 - ThermoOffTimeRatio) * OutletAirHumidityRatio;
               }
-              HeatTransfer *= (1 - ThermoOffRate);
+              HeatTransfer *= (1 - ThermoOffTimeRatio);
             }
             //過負荷で加湿する場合には設定絶対湿度に到達しない
             else if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
@@ -945,7 +945,7 @@ namespace Popolo.Core.HVAC.VRF
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
       //プロパティ設定
-      FanOperatingRate = 1.0;
+      FanOperatingRatio = 1.0;
       HeatTransfer = heatLoad;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
@@ -1106,7 +1106,7 @@ namespace Popolo.Core.HVAC.VRF
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
       //プロパティ設定
-      FanOperatingRate = 1.0;
+      FanOperatingRatio = 1.0;
       OutletAirTemperature = OutletAirSetpointTemperature;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;

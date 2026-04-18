@@ -108,8 +108,8 @@ namespace Popolo.Core.HVAC.FluidCircuit
           Pressure = VolumetricFlowRate * VolumetricFlowRate * resistanceCoefficient + ActualHead;
         }
         //回転数下限の場合には最小回転数でダンパ制御
-        else if (RotationRatio < MinimumRotationRatio)
-          UpdateWithFlowRateAndRotationRatio(VolumetricFlowRate, MinimumRotationRatio);
+        else if (RotationRatio < MinRotationRatio)
+          UpdateWithFlowRateAndRotationRatio(VolumetricFlowRate, MinRotationRatio);
       }
       //インバータ無し
       else

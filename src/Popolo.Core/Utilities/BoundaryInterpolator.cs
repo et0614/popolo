@@ -84,7 +84,7 @@ namespace Popolo.Core.Utilities
         if (boundaryValues[i].Length != NodeCount)
           throw new PopoloArgumentException(
               $"Series[{i}]: length {boundaryValues[i].Length} "
-              + $"does not match NumberOfNodes ({NodeCount}).",
+              + $"does not match NodeCount ({NodeCount}).",
               nameof(boundaryValues));
 
       _seriesValues = boundaryValues;
@@ -146,14 +146,14 @@ namespace Popolo.Core.Utilities
     {
       if (sValues.Length != NodeCount)
         throw new PopoloArgumentException(
-            $"Length {sValues.Length} does not match NumberOfNodes ({NodeCount}).",
+            $"Length {sValues.Length} does not match NodeCount ({NodeCount}).",
             nameof(sValues));
       _seriesValues.Add(sValues);
     }
 
     /// <summary>
     /// Returns the index i such that dTimes[i] &lt;= dateTime &lt; dTimes[i+1].
-    /// Returns -1 if before the first node, NumberOfNodes if after the last node.
+    /// Returns -1 if before the first node, NodeCount if after the last node.
     /// </summary>
     private int GetIntervalIndex(DateTime dateTime)
     {

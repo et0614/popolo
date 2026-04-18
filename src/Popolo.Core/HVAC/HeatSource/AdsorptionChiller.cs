@@ -72,13 +72,13 @@ namespace Popolo.Core.HVAC.HeatSource
     private double condenserKA;
 
     /// <summary>Minimum chilled water flow rate ratio [-].</summary>
-    private double chilledWaterMinimumFlowRatio = 0.4;
+    private double chilledWaterMinFlowRatio = 0.4;
 
     /// <summary>Minimum cooling water flow rate ratio [-].</summary>
-    private double coolingWaterMinimumFlowRatio = 0.4;
+    private double coolingWaterMinFlowRatio = 0.4;
 
     /// <summary>Minimum hot water flow rate ratio [-].</summary>
-    private double hotWaterMinimumFlowRatio = 0.4;
+    private double hotWaterMinFlowRatio = 0.4;
 
     /// <summary>Heat loss rate [-].</summary>
     private double heatLossRate = 0.0;
@@ -90,7 +90,7 @@ namespace Popolo.Core.HVAC.HeatSource
     private double heatCapacity;
 
     /// <summary>Gets or sets the cycle time ratio relative to the rated cycle [-].</summary>
-    public double CyclingTimeRate
+    public double CyclingTimeRatio
     {
       get { return ctRate; }
       set { ctRate = Math.Max(0.3, value); }
@@ -142,24 +142,24 @@ namespace Popolo.Core.HVAC.HeatSource
     public double NominalCOP { get; private set; }
 
     /// <summary>Gets or sets the minimum chilled water flow rate ratio [-].</summary>
-    public double ChilledWaterMinimumFlowRatio
+    public double ChilledWaterMinFlowRatio
     {
-      get { return chilledWaterMinimumFlowRatio; }
-      private set { chilledWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return chilledWaterMinFlowRatio; }
+      private set { chilledWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum cooling water flow rate ratio [-].</summary>
-    public double CoolingWaterMinimumFlowRatio
+    public double CoolingWaterMinFlowRatio
     {
-      get { return coolingWaterMinimumFlowRatio; }
-      private set { coolingWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return coolingWaterMinFlowRatio; }
+      private set { coolingWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets or sets the minimum hot water flow rate ratio [-].</summary>
-    public double HotWaterMinimumFlowRatio
+    public double HotWaterMinFlowRatio
     {
-      get { return hotWaterMinimumFlowRatio; }
-      private set { hotWaterMinimumFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
+      get { return hotWaterMinFlowRatio; }
+      private set { hotWaterMinFlowRatio = Math.Min(1, Math.Max(0.4, value)); }
     }
 
     /// <summary>Gets the current cooling load [kW].</summary>
@@ -190,7 +190,7 @@ namespace Popolo.Core.HVAC.HeatSource
     public double WaterContent_Desorption { get; private set; }
 
     /// <summary>Gets the operating time ratio [-].</summary>
-    public double OperatingTimeRate { get; private set; }
+    public double OperatingTimeRatio { get; private set; }
 
     #endregion
 
@@ -215,7 +215,7 @@ namespace Popolo.Core.HVAC.HeatSource
       NominalCoolingWaterFlowRate = coolingWaterFlowRate;
       NominalHotWaterFlowRate = hotWaterFlowRate;
       ChilledWaterOutletSetpointTemperature = chilledWaterOutletTemperature;
-      CyclingTimeRate = 1.0;
+      CyclingTimeRatio = 1.0;
 
       //絶対温度に変換
       double tHwi = PhysicsConstants.ToKelvin(hotWaterInletTemperature);
@@ -310,13 +310,13 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //流量調整
       double rch = chilledWaterFlowRate / NominalChilledWaterFlowRate;
-      this.ChilledWaterFlowRate = Math.Max(ChilledWaterMinimumFlowRatio,
+      this.ChilledWaterFlowRate = Math.Max(ChilledWaterMinFlowRatio,
         Math.Min(1.4, rch)) * NominalChilledWaterFlowRate;
       double rcd = coolingWaterFlowRate / NominalCoolingWaterFlowRate;
-      this.CoolingWaterFlowRate = Math.Max(CoolingWaterMinimumFlowRatio,
+      this.CoolingWaterFlowRate = Math.Max(CoolingWaterMinFlowRatio,
         Math.Min(1.4, rcd)) * NominalCoolingWaterFlowRate;
       double rht = hotWaterFlowRate / NominalHotWaterFlowRate;
-      this.HotWaterFlowRate = Math.Max(HotWaterMinimumFlowRatio,
+      this.HotWaterFlowRate = Math.Max(HotWaterMinFlowRatio,
         Math.Min(1.4, rht)) * NominalHotWaterFlowRate;
 
       //冷却運転
@@ -335,7 +335,7 @@ namespace Popolo.Core.HVAC.HeatSource
         double epsCnd = 1 - Math.Exp(-condenserKA / mcCD);
 
         //サイクル時間補正
-        double mperc = massPerCycle / CyclingTimeRate;
+        double mperc = massPerCycle / CyclingTimeRatio;
 
         //吸着温度を収束計算
         double qEVP, tDS, tAD, qAD, qDS, qCND, wad0, wadt, tADwo;
@@ -393,7 +393,7 @@ namespace Popolo.Core.HVAC.HeatSource
         CoolingLoad = qEVP;
         WaterContent_Desorption = wad0;
         WaterContent_Adsorption = wadt;
-        OperatingTimeRate = 1.0;
+        OperatingTimeRatio = 1.0;
       }
       //運転停止
       else ShutOff();
@@ -422,14 +422,14 @@ namespace Popolo.Core.HVAC.HeatSource
       if (!controlOutletTemperature || (ChilledWaterOutletTemperature == ChilledWaterInletTemperature)) return;
 
       //理想的な発停を前提に出口温度を制御
-      OperatingTimeRate = (ChilledWaterOutletSetpointTemperature - ChilledWaterInletTemperature)
+      OperatingTimeRatio = (ChilledWaterOutletSetpointTemperature - ChilledWaterInletTemperature)
         / (ChilledWaterOutletTemperature - ChilledWaterInletTemperature);
       //過負荷の場合には制御不可能：成り行き運転
-      if (1.0 <= OperatingTimeRate) return;
+      if (1.0 <= OperatingTimeRatio) return;
       ChilledWaterOutletTemperature = ChilledWaterOutletSetpointTemperature;
-      HotWaterOutletTemperature = HotWaterInletTemperature * (1 - OperatingTimeRate) + HotWaterOutletTemperature * OperatingTimeRate;
-      CoolingWaterOutletTemperature = CoolingWaterInletTemperature * (1 - OperatingTimeRate) + CoolingWaterOutletTemperature * OperatingTimeRate;
-      CoolingLoad *= OperatingTimeRate;
+      HotWaterOutletTemperature = HotWaterInletTemperature * (1 - OperatingTimeRatio) + HotWaterOutletTemperature * OperatingTimeRatio;
+      CoolingWaterOutletTemperature = CoolingWaterInletTemperature * (1 - OperatingTimeRatio) + CoolingWaterOutletTemperature * OperatingTimeRatio;
+      CoolingLoad *= OperatingTimeRatio;
     }
 
     private void CorrectAdsorption
@@ -451,7 +451,7 @@ namespace Popolo.Core.HVAC.HeatSource
       HotWaterOutletTemperature = HotWaterInletTemperature;
       ChilledWaterFlowRate = CoolingWaterFlowRate = HotWaterFlowRate = 0;
       CoolingLoad = 0;
-      OperatingTimeRate = 0.0;
+      OperatingTimeRatio = 0.0;
     }
 
     /// <summary>Computes the equilibrium water content [kg/kg] for the given adsorbent temperature and relative pressure.</summary>

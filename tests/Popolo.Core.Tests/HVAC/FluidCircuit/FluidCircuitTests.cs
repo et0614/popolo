@@ -545,12 +545,12 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
       // 設計流量
       ahu00.FlowRateSetpoint = ahu10.FlowRateSetpoint = 2.11e-3;
       ahu01.FlowRateSetpoint = ahu11.FlowRateSetpoint = 1.85e-3;
-      double pFull = system.GetMinimumPressure();
+      double pFull = system.GetMinPressure();
 
       // 50% に低減
       ahu00.FlowRateSetpoint = ahu10.FlowRateSetpoint = 2.11e-3 * 0.5;
       ahu01.FlowRateSetpoint = ahu11.FlowRateSetpoint = 1.85e-3 * 0.5;
-      double pHalf = system.GetMinimumPressure();
+      double pHalf = system.GetMinPressure();
 
       Assert.True(pFull > pHalf,
           $"Full={pFull:F1} Pa  >  50%={pHalf:F1} Pa");
@@ -566,7 +566,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
           new IFlowControllableBranch[] { ahu0, ahu1 });
       ahu0.FlowRateSetpoint = 2.11e-3;
       ahu1.FlowRateSetpoint = 1.85e-3;
-      Assert.True(system.GetMinimumPressure() > 0);
+      Assert.True(system.GetMinPressure() > 0);
     }
 
     /// <summary>ControllableSeriesFlow：設計流量でのシステム全抵抗は正。</summary>

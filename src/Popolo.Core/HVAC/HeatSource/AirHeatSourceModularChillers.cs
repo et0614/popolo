@@ -186,8 +186,8 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <summary>Gets a value indicating whether the unit is overloaded.</summary>
     public bool IsOverLoad { get; private set; }
 
-    /// <summary>Gets or sets the minimum partial load rate [-].</summary>
-    public double MinimumPartialLoadRate { get; set; } = 0.2;
+    /// <summary>Gets or sets the minimum partial load ratio [-].</summary>
+    public double MinimumPartialLoadRatio { get; set; } = 0.2;
 
     #endregion
 
@@ -357,9 +357,9 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Partial load efficiency factor [-].</returns>
     private double GetPartialLoadFactor(double partialLoad)
     {
-      double pl = Math.Max(MinimumPartialLoadRate, partialLoad);
+      double pl = Math.Max(MinimumPartialLoadRatio, partialLoad);
       double plf = pl * (a_PL[0] * pl + a_PL[1]) + a_PL[2];
-      if (partialLoad < MinimumPartialLoadRate) return plf * (partialLoad / MinimumPartialLoadRate);
+      if (partialLoad < MinimumPartialLoadRatio) return plf * (partialLoad / MinimumPartialLoadRatio);
       else return plf;
     }
 

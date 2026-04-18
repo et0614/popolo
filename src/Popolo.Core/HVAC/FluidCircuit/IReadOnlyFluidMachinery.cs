@@ -32,7 +32,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double RotationRatio { get; }
   
       /// <summary>Gets the minimum rotation speed ratio [-].</summary>
-      double MinimumRotationRatio { get; }
+      double MinRotationRatio { get; }
   
       /// <summary>Gets the total pressure or pump head [kPa].</summary>
       double Pressure { get; }

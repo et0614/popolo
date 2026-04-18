@@ -357,7 +357,7 @@ namespace Popolo.Core.HVAC.VRF
             218 * 1.2 / 60d, 0.26 * 2, -22.4, 6.07, -10.1, 1.89, -10.6, 1.55,
             218 * 1.2 / 60d, 0.26 * 2, 25.0, 6.32, 11.3, 2.06,
             7.5, 100, 0.88, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.18;
+          vrfSystem.MinimumPartialLoadRatio = 0.18;
           break;
         case CoolingCapacity.C28_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C14_0);
@@ -365,7 +365,7 @@ namespace Popolo.Core.HVAC.VRF
             187 * 1.2 / 60d, 0.21 * 2, -28.0, 8.93, -12.6, 2.35, -13.2, 1.94,
             187 * 1.2 / 60d, 0.21 * 2, 31.5, 8.68, 14.2, 2.54,
             7.5, 100, 0.89, 100, 0.83, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.13;
+          vrfSystem.MinimumPartialLoadRatio = 0.13;
           break;
         case CoolingCapacity.C33_5:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C8_0);
@@ -373,7 +373,7 @@ namespace Popolo.Core.HVAC.VRF
             187 * 1.2 / 60d, 0.21 * 2, -33.5, 9.74, -15.1, 2.59, -15.7, 2.12,
             187 * 1.2 / 60d, 0.21 * 2, 37.5, 10.0, 16.9, 2.94,
             7.5, 100, 0.895, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.13;
+          vrfSystem.MinimumPartialLoadRatio = 0.13;
           break;
         case CoolingCapacity.C40_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -381,7 +381,7 @@ namespace Popolo.Core.HVAC.VRF
             210 * 1.2 / 60d, 0.29 * 2, -40.0, 12.5, -18.0, 3.50, -18.8, 2.74,
             210 * 1.2 / 60d, 0.29 * 2, 45.0, 13.1, 20.3, 3.89,
             7.5, 100, 0.885, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.11;
+          vrfSystem.MinimumPartialLoadRatio = 0.11;
           break;
         case CoolingCapacity.C45_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -389,7 +389,7 @@ namespace Popolo.Core.HVAC.VRF
             (218 + 218) * 1.2 / 60d, 0.26 * 2 * 2, -45.0, 12.3, -20.3, 3.88, -21.3, 3.17,
             (218 + 218) * 1.2 / 60d, 0.26 * 2 * 2, 50.0, 12.6, 22.5, 4.22,
             7.5, 100, 0.89, 100, 0.95, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.09;
+          vrfSystem.MinimumPartialLoadRatio = 0.09;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C50_0:
@@ -398,7 +398,7 @@ namespace Popolo.Core.HVAC.VRF
             (187 + 218) * 1.2 / 60d, 0.21 * 2 + 0.26 * 2, -50.0, 14.8, -22.5, 4.29, -23.7, 3.53,
             (187 + 218) * 1.2 / 60d, 0.21 * 2 + 0.26 * 2, 56.0, 14.8, 25.2, 4.65,
             7.5, 100, 0.905, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.08;
+          vrfSystem.MinimumPartialLoadRatio = 0.08;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C56_0:
@@ -407,7 +407,7 @@ namespace Popolo.Core.HVAC.VRF
              (187 + 218) * 1.2 / 60d, 0.21 * 2 + 0.26 * 2, -56.0, 15.9, -25.2, 4.66, -26.4, 3.81,
              (187 + 218) * 1.2 / 60d, 0.21 * 2 + 0.26 * 2, 63.0, 16.6, 28.4, 5.19,
             10.0, 100, 0.885, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.07;
+          vrfSystem.MinimumPartialLoadRatio = 0.07;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C61_5:
@@ -416,7 +416,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 218) * 1.2 / 60d, 0.29 * 2 + 0.26 * 2, -61.5, 18.2, -27.7, 5.43, -29.0, 4.32,
             (210 + 218) * 1.2 / 60d, 0.29 * 2 + 0.26 * 2, 69.0, 19.0, 31.1, 5.99,
             10.0, 100, 0.890, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.07;
+          vrfSystem.MinimumPartialLoadRatio = 0.07;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C67_0:
@@ -425,7 +425,7 @@ namespace Popolo.Core.HVAC.VRF
             (187 + 187) * 1.2 / 60d, 0.26 * 2 * 2, -67.0, 19.6, -30.2, 5.33, -31.5, 4.36,
             (187 + 187) * 1.2 / 60d, 0.26 * 2 * 2, 77.5, 21.4, 34.9, 6.04,
             10.0, 100, 0.855, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C73_0:
@@ -434,7 +434,7 @@ namespace Popolo.Core.HVAC.VRF
             (187 + 218) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2, -73.0, 22.0, -32.9, 6.23, -34.4, 4.97,
             (187 + 218) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2, 82.5, 23.2, 37.2, 6.99,
             10.0, 100, 0.880, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C77_5:
@@ -443,7 +443,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 210) * 1.2 / 60d, 0.29 * 2 * 2, -77.5, 23.6, -34.9, 6.86, -36.4, 5.37,
             (210 + 210) * 1.2 / 60d, 0.29 * 2 * 2, 90.0, 26.3, 40.5, 7.62,
             10.0, 100, 0.885, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C85_0:
@@ -452,7 +452,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 218 + 218) * 1.2 / 60d, 0.29 * 2 + 0.26 * 2 * 2, -85.0, 24.8, -38.3, 7.58, -40.2, 6.08,
             (210 + 218 + 218) * 1.2 / 60d, 0.29 * 2 + 0.26 * 2 * 2, 95.0, 25.8, 42.8, 8.33,
             10.0, 100, 0.880, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C90_0:
@@ -461,7 +461,7 @@ namespace Popolo.Core.HVAC.VRF
             (187 + 187 + 210) * 1.2 / 60d, 0.21 * 2 * 2 + 0.26 * 2, -90.0, 25.9, -40.5, 7.41, -42.4, 6.06,
             (187 + 187 + 210) * 1.2 / 60d, 0.21 * 2 * 2 + 0.26 * 2, 100.0, 26.4, 45.0, 8.31,
             10.0, 100, 0.885, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C95_0:
@@ -470,7 +470,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 187 + 218) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2 + 0.26 * 2, -95.0, 27.9, -42.8, 8.09, -44.8, 6.49,
             (210 + 187 + 218) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2 + 0.26 * 2, 106.0, 28.8, 47.7, 9.00,
             10.0, 100, 0.890, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C100_0:
@@ -479,7 +479,7 @@ namespace Popolo.Core.HVAC.VRF
             (187 + 187 + 187) * 1.2 / 60d, 0.21 * 2 * 3, -100.0, 29.0, -45.0, 7.93, -47.0, 6.48,
             (187 + 187 + 187) * 1.2 / 60d, 0.21 * 2 * 3, 112.0, 29.9, 50.4, 8.99,
             10.0, 100, 0.890, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C106_0:
@@ -488,7 +488,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 187 + 187) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2 * 2, -106.0, 33.8, -47.7, 8.79, -49.8, 7.07,
             (210 + 187 + 187) * 1.2 / 60d, 0.29 * 2 + 0.21 * 2 * 2, 118.0, 34.8, 53.1, 9.90,
             10.0, 180, 0.820, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C112_0:
@@ -497,7 +497,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 210 + 187) * 1.2 / 60d, 0.29 * 2 * 2 + 0.21 * 2, -112.0, 33.9, -50.4, 9.80, -52.6, 7.77,
             (210 + 210 + 187) * 1.2 / 60d, 0.29 * 2 * 2 + 0.21 * 2, 125.0, 35.0, 56.3, 11.0,
             10.0, 160, 0.850, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C118_0:
@@ -506,7 +506,7 @@ namespace Popolo.Core.HVAC.VRF
             (210 + 210 + 210) * 1.2 / 60d, 0.29 * 2 * 3, -118.0, 36.4, -53.1, 10.6, -55.4, 8.28,
             (210 + 210 + 210) * 1.2 / 60d, 0.29 * 2 * 3, 132.0, 37.8, 59.4, 11.8,
             10.0, 170, 0.85, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         default:
@@ -547,7 +547,7 @@ namespace Popolo.Core.HVAC.VRF
             104 * 1.2 / 60d, 0.22 * 1, -14.0, 3.78, -7.4, 1.51, -7.8, 1.21,
             104 * 1.2 / 60d, 0.22 * 1, 16.0, 3.81, 7.2, 1.27,
             7.5, 100, 0.75, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.26;
+          vrfSystem.MinimumPartialLoadRatio = 0.26;
           break;
         case CoolingCapacity.C16_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -555,7 +555,7 @@ namespace Popolo.Core.HVAC.VRF
             119 * 1.2 / 60d, 0.32 * 1, -16.0, 4.64, -7.2, 1.51, -7.8, 1.24,
             119 * 1.2 / 60d, 0.32 * 1, 18.0, 4.48, 8.1, 1.42,
             7.5, 100, 0.83, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.25;
+          vrfSystem.MinimumPartialLoadRatio = 0.25;
           break;
         case CoolingCapacity.C22_4:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -563,7 +563,7 @@ namespace Popolo.Core.HVAC.VRF
             160 * 1.2 / 60d, 0.39 * 1, -22.4, 6.36, -10.1, 2.21, -10.6, 1.74,
             160 * 1.2 / 60d, 0.39 * 1, 25.0, 6.85, 11.3, 2.23,
             7.5, 100, 0.84, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.19;
+          vrfSystem.MinimumPartialLoadRatio = 0.19;
           break;
         case CoolingCapacity.C28_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -571,7 +571,7 @@ namespace Popolo.Core.HVAC.VRF
             164 * 1.2 / 60d, 0.41 * 1, -28.0, 10.1, -12.6, 2.66, -14.4, 2.18,
             164 * 1.2 / 60d, 0.41 * 1, 31.5, 9.09, 14.2, 2.76,
             7.5, 100, 0.89, 100, 0.82, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.12;
+          vrfSystem.MinimumPartialLoadRatio = 0.12;
           break;
         case CoolingCapacity.C33_5:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -579,7 +579,7 @@ namespace Popolo.Core.HVAC.VRF
             191 * 1.2 / 60d, 0.63 * 1, -33.5, 10.8, -15.1, 2.82, -15.8, 2.32,
             191 * 1.2 / 60d, 0.63 * 1, 37.5, 10.8, 16.9, 3.06,
             7.5, 100, 0.895, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.12;
+          vrfSystem.MinimumPartialLoadRatio = 0.12;
           break;
         case CoolingCapacity.C40_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -587,7 +587,7 @@ namespace Popolo.Core.HVAC.VRF
             243 * 1.2 / 60d, 0.34 * 2, -40.0, 13.9, -18.0, 3.79, -18.7, 3.27,
             243 * 1.2 / 60d, 0.34 * 2, 45.0, 13.9, 20.3, 3.94,
             7.5, 100, 0.830, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.11;
+          vrfSystem.MinimumPartialLoadRatio = 0.11;
           break;
         case CoolingCapacity.C45_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -595,7 +595,7 @@ namespace Popolo.Core.HVAC.VRF
             281 * 1.2 / 60d, 0.47 * 2, -45.0, 16.9, -20.3, 4.34, -21.2, 3.71,
             281 * 1.2 / 60d, 0.47 * 2, 50.0, 16.0, 22.5, 4.30,
             7.5, 100, 0.89, 100, 0.95, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.10;
+          vrfSystem.MinimumPartialLoadRatio = 0.10;
           break;
         case CoolingCapacity.C50_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -603,7 +603,7 @@ namespace Popolo.Core.HVAC.VRF
             254 * 1.2 / 60d, 0.49 * 2, -50.0, 19.6, -22.5, 5.08, -23.9, 4.35,
             254 * 1.2 / 60d, 0.49 * 2, 56.0, 17.4, 25.2, 5.22,
             7.5, 100, 0.830, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.09;
+          vrfSystem.MinimumPartialLoadRatio = 0.09;
           break;
         case CoolingCapacity.C56_0:
           iHex = MakeIndoorUnit_Daikin(IndoorUnitType.CeilingRoundFlow_S, CoolingCapacity.C11_2);
@@ -611,7 +611,7 @@ namespace Popolo.Core.HVAC.VRF
              (191 + 160) * 1.2 / 60d, 0.63 * 1 + 0.39 * 1, -56.0, 17.3, -25.2, 4.97, -26.4, 4.02,
              (191 + 160) * 1.2 / 60d, 0.63 * 1 + 0.39 * 1, 63.0, 18.0, 28.4, 5.23,
             10.0, 100, 0.840, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.07;
+          vrfSystem.MinimumPartialLoadRatio = 0.07;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C61_5:
@@ -620,7 +620,7 @@ namespace Popolo.Core.HVAC.VRF
             (191 + 164) * 1.2 / 60d, 0.63 * 1 + 0.41 * 1, -61.5, 20.9, -27.7, 5.49, -30.2, 4.51,
             (191 + 164) * 1.2 / 60d, 0.63 * 1 + 0.41 * 1, 69.0, 19.9, 31.1, 5.84,
             10.0, 100, 0.880, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C67_0:
@@ -629,7 +629,7 @@ namespace Popolo.Core.HVAC.VRF
             (191 + 191) * 1.2 / 60d, 0.63 * 1 * 2, -67.0, 21.7, -30.2, 5.80, -31.6, 4.78,
             (191 + 191) * 1.2 / 60d, 0.63 * 1 * 2, 77.5, 23.0, 34.9, 6.30,
             10.0, 100, 0.840, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C73_0:
@@ -638,7 +638,7 @@ namespace Popolo.Core.HVAC.VRF
             (243 + 191) * 1.2 / 60d, 0.63 * 1 + 0.34 * 2, -73.0, 24.4, -32.9, 6.66, -34.3, 5.64,
             (243 + 191) * 1.2 / 60d, 0.63 * 1 + 0.34 * 2, 82.5, 24.7, 37.2, 7.06,
             10.0, 100, 0.890, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C77_5:
@@ -647,7 +647,7 @@ namespace Popolo.Core.HVAC.VRF
             (281 + 191) * 1.2 / 60d, 0.63 * 1 + 0.47 * 2, -77.5, 27.1, -34.9, 7.16, -36.6, 6.04,
             (281 + 191) * 1.2 / 60d, 0.63 * 1 + 0.47 * 2, 90.0, 28.3, 40.5, 7.36,
             10.0, 100, 0.850, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C85_0:
@@ -656,7 +656,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 191) * 1.2 / 60d, 0.63 * 1 + 0.49 * 2, -85.0, 31.6, -38.3, 8.19, -40.5, 6.91,
             (254 + 191) * 1.2 / 60d, 0.63 * 1 + 0.49 * 2, 95.0, 29.1, 42.8, 8.58,
             10.0, 100, 0.840, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C90_0:
@@ -665,7 +665,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 243) * 1.2 / 60d, 0.49 * 2 + 0.34 * 2, -90.0, 33.6, -40.5, 9.10, -42.7, 7.81,
             (254 + 243) * 1.2 / 60d, 0.49 * 2 + 0.34 * 2, 100.0, 30.8, 45.0, 9.40,
             10.0, 100, 0.880, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C95_0:
@@ -674,7 +674,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 281) * 1.2 / 60d, 0.49 * 2 + 0.47 * 2, -95.0, 36.5, -42.8, 9.76, -45.2, 8.35,
             (254 + 281) * 1.2 / 60d, 0.49 * 2 + 0.47 * 2, 106.0, 33.4, 47.7, 9.87,
             10.0, 100, 0.860, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C100_0:
@@ -683,7 +683,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 254) * 1.2 / 60d, 0.49 * 2 * 2, -100.0, 39.3, -45.0, 10.4, -47.8, 8.91,
             (254 + 254) * 1.2 / 60d, 0.49 * 2 * 2, 112.0, 34.8, 50.4, 10.7,
             10.0, 100, 0.865, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C106_0:
@@ -692,7 +692,7 @@ namespace Popolo.Core.HVAC.VRF
             (243 + 191 + 191) * 1.2 / 60d, 0.34 * 2 + 0.63 * 1 * 2, -106.0, 35.0, -47.7, 9.46, -49.8, 7.95,
             (243 + 191 + 191) * 1.2 / 60d, 0.34 * 2 + 0.63 * 1 * 2, 118.0, 34.4, 53.1, 10.1,
             10.0, 165, 0.800, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C112_0:
@@ -701,7 +701,7 @@ namespace Popolo.Core.HVAC.VRF
             (281 + 191 + 191) * 1.2 / 60d, 0.47 * 2 + 0.63 * 1 * 2, -112.0, 38.6, -50.4, 10.3, -52.8, 8.64,
             (281 + 191 + 191) * 1.2 / 60d, 0.47 * 2 + 0.63 * 1 * 2, 125.0, 37.6, 56.3, 10.8,
             10.0, 170, 0.800, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C118_0:
@@ -710,7 +710,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 191 + 191) * 1.2 / 60d, 0.49 * 2 + 0.63 * 1 * 2, -118.0, 42.0, -53.1, 11.2, -55.9, 9.41,
             (254 + 191 + 191) * 1.2 / 60d, 0.49 * 2 + 0.63 * 1 * 2, 132.0, 39.6, 59.4, 12.0,
             10.0, 170, 0.82, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C122_0:
@@ -719,7 +719,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 243 + 191) * 1.2 / 60d, 0.49 * 2 + 0.34 * 2 + 0.63 * 1, -122.0, 43.4, -54.9, 11.6, -57.7, 9.90,
             (254 + 243 + 191) * 1.2 / 60d, 0.49 * 2 + 0.34 * 2 + 0.63 * 1, 140.0, 43.0, 63.0, 12.2,
             10.0, 160, 0.80, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C128_0:
@@ -728,7 +728,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 281 + 191) * 1.2 / 60d, 0.49 * 2 + 0.47 * 2 + 0.63 * 1, -128.0, 47.1, -57.6, 12.4, -60.7, 10.5,
             (254 + 281 + 191) * 1.2 / 60d, 0.49 * 2 + 0.47 * 2 + 0.63 * 1, 145.0, 45.1, 65.3, 12.7,
             10.0, 180, 0.80, 100, 0.965, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C136_0:
@@ -737,7 +737,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 254 + 191) * 1.2 / 60d, 0.49 * 2 * 2 + 0.63 * 1, -136.0, 52.0, -61.2, 13.6, -64.8, 11.5,
             (210 + 210 + 210) * 1.2 / 60d, 0.49 * 2 * 2 + 0.63 * 1, 150.0, 45.9, 67.5, 14.2,
             10.0, 150, 0.82, 100, 0.92, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C140_0:
@@ -746,7 +746,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 254 + 243) * 1.2 / 60d, 0.49 * 2 * 2 + 0.34 * 2, -140.0, 53.2, -63.0, 14.3, -66.6, 12.3,
             (254 + 254 + 243) * 1.2 / 60d, 0.49 * 2 * 2 + 0.34 * 2, 155.0, 47.6, 69.8, 14.7,
             10.0, 180, 0.80, 100, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C145_0:
@@ -755,7 +755,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 254 + 281) * 1.2 / 60d, 0.49 * 2 * 2 + 0.47 * 2, -145.0, 56.2, -65.3, 14.7, -69.1, 12.6,
             (254 + 254 + 281) * 1.2 / 60d, 0.49 * 2 * 2 + 0.47 * 2, 160.0, 49.6, 72.0, 15.0,
             10.0, 150, 0.80, 50, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C150_0:
@@ -764,7 +764,7 @@ namespace Popolo.Core.HVAC.VRF
             (254 + 254 + 254) * 1.2 / 60d, 0.49 * 2 * 3, -150.0, 58.9, -67.5, 15.6, -71.8, 13.3,
             (254 + 254 + 254) * 1.2 / 60d, 0.49 * 2 * 3, 165.0, 50.5, 74.3, 16.1,
             10.0, 170, 0.78, 50, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         default:
@@ -953,70 +953,70 @@ namespace Popolo.Core.HVAC.VRF
             165 * 1.2 / 60d, 0.26 * 1, -22.4, 6.50, -10.1, 1.84, -10.6, 1.53,
             165 * 1.2 / 60d, 0.26 * 1, 25.0, 6.22, 11.3, 1.99,
             7.5, 100, 0.90, 100, 0.92, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.15;
+          vrfSystem.MinimumPartialLoadRatio = 0.15;
           break;
         case CoolingCapacity.C28_0:
           vrfSystem = new VRFSystem(r410a,
            170 * 1.2 / 60d, 0.28 * 1, -28.0, 10.1, -12.6, 2.37, -13.2, 1.94,
            170 * 1.2 / 60d, 0.28 * 1, 31.5, 8.93, 14.2, 2.55,
            7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.13;
+          vrfSystem.MinimumPartialLoadRatio = 0.13;
           break;
         case CoolingCapacity.C33_5:
           vrfSystem = new VRFSystem(r410a,
             190 * 1.2 / 60d, 0.42 * 1, -33.5, 10.8, -15.1, 2.89, -15.9, 2.29,
             190 * 1.2 / 60d, 0.42 * 1, 37.5, 11.7, 17.0, 3.24,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.10;
+          vrfSystem.MinimumPartialLoadRatio = 0.10;
           break;
         case CoolingCapacity.C40_0:
           vrfSystem = new VRFSystem(r410a,
             239 * 1.2 / 60d, 0.33 * 2, -40.0, 14.7, -18.0, 3.54, -18.7, 2.89,
             239 * 1.2 / 60d, 0.33 * 2, 45.0, 15.2, 20.3, 3.43,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.09;
+          vrfSystem.MinimumPartialLoadRatio = 0.09;
           break;
         case CoolingCapacity.C45_0:
           vrfSystem = new VRFSystem(r410a,
             256 * 1.2 / 60d, 0.39 * 2, -45.0, 15.7, -20.3, 4.10, -21.3, 3.37,
             256 * 1.2 / 60d, 0.39 * 2, 50.0, 17.4, 22.7, 3.96,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.07;
+          vrfSystem.MinimumPartialLoadRatio = 0.07;
           break;
         case CoolingCapacity.C50_0:
           vrfSystem = new VRFSystem(r410a,
             256 * 1.2 / 60d, 0.39 * 2, -50.0, 19.0, -22.7, 4.69, -23.6, 3.85,
             256 * 1.2 / 60d, 0.39 * 2, 56.0, 20.2, 25.6, 4.54,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           break;
         case CoolingCapacity.C56_0:
           vrfSystem = new VRFSystem(r410a,
             329 * 1.2 / 60d, 0.48 * 2, -56.0, 23.6, -25.2, 5.27, -26.3, 4.21,
             329 * 1.2 / 60d, 0.48 * 2, 63.0, 23.5, 28.4, 5.14,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.06;
+          vrfSystem.MinimumPartialLoadRatio = 0.06;
           break;
         case CoolingCapacity.C61_5:
           vrfSystem = new VRFSystem(r410a,
             329 * 1.2 / 60d, 0.48 * 2, -61.5, 22.6, -27.7, 6.06, -29.1, 4.74,
             329 * 1.2 / 60d, 0.48 * 2, 69.0, 22.9, 31.1, 5.65,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           break;
         case CoolingCapacity.C67_0:
           vrfSystem = new VRFSystem(r410a,
             348 * 1.2 / 60d, 0.56 * 2, -67.0, 24.5, -30.2, 6.44, -31.7, 5.04,
             348 * 1.2 / 60d, 0.56 * 2, 77.5, 29.0, 34.9, 6.37,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           break;
         case CoolingCapacity.C73_0:
           vrfSystem = new VRFSystem(r410a,
             (239 + 190) * 1.2 / 60d, 0.33 * 2 + 0.42 * 1, -73.0, 25.2, -33.1, 6.43, -34.6, 5.18,
             (239 + 190) * 1.2 / 60d, 0.33 * 2 + 0.42 * 1, 82.5, 26.9, 37.3, 6.67,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.05;
+          vrfSystem.MinimumPartialLoadRatio = 0.05;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C77_5:
@@ -1024,7 +1024,7 @@ namespace Popolo.Core.HVAC.VRF
             (256 + 190) * 1.2 / 60d, 0.39 * 2 + 0.42 * 1, -77.5, 25.8, -35.4, 6.99, -37.2, 5.66,
             (256 + 190) * 1.2 / 60d, 0.39 * 2 + 0.42 * 1, 90.0, 30.6, 40.5, 7.39,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C85_0:
@@ -1032,7 +1032,7 @@ namespace Popolo.Core.HVAC.VRF
             (256 + 190) * 1.2 / 60d, 0.39 * 2 + 0.42 * 1, -85.0, 30.8, -38.4, 7.73, -40.1, 6.25,
             (256 + 190) * 1.2 / 60d, 0.39 * 2 + 0.42 * 1, 95.0, 32.9, 42.8, 7.83,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C90_0:
@@ -1040,7 +1040,7 @@ namespace Popolo.Core.HVAC.VRF
             (256 + 239) * 1.2 / 60d, 0.39 * 2 + 0.33 * 2, -90.0, 33.8, -40.7, 8.23, -42.3, 6.74,
             (256 + 239) * 1.2 / 60d, 0.39 * 2 + 0.33 * 2, 100.0, 34.7, 45.9, 7.97,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.04;
+          vrfSystem.MinimumPartialLoadRatio = 0.04;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C95_0:
@@ -1048,7 +1048,7 @@ namespace Popolo.Core.HVAC.VRF
             256 * 2 * 1.2 / 60d, 0.39 * 2 * 2, -95.0, 34.7, -43.0, 8.79, -44.9, 7.22,
             256 * 2 * 1.2 / 60d, 0.39 * 2 * 2, 106.0, 37.6, 48.3, 8.50,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C100_0:
@@ -1056,7 +1056,7 @@ namespace Popolo.Core.HVAC.VRF
             256 * 2 * 1.2 / 60d, 0.39 * 2 * 2, -100.0, 38.1, -45.4, 9.38, -47.2, 7.70,
             256 * 2 * 1.2 / 60d, 0.39 * 2 * 2, 112.0, 40.4, 51.2, 9.08,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C106_0:
@@ -1064,7 +1064,7 @@ namespace Popolo.Core.HVAC.VRF
             (348 + 239) * 1.2 / 60d, 0.56 * 2 + 0.33 * 2, -106.0, 38.5, -48.2, 9.98, -50.4, 7.93,
             (348 + 239) * 1.2 / 60d, 0.56 * 2 + 0.33 * 2, 118.0, 40.9, 55.2, 9.80,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C112_0:
@@ -1072,7 +1072,7 @@ namespace Popolo.Core.HVAC.VRF
             (329 + 256) * 1.2 / 60d, 0.48 * 2 + 0.39 * 2, -112.0, 42.0, -50.4, 10.8, -52.7, 8.59,
             (329 + 256) * 1.2 / 60d, 0.48 * 2 + 0.39 * 2, 125.0, 43.1, 56.7, 10.2,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C118_0:
@@ -1080,7 +1080,7 @@ namespace Popolo.Core.HVAC.VRF
             (348 + 256) * 1.2 / 60d, 0.56 * 2 + 0.39 * 2, -118.0, 44.2, -53.1, 11.2, -55.5, 8.93,
             (348 + 256) * 1.2 / 60d, 0.56 * 2 + 0.39 * 2, 132.0, 48.1, 60.5, 10.9,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C122_0:
@@ -1088,7 +1088,7 @@ namespace Popolo.Core.HVAC.VRF
             329 * 2 * 1.2 / 60d, 0.48 * 2 * 2, -122.0, 44.5, -55.4, 12.1, -58.2, 9.48,
             329 * 2 * 1.2 / 60d, 0.48 * 2 * 2, 140.0, 47.2, 63.0, 11.5,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C128_0:
@@ -1096,7 +1096,7 @@ namespace Popolo.Core.HVAC.VRF
             (348 + 329) * 1.2 / 60d, 0.56 * 2 + 0.48 * 2, -128.0, 46.7, -57.9, 12.5, -60.8, 9.78,
             (348 + 329) * 1.2 / 60d, 0.56 * 2 + 0.48 * 2, 145.0, 50.9, 66.0, 12.0,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C136_0:
@@ -1104,7 +1104,7 @@ namespace Popolo.Core.HVAC.VRF
             348 * 2 * 1.2 / 60d, 0.56 * 2 * 2, -136.0, 49.6, -61.4, 13.2, -64.4, 10.3,
             348 * 2 * 1.2 / 60d, 0.56 * 2 * 2, 150.0, 56.0, 69.8, 12.7,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 2;
           break;
         case CoolingCapacity.C140_0:
@@ -1112,7 +1112,7 @@ namespace Popolo.Core.HVAC.VRF
             (256 * 2 + 239) * 1.2 / 60d, 0.39 * 2 * 2 + 0.33 * 2, -140.0, 52.8, -63.4, 12.9, -65.9, 10.6,
             (256 * 2 + 239) * 1.2 / 60d, 0.39 * 2 * 2 + 0.33 * 2, 155.0, 54.2, 71.5, 12.5,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C145_0:
@@ -1120,7 +1120,7 @@ namespace Popolo.Core.HVAC.VRF
             256 * 3 * 1.2 / 60d, 0.39 * 2 * 3, -145.0, 53.8, -66.2, 13.6, -69.0, 11.2,
             256 * 3 * 1.2 / 60d, 0.39 * 2 * 3, 160.0, 56.4, 73.9, 13.0,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         case CoolingCapacity.C150_0:
@@ -1128,7 +1128,7 @@ namespace Popolo.Core.HVAC.VRF
             256 * 3 * 1.2 / 60d, 0.39 * 2 * 3, -150.0, 57.1, -68.1, 14.1, -70.8, 11.6,
             256 * 3 * 1.2 / 60d, 0.39 * 2 * 3, 165.0, 58.5, 76.8, 13.6,
             7.5, 100, 0.90, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.03;
+          vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
         default:
@@ -1271,7 +1271,7 @@ namespace Popolo.Core.HVAC.VRF
             165 * 1.2 / 60d, 1.00, -22.4, 6.65, -10.2, 1.90, -10.4, 1.48,
             165 * 1.2 / 60d, 1.00, 22.4, 5.53, 10.1, 1.89,
             7.5, 100, 0.88, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 2.2 / 22.4; //技術資料の「能力可変範囲」。連続的に能力変化できる範囲なのかは不明
+          vrfSystem.MinimumPartialLoadRatio = 2.2 / 22.4; //技術資料の「能力可変範囲」。連続的に能力変化できる範囲なのかは不明
           break;
         case CoolingCapacity.Miyata22_4:
           iHex = MakeIndoorUnit_Toshiba(IndoorUnitType.CeilingFourWay, CoolingCapacity.C5_6);
@@ -1280,7 +1280,7 @@ namespace Popolo.Core.HVAC.VRF
             165 * 1.2 / 60d, 1.00, -20.83, 4.43, -12.15, 1.90, //中負荷中温条件を削除した初期化
             165 * 1.2 / 60d, 1.00, 22.81, 4.62, 11.00, 1.98,
             7.5, 100, 0.88, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRate = 0.25; //宮田さんの論文によれば、L条件では発停になったとのこと。
+          vrfSystem.MinimumPartialLoadRatio = 0.25; //宮田さんの論文によれば、L条件では発停になったとのこと。
           break;
 
         default:

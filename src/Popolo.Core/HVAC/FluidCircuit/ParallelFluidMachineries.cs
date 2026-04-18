@@ -45,13 +45,13 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double RotationRatio { get; set; }
 
     /// <summary>Gets the minimum rotation speed ratio [-].</summary>
-    public double MinimumRotationRatio
+    public double MinRotationRatio
     {
       get
       {
         double min = 0.001;
         foreach (FluidMachinery fm in flds[Stage - 1])
-          if (min < fm.MinimumRotationRatio) min = fm.MinimumRotationRatio;
+          if (min < fm.MinRotationRatio) min = fm.MinRotationRatio;
         return min;
       }
     }
@@ -67,7 +67,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     /// <summary>Gets or sets the minimum differential pressure [kPa].</summary>
     /// <remarks>Differential pressure of the bypass circuit under full bypass conditions.</remarks>
-    public double MinimumPressure { get; set; }
+    public double MinPressure { get; set; }
 
     /// <summary>Gets or sets the number of operating stages.</summary>
     public int Stage { get; set; }
@@ -86,7 +86,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       MaxStageCount = maxStageCount;
       RotationRatio = 1.0;
       DesignPressure = designPressure;
-      MinimumPressure = 20;
+      MinPressure = 20;
 
       flds = new List<FluidMachinery>[maxStageCount];
       for (int i = 0; i < flds.Length; i++) flds[i] = new List<FluidMachinery>();
@@ -104,7 +104,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       //一旦、全台停止
       foreach (FluidMachinery fm in allFlds) fm.ShutOff();
-      pressure = Math.Max(MinimumPressure, pressure);
+      pressure = Math.Max(MinPressure, pressure);
 
       for (Stage = 1; Stage <= MaxStageCount; Stage++)
       {
@@ -129,7 +129,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
           //収束計算//0.0001の加算は解がある側へシフトさせる保険
           //PQ特性切片付近の極微小流量で差圧不足となる場合があるため
           RotationRatio = Roots.NewtonBisection(eFnc, 1.0, 0.0001, 0.0001, 0.0001, 20);
-          RotationRatio = Math.Max(0.0001 + RotationRatio, MinimumRotationRatio);
+          RotationRatio = Math.Max(0.0001 + RotationRatio, MinRotationRatio);
           BypassFlowRate = eFnc(RotationRatio);
           return true;
         }

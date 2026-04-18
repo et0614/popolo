@@ -49,7 +49,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     double SurfaceArea { get; }
 
     /// <summary>Gets the dry coil fraction [-].</summary>
-    double DryRate { get; }
+    double DryFraction { get; }
 
     /// <summary>Gets the overall heat transfer coefficient for the dry coil [kW/(m²·K)].</summary>
     double DryHeatTransferCoefficient { get; }

@@ -109,16 +109,16 @@ namespace Popolo.Core.HVAC.FluidCircuit
       {
         double vFlow = TotalFlowRate / ActivePumpCount;
         //最小吐出圧制御の場合：
-        if (Pump.Control == CentrifugalPump.ControlMethod.MinimumPressure)
+        if (Pump.Control == CentrifugalPump.ControlMethod.MinPressure)
         {
           double pressure = TotalFlowRate * TotalFlowRate * resistanceCoefficient + ActualHead;
           pump.updateWithFlowRateAndPressure(vFlow, pressure);
           //最小回転数比[-]未満の場合
-          if (Pump.RotationRatio < Pump.MinimumRotationRatio)
+          if (Pump.RotationRatio < Pump.MinRotationRatio)
           {
             double tf;
             pump.updateWithResistanceAndRotationRatio
-              (Pump.MinimumRotationRatio, resistanceCoefficient, ActualHead, ActivePumpCount, out tf);
+              (Pump.MinRotationRatio, resistanceCoefficient, ActualHead, ActivePumpCount, out tf);
           }
         }
         //吐出圧一定制御・バイパス制御の場合
@@ -153,7 +153,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       if (flowRate <= 0) return 0;
 
       //最小吐出圧制御の場合：1台ずつ増やして確認
-      if (Pump.Control == CentrifugalPump.ControlMethod.MinimumPressure)
+      if (Pump.Control == CentrifugalPump.ControlMethod.MinPressure)
       {
         double r2 = flowRate * flowRate;
         double ps = resistanceCoefficient * r2 + ActualHead;

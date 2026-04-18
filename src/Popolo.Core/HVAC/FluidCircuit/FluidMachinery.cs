@@ -43,7 +43,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     protected double resistanceCoefficient;
 
     /// <summary>Minimum rotation speed ratio [-].</summary>
-    private double minimumRotationRatio = 0.4;
+    private double minRotationRatio = 0.4;
 
     /// <summary>Gets or sets the volumetric flow rate [m³/s].</summary>
     public double VolumetricFlowRate { get; set; }
@@ -52,10 +52,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double RotationRatio { get; set; } = 1.0;
 
     /// <summary>Gets or sets the minimum rotation speed ratio [-].</summary>
-    public double MinimumRotationRatio
+    public double MinRotationRatio
     {
-      get { return minimumRotationRatio; }
-      set { minimumRotationRatio = Math.Max(Math.Min(value, 1.0), 0.05); }
+      get { return minRotationRatio; }
+      set { minRotationRatio = Math.Max(Math.Min(value, 1.0), 0.05); }
     }
 
     /// <summary>Gets the total pressure or pump head [kPa].</summary>
@@ -310,12 +310,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
     }
 
     /// <summary>Computes the inverter efficiency [-].</summary>
-    /// <param name="loadRate">Load factor [-].</param>
+    /// <param name="loadRatio">Load ratio [-].</param>
     /// <param name="rotationRatio">Rotation speed ratio [-].</param>
     /// <returns>Inverter efficiency [-].</returns>
-    public static double GetInverterEfficiency(double loadRate, double rotationRatio)
+    public static double GetInverterEfficiency(double loadRatio, double rotationRatio)
     {
-      double lRatio = Math.Max(0, Math.Min(1, loadRate));
+      double lRatio = Math.Max(0, Math.Min(1, loadRatio));
       double rRatio = Math.Max(0, Math.Min(1, rotationRatio));
 
       double r2 = rRatio * rRatio;

@@ -49,8 +49,8 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets the equivalent pipe length [m].</summary>
     double PipeLength { get; }
 
-    /// <summary>Gets the minimum partial load rate for capacity control [-].</summary>
-    double MinimumPartialLoadRate { get; }
+    /// <summary>Gets the minimum partial load ratio for capacity control [-].</summary>
+    double MinimumPartialLoadRatio { get; }
 
     /// <summary>Gets the outdoor air dry-bulb temperature [°C].</summary>
     double OutdoorAirDryBulbTemperature { get; }
@@ -79,8 +79,8 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets the compression ratio [-].</summary>
     double CompressionRatio { get; }
 
-    /// <summary>Gets the partial load rate [-].</summary>
-    double PartialLoadRate { get; }
+    /// <summary>Gets the partial load ratio [-].</summary>
+    double PartialLoadRatio { get; }
 
     /// <summary>Gets a value indicating whether water spray is applied to the outdoor unit.</summary>
     bool UseWaterSpray { get; }

@@ -31,7 +31,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
     public double FlowRateSetpoint { get; set; }
 
     /// <summary>Gets the minimum resistance coefficient [kPa/(m³/s)²].</summary>
-    public double MinimumResistance { get; private set; }
+    public double MinResistance { get; private set; }
 
     /// <summary>Gets the fixed series resistance coefficient [kPa/(m³/s)²].</summary>
     public double FixedResistance { get; set; }
@@ -42,7 +42,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
       get { return resist; }
       set
       {
-        resist = Math.Max(MinimumResistance, value);
+        resist = Math.Max(MinResistance, value);
         HasTotalResistanceChanged = true;
       }
     }
@@ -55,11 +55,11 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
     #region コンストラクタ
 
     /// <summary>Initializes a new instance.</summary>
-    /// <param name="minimumResistance">Minimum resistance [kPa/(m³/s)²].</param>
+    /// <param name="minResistance">Minimum resistance [kPa/(m³/s)²].</param>
     /// <param name="fixedResistance">Fixed series resistance [kPa/(m³/s)²].</param>
-    public ControllableSeriesFlow(double minimumResistance, double fixedResistance)
+    public ControllableSeriesFlow(double minResistance, double fixedResistance)
     {
-      MinimumResistance = Resistance = minimumResistance;
+      MinResistance = Resistance = minResistance;
       FixedResistance = fixedResistance;
     }
 
@@ -80,15 +80,15 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     /// <summary>Gets the required minimum differential pressure [kPa].</summary>
     /// <returns>Required minimum differential pressure [kPa].</returns>
-    public double GetMinimumPressure()
-    { return FlowRateSetpoint * FlowRateSetpoint * (MinimumResistance + FixedResistance); }
+    public double GetMinPressure()
+    { return FlowRateSetpoint * FlowRateSetpoint * (MinResistance + FixedResistance); }
 
     /// <summary>Gets the composite resistance of the entire circuit [kPa/(m³/s)²].</summary>
     /// <returns>Composite resistance of the entire circuit [kPa/(m³/s)²].</returns>
     public double GetTotalResistance()
     {
       HasTotalResistanceChanged = false;
-      return MinimumResistance + FixedResistance;
+      return MinResistance + FixedResistance;
     }
 
     /// <summary>Adjusts the flow rate based on the differential pressure.</summary>
