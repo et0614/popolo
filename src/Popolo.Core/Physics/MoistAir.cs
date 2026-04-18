@@ -108,20 +108,32 @@ namespace Popolo.Core.Physics
     /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
     public MoistAir(double dryBulbTemperature, double humidityRatio)
+        : this(dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure)
+    { }
+
+    /// <summary>
+    /// Initializes a new instance from dry-bulb temperature, humidity ratio,
+    /// and atmospheric pressure.
+    /// </summary>
+    /// <param name="dryBulbTemperature">Dry-bulb temperature [°C]</param>
+    /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
+    /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
+    public MoistAir(double dryBulbTemperature, double humidityRatio, double atmosphericPressure)
     {
       ValidateTemperature(dryBulbTemperature, nameof(dryBulbTemperature));
       ValidateHumidityRatio(humidityRatio, nameof(humidityRatio));
-      AtmosphericPressure = PhysicsConstants.StandardAtmosphericPressure;
+      ValidateAtmosphericPressure(atmosphericPressure, nameof(atmosphericPressure));
+      AtmosphericPressure = atmosphericPressure;
       DryBulbTemperature = dryBulbTemperature;
       HumidityRatio = humidityRatio;
       RelativeHumidity = GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(
-          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio, atmosphericPressure);
       Enthalpy = GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(
           dryBulbTemperature, humidityRatio);
       WetBulbTemperature = GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
-          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio, atmosphericPressure);
       SpecificVolume = GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio(
-          dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+          dryBulbTemperature, humidityRatio, atmosphericPressure);
     }
 
     /// <summary>

@@ -25,12 +25,12 @@ using Popolo.Core.Physics;
 namespace Popolo.Core.Climate
 {
   /// <summary>
-    /// Generates stochastic weather time series using a probabilistic weather model.
-    /// </summary>
-    /// <remarks>
-    /// Based on: Togashi, E., "Development of Stochastic Weather Process Model for
-    /// Evaluate Risk of Energy Saving Investment," Journal of SHASE, 2015.
-    /// </remarks>
+  /// Generates stochastic weather time series using a probabilistic weather model.
+  /// </summary>
+  /// <remarks>
+  /// Based on: Togashi, E., "Development of Stochastic Weather Process Model for
+  /// Evaluate Risk of Energy Saving Investment," Journal of SHASE, 2015.
+  /// </remarks>
   public class RandomWeather
   {
 
@@ -77,7 +77,7 @@ namespace Popolo.Core.Climate
       _acFF, _bcFF, _acCC, _bcCC, _acDTSD, _bcDTSD, _acHRSD, _bcHRSD;
 
     /// <summary>Fourier coefficients for the circadian cycle component.</summary>
-    private double[] _accDT, _bccDT, 
+    private double[] _accDT, _bccDT,
       _accHR, _bccHR, _acCLD, _bcCLD, _acFAR, _bcFAR;
 
     /// <summary>Minimum relative humidity [%].</summary>
@@ -149,7 +149,7 @@ namespace Popolo.Core.Climate
     private static readonly double sdevTAT_Osaka = 0.0323;
 
     //ARモデル係数
-    private static readonly double[] iDTCof_Osaka = new double[] { 1.1584	,0.0931	,-0.0837,	-0.0088,	-0.1388,	-0.0284 };
+    private static readonly double[] iDTCof_Osaka = new double[] { 1.1584, 0.0931, -0.0837, -0.0088, -0.1388, -0.0284 };
     private static readonly double[] iHRCof_Osaka = new double[] { -0.0086, 1.0589, 0.0413, -0.0643, -0.0146, -0.0403 };
     private static readonly double iATCof_Osaka = 0.7394;
     private static readonly double iDTSD_Osaka = 0.4360;
@@ -213,7 +213,7 @@ namespace Popolo.Core.Climate
     private static readonly double swingDTa_Sapporo = 1.346;
     private static readonly double swingDTb_Sapporo = 1.343;
     private static readonly double shiftHR_Sapporo = -1.613;
-    
+
     //年周期フーリエ係数
     private static readonly double[] acaDT_Sapporo = new double[] { 8.8674, -11.5445, -0.7236, 0.5122, -0.2416 };
     private static readonly double[] bcaDT_Sapporo = new double[] { 0.0000, 5.3594, -0.4775, 0.5302, -0.2817 };
@@ -429,7 +429,7 @@ namespace Popolo.Core.Climate
       _bcHRSD = new double[5];
 
       _accDT = new double[4];
-      _bccDT = new double[4]; 
+      _bccDT = new double[4];
       _accHR = new double[4];
       _bccHR = new double[4];
       _acCLD = new double[4];
@@ -527,7 +527,7 @@ namespace Popolo.Core.Climate
           int ch = tHour + 3 * j;
           //0時点の状態は不変分布から計算
           if (ch == 0)
-            isFair[0] = isFair[1] = isFair[2] = 
+            isFair[0] = isFair[1] = isFair[2] =
               ((1 - caCTC[yHour]) / (2 - caFTF[yHour] - caCTC[yHour])) < _rnd.NextDouble();
           //その他の時点の状態は推移確率から計算
           else
@@ -589,8 +589,8 @@ namespace Popolo.Core.Climate
         }
         //不規則成分で振幅変調および絶対値シフト
         rSum /= nSum;
-        dbtRnd[i] = caDBT[i % days] +rSum * _shiftDT;
-        hrtRnd[i] = caHRT[i % days] +rSum * _shiftHR;
+        dbtRnd[i] = caDBT[i % days] + rSum * _shiftDT;
+        hrtRnd[i] = caHRT[i % days] + rSum * _shiftHR;
         swing[i] = rSum * _swingDTa + _swingDTb;
 
         dt = dt.AddDays(1);
@@ -607,7 +607,7 @@ namespace Popolo.Core.Climate
       double[] ihrt = new double[3];
       for (int i = 0; i < 100; i++)
         UpdateRandomComponent(_nRnd, ref idbt, ref ihrt);
-      
+
       //確定成分と不規則変動成分を合成
       tHour = 0;
       for (int i = 0; i < totalDay; i++)
@@ -619,7 +619,7 @@ namespace Popolo.Core.Climate
         {
           int ch = tHour + j;
           UpdateRandomComponent(_nRnd, ref idbt, ref ihrt);
-          dryBulbTemperature[ch] = trendDT[cYear] + 
+          dryBulbTemperature[ch] = trendDT[cYear] +
             idbt[idbt.Length - 1] * caDTSIG[yHour] + dbtRnd[ch] + ccDBT[j] * swing[ch];
           humidityRatio[ch] = trendHR[cYear] + hrtRnd[ch] + ccHRT[j];
           double hrtMax = MoistAir.GetSaturationHumidityRatioFromDryBulbTemperature
@@ -636,6 +636,67 @@ namespace Popolo.Core.Climate
       }
     }
 
+    /// <summary>
+    /// Generates stochastic weather data and returns it as a
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherData"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is a thin wrapper over
+    /// <see cref="MakeWeather(int, bool, out double[], out double[], out double[], out bool[])"/>
+    /// that packages the generated hourly arrays into a
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherData"/> with records
+    /// starting at <paramref name="startDate"/> at 1-hour intervals.
+    /// </para>
+    /// <para>
+    /// The generated <c>WeatherRecord</c> instances have the following fields:
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherField.DryBulbTemperature"/>,
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherField.HumidityRatio"/>, and
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherField.GlobalHorizontalRadiation"/>.
+    /// The model does not generate wind, cloud-cover, or atmospheric
+    /// pressure fields, so those remain missing.
+    /// </para>
+    /// <para>
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherData.Source"/> is set to
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherDataSource.Generated"/>.
+    /// <see cref="Popolo.Core.Climate.Weather.WeatherData.NominalInterval"/>
+    /// is set to 1 hour.
+    /// </para>
+    /// </remarks>
+    /// <param name="startDate">The logical start time of the first record.</param>
+    /// <param name="years">Number of years to generate.</param>
+    /// <param name="isLeapYear">If <c>true</c>, each year is 366 days; otherwise 365.</param>
+    /// <returns>A fully-populated <c>WeatherData</c>.</returns>
+    public Popolo.Core.Climate.Weather.WeatherData Generate(
+        DateTime startDate, int years, bool isLeapYear = false)
+    {
+      if (years <= 0)
+        throw new Popolo.Core.Exceptions.PopoloArgumentException(
+            "years must be a positive integer.", nameof(years));
+
+      MakeWeather(years, isLeapYear,
+          out double[] dbt, out double[] hr, out double[] rad, out bool[] _);
+
+      var data = new Popolo.Core.Climate.Weather.WeatherData
+      {
+        Source = Popolo.Core.Climate.Weather.WeatherDataSource.Generated,
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+
+      var builder = new Popolo.Core.Climate.Weather.WeatherRecordBuilder();
+      for (int i = 0; i < dbt.Length; i++)
+      {
+        builder.Reset();
+        builder.SetTime(startDate.AddHours(i));
+        builder.SetDryBulbTemperature(dbt[i]);
+        builder.SetHumidityRatio(hr[i]);
+        builder.SetGlobalHorizontalRadiation(rad[i]);
+        data.Add(builder.ToRecord());
+      }
+
+      return data;
+    }
+
     #endregion
 
     #region 周期成分の計算
@@ -650,7 +711,7 @@ namespace Popolo.Core.Climate
     /// <param name="hrtSigma">Annual cycle of humidity ratio irregular component std. dev.</param>
     /// <param name="isLeapYear">If true, 366 days are used.</param>
     private void MakeAnnualData
-      (out double[] dryBulbTemperature, out double[] humidityRatio, out double[] atmTransmissivity, 
+      (out double[] dryBulbTemperature, out double[] humidityRatio, out double[] atmTransmissivity,
       out double[] fairToFair, out double[] cloudToCloud, out double[] dbtSigma, out double[] hrtSigma, bool isLeapYear)
     {
       //うるう年の場合には366日

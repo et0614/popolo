@@ -20,6 +20,7 @@
 using System;
 using System.Linq;
 
+using Popolo.Samples.Demos.IO;
 using Popolo.Samples.Demos.Webpro;
 
 namespace Popolo.Samples
@@ -51,6 +52,7 @@ namespace Popolo.Samples
     private static readonly IDemo[] Demos =
     {
       new AnnualSimulationDemo(),
+      new WeatherToCsvDemo(),
     };
 
     #endregion

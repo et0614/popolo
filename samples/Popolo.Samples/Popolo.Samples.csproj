@@ -13,4 +13,19 @@
     <ProjectReference Include="..\..\src\Popolo.Webpro\Popolo.Webpro.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="SampleData\builelib_input.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SampleData\DRYCOLD.TMY">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SampleData\tokyo.epw">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="SampleData\tokyo.has">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
