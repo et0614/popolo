@@ -115,7 +115,7 @@ namespace Popolo.Core.Tests.Numerics
     {
       var ex = Assert.Throws<PopoloArgumentException>(
           () => new GaussLegendreIntegrator(x => x, nodeNumber));
-      Assert.Equal("nodeNumber", ex.ParamName);
+      Assert.Equal("nodeCount", ex.ParamName);
     }
 
     /// <summary>UpdateNodeNumber に0以下を渡すと PopoloArgumentException が発生する</summary>
@@ -125,7 +125,7 @@ namespace Popolo.Core.Tests.Numerics
       var integrator = new GaussLegendreIntegrator(x => x, 5);
       var ex = Assert.Throws<PopoloArgumentException>(
           () => integrator.UpdateNodeCount(0));
-      Assert.Equal("nodeNumber", ex.ParamName);
+      Assert.Equal("nodeCount", ex.ParamName);
     }
 
     #endregion

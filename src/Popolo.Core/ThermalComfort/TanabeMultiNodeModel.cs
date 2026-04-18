@@ -42,6 +42,9 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Conversion factor from metabolic rate [met] to heat flux [W/m²].</summary>
     private const double CONVERT_MET_TO_W = 58.2;
 
+    /// <summary>Body weight of the reference standard body [kg].</summary>
+    private const double STANDARD_WEIGHT = 74.43;
+
     /// <summary>Body surface area of the reference standard body [m²].</summary>
     private const double STANDARD_SURFACE_AREA = 1.87;
 
@@ -205,7 +208,7 @@ namespace Popolo.Core.ThermalComfort
 
     /// <summary>Initializes a new instance of the Tanabe multi-node model.</summary>
     /// <remarks>When no arguments are provided, the reference standard body dimensions are used.</remarks>
-    public TanabeMultiNodeModel() : this(74.43, 1.72, 25, true, 0.15, true) { }
+    public TanabeMultiNodeModel() : this(STANDARD_WEIGHT, 1.72, 25, true, 0.15, true) { }
 
     /// <summary>Initializes a new instance of the Tanabe multi-node model.</summary>
     /// <param name="weight">Weight [kg].</param>

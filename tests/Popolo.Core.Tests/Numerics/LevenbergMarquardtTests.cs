@@ -41,7 +41,7 @@ namespace Popolo.Core.Tests.Numerics
           () => new LevenbergMarquardt(eFnc,
               functionCount: 1,
               variableCount: 2));
-      Assert.Equal("numberOfFunctions", ex.ParamName);
+      Assert.Equal("functionCount", ex.ParamName);
     }
 
     /// <summary>numberOfFunctions == numberOfVariables は正常に作成できる</summary>

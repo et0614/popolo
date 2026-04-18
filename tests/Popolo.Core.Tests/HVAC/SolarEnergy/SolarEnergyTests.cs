@@ -283,7 +283,7 @@ namespace Popolo.Core.Tests.HVAC.SolarEnergy
       // HeatCollection = (Tout-Tin) * wf * 0.001 * cp
       // HeatCollection uses PhysicsConstants.NominalWaterIsobaricSpecificHeat = 4182.0 J/(kg·K)
       double expected = (sc.OutletWaterTemperature - sc.InletWaterTemperature)
-                        * sc.WaterFlowRate * 0.001 * 4182.0;
+                        * sc.WaterFlowRate * 0.001 * Popolo.Core.Physics.PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       Assert.InRange(sc.HeatCollection, expected - 1e-6, expected + 1e-6);
     }
 
