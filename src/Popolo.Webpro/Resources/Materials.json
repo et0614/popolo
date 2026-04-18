@@ -1,0 +1,516 @@
+{
+  "$comment": "WEBPRO (省エネ法) material catalog extracted from Popolo v2.3.",
+  "materials": [
+    {
+      "id": "鋼",
+      "type": "solid",
+      "thermalConductivity": 55.0,
+      "volumetricSpecificHeat": 3600.0
+    },
+    {
+      "id": "アルミニウム",
+      "type": "solid",
+      "thermalConductivity": 210.0,
+      "volumetricSpecificHeat": 2400.0
+    },
+    {
+      "id": "銅",
+      "type": "solid",
+      "thermalConductivity": 370.0,
+      "volumetricSpecificHeat": 3200.0
+    },
+    {
+      "id": "ステンレス鋼",
+      "type": "solid",
+      "thermalConductivity": 15.0,
+      "volumetricSpecificHeat": 3500.0
+    },
+    {
+      "id": "岩石",
+      "type": "solid",
+      "thermalConductivity": 3.1,
+      "volumetricSpecificHeat": 2400.0
+    },
+    {
+      "id": "土壌",
+      "type": "soil",
+      "thermalConductivity": 1.0,
+      "volumetricSpecificHeat": 3300.0,
+      "fixedThickness": 0.0001
+    },
+    {
+      "id": "コンクリート",
+      "type": "solid",
+      "thermalConductivity": 1.6,
+      "volumetricSpecificHeat": 2000.0
+    },
+    {
+      "id": "軽量コンクリート(軽量1種)",
+      "type": "solid",
+      "thermalConductivity": 0.8,
+      "volumetricSpecificHeat": 1900.0
+    },
+    {
+      "id": "軽量コンクリート(軽量2種)",
+      "type": "solid",
+      "thermalConductivity": 0.5,
+      "volumetricSpecificHeat": 1600.0
+    },
+    {
+      "id": "気泡コンクリート(ALC)",
+      "type": "solid",
+      "thermalConductivity": 0.19,
+      "volumetricSpecificHeat": 660.0
+    },
+    {
+      "id": "コンクリートブロック(重量)",
+      "type": "solid",
+      "thermalConductivity": 1.1,
+      "volumetricSpecificHeat": 1800.0
+    },
+    {
+      "id": "コンクリートブロック(軽量)",
+      "type": "solid",
+      "thermalConductivity": 0.53,
+      "volumetricSpecificHeat": 1600.0
+    },
+    {
+      "id": "セメント・モルタル",
+      "type": "solid",
+      "thermalConductivity": 1.5,
+      "volumetricSpecificHeat": 1600.0
+    },
+    {
+      "id": "押出成型セメント板",
+      "type": "solid",
+      "thermalConductivity": 0.47,
+      "volumetricSpecificHeat": 2100.0
+    },
+    {
+      "id": "せっこうプラスター",
+      "type": "solid",
+      "thermalConductivity": 0.6,
+      "volumetricSpecificHeat": 1600.0
+    },
+    {
+      "id": "せっこうボード",
+      "type": "solid",
+      "thermalConductivity": 0.22,
+      "volumetricSpecificHeat": 830.0
+    },
+    {
+      "id": "硬質せっこうボード",
+      "type": "solid",
+      "thermalConductivity": 0.36,
+      "volumetricSpecificHeat": 1320.0
+    },
+    {
+      "id": "しっくい",
+      "type": "solid",
+      "thermalConductivity": 0.74,
+      "volumetricSpecificHeat": 1400.0
+    },
+    {
+      "id": "土壁",
+      "type": "solid",
+      "thermalConductivity": 0.69,
+      "volumetricSpecificHeat": 1100.0
+    },
+    {
+      "id": "ガラス",
+      "type": "solid",
+      "thermalConductivity": 1.0,
+      "volumetricSpecificHeat": 1900.0
+    },
+    {
+      "id": "タイル",
+      "type": "solid",
+      "thermalConductivity": 1.3,
+      "volumetricSpecificHeat": 2000.0
+    },
+    {
+      "id": "れんが",
+      "type": "solid",
+      "thermalConductivity": 0.64,
+      "volumetricSpecificHeat": 1400.0
+    },
+    {
+      "id": "かわら",
+      "type": "solid",
+      "thermalConductivity": 1.0,
+      "volumetricSpecificHeat": 1500.0
+    },
+    {
+      "id": "ロックウール化粧吸音板",
+      "type": "solid",
+      "thermalConductivity": 0.064,
+      "volumetricSpecificHeat": 294.0
+    },
+    {
+      "id": "火山性ガラス質複合板",
+      "type": "solid",
+      "thermalConductivity": 0.13,
+      "volumetricSpecificHeat": 679.0
+    },
+    {
+      "id": "ケイ酸カルシウム板　0.8mm",
+      "type": "solid",
+      "thermalConductivity": 0.18,
+      "volumetricSpecificHeat": 690.0
+    },
+    {
+      "id": "ケイ酸カルシウム板　1.0mm",
+      "type": "solid",
+      "thermalConductivity": 0.24,
+      "volumetricSpecificHeat": 1000.0
+    },
+    {
+      "id": "天然木材",
+      "type": "solid",
+      "thermalConductivity": 0.12,
+      "volumetricSpecificHeat": 520.0
+    },
+    {
+      "id": "合板",
+      "type": "solid",
+      "thermalConductivity": 0.16,
+      "volumetricSpecificHeat": 720.0
+    },
+    {
+      "id": "タタミボード",
+      "type": "solid",
+      "thermalConductivity": 0.056,
+      "volumetricSpecificHeat": 450.0
+    },
+    {
+      "id": "シージングボード",
+      "type": "solid",
+      "thermalConductivity": 0.067,
+      "volumetricSpecificHeat": 630.0
+    },
+    {
+      "id": "A級インシュレーションボード",
+      "type": "solid",
+      "thermalConductivity": 0.058,
+      "volumetricSpecificHeat": 540.0
+    },
+    {
+      "id": "パーティクルボード",
+      "type": "solid",
+      "thermalConductivity": 0.17,
+      "volumetricSpecificHeat": 720.0
+    },
+    {
+      "id": "木毛セメント板",
+      "type": "solid",
+      "thermalConductivity": 0.13,
+      "volumetricSpecificHeat": 1100.0
+    },
+    {
+      "id": "木片セメント板",
+      "type": "solid",
+      "thermalConductivity": 0.15,
+      "volumetricSpecificHeat": 1000.0
+    },
+    {
+      "id": "ハードファイバーボード(ハードボード)",
+      "type": "solid",
+      "thermalConductivity": 0.17,
+      "volumetricSpecificHeat": 1230.0
+    },
+    {
+      "id": "ミディアムデンシティファイバーボード(MDF)",
+      "type": "solid",
+      "thermalConductivity": 0.12,
+      "volumetricSpecificHeat": 820.0
+    },
+    {
+      "id": "ビニル系床材",
+      "type": "solid",
+      "thermalConductivity": 0.19,
+      "volumetricSpecificHeat": 1500.0
+    },
+    {
+      "id": "FRP",
+      "type": "solid",
+      "thermalConductivity": 0.26,
+      "volumetricSpecificHeat": 1900.0
+    },
+    {
+      "id": "アスファルト類",
+      "type": "solid",
+      "thermalConductivity": 0.11,
+      "volumetricSpecificHeat": 920.0
+    },
+    {
+      "id": "畳床",
+      "type": "solid",
+      "thermalConductivity": 0.15,
+      "volumetricSpecificHeat": 290.0
+    },
+    {
+      "id": "建材畳床(Ⅲ型50mm厚)",
+      "type": "solid",
+      "thermalConductivity": 0.052,
+      "volumetricSpecificHeat": 208.0
+    },
+    {
+      "id": "建材畳床(K、N型50mm厚)",
+      "type": "solid",
+      "thermalConductivity": 0.034,
+      "volumetricSpecificHeat": 40.0
+    },
+    {
+      "id": "カーペット類",
+      "type": "solid",
+      "thermalConductivity": 0.08,
+      "volumetricSpecificHeat": 320.0
+    },
+    {
+      "id": "グラスウール断熱材　10K相当",
+      "type": "solid",
+      "thermalConductivity": 0.05,
+      "volumetricSpecificHeat": 8.0
+    },
+    {
+      "id": "グラスウール断熱材　16K相当",
+      "type": "solid",
+      "thermalConductivity": 0.045,
+      "volumetricSpecificHeat": 13.0
+    },
+    {
+      "id": "グラスウール断熱材　20K相当",
+      "type": "solid",
+      "thermalConductivity": 0.042,
+      "volumetricSpecificHeat": 17.0
+    },
+    {
+      "id": "グラスウール断熱材　24K相当",
+      "type": "solid",
+      "thermalConductivity": 0.038,
+      "volumetricSpecificHeat": 20.0
+    },
+    {
+      "id": "グラスウール断熱材　32K相当",
+      "type": "solid",
+      "thermalConductivity": 0.036,
+      "volumetricSpecificHeat": 27.0
+    },
+    {
+      "id": "高性能グラスウール断熱材　16K相当",
+      "type": "solid",
+      "thermalConductivity": 0.038,
+      "volumetricSpecificHeat": 13.0
+    },
+    {
+      "id": "高性能グラスウール断熱材　24K相当",
+      "type": "solid",
+      "thermalConductivity": 0.036,
+      "volumetricSpecificHeat": 20.0
+    },
+    {
+      "id": "高性能グラスウール断熱材　32K相当",
+      "type": "solid",
+      "thermalConductivity": 0.035,
+      "volumetricSpecificHeat": 27.0
+    },
+    {
+      "id": "高性能グラスウール断熱材　40K相当",
+      "type": "solid",
+      "thermalConductivity": 0.034,
+      "volumetricSpecificHeat": 34.0
+    },
+    {
+      "id": "高性能グラスウール断熱材　48K相当",
+      "type": "solid",
+      "thermalConductivity": 0.033,
+      "volumetricSpecificHeat": 40.0
+    },
+    {
+      "id": "吹込み用グラスウール　13K相当",
+      "type": "solid",
+      "thermalConductivity": 0.052,
+      "volumetricSpecificHeat": 11.0
+    },
+    {
+      "id": "吹込み用グラスウール　18K相当",
+      "type": "solid",
+      "thermalConductivity": 0.052,
+      "volumetricSpecificHeat": 15.0
+    },
+    {
+      "id": "吹込み用グラスウール　30K相当",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 25.0
+    },
+    {
+      "id": "吹込み用グラスウール　35K相当",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 29.0
+    },
+    {
+      "id": "吹付けロックウール",
+      "type": "solid",
+      "thermalConductivity": 0.064,
+      "volumetricSpecificHeat": 412.0
+    },
+    {
+      "id": "ロックウール断熱材(マット)",
+      "type": "solid",
+      "thermalConductivity": 0.038,
+      "volumetricSpecificHeat": 34.0
+    },
+    {
+      "id": "ロックウール断熱材(フェルト)",
+      "type": "solid",
+      "thermalConductivity": 0.038,
+      "volumetricSpecificHeat": 34.0
+    },
+    {
+      "id": "ロックウール断熱材(ボード)",
+      "type": "solid",
+      "thermalConductivity": 0.036,
+      "volumetricSpecificHeat": 67.0
+    },
+    {
+      "id": "吹込み用ロックウール　25K相当",
+      "type": "solid",
+      "thermalConductivity": 0.047,
+      "volumetricSpecificHeat": 21.0
+    },
+    {
+      "id": "吹込み用ロックウール　65K相当",
+      "type": "solid",
+      "thermalConductivity": 0.039,
+      "volumetricSpecificHeat": 55.0
+    },
+    {
+      "id": "吹込み用セルローズファイバー　25K",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 47.0
+    },
+    {
+      "id": "吹込み用セルローズファイバー　45K",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 85.0
+    },
+    {
+      "id": "吹込み用セルローズファイバー　55K",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 103.0
+    },
+    {
+      "id": "押出法ポリスチレンフォーム　保温板　1種",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 32.5
+    },
+    {
+      "id": "押出法ポリスチレンフォーム　保温板　2種",
+      "type": "solid",
+      "thermalConductivity": 0.034,
+      "volumetricSpecificHeat": 36.4
+    },
+    {
+      "id": "押出法ポリスチレンフォーム　保温板　3種",
+      "type": "solid",
+      "thermalConductivity": 0.028,
+      "volumetricSpecificHeat": 40.3
+    },
+    {
+      "id": "A種ポリエチレンフォーム　保温板　1種2号",
+      "type": "solid",
+      "thermalConductivity": 0.042,
+      "volumetricSpecificHeat": 13.0
+    },
+    {
+      "id": "A種ポリエチレンフォーム　保温板　2種",
+      "type": "solid",
+      "thermalConductivity": 0.038,
+      "volumetricSpecificHeat": 46.0
+    },
+    {
+      "id": "ビーズ法ポリスチレンフォーム　保温板　特号",
+      "type": "solid",
+      "thermalConductivity": 0.034,
+      "volumetricSpecificHeat": 35.1
+    },
+    {
+      "id": "ビーズ法ポリスチレンフォーム　保温板　1号",
+      "type": "solid",
+      "thermalConductivity": 0.036,
+      "volumetricSpecificHeat": 39.0
+    },
+    {
+      "id": "ビーズ法ポリスチレンフォーム　保温板　2号",
+      "type": "solid",
+      "thermalConductivity": 0.037,
+      "volumetricSpecificHeat": 32.5
+    },
+    {
+      "id": "ビーズ法ポリスチレンフォーム　保温板　3号",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 26.0
+    },
+    {
+      "id": "ビーズ法ポリスチレンフォーム　保温板　4号",
+      "type": "solid",
+      "thermalConductivity": 0.043,
+      "volumetricSpecificHeat": 19.5
+    },
+    {
+      "id": "硬質ウレタンフォーム　保温板　2種1号",
+      "type": "solid",
+      "thermalConductivity": 0.023,
+      "volumetricSpecificHeat": 60.0
+    },
+    {
+      "id": "硬質ウレタンフォーム　保温板　2種2号",
+      "type": "solid",
+      "thermalConductivity": 0.024,
+      "volumetricSpecificHeat": 43.0
+    },
+    {
+      "id": "吹付け硬質ウレタンフォームA種１",
+      "type": "solid",
+      "thermalConductivity": 0.034,
+      "volumetricSpecificHeat": 61.0
+    },
+    {
+      "id": "吹付け硬質ウレタンフォームA種3",
+      "type": "solid",
+      "thermalConductivity": 0.04,
+      "volumetricSpecificHeat": 26.0
+    },
+    {
+      "id": "フェノールフォーム　保温板　1種1号",
+      "type": "solid",
+      "thermalConductivity": 0.022,
+      "volumetricSpecificHeat": 77.0
+    },
+    {
+      "id": "フェノールフォーム　保温板　1種2号",
+      "type": "solid",
+      "thermalConductivity": 0.022,
+      "volumetricSpecificHeat": 43.0
+    },
+    {
+      "id": "密閉中空層",
+      "type": "airGap",
+      "isSealed": true,
+      "fixedThickness": 0.02
+    },
+    {
+      "id": "非密閉中空層",
+      "type": "airGap",
+      "isSealed": false,
+      "fixedThickness": 0.02
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 <Solution>
+  <Project Path="samples/Popolo.Samples/Popolo.Samples.csproj" Id="270cfece-485b-4fda-8641-8990abd5b154" />
   <Project Path="src/Popolo.Core/Popolo.Core.csproj" Id="82a86d9a-cdd0-48da-b7f6-a532a2a39782" />
   <Project Path="src/Popolo.IO/Popolo.IO.csproj" Id="0c740857-606c-47b8-b0a5-bccef94089f3" />
+  <Project Path="src/Popolo.Webpro/Popolo.Webpro.csproj" />
   <Project Path="tests/BESTEST/BESTEST.csproj" Id="92668278-2541-4c35-8b18-d9b6ed9fb6f1" />
-  <Project Path="tests/Popolo.Core.Samples/Popolo.Core.Samples.csproj" Id="fc91ca39-147c-4eee-b06d-38599f882f05" />
   <Project Path="tests/Popolo.Core.Tests/Popolo.Core.Tests.csproj" Id="1542e520-dc61-4137-91d1-72879247d1f0" />
   <Project Path="tests/Popolo.IO.Tests/Popolo.IO.Tests.csproj" Id="32f9f0a4-fba2-4210-aee4-348722a73f8d" />
+  <Project Path="tests/Popolo.Webpro.Tests/Popolo.Webpro.Tests.csproj" Id="7e12bb3c-3ead-40da-a788-7c259374c042" />
 </Solution>

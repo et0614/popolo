@@ -1,0 +1,785 @@
+{
+  "$comment": "WEBPRO (省エネ法) glazing catalog extracted from Popolo v2.3.",
+  "glazings": [
+    {
+      "id": "3WgG06",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.38
+    },
+    {
+      "id": "3WgG07",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.25
+    },
+    {
+      "id": "3WgG08",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.15
+    },
+    {
+      "id": "3WgG09",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.07
+    },
+    {
+      "id": "3WgG10",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.0
+    },
+    {
+      "id": "3WgG11",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.95
+    },
+    {
+      "id": "3WgG12",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.9
+    },
+    {
+      "id": "3WgG13",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.86
+    },
+    {
+      "id": "3WgG14",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.82
+    },
+    {
+      "id": "3WgG15",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.79
+    },
+    {
+      "id": "3WgG16",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.76
+    },
+    {
+      "id": "3WsG06",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.38
+    },
+    {
+      "id": "3WsG07",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.25
+    },
+    {
+      "id": "3WsG08",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.15
+    },
+    {
+      "id": "3WsG09",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.07
+    },
+    {
+      "id": "3WsG10",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.0
+    },
+    {
+      "id": "3WsG11",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.95
+    },
+    {
+      "id": "3WsG12",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.9
+    },
+    {
+      "id": "3WsG13",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.86
+    },
+    {
+      "id": "3WsG14",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.82
+    },
+    {
+      "id": "3WsG15",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.79
+    },
+    {
+      "id": "3WsG16",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.76
+    },
+    {
+      "id": "3WgA06",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.68
+    },
+    {
+      "id": "3WgA07",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.53
+    },
+    {
+      "id": "3WgA08",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.41
+    },
+    {
+      "id": "3WgA09",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.31
+    },
+    {
+      "id": "3WgA10",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.22
+    },
+    {
+      "id": "3WgA11",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.15
+    },
+    {
+      "id": "3WgA12",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.09
+    },
+    {
+      "id": "3WgA13",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 1.04
+    },
+    {
+      "id": "3WgA14",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.99
+    },
+    {
+      "id": "3WgA15",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.95
+    },
+    {
+      "id": "3WgA16",
+      "solarHeatGain": 0.54,
+      "heatTransferCoefficient": 0.92
+    },
+    {
+      "id": "3WsA06",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.68
+    },
+    {
+      "id": "3WsA07",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.53
+    },
+    {
+      "id": "3WsA08",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.41
+    },
+    {
+      "id": "3WsA09",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.31
+    },
+    {
+      "id": "3WsA10",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.22
+    },
+    {
+      "id": "3WsA11",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.15
+    },
+    {
+      "id": "3WsA12",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.09
+    },
+    {
+      "id": "3WsA13",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 1.04
+    },
+    {
+      "id": "3WsA14",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.99
+    },
+    {
+      "id": "3WsA15",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.95
+    },
+    {
+      "id": "3WsA16",
+      "solarHeatGain": 0.33,
+      "heatTransferCoefficient": 0.92
+    },
+    {
+      "id": "3LgG06",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.67
+    },
+    {
+      "id": "3LgG07",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.55
+    },
+    {
+      "id": "3LgG08",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.45
+    },
+    {
+      "id": "3LgG09",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.37
+    },
+    {
+      "id": "3LgG10",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.31
+    },
+    {
+      "id": "3LgG11",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.25
+    },
+    {
+      "id": "3LgG12",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.2
+    },
+    {
+      "id": "3LgG13",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.16
+    },
+    {
+      "id": "3LgG14",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.12
+    },
+    {
+      "id": "3LgG15",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.08
+    },
+    {
+      "id": "3LgG16",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.07
+    },
+    {
+      "id": "3LsG06",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.67
+    },
+    {
+      "id": "3LsG07",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.55
+    },
+    {
+      "id": "3LsG08",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.45
+    },
+    {
+      "id": "3LsG09",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.37
+    },
+    {
+      "id": "3LsG10",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.31
+    },
+    {
+      "id": "3LsG11",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.25
+    },
+    {
+      "id": "3LsG12",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.2
+    },
+    {
+      "id": "3LsG13",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.16
+    },
+    {
+      "id": "3LsG14",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.12
+    },
+    {
+      "id": "3LsG15",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.08
+    },
+    {
+      "id": "3LsG16",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.07
+    },
+    {
+      "id": "3LgA06",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.96
+    },
+    {
+      "id": "3LgA07",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.82
+    },
+    {
+      "id": "3LgA08",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.7
+    },
+    {
+      "id": "3LgA09",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.61
+    },
+    {
+      "id": "3LgA10",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.53
+    },
+    {
+      "id": "3LgA11",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.46
+    },
+    {
+      "id": "3LgA12",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.4
+    },
+    {
+      "id": "3LgA13",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.34
+    },
+    {
+      "id": "3LgA14",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.3
+    },
+    {
+      "id": "3LgA15",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.26
+    },
+    {
+      "id": "3LgA16",
+      "solarHeatGain": 0.59,
+      "heatTransferCoefficient": 1.22
+    },
+    {
+      "id": "3LsA06",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.96
+    },
+    {
+      "id": "3LsA07",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.82
+    },
+    {
+      "id": "3LsA08",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.7
+    },
+    {
+      "id": "3LsA09",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.61
+    },
+    {
+      "id": "3LsA10",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.53
+    },
+    {
+      "id": "3LsA11",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.46
+    },
+    {
+      "id": "3LsA12",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.4
+    },
+    {
+      "id": "3LsA13",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.34
+    },
+    {
+      "id": "3LsA14",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.3
+    },
+    {
+      "id": "3LsA15",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.26
+    },
+    {
+      "id": "3LsA16",
+      "solarHeatGain": 0.37,
+      "heatTransferCoefficient": 1.22
+    },
+    {
+      "id": "3FA06",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 2.32
+    },
+    {
+      "id": "3FA07",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 2.21
+    },
+    {
+      "id": "3FA08",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 2.13
+    },
+    {
+      "id": "3FA09",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 2.06
+    },
+    {
+      "id": "3FA10",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 2.0
+    },
+    {
+      "id": "3FA11",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.95
+    },
+    {
+      "id": "3FA12",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.91
+    },
+    {
+      "id": "3FA13",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.88
+    },
+    {
+      "id": "3FA14",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.84
+    },
+    {
+      "id": "3FA15",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.82
+    },
+    {
+      "id": "3FA16",
+      "solarHeatGain": 0.72,
+      "heatTransferCoefficient": 1.79
+    },
+    {
+      "id": "2LgG06",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.23
+    },
+    {
+      "id": "2LgG07",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.06
+    },
+    {
+      "id": "2LgG08",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.92
+    },
+    {
+      "id": "2LgG09",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.81
+    },
+    {
+      "id": "2LgG10",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.71
+    },
+    {
+      "id": "2LgG11",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.63
+    },
+    {
+      "id": "2LgG12",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.56
+    },
+    {
+      "id": "2LgG13",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.49
+    },
+    {
+      "id": "2LgG14",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.44
+    },
+    {
+      "id": "2LgG15",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.42
+    },
+    {
+      "id": "2LgG16",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.42
+    },
+    {
+      "id": "2LsG06",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.23
+    },
+    {
+      "id": "2LsG07",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.06
+    },
+    {
+      "id": "2LsG08",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.92
+    },
+    {
+      "id": "2LsG09",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.81
+    },
+    {
+      "id": "2LsG10",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.71
+    },
+    {
+      "id": "2LsG11",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.63
+    },
+    {
+      "id": "2LsG12",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.56
+    },
+    {
+      "id": "2LsG13",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.49
+    },
+    {
+      "id": "2LsG14",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.44
+    },
+    {
+      "id": "2LsG15",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.42
+    },
+    {
+      "id": "2LsG16",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.42
+    },
+    {
+      "id": "2LgA06",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.62
+    },
+    {
+      "id": "2LgA07",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.43
+    },
+    {
+      "id": "2LgA08",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.28
+    },
+    {
+      "id": "2LgA09",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.14
+    },
+    {
+      "id": "2LgA10",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 2.03
+    },
+    {
+      "id": "2LgA11",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.93
+    },
+    {
+      "id": "2LgA12",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.84
+    },
+    {
+      "id": "2LgA13",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.77
+    },
+    {
+      "id": "2LgA14",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.7
+    },
+    {
+      "id": "2LgA15",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.64
+    },
+    {
+      "id": "2LgA16",
+      "solarHeatGain": 0.64,
+      "heatTransferCoefficient": 1.61
+    },
+    {
+      "id": "2LsA06",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.62
+    },
+    {
+      "id": "2LsA07",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.43
+    },
+    {
+      "id": "2LsA08",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.28
+    },
+    {
+      "id": "2LsA09",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.14
+    },
+    {
+      "id": "2LsA10",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 2.03
+    },
+    {
+      "id": "2LsA11",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.93
+    },
+    {
+      "id": "2LsA12",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.84
+    },
+    {
+      "id": "2LsA13",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.77
+    },
+    {
+      "id": "2LsA14",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.7
+    },
+    {
+      "id": "2LsA15",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.64
+    },
+    {
+      "id": "2LsA16",
+      "solarHeatGain": 0.4,
+      "heatTransferCoefficient": 1.61
+    },
+    {
+      "id": "2FA06",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 3.33
+    },
+    {
+      "id": "2FA07",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 3.22
+    },
+    {
+      "id": "2FA08",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 3.13
+    },
+    {
+      "id": "2FA09",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 3.05
+    },
+    {
+      "id": "2FA10",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.99
+    },
+    {
+      "id": "2FA11",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.93
+    },
+    {
+      "id": "2FA12",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.89
+    },
+    {
+      "id": "2FA13",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.84
+    },
+    {
+      "id": "2FA14",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.81
+    },
+    {
+      "id": "2FA15",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.78
+    },
+    {
+      "id": "2FA16",
+      "solarHeatGain": 0.79,
+      "heatTransferCoefficient": 2.75
+    },
+    {
+      "id": "T",
+      "solarHeatGain": 0.88,
+      "heatTransferCoefficient": 5.95
+    },
+    {
+      "id": "S",
+      "solarHeatGain": 0.0842,
+      "heatTransferCoefficient": 2.63
+    }
+  ]
+}

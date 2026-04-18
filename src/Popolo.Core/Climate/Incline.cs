@@ -121,8 +121,13 @@ namespace Popolo.Core.Climate
       else HorizontalAngle = horizontalAngle;
 
       //傾斜角を 0〜π に正規化する
-      VerticalAngle = verticalAngle % Math.PI;
-      if (Math.PI < VerticalAngle) VerticalAngle = Math.PI - VerticalAngle;
+      //VerticalAngle = verticalAngle % Math.PI;
+      //if (Math.PI < VerticalAngle) VerticalAngle = Math.PI - VerticalAngle;
+      //傾斜角を 0〜π に正規化する（π は下向き水平面として保持する）2026.04.18 Bug fix.
+      verticalAngle = verticalAngle % pi2;            // (-2π, 2π)
+      if (verticalAngle < 0) verticalAngle += pi2;    // [0, 2π)
+      if (Math.PI < verticalAngle) verticalAngle = pi2 - verticalAngle; // [0, π]
+      VerticalAngle = verticalAngle;
 
       ConfigurationFactorToSky = GetConfigurationFactorToSky(VerticalAngle);
 

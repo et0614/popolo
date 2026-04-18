@@ -1,0 +1,1330 @@
+{
+  "$comment": "WEBPRO (BuildingType, roomType) -> WebproHeatGainScheduler.RoomType mapping, extracted from legacy Popolo v2.3.",
+  "mappings": [
+    {
+      "buildingType": "Office",
+      "roomType": "事務室",
+      "schedulerRoomType": "Office_Office"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "電子計算機器事務室",
+      "schedulerRoomType": "Office_Server"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "電算事務室",
+      "schedulerRoomType": "Office_Server"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "会議室",
+      "schedulerRoomType": "Office_Meeting"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "喫茶室",
+      "schedulerRoomType": "Office_CoffeeLounge"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "社員食堂",
+      "schedulerRoomType": "Office_Cafeteria"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "中央監視室",
+      "schedulerRoomType": "Office_CentralMonitorRoom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "Office_LockerRoom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "Office_LockerRoom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "更衣室",
+      "schedulerRoomType": "Office_LockerRoom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "倉庫",
+      "schedulerRoomType": "Office_LockerRoom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "廊下",
+      "schedulerRoomType": "Office_Corridor"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "ロビー",
+      "schedulerRoomType": "Office_Lobby"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "便所",
+      "schedulerRoomType": "Office_Restroom"
+    },
+    {
+      "buildingType": "Office",
+      "roomType": "喫煙室",
+      "schedulerRoomType": "Office_SmokingRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "客室",
+      "schedulerRoomType": "Hotel_GuestRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "客室内の浴室等",
+      "schedulerRoomType": "Hotel_BathRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "客室内浴室等",
+      "schedulerRoomType": "Hotel_BathRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用されるフロント",
+      "schedulerRoomType": "Hotel_AlldayFrontDesk"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "フロント(終日)",
+      "schedulerRoomType": "Hotel_AlldayFrontDesk"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用される事務室",
+      "schedulerRoomType": "Hotel_AlldayOfficeRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "事務室(終日)",
+      "schedulerRoomType": "Hotel_AlldayOfficeRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用される廊下",
+      "schedulerRoomType": "Hotel_AlldayCorridors"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "廊下(終日)",
+      "schedulerRoomType": "Hotel_AlldayCorridors"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用されるロビー",
+      "schedulerRoomType": "Hotel_AlldayLobby"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "ロビー(終日)",
+      "schedulerRoomType": "Hotel_AlldayLobby"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用される共用部の便所",
+      "schedulerRoomType": "Hotel_AlldayCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "便所(終日)",
+      "schedulerRoomType": "Hotel_AlldayCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "終日利用される喫煙室",
+      "schedulerRoomType": "Hotel_AlldaySmokingRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "喫煙室(終日)",
+      "schedulerRoomType": "Hotel_AlldaySmokingRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "宴会場",
+      "schedulerRoomType": "Hotel_BanquetHall"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "会議室",
+      "schedulerRoomType": "Hotel_Meeting"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "結婚式場",
+      "schedulerRoomType": "Hotel_WeddingHall"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "レストラン",
+      "schedulerRoomType": "Hotel_Restaurant"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "ラウンジ",
+      "schedulerRoomType": "Hotel_Lounge"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "バー",
+      "schedulerRoomType": "Hotel_Bar"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "店舗",
+      "schedulerRoomType": "Hotel_Shop"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "社員食堂",
+      "schedulerRoomType": "Hotel_StaffCafeteria"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "Hotel_LockerRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "Hotel_LockerRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "更衣室",
+      "schedulerRoomType": "Hotel_LockerRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "倉庫",
+      "schedulerRoomType": "Hotel_LockerRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用されるフロント",
+      "schedulerRoomType": "Hotel_DaytimeUseFrontDesk"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "フロント(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseFrontDesk"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用される事務室",
+      "schedulerRoomType": "Hotel_DaytimeUseOfficeRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "事務室(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseOfficeRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用される廊下",
+      "schedulerRoomType": "Hotel_DaytimeUseCorridors"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "廊下(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseCorridors"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用されるロビー",
+      "schedulerRoomType": "Hotel_DaytimeUseLobby"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "ロビー(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseLobby"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用される共用部の便所",
+      "schedulerRoomType": "Hotel_DaytimeUseCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "便所(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "日中のみ利用される喫煙室",
+      "schedulerRoomType": "Hotel_DaytimeUseSmokingRoom"
+    },
+    {
+      "buildingType": "Hotel",
+      "roomType": "喫煙室(日中)",
+      "schedulerRoomType": "Hotel_DaytimeUseSmokingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "病室",
+      "schedulerRoomType": "Hospital_PatientsRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "浴室等",
+      "schedulerRoomType": "Hospital_Bathroom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "看護職員室",
+      "schedulerRoomType": "Hospital_NursesLounge"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "終日利用される廊下",
+      "schedulerRoomType": "Hospital_AlldayCorridors"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "廊下(終日)",
+      "schedulerRoomType": "Hospital_AlldayCorridors"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "終日利用されるロビー",
+      "schedulerRoomType": "Hospital_AlldayLobby"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "ロビー(終日)",
+      "schedulerRoomType": "Hospital_AlldayLobby"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "終日利用される共用部の便所",
+      "schedulerRoomType": "Hospital_AlldayCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "便所(終日)",
+      "schedulerRoomType": "Hospital_AlldayCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "終日利用される喫煙室",
+      "schedulerRoomType": "Hospital_AlldaySmokingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "喫煙室(終日)",
+      "schedulerRoomType": "Hospital_AlldaySmokingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "診察室",
+      "schedulerRoomType": "Hospital_ExaminationRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "待合室",
+      "schedulerRoomType": "Hospital_WaitingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "手術室",
+      "schedulerRoomType": "Hospital_OperatingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "検査室",
+      "schedulerRoomType": "Hospital_Laboratory"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "集中治療室",
+      "schedulerRoomType": "Hospital_ICU"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "解剖室等",
+      "schedulerRoomType": "Hospital_DissectionRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "レストラン",
+      "schedulerRoomType": "Hospital_Restaurant"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "事務室",
+      "schedulerRoomType": "Hospital_OfficeRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "Hospital_LockerRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "Hospital_LockerRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "更衣室",
+      "schedulerRoomType": "Hospital_LockerRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "倉庫",
+      "schedulerRoomType": "Hospital_LockerRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "日中のみ利用される廊下",
+      "schedulerRoomType": "Hospital_DaytimeUseCorridors"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "廊下(日中)",
+      "schedulerRoomType": "Hospital_DaytimeUseCorridors"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "日中のみ利用されるロビー",
+      "schedulerRoomType": "Hospital_DaytimeUseLobby"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "ロビー(日中)",
+      "schedulerRoomType": "Hospital_DaytimeUseLobby"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "日中のみ利用される共用部の便所",
+      "schedulerRoomType": "Hospital_DaytimeUseCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "便所(日中)",
+      "schedulerRoomType": "Hospital_DaytimeUseCommonAreaLavatory"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "日中のみ利用される喫煙室",
+      "schedulerRoomType": "Hospital_DaytimeUseSmokingRoom"
+    },
+    {
+      "buildingType": "Hospital",
+      "roomType": "喫煙室(日中)",
+      "schedulerRoomType": "Hospital_DaytimeUseSmokingRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "大型店の売場",
+      "schedulerRoomType": "Retail_GeneralStore"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "大型店売場",
+      "schedulerRoomType": "Retail_GeneralStore"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "専門店の売場",
+      "schedulerRoomType": "Retail_SpecialistShops"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "専門店売場",
+      "schedulerRoomType": "Retail_SpecialistShops"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "スーパーマーケットの売場",
+      "schedulerRoomType": "Retail_Supermarket"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "スーパー売場",
+      "schedulerRoomType": "Retail_Supermarket"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "荷さばき場",
+      "schedulerRoomType": "Retail_LoadingArea"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "事務室",
+      "schedulerRoomType": "Retail_OfficeRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "Retail_LockerRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "Retail_LockerRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "更衣室",
+      "schedulerRoomType": "Retail_LockerRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "倉庫",
+      "schedulerRoomType": "Retail_LockerRoom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "ロビー",
+      "schedulerRoomType": "Retail_Lobby"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "便所",
+      "schedulerRoomType": "Retail_Restroom"
+    },
+    {
+      "buildingType": "Retail",
+      "roomType": "喫煙室",
+      "schedulerRoomType": "Retail_SmokingRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "小中学校の教室",
+      "schedulerRoomType": "ElementaryAndMiddleSchool_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "小中学校教室",
+      "schedulerRoomType": "ElementaryAndMiddleSchool_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "高等学校の教室",
+      "schedulerRoomType": "HighSchool_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "高校教室",
+      "schedulerRoomType": "HighSchool_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "職員室",
+      "schedulerRoomType": "School_StaffRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "小中学校又は高等学校の食堂",
+      "schedulerRoomType": "ElementaryJuniorHighAndHighSchool_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "小中高校食堂",
+      "schedulerRoomType": "ElementaryJuniorHighAndHighSchool_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "小中学校の食堂",
+      "schedulerRoomType": "ElementaryJuniorHighAndHighSchool_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "高等学校の食堂",
+      "schedulerRoomType": "ElementaryJuniorHighAndHighSchool_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "大学の教室",
+      "schedulerRoomType": "University_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "大学教室",
+      "schedulerRoomType": "University_Classroom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "大学の食堂",
+      "schedulerRoomType": "University_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "大学食堂",
+      "schedulerRoomType": "University_Cafeteria"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "事務室",
+      "schedulerRoomType": "School_OfficeRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "研究室",
+      "schedulerRoomType": "School_ResearchLabs"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "電子計算機器演習室",
+      "schedulerRoomType": "School_ComputerLabs"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "コンピュータ室",
+      "schedulerRoomType": "School_ComputerLabs"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "実験室",
+      "schedulerRoomType": "School_Laboratory"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "実習室",
+      "schedulerRoomType": "School_PracticeRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "講堂又は体育館",
+      "schedulerRoomType": "School_Gymnasium"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "講堂・体育館",
+      "schedulerRoomType": "School_Gymnasium"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "講堂",
+      "schedulerRoomType": "School_Gymnasium"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "体育館",
+      "schedulerRoomType": "School_Gymnasium"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "宿直室",
+      "schedulerRoomType": "School_DutyRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "School_LockerRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "School_LockerRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "更衣室",
+      "schedulerRoomType": "School_LockerRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "倉庫",
+      "schedulerRoomType": "School_LockerRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "廊下",
+      "schedulerRoomType": "School_Corridors"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "ロビー",
+      "schedulerRoomType": "School_Lobby"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "便所",
+      "schedulerRoomType": "School_RestRoom"
+    },
+    {
+      "buildingType": "School",
+      "roomType": "喫煙室",
+      "schedulerRoomType": "School_SmokingRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "レストランの客室",
+      "schedulerRoomType": "Restaurant_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "レストラン客室",
+      "schedulerRoomType": "Restaurant_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "軽食店の客室",
+      "schedulerRoomType": "SnackBar_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "軽食店客室",
+      "schedulerRoomType": "SnackBar_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "喫茶店の客室",
+      "schedulerRoomType": "CoffeeShop_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "喫茶店客室",
+      "schedulerRoomType": "CoffeeShop_GuestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "バー",
+      "schedulerRoomType": "Restaurant_Bar"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "フロント",
+      "schedulerRoomType": "Restaurant_Front"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "事務室",
+      "schedulerRoomType": "Restaurant_OfficeRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "更衣室又は倉庫",
+      "schedulerRoomType": "Restaurant_LockerRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "更衣室・倉庫",
+      "schedulerRoomType": "Restaurant_LockerRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "更衣室",
+      "schedulerRoomType": "Restaurant_LockerRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "倉庫",
+      "schedulerRoomType": "Restaurant_LockerRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "廊下",
+      "schedulerRoomType": "Restaurant_Corridors"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "ロビー",
+      "schedulerRoomType": "Restaurant_Lobby"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "便所",
+      "schedulerRoomType": "Restaurant_RestRoom"
+    },
+    {
+      "buildingType": "Restaurant",
+      "roomType": "喫煙室",
+      "schedulerRoomType": "Restaurant_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場の運動室",
+      "schedulerRoomType": "Athletic_ExerciseRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場運動室",
+      "schedulerRoomType": "Athletic_ExerciseRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場のロビー",
+      "schedulerRoomType": "Athletic_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場ロビー",
+      "schedulerRoomType": "Athletic_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場の便所",
+      "schedulerRoomType": "Athletic_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場便所",
+      "schedulerRoomType": "Athletic_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場の喫煙室",
+      "schedulerRoomType": "Athletic_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "アスレチック場喫煙室",
+      "schedulerRoomType": "Athletic_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "公式競技用スケート場",
+      "schedulerRoomType": "Sports_OfficialCompetitionSkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "スケート場(公式)",
+      "schedulerRoomType": "Sports_OfficialCompetitionSkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "公式競技用体育館",
+      "schedulerRoomType": "Sports_OfficialCompetitionStadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "体育館(公式)",
+      "schedulerRoomType": "Sports_OfficialCompetitionStadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "一般競技用スケート場",
+      "schedulerRoomType": "Sports_SkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "スケート場(一般)",
+      "schedulerRoomType": "Sports_SkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "一般競技用体育館",
+      "schedulerRoomType": "Sports_Stadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "体育館(一般)",
+      "schedulerRoomType": "Sports_Stadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "レクリエーション用スケート場",
+      "schedulerRoomType": "Sports_RecreationalSkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "スケート場(レク)",
+      "schedulerRoomType": "Sports_RecreationalSkatingRink"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "レクリエーション用体育館",
+      "schedulerRoomType": "Sports_RecreationalStadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "体育館(レク)",
+      "schedulerRoomType": "Sports_RecreationalStadium"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場の客席",
+      "schedulerRoomType": "Stadium_Seating"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場応援席",
+      "schedulerRoomType": "Stadium_Seating"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場のロビー",
+      "schedulerRoomType": "Stadium_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場ロビー",
+      "schedulerRoomType": "Stadium_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場の便所",
+      "schedulerRoomType": "Stadium_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場便所",
+      "schedulerRoomType": "Stadium_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場の喫煙室",
+      "schedulerRoomType": "Stadium_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競技場喫煙室",
+      "schedulerRoomType": "Stadium_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設の浴室",
+      "schedulerRoomType": "Bathhouse_Bathroom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設浴室",
+      "schedulerRoomType": "Bathhouse_Bathroom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設の脱衣所",
+      "schedulerRoomType": "Bathhouse_DressingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設脱衣室",
+      "schedulerRoomType": "Bathhouse_DressingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設の休憩室",
+      "schedulerRoomType": "Bathhouse_RelaxationRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設休憩室",
+      "schedulerRoomType": "Bathhouse_RelaxationRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設のロビー",
+      "schedulerRoomType": "Bathhouse_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設ロビー",
+      "schedulerRoomType": "Bathhouse_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設の便所",
+      "schedulerRoomType": "Bathhouse_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設便所",
+      "schedulerRoomType": "Bathhouse_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設の喫煙室",
+      "schedulerRoomType": "Bathhouse_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "浴場施設喫煙室",
+      "schedulerRoomType": "Bathhouse_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館の客席",
+      "schedulerRoomType": "MovieTheater_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館観客席",
+      "schedulerRoomType": "MovieTheater_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館のロビー",
+      "schedulerRoomType": "MovieTheater_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館ロビー",
+      "schedulerRoomType": "MovieTheater_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館の便所",
+      "schedulerRoomType": "MovieTheater_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館便所",
+      "schedulerRoomType": "MovieTheater_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館の喫煙室",
+      "schedulerRoomType": "MovieTheater_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "映画館喫煙室",
+      "schedulerRoomType": "MovieTheater_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館の図書室",
+      "schedulerRoomType": "Library_Library"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館図書室",
+      "schedulerRoomType": "Library_Library"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館のロビー",
+      "schedulerRoomType": "Library_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館ロビー",
+      "schedulerRoomType": "Library_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館の便所",
+      "schedulerRoomType": "Library_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館便所",
+      "schedulerRoomType": "Library_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館の喫煙室",
+      "schedulerRoomType": "Library_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "図書館喫煙室",
+      "schedulerRoomType": "Library_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館の展示室",
+      "schedulerRoomType": "Museum_ExhibitionRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館展示室",
+      "schedulerRoomType": "Museum_ExhibitionRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館のロビー",
+      "schedulerRoomType": "Museum_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館ロビー",
+      "schedulerRoomType": "Museum_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館の便所",
+      "schedulerRoomType": "Museum_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館便所",
+      "schedulerRoomType": "Museum_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館の喫煙室",
+      "schedulerRoomType": "Museum_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "博物館喫煙室",
+      "schedulerRoomType": "Museum_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場の楽屋",
+      "schedulerRoomType": "Theater_DressingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場楽屋",
+      "schedulerRoomType": "Theater_DressingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場の舞台",
+      "schedulerRoomType": "Theater_Stage"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場舞台",
+      "schedulerRoomType": "Theater_Stage"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場の客席",
+      "schedulerRoomType": "Theater_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場観客席",
+      "schedulerRoomType": "Theater_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場のロビー",
+      "schedulerRoomType": "Theater_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場ロビー",
+      "schedulerRoomType": "Theater_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場の便所",
+      "schedulerRoomType": "Theater_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場便所",
+      "schedulerRoomType": "Theater_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場の喫煙室",
+      "schedulerRoomType": "Theater_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "劇場喫煙室",
+      "schedulerRoomType": "Theater_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "カラオケボックス",
+      "schedulerRoomType": "KaraokeBox"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "ボーリング場",
+      "schedulerRoomType": "BowlingAlley"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "ぱちんこ屋",
+      "schedulerRoomType": "PachinkoParlor"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "パチンコ屋",
+      "schedulerRoomType": "PachinkoParlor"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場の客席",
+      "schedulerRoomType": "RaceTrack_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場観客席",
+      "schedulerRoomType": "RaceTrack_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場の客席",
+      "schedulerRoomType": "RaceTrack_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場の客席",
+      "schedulerRoomType": "RaceTrack_Seats"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場の券売場",
+      "schedulerRoomType": "RaceTrack_Ticket"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場券売場",
+      "schedulerRoomType": "RaceTrack_Ticket"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場の券売場",
+      "schedulerRoomType": "RaceTrack_Ticket"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場の券売場",
+      "schedulerRoomType": "RaceTrack_Ticket"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場の店舗",
+      "schedulerRoomType": "RaceTrack_Shop"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場店舗",
+      "schedulerRoomType": "RaceTrack_Shop"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場の店舗",
+      "schedulerRoomType": "RaceTrack_Shop"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場の店舗",
+      "schedulerRoomType": "RaceTrack_Shop"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場のロビー",
+      "schedulerRoomType": "RaceTrack_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場ロビー",
+      "schedulerRoomType": "RaceTrack_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場のロビー",
+      "schedulerRoomType": "RaceTrack_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場のロビー",
+      "schedulerRoomType": "RaceTrack_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場の便所",
+      "schedulerRoomType": "RaceTrack_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場便所",
+      "schedulerRoomType": "RaceTrack_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場の便所",
+      "schedulerRoomType": "RaceTrack_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場の便所",
+      "schedulerRoomType": "RaceTrack_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場又は競輪場の喫煙室",
+      "schedulerRoomType": "RaceTrack_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬競輪場喫煙室",
+      "schedulerRoomType": "RaceTrack_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競馬場の喫煙室",
+      "schedulerRoomType": "RaceTrack_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "競輪場の喫煙室",
+      "schedulerRoomType": "RaceTrack_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺の本殿",
+      "schedulerRoomType": "Temples_MainBuilding"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺本殿",
+      "schedulerRoomType": "Temples_MainBuilding"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺のロビー",
+      "schedulerRoomType": "Temples_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺ロビー",
+      "schedulerRoomType": "Temples_Lobby"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺の便所",
+      "schedulerRoomType": "Temples_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺便所",
+      "schedulerRoomType": "Temples_RestRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺の喫煙室",
+      "schedulerRoomType": "Temples_SmokingRoom"
+    },
+    {
+      "buildingType": "Hall",
+      "roomType": "社寺喫煙室",
+      "schedulerRoomType": "Temples_SmokingRoom"
+    },
+    {
+      "buildingType": "ApartmentHouse",
+      "roomType": "屋内廊下",
+      "schedulerRoomType": "ApartmentHouse_Corridor"
+    },
+    {
+      "buildingType": "ApartmentHouse",
+      "roomType": "ロビー",
+      "schedulerRoomType": "ApartmentHouse_Lobby"
+    },
+    {
+      "buildingType": "ApartmentHouse",
+      "roomType": "管理人室",
+      "schedulerRoomType": "ApartmentHouse_ManagersOffice"
+    },
+    {
+      "buildingType": "ApartmentHouse",
+      "roomType": "集会室",
+      "schedulerRoomType": "ApartmentHouse_MeetingRoom"
+    }
+  ]
+}

@@ -148,7 +148,7 @@ namespace Popolo.Core.Validation.BESTEST
       // 実行するケースをここで選択（コメントアウトで除外）
       //Test(TestCase.C600, "Result\\C600.csv");
       
-      /*Test(TestCase.C195,      "Result\\C195.csv");
+      Test(TestCase.C195,      "Result\\C195.csv");
       Test(TestCase.C200,      "Result\\C200.csv");
       Test(TestCase.C210,      "Result\\C210.csv");
       Test(TestCase.C215,      "Result\\C215.csv");
@@ -191,7 +191,7 @@ namespace Popolo.Core.Validation.BESTEST
       Test(TestCase.C900_J1_1, "Result\\C900_J1_1.csv");
       Test(TestCase.C900_J1_2, "Result\\C900_J1_2.csv");
       Test(TestCase.C900_J2,   "Result\\C900_J2.csv");
-      Test(TestCase.C900_J3,   "Result\\C900_J3.csv");*/
+      Test(TestCase.C900_J3,   "Result\\C900_J3.csv");
       
 
       // 結果をExcelに転記

@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Popolo.Core\Popolo.Core.csproj" />
+    <ProjectReference Include="..\..\src\Popolo.IO\Popolo.IO.csproj" />
+    <ProjectReference Include="..\..\src\Popolo.Webpro\Popolo.Webpro.csproj" />
   </ItemGroup>
 
 </Project>

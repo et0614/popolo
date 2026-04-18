@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Glazings.json" />
+    <None Remove="Resources\Materials.json" />
+    <None Remove="Resources\RoomTypeMapping.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Glazings.json" />
+    <EmbeddedResource Include="Resources\Materials.json" />
+    <EmbeddedResource Include="Resources\RoomTypeMapping.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Popolo.IO\Popolo.IO.csproj" />
+  </ItemGroup>
+
+</Project>
