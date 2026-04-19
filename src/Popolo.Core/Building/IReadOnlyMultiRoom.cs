@@ -95,7 +95,15 @@ namespace Popolo.Core.Building
     /// <summary>Gets the air flow rate from zone 1 to zone 2 [kg/s].</summary>
     /// <param name="zoneIndex1">Source zone index.</param>
     /// <param name="zoneIndex2">Destination zone index.</param>
-    /// <returns>Air flow rate [kg/s].</returns>
+    /// <returns>Directed mass flow from zone 1 to zone 2 [kg/s], always non-negative.</returns>
+    /// <remarks>
+    /// The returned value is the rate originally supplied via
+    /// <see cref="MultiRoom.SetAirFlow(int,int,double)"/> or
+    /// <see cref="MultiRoom.SetCrossVentilation(int,int,double)"/>. For
+    /// cross-ventilation, calling this with swapped indices returns the same
+    /// value; for a directed flow, the opposite direction returns 0 unless
+    /// it has been set separately.
+    /// </remarks>
     double GetAirFlow(int zoneIndex1, int zoneIndex2);
 
     /// <summary>Gets the air flow rate from zone 1 to zone 2 [kg/s].</summary>
@@ -104,14 +112,23 @@ namespace Popolo.Core.Building
     /// <returns>Air flow rate [kg/s].</returns>
     double GetAirFlow(IReadOnlyZone zone1, IReadOnlyZone zone2);
 
-    /// <summary>Gets the breakdown of sensible heat flows into the zone (positive = inflow).</summary>
+    /// <summary>Gets the breakdown of sensible heat flows into the zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
-    /// <param name="wallSurfaces">Heat flow from wall and window surfaces [W].</param>
+    /// <param name="wallSurfaces">Convective heat flow from wall and window surfaces [W].</param>
     /// <param name="zoneAirChange">Inter-zone ventilation heat flow [W].</param>
-    /// <param name="outdoorAir">Outdoor air heat flow [W].</param>
-    /// <param name="supplyAir">Supply air heat flow [W].</param>
-    /// <param name="heatGains">Internal heat gains [W].</param>
-    /// <param name="heatSupply">HVAC heat supply [W].</param>
+    /// <param name="outdoorAir">Outdoor-air ventilation heat flow [W].</param>
+    /// <param name="supplyAir">HVAC supply-air heat flow [W].</param>
+    /// <param name="heatGains">Convective part of internal heat gains [W].</param>
+    /// <param name="heatSupply">HVAC sensible heat supply [W].</param>
+    /// <remarks>
+    /// Sign convention: positive values are <b>inflows</b> that warm the
+    /// zone, negative values are outflows. At a converged solver step, the
+    /// six components sum to the zone air's thermal storage rate (zero at
+    /// steady state). Values reflect the most recent completed solver step;
+    /// call them after the enclosing
+    /// <see cref="IReadOnlyBuildingThermalModel"/> has finished its update
+    /// cycle.
+    /// </remarks>
     void GetBreakdownOfSensibleHeatFlow(
         int zoneIndex,
         out double wallSurfaces, out double zoneAirChange,
@@ -124,13 +141,19 @@ namespace Popolo.Core.Building
     /// <returns>Convective heat flow [W].</returns>
     double GetWallConvectiveHeatFlow(int wallIndex, bool isSideF);
 
-    /// <summary>Gets the breakdown of moisture flows into the zone (positive = inflow).</summary>
+    /// <summary>Gets the breakdown of moisture flows into the zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
     /// <param name="zoneAirChange">Inter-zone ventilation moisture flow [kg/s].</param>
-    /// <param name="outdoorAir">Outdoor air moisture flow [kg/s].</param>
-    /// <param name="supplyAir">Supply air moisture flow [kg/s].</param>
+    /// <param name="outdoorAir">Outdoor-air ventilation moisture flow [kg/s].</param>
+    /// <param name="supplyAir">HVAC supply-air moisture flow [kg/s].</param>
     /// <param name="moistureGains">Internal moisture gains [kg/s].</param>
-    /// <param name="moistureSupply">HVAC moisture supply/removal [kg/s].</param>
+    /// <param name="moistureSupply">HVAC humidification (+) or dehumidification (-) [kg/s].</param>
+    /// <remarks>
+    /// Sign convention: positive values are <b>inflows</b> that raise the
+    /// zone humidity, negative values are outflows. The latent counterpart
+    /// of <see cref="GetBreakdownOfSensibleHeatFlow"/>; the same
+    /// "valid after a completed solver step" contract applies.
+    /// </remarks>
     void GetBreakdownOfLatentHeatFlow(
         int zoneIndex,
         out double zoneAirChange,
