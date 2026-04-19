@@ -23,7 +23,33 @@ using System.Collections.Generic;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a single-node thermal zone with air temperature and humidity ratio.</summary>
+  /// <inheritdoc cref="IReadOnlyZone"/>
+  /// <remarks>
+  /// <para>
+  /// This is the mutable implementation of <see cref="IReadOnlyZone"/>. Construct
+  /// a zone with a name, floor area, and ceiling height, then register it with
+  /// a <see cref="MultiRoom"/> — the MultiRoom assigns the zone its
+  /// <see cref="IReadOnlyZone.RoomIndex"/> and wires up the link back via
+  /// <see cref="IReadOnlyZone.MultiRoom"/>. A zone does not solve its own
+  /// balance equations; all state updates are driven by the MultiRoom solver.
+  /// </para>
+  /// <para>
+  /// Heat gain elements are added with <c>AddHeatGain</c>. A default
+  /// <see cref="BaseHeatGain"/> is always present and returned as the first
+  /// entry from <see cref="IReadOnlyZone.GetHeatGains"/>; use it as a
+  /// convenience slot for adjusting base convective/radiative/moisture loads
+  /// without creating a new <see cref="IHeatGain"/> instance each time.
+  /// </para>
+  /// <para>
+  /// Temperature and humidity can be pinned to a setpoint with
+  /// <c>ControlTemperature</c> / <c>ControlHumidity</c>, or released to float
+  /// freely with <c>ReleaseTemperatureControl</c> / <c>ReleaseHumidityControl</c>.
+  /// After each solver step, <see cref="IReadOnlyZone.HeatSupply"/> and
+  /// <see cref="IReadOnlyZone.MoistureSupply"/> report the HVAC load
+  /// delivered to maintain the setpoints, clamped by the configured capacity
+  /// limits.
+  /// </para>
+  /// </remarks>
   public class Zone : IReadOnlyZone
   {
 

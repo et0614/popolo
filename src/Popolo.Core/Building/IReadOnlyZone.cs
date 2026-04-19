@@ -21,7 +21,53 @@ using Popolo.Core.Building.Envelope;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a read-only view of a thermal zone.</summary>
+  /// <summary>
+  /// Represents a read-only view of a thermal zone — a single well-mixed air
+  /// volume characterized by one dry-bulb temperature and one humidity ratio.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A thermal zone is the smallest unit of conditioned space in the building
+  /// model. The zone solver assumes <b>perfect mixing</b> within the volume:
+  /// one <see cref="Temperature"/> and one <see cref="HumidityRatio"/>
+  /// represent the whole zone air at any instant, and spatial gradients inside
+  /// the zone are neglected. Rooms that require internal stratification should
+  /// be modeled as multiple connected zones.
+  /// </para>
+  /// <para>
+  /// A zone participates in four balance equations solved by its enclosing
+  /// <see cref="IReadOnlyMultiRoom"/>:
+  /// <list type="bullet">
+  ///   <item><description><b>Sensible heat balance</b> against surrounding walls / windows
+  ///     (see <see cref="GetWallReferences"/> and <see cref="GetWindows"/>),
+  ///     ventilation and supply air, and internal heat gains.</description></item>
+  ///   <item><description><b>Moisture balance</b> against outdoor air exchange, supply air,
+  ///     and internal moisture gains.</description></item>
+  ///   <item><description><b>Short-wave radiation balance</b> for solar irradiance that
+  ///     enters through windows and is distributed to interior surfaces.</description></item>
+  ///   <item><description><b>Long-wave radiation balance</b> between the interior surfaces.</description></item>
+  /// </list>
+  /// Either temperature or humidity can be held at a setpoint by HVAC control
+  /// (<see cref="TemperatureControlled"/>, <see cref="HumidityControlled"/>);
+  /// when not controlled, the state floats freely subject to the balance equations.
+  /// </para>
+  /// <para>
+  /// <see cref="HeatCapacity"/> and <see cref="MoistureCapacity"/> represent the
+  /// thermal/moisture mass of <i>contents other than air</i> (furniture, goods,
+  /// carpets, etc.). The air mass itself is tracked separately in
+  /// <see cref="AirMass"/> and derived from the floor area and height supplied
+  /// when the zone was created. Using non-zero capacities for contents adds a
+  /// time constant that damps rapid transients and better matches measured
+  /// behavior in occupied buildings.
+  /// </para>
+  /// <para>
+  /// HVAC capacity limits (<see cref="HeatingCapacity"/>,
+  /// <see cref="CoolingCapacity"/>, <see cref="HumidifyingCapacity"/>,
+  /// <see cref="DehumidifyingCapacity"/>) bound the heat/moisture the zone can
+  /// request in controlled mode: if the setpoint cannot be reached within the
+  /// cap, the state overshoots the setpoint by the deficit.
+  /// </para>
+  /// </remarks>
   public interface IReadOnlyZone
   {
     /// <summary>Gets the name of the zone.</summary>

@@ -28,21 +28,24 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Building
 {
 
-  /// <summary>
-  /// Represents an entire building composed of one or more loosely coupled
-  /// <see cref="MultiRoom"/> instances.
-  /// </summary>
+  /// <inheritdoc cref="IReadOnlyBuildingThermalModel"/>
   /// <remarks>
   /// <para>
-  /// Different <see cref="MultiRoom"/> instances within a <see cref="BuildingThermalModel"/>
-  /// exchange boundary conditions (e.g. temperatures of shared walls) with a
-  /// <b>one-time-step lag</b>. This weak coupling allows each <see cref="MultiRoom"/>
-  /// to be solved independently in parallel, at the cost of a small numerical
-  /// delay in inter-block heat transfer.
+  /// This is the mutable implementation of <see cref="IReadOnlyBuildingThermalModel"/>.
+  /// Construct the building by passing an array of <see cref="MultiRoom"/>
+  /// instances to the constructor (or build them up incrementally), then drive
+  /// the simulation by repeatedly setting outdoor conditions and advancing the
+  /// solver. For read-only access (e.g., when handing the model to reporting
+  /// components), use the <see cref="IReadOnlyBuildingThermalModel"/>
+  /// interface.
   /// </para>
   /// <para>
-  /// If tight coupling (simultaneous solution) is required between two regions,
-  /// place them in the same <see cref="MultiRoom"/> instead.
+  /// When <see cref="EnableParallelComputing"/> is true (the default), the
+  /// independent <see cref="MultiRoom"/> instances are solved on parallel
+  /// tasks using a configurable <see cref="MaxDegreeOfParallelism"/>. The
+  /// parallel safety of this scheme depends on the one-time-step lag in
+  /// inter-block boundary exchange described in
+  /// <see cref="IReadOnlyBuildingThermalModel"/>.
   /// </para>
   /// </remarks>
   public class BuildingThermalModel : IReadOnlyBuildingThermalModel
