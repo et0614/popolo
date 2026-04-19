@@ -22,8 +22,36 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a venetian blind with detailed optical property calculation.</summary>
-  /// <remarks>Based on ISO 15099.</remarks>
+  /// <summary>
+  /// Represents a venetian blind with slat-angle- and profile-angle-dependent
+  /// optical properties, based on the geometric radiosity model in ISO 15099.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Each slat is subdivided into a fixed number of segments, and the radiation
+  /// exchange between segments and the two openings (F and B sides) is solved
+  /// as a radiosity linear system. View factors are recomputed whenever the
+  /// slat angle changes; the direct-irradiance properties are recomputed
+  /// whenever the profile angle changes. Diffuse-irradiance properties follow
+  /// from the same radiosity system with uniform boundary conditions.
+  /// </para>
+  /// <para>
+  /// The model distinguishes transmittance and reflectance for:
+  /// <list type="bullet">
+  ///   <item><description>direct irradiance (profile-angle-dependent);</description></item>
+  ///   <item><description>diffuse irradiance (isotropic);</description></item>
+  ///   <item><description>F-side vs B-side incidence.</description></item>
+  /// </list>
+  /// In addition, a direct-to-direct (beam-through) transmittance component
+  /// accounts for gaps between slats when the solar beam is aligned with the
+  /// slat plane.
+  /// </para>
+  /// <para>
+  /// Recomputation is lazy: heavy work (matrix inversion, view-factor update)
+  /// is deferred until <see cref="ComputeOpticalProperties"/> is called after
+  /// a change to <see cref="SlatAngle"/> or <see cref="ProfileAngle"/>.
+  /// </para>
+  /// </remarks>
   public class VenetianBlind : IShadingDevice
   {
 

@@ -19,7 +19,32 @@
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a heat gain element that contributes sensible heat and moisture to a thermal zone.</summary>
+  /// <summary>
+  /// Represents an internal heat gain element that contributes sensible heat and
+  /// moisture to a thermal zone.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Heat gain elements model sources that release energy or moisture inside a
+  /// zone — for example, occupants, lighting, and office equipment. Each element
+  /// reports three quantities evaluated against the zone it belongs to:
+  /// the convective sensible heat gain, the radiative sensible heat gain, and
+  /// the moisture generation rate.
+  /// </para>
+  /// <para>
+  /// The convective component is added directly to the zone air heat balance,
+  /// while the radiative component is distributed to surrounding surfaces
+  /// (walls, windows) through the short-wave radiation balance. The moisture
+  /// component feeds the zone humidity ratio balance.
+  /// </para>
+  /// <para>
+  /// Each method receives the zone as an argument so that implementations can
+  /// make the heat gain a function of zone state (e.g., temperature-dependent
+  /// equipment loads). Implementations that return constant values can ignore
+  /// the <see cref="IReadOnlyZone"/> parameter — see
+  /// <see cref="SimpleHeatGain"/>.
+  /// </para>
+  /// </remarks>
   public interface IHeatGain
   {
     /// <summary>Gets the convective component of the sensible heat gain [W].</summary>

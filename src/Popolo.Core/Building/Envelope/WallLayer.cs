@@ -22,7 +22,34 @@ using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a single layer in a wall or floor assembly.</summary>
+  /// <inheritdoc cref="IReadOnlyWallLayer"/>
+  /// <remarks>
+  /// <para>
+  /// <see cref="WallLayer"/> is the mutable base type for layers in a wall or
+  /// floor assembly. Use the <see cref="Material"/> enum constructor for layers
+  /// made of standard building materials (their thermal conductivity and volumetric
+  /// specific heat are looked up from an internal table based on typical
+  /// engineering values), or the numeric constructors to specify custom
+  /// thermophysical properties directly.
+  /// </para>
+  /// <para>
+  /// Subtypes extend this base with specialized behavior:
+  /// <list type="bullet">
+  ///   <item><description><see cref="AirGapLayer"/> — air gap with fixed thermal resistance.</description></item>
+  ///   <item><description><see cref="PCMWallLayer"/> — phase-change material with latent heat storage.</description></item>
+  ///   <item><description><see cref="HorizontalAirChamber"/> — attic or crawl space with detailed convective correlation.</description></item>
+  /// </list>
+  /// Subtypes override <see cref="Kind"/> to identify themselves to serializers
+  /// and override <c>UpdateState</c> to recompute properties each time step when
+  /// <see cref="IsVariableProperties"/> is true.
+  /// </para>
+  /// <para>
+  /// Layers are value-like from the caller's perspective: a <see cref="Wall"/>
+  /// clones each layer passed to its constructor, so mutating a layer after it
+  /// has been added to a wall does not affect the wall. Use <see cref="Clone"/>
+  /// to obtain an independent copy explicitly.
+  /// </para>
+  /// </remarks>
   public class WallLayer : ICloneable, IReadOnlyWallLayer
   {
     #region 列挙型定義

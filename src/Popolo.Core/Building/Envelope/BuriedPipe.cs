@@ -22,7 +22,33 @@ using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a buried radiant pipe system embedded in a floor or wall layer.</summary>
+  /// <summary>
+  /// Represents a radiant heating or cooling pipe system embedded inside a
+  /// <see cref="Wall"/> layer (typically a floor slab).
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A buried pipe exchanges heat with the surrounding wall node by circulating
+  /// water through one or more parallel tube branches laid out at a given pitch.
+  /// Each branch contributes a convective resistance inside the tube (from a
+  /// Nusselt-number correlation for turbulent pipe flow), a conductive
+  /// resistance across the tube wall, and fin resistances to the adjacent
+  /// layer nodes above and below.
+  /// </para>
+  /// <para>
+  /// Heat transfer is modeled by the ε-NTU method: given the water flow rate
+  /// and inlet temperature, the pipe reports an effectiveness that the
+  /// wall solver uses to determine the heat gain or loss at the embedded node
+  /// and the outlet water temperature. Heat transfer is set to zero when the
+  /// flow rate is zero.
+  /// </para>
+  /// <para>
+  /// Pipes are attached to a specific node in the layer stack of a
+  /// <see cref="Wall"/>, not to the wall surface; this allows the response
+  /// factor model to capture the delayed and distributed nature of radiant
+  /// floor/wall heating correctly.
+  /// </para>
+  /// </remarks>
   public class BuriedPipe : IReadOnlyBuriedPipe
   {
 
@@ -153,7 +179,17 @@ namespace Popolo.Core.Building.Envelope
 
   }
 
-  /// <summary>Represents a read-only view of a buried pipe system.</summary>
+  /// <summary>
+  /// Represents a read-only view of a buried radiant pipe embedded in a wall
+  /// or floor layer.
+  /// </summary>
+  /// <remarks>
+  /// Exposes pipe geometry (pitch, length, branch count, diameters), the
+  /// thermal conductivity of the pipe material, the current inlet water
+  /// temperature and mass flow rate, and derived quantities used by the
+  /// wall solver (fin efficiencies and ε-NTU effectiveness). See
+  /// <see cref="BuriedPipe"/> for the mutable implementation.
+  /// </remarks>
   public interface IReadOnlyBuriedPipe
   {
     /// <summary>Gets the inlet water temperature [°C].</summary>

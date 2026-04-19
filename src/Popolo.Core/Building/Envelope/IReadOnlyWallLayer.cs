@@ -19,7 +19,37 @@
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a read-only view of a wall layer.</summary>
+  /// <summary>
+  /// Represents a read-only view of a single layer in a multi-layer wall
+  /// or floor assembly.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A wall layer exposes the thermophysical properties required by the one-dimensional
+  /// heat-conduction model that underlies <see cref="IReadOnlyWall"/>:
+  /// thermal conductivity, volumetric specific heat, thickness, and the derived
+  /// thermal conductance and heat capacity. Moisture transfer requires three
+  /// additional properties: moisture conductivity, moisture capacity, and the
+  /// absorption/release coefficients (<see cref="KappaC"/> and <see cref="NuC"/>).
+  /// </para>
+  /// <para>
+  /// The heat capacity is reported <b>per side</b>
+  /// (<see cref="HeatCapacity_F"/> and <see cref="HeatCapacity_B"/>). In the
+  /// underlying finite-difference discretization, each layer contributes
+  /// half of its thermal mass to the node on the F side and half to the node
+  /// on the B side; the two values therefore typically satisfy
+  /// <c>HeatCapacity_F == HeatCapacity_B == 0.5 · VolSpecificHeat · Thickness · 1000</c>.
+  /// Subtypes such as <c>PCMWallLayer</c> may report asymmetric values
+  /// when the two sides are in different phase states.
+  /// </para>
+  /// <para>
+  /// <see cref="IsVariableProperties"/> is true when the layer's thermophysical
+  /// properties depend on current state (temperature, humidity, phase);
+  /// such layers recompute their properties during the solution loop.
+  /// The <see cref="Kind"/> discriminator identifies the concrete subtype and
+  /// allows reflection-free serialization (see the value list below).
+  /// </para>
+  /// </remarks>
   public interface IReadOnlyWallLayer
   {
 

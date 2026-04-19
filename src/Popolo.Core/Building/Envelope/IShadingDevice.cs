@@ -20,8 +20,38 @@
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
-  /// Represents a solar shading device placed in the air gap of a window assembly.
+  /// Represents an interior solar shading device placed inside the window assembly
+  /// — either between glazing layers (e.g., a blind embedded in the air gap) or
+  /// on the indoor side of the innermost glazing.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Interior shading devices modify the optical path of solar radiation through
+  /// a <see cref="Window"/> by attenuating and redirecting transmitted light and
+  /// absorbing or reflecting the rest. They are positioned by layer index in the
+  /// window, where 0 is the outdoor side and N+1 is the indoor side; a
+  /// <see cref="NoShadingDevice"/> is installed by default at every position.
+  /// For <b>exterior</b> shading (overhangs, fins, louvers mounted outside the
+  /// window), use <see cref="SunShade"/> instead.
+  /// </para>
+  /// <para>
+  /// Implementations evaluate transmittance and reflectance at runtime, possibly
+  /// as functions of solar position (<see cref="ProfileAngle"/>) and slat angle.
+  /// <see cref="HasPropertyChanged"/> reports whether optical properties changed
+  /// since the last call to <see cref="ComputeOpticalProperties"/>, allowing
+  /// callers to skip redundant recomputation in the window solver.
+  /// </para>
+  /// <para>
+  /// Available implementations:
+  /// <list type="bullet">
+  ///   <item><description><see cref="NoShadingDevice"/> — null object (no shading).</description></item>
+  ///   <item><description><see cref="SimpleShadingDevice"/> — constant transmittance and reflectance.</description></item>
+  ///   <item><description><see cref="VenetianBlind"/> — adjustable slat angle with ISO 15099 geometry.</description></item>
+  /// </list>
+  /// The <see cref="Kind"/> discriminator identifies the concrete type and
+  /// allows reflection-free serialization.
+  /// </para>
+  /// </remarks>
   public interface IShadingDevice
   {
     /// <summary>
@@ -75,6 +105,12 @@ namespace Popolo.Core.Building.Envelope
   /// A null-object implementation of <see cref="IShadingDevice"/> that represents
   /// the absence of any shading device (transmittance = 1, reflectance = 0).
   /// </summary>
+  /// <remarks>
+  /// Used as the default occupant of every shading slot in a <see cref="Window"/>
+  /// so that the solver can treat all positions uniformly without null checks.
+  /// Swap in a real <see cref="IShadingDevice"/> (e.g., <see cref="SimpleShadingDevice"/>
+  /// or <see cref="VenetianBlind"/>) via <c>Window.SetShadingDevice</c> to activate shading.
+  /// </remarks>
   public class NoShadingDevice : IShadingDevice
   {
     /// <summary>Gets the discriminator; always <c>"noShadingDevice"</c>.</summary>

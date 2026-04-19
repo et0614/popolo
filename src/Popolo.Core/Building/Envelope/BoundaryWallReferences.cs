@@ -22,12 +22,23 @@ using Popolo.Core.Climate;
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
-  /// Represents a reference to an outside (outdoor-facing) wall surface, carrying
+  /// Represents a reference to a wall surface that faces outdoors, carrying
   /// the wall ID, side flag, and the outdoor incline (orientation).
   /// </summary>
   /// <remarks>
-  /// Used by <see cref="MultiRoom"/> to enumerate its outside-wall boundary
-  /// surfaces without exposing the internal <c>BoundarySurface</c> type.
+  /// <para>
+  /// Outdoor-facing surfaces receive the outdoor air temperature, solar
+  /// irradiance, and long-wave radiation exchange with the sky and ground.
+  /// The <see cref="Incline"/> determines the solar incidence angle and the
+  /// sky/ground view factors.
+  /// </para>
+  /// <para>
+  /// Returned by <see cref="MultiRoom"/> when consumers need to enumerate
+  /// outdoor boundaries without exposing the internal <c>BoundarySurface</c>
+  /// type. Contrast with <see cref="GroundWallReference"/> (below-grade walls
+  /// or floors in contact with soil) and <see cref="AdjacentSpaceWallReference"/>
+  /// (walls facing unconditioned or otherwise un-simulated spaces).
+  /// </para>
   /// </remarks>
   public readonly struct OutsideWallReference
   {
@@ -50,9 +61,18 @@ namespace Popolo.Core.Building.Envelope
   }
 
   /// <summary>
-  /// Represents a reference to a ground-contact wall surface, carrying
-  /// the wall ID, side flag, and soil-to-wall conductance.
+  /// Represents a reference to a wall surface that is in contact with soil
+  /// (e.g., a basement wall or slab-on-grade floor), carrying the wall ID,
+  /// side flag, and the soil-to-wall thermal conductance.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Ground-coupled surfaces do not see outdoor air or solar radiation directly;
+  /// instead, they exchange heat with the soil through
+  /// <see cref="Conductance"/> at an effective ground temperature supplied by
+  /// the enclosing thermal model.
+  /// </para>
+  /// </remarks>
   public readonly struct GroundWallReference
   {
     /// <summary>Gets the ID of the referenced wall.</summary>
@@ -74,9 +94,21 @@ namespace Popolo.Core.Building.Envelope
   }
 
   /// <summary>
-  /// Represents a reference to a wall surface facing an adjacent (non-simulated)
-  /// space, carrying the wall ID, side flag, and temperature-difference factor.
+  /// Represents a reference to a wall surface that faces an adjacent,
+  /// non-simulated space (e.g., a neighboring unit or an unconditioned
+  /// plenum), carrying the wall ID, side flag, and a temperature-difference
+  /// factor.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// The effective boundary temperature is interpolated between the outdoor
+  /// temperature and the indoor temperature of the owning zone using
+  /// <see cref="TemperatureDifferenceFactor"/>: a value of 1 treats the
+  /// adjacent space as outdoor-like, a value of 0 treats it as indoor-like,
+  /// and intermediate values blend the two. This is a simplified alternative
+  /// to explicitly simulating the adjacent space.
+  /// </para>
+  /// </remarks>
   public readonly struct AdjacentSpaceWallReference
   {
     /// <summary>Gets the ID of the referenced wall.</summary>

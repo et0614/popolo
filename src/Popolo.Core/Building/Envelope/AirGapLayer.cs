@@ -22,7 +22,31 @@ using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a wall layer consisting of an air gap, with fixed thermal resistance.</summary>
+  /// <summary>
+  /// Represents a wall layer consisting of an air gap, modeled with a fixed
+  /// thermal resistance.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Air gaps are treated as a lumped thermal resistance rather than as a
+  /// fluid domain, which is sufficient for whole-building thermal load
+  /// calculations. Two standard resistances are provided as defaults:
+  /// <list type="bullet">
+  ///   <item><description><c>0.15 m²·K/W</c> for a <b>sealed</b> gap (still air, only conduction and radiation).</description></item>
+  ///   <item><description><c>0.07 m²·K/W</c> for a <b>ventilated</b> gap (slight convective exchange with outside).</description></item>
+  /// </list>
+  /// A constructor overload accepts a user-specified resistance for non-standard
+  /// configurations.
+  /// </para>
+  /// <para>
+  /// The air inside the gap is assigned a small thermal mass based on its
+  /// volumetric specific heat at 20 °C / 60 % RH and the specified thickness.
+  /// Thermal properties do not vary with state, so
+  /// <see cref="IReadOnlyWallLayer.IsVariableProperties"/> is always false.
+  /// For cases where the convective exchange must be resolved explicitly
+  /// (e.g., attic spaces), use <see cref="HorizontalAirChamber"/> instead.
+  /// </para>
+  /// </remarks>
   public class AirGapLayer : WallLayer
   {
 

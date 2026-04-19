@@ -21,7 +21,21 @@ using System;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>A simple heat gain element with fixed convective, radiative, and moisture values.</summary>
+  /// <inheritdoc cref="IHeatGain"/>
+  /// <remarks>
+  /// <para>
+  /// <see cref="SimpleHeatGain"/> is the most basic implementation of
+  /// <see cref="IHeatGain"/>, holding constant values for the convective sensible
+  /// heat, radiative sensible heat, and moisture generation rate. Use it when the
+  /// heat gain is known a priori and does not depend on zone state (typical for
+  /// schedule-driven loads).
+  /// </para>
+  /// <para>
+  /// Because the returned values do not depend on zone state, the
+  /// <c>IReadOnlyZone</c> argument is ignored by all three Get* methods and is
+  /// accepted only to satisfy the <see cref="IHeatGain"/> contract.
+  /// </para>
+  /// </remarks>
   public class SimpleHeatGain : IHeatGain
   {
     /// <summary>Gets or sets the convective sensible heat gain [W].</summary>

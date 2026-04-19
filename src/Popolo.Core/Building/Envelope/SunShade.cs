@@ -22,8 +22,34 @@ using Popolo.Core.Climate;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents an exterior solar shading device (overhang, fin, louver, etc.)
-  /// attached to a window or wall surface.</summary>
+  /// <summary>
+  /// Represents an exterior solar shading device — overhang, vertical fin, or
+  /// grid louver — that casts a shadow onto the window or wall it is attached to.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Unlike <see cref="IShadingDevice"/>, which modifies the optical properties
+  /// <i>within</i> a window assembly, <see cref="SunShade"/> sits <b>outside</b>
+  /// the envelope and reduces the fraction of the window surface that receives
+  /// direct sunlight. The shaded fraction is computed from the shading device
+  /// geometry (overhang projection, margins to the window edges) and the
+  /// current solar position via the <see cref="IReadOnlyIncline"/>
+  /// attached to the surface.
+  /// </para>
+  /// <para>
+  /// The <see cref="ShapeType"/> enum selects among the supported geometric
+  /// configurations: horizontal overhangs, vertical fins (left, right, or both),
+  /// grid (egg-crate) louvers, and their infinite-length counterparts.
+  /// Infinite-length variants ignore the side margins and are appropriate
+  /// for long continuous shading elements (e.g., a roof eave spanning the
+  /// entire facade).
+  /// </para>
+  /// <para>
+  /// Diffuse solar attenuation is approximated by a sky-view-factor reduction
+  /// consistent with the shading geometry, while direct solar attenuation is
+  /// computed as the shadowed fraction of the window area.
+  /// </para>
+  /// </remarks>
   public class SunShade
   {
 
