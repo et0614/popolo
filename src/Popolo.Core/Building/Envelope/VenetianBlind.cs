@@ -48,8 +48,9 @@ namespace Popolo.Core.Building.Envelope
   /// </para>
   /// <para>
   /// Recomputation is lazy: heavy work (matrix inversion, view-factor update)
-  /// is deferred until <see cref="ComputeOpticalProperties"/> is called after
-  /// a change to <see cref="SlatAngle"/> or <see cref="ProfileAngle"/>.
+  /// is deferred until
+  /// <see cref="ComputeOpticalProperties(bool, bool, out double, out double)"/>
+  /// is called after a change to <see cref="SlatAngle"/> or <see cref="ProfileAngle"/>.
   /// </para>
   /// </remarks>
   public class VenetianBlind : IShadingDevice
