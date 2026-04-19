@@ -4,12 +4,32 @@ Popolo is an open-source C# library for academic simulation of building thermal 
 
 ---
 
+## Packages
+
+Popolo is split into three NuGet packages so that the physics core can stay
+free of I/O concerns. Add only the layer you need; each higher-level package
+pulls in the lower ones automatically as Popolo dependencies, and none of them
+pull in any third-party runtime dependency.
+
+| Package | Purpose | Depends on |
+|---|---|---|
+| [`Popolo.Core`](https://www.nuget.org/packages/Popolo.Core) | Physics, solvers, zone / wall / window / HVAC equipment models. Pure computation, **no I/O**. | — (no Popolo deps) |
+| [`Popolo.IO`](https://www.nuget.org/packages/Popolo.IO) | File I/O for weather data (EPW / HASP / TMY1 / WEA2 / EXA / CSV) and JSON serialization of `BuildingThermalModel`, `MultiRoom`, `Zone`, `Wall`, `Window`, `Sun`, `Incline`. **Required if you want to load or save anything.** | `Popolo.Core` |
+| `Popolo.Webpro` | Japan-local: integration with the WEBPRO compliance-calculation format. Most overseas users will not need this. | `Popolo.Core`, `Popolo.IO` |
+
+If your simulation generates inputs programmatically (e.g., a synthetic weather
+schedule) and logs results with your own writer, `Popolo.Core` alone is enough.
+If you want to read real weather files or round-trip building models through
+JSON, add `Popolo.IO` as well.
+
+---
+
 ## Design Philosophy
 
 - **No external runtime dependencies.** The core library ships as a single `Popolo.Core.dll` assembly. You can drop it into any .NET project and start simulating — no NuGet tree to manage, no version conflicts.
 - **Physics-based, not black-box.** Every model is grounded in documented equations (ASHRAE, JIS, academic literature) and exposes its internal state through read-only interfaces so you can inspect intermediate quantities for research reproducibility.
 - **Typed exceptions for diagnosable failures.** Numerical divergence, out-of-range inputs, and unsupported configurations are surfaced as distinct `Popolo*Exception` subclasses, so downstream tools can react to them programmatically instead of parsing error strings.
-- **Separation of concerns.** IO, file formats (WEBPRO, weather file readers, JSON), and solvers are kept out of the core. The physics stays pure; serialization layers can be added on top without touching the models.
+- **Separation of concerns.** File I/O (weather files, JSON), and country-specific compliance formats (WEBPRO) are shipped as separate packages (`Popolo.IO`, `Popolo.Webpro`) rather than bundled into the core. The physics core stays pure; serialization and format support can be added on top without touching the models.
 
 ---
 
@@ -83,11 +103,22 @@ Popolo.Core has no runtime dependencies. Building and testing the repository req
 
 ## Installation
 
+Start with `Popolo.Core` for the physics and solver models:
+
 ```powershell
 dotnet add package Popolo.Core
 ```
 
-Or download `Popolo.Core.dll` from the releases page and reference it directly.
+Add `Popolo.IO` when you need to read weather files (EPW / HASP / TMY1 etc.) or
+serialize/deserialize building models as JSON:
+
+```powershell
+dotnet add package Popolo.IO
+```
+
+Alternatively, download `Popolo.Core.dll` (and optionally `Popolo.IO.dll`) from
+the releases page and reference them directly. Popolo has no third-party
+runtime dependencies.
 
 ---
 
@@ -150,7 +181,7 @@ system.ChilledWaterSupplyTemperatureSetpoint = 7.0;
 system.TimeStep = 3600;
 ```
 
-See `tests/Popolo.Core.Samples/` for runnable examples.
+See `samples/Popolo.Samples/` for runnable examples.
 
 ---
 
@@ -180,7 +211,7 @@ All of these inherit from their corresponding BCL base classes (`ArgumentExcepti
 
 ```
 src/
-  Popolo.Core/            # Main library (no external dependencies)
+  Popolo.Core/            # Physics core (no external dependencies)
     Building/             # Zones, envelope, multi-room thermal balance
     Climate/              # Sun, sky, weather generation, ground
     Energy/               # PV panels
@@ -193,10 +224,21 @@ src/
     ThermalComfort/       # Fanger, Gagge, Tanabe, Takakusaki models
     Utilities/            # Miscellaneous helpers
 
+  Popolo.IO/              # File I/O (depends on Popolo.Core)
+    Climate/Weather/      # EPW / HASP / TMY1 / WEA2 / EXA / CSV readers & writers
+    Json/                 # JSON serializers for BuildingThermalModel, MultiRoom,
+                          # Zone, Wall, Window, Sun, Incline
+
+  Popolo.Webpro/          # Japan-local WEBPRO compliance format (depends on Popolo.IO)
+
 tests/
-  Popolo.Core.Tests/      # Unit tests (xUnit)
-  Popolo.Core.Samples/    # Runnable usage examples
+  Popolo.Core.Tests/      # Unit tests for the core (xUnit)
+  Popolo.IO.Tests/        # Unit tests for the I/O layer
+  Popolo.Webpro.Tests/    # Unit tests for the WEBPRO integration
   BESTEST/                # ASHRAE 140 validation runner
+
+samples/
+  Popolo.Samples/         # Runnable usage examples
 ```
 
 ---
