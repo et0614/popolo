@@ -136,8 +136,22 @@ namespace Popolo.Core.Building
 
     #region コンストラクタ
 
-    /// <summary>Initializes a new instance.</summary>
-    /// <param name="mRooms">Array of multi-room systems.</param>
+    /// <summary>Initializes a new building thermal model from a collection of multi-room systems.</summary>
+    /// <param name="mRooms">Array of multi-room systems that together make up the building.</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when any zone or window is referenced by more than one
+    /// <see cref="MultiRoom"/> — each zone and each window must belong to
+    /// exactly one multi-room so that boundary conditions are unambiguous.
+    /// </exception>
+    /// <remarks>
+    /// The constructor caches a flat list of all walls (deduplicated), and
+    /// allocates per-multi-room inter-zone-airflow tables. After construction,
+    /// call <see cref="InitializeAirState"/> to seed temperatures and
+    /// humidities before the first solver step. Inter-multi-room air flows
+    /// can be set up later with the cross-room
+    /// <see cref="SetCrossVentilation(int,int,int,int,double)"/> and
+    /// <see cref="SetAirFlow(int,int,int,int,double)"/> overloads.
+    /// </remarks>
     public BuildingThermalModel(MultiRoom[] mRooms)
     {
       this.mRooms = mRooms;
@@ -171,10 +185,25 @@ namespace Popolo.Core.Building
 
     #region 熱平衡更新処理
 
-    /// <summary>Forecasts the future sensible heat balance state.</summary>
+    /// <summary>Computes a tentative new sensible-heat state for every zone and wall without committing it.</summary>
     /// <remarks>
-    /// May be called multiple times iteratively.
-    /// Call <see cref="FixState"/> afterwards to commit the result.
+    /// <para>
+    /// Each solver step is a two-phase cycle:
+    /// <list type="number">
+    ///   <item><description><b>Forecast</b> — call <see cref="ForecastHeatTransfer"/> (and <see cref="ForecastWaterTransfer"/> if moisture is tracked). Zone states are tentatively updated but wall response-factor histories are not yet advanced, so the call can be <b>repeated</b> with adjusted boundary conditions (e.g., modified inter-multi-room air flows) until the caller is satisfied.</description></item>
+    ///   <item><description><b>Fix</b> — call <see cref="FixState"/> once to commit the latest forecast. Wall response-factor histories advance by one time step; the next forecast starts from the committed state.</description></item>
+    /// </list>
+    /// To discard a forecast instead of committing, call
+    /// <see cref="ResetAirState"/>, which reverts zone temperatures and
+    /// humidities to their pre-forecast values.
+    /// </para>
+    /// <para>
+    /// When <see cref="EnableParallelComputing"/> is true (the default), the
+    /// forecasts for independent <see cref="MultiRoom"/> instances run on
+    /// parallel tasks with up to <see cref="MaxDegreeOfParallelism"/> workers.
+    /// A per-multi-room "has changed" flag skips re-forecasting sub-models
+    /// whose boundary conditions have not changed since the last forecast.
+    /// </para>
     /// </remarks>
     public void ForecastHeatTransfer()
     {
@@ -211,10 +240,15 @@ namespace Popolo.Core.Building
       }
     }
 
-    /// <summary>Forecasts the future moisture balance state.</summary>
+    /// <summary>Computes a tentative new moisture state for every zone without committing it.</summary>
     /// <remarks>
-    /// May be called multiple times iteratively.
-    /// Call <see cref="FixState"/> afterwards to commit the result.
+    /// Latent counterpart of <see cref="ForecastHeatTransfer"/>; see that
+    /// method's remarks for the two-phase forecast/fix cycle. Multi-rooms
+    /// configured to solve moisture simultaneously with sensible heat are
+    /// skipped here — their moisture state is already updated by
+    /// <see cref="ForecastHeatTransfer"/>. The common pattern is to call
+    /// both Forecast* methods in sequence and then a single
+    /// <see cref="FixState"/>.
     /// </remarks>
     public void ForecastWaterTransfer()
     {
@@ -238,7 +272,16 @@ namespace Popolo.Core.Building
       }
     }
 
-    /// <summary>Commits the forecasted state and advances the wall heat transfer by one time step.</summary>
+    /// <summary>Commits the most recent forecast and advances time by one step.</summary>
+    /// <remarks>
+    /// Finalizes the latest <see cref="ForecastHeatTransfer"/> /
+    /// <see cref="ForecastWaterTransfer"/> results: each multi-room's
+    /// "has changed" flag is re-armed for the next cycle, and every wall's
+    /// response-factor history is rolled forward by one time step via
+    /// <c>Wall.Update</c>. After this call, the building state reflects
+    /// the end of the current time step and is ready for new boundary
+    /// conditions and another forecast/fix cycle.
+    /// </remarks>
     public void FixState()
     {
       foreach (MultiRoom mr in mRooms)
@@ -256,7 +299,15 @@ namespace Popolo.Core.Building
       isFirstForecast = true;
     }
 
-    /// <summary>Reverts zone temperatures and humidity ratios from forecast values to current values.</summary>
+    /// <summary>Discards an uncommitted forecast and restores zone states to their last fixed values.</summary>
+    /// <remarks>
+    /// Use between <see cref="ForecastHeatTransfer"/> and
+    /// <see cref="FixState"/> when the caller wants to discard the tentative
+    /// result — typically before re-forecasting with modified boundary
+    /// conditions. Calling this after a <see cref="FixState"/> has no
+    /// meaningful effect because the "last fixed" state already equals the
+    /// current state.
+    /// </remarks>
     public void ResetAirState()
     {
       foreach (MultiRoom mr in mRooms)
@@ -292,7 +343,24 @@ namespace Popolo.Core.Building
       }
     }
 
-    /// <summary>Updates the heat and moisture balance while respecting HVAC capacity limits.</summary>
+    /// <summary>Performs a full forecast/fix cycle, temporarily switching over-capacity zones to fixed-load mode to respect HVAC limits.</summary>
+    /// <remarks>
+    /// <para>
+    /// Convenience wrapper for the common case "solve one time step with
+    /// HVAC capacity clamping". The algorithm:
+    /// <list type="number">
+    ///   <item><description>Forecast sensible heat and moisture.</description></item>
+    ///   <item><description>Scan every zone in setpoint mode. When the required supply exceeds the configured <see cref="IReadOnlyZone.HeatingCapacity"/> / <see cref="IReadOnlyZone.CoolingCapacity"/> / <see cref="IReadOnlyZone.HumidifyingCapacity"/> / <see cref="IReadOnlyZone.DehumidifyingCapacity"/>, remember the original setpoint, switch the zone to fixed-load mode at the capped value, and re-forecast.</description></item>
+    ///   <item><description>Repeat until no zone is over capacity.</description></item>
+    ///   <item><description>Commit with <see cref="FixState"/>.</description></item>
+    ///   <item><description>Restore the original setpoint-mode control on every zone that was temporarily switched.</description></item>
+    /// </list>
+    /// Zones that are already in fixed-load mode are left alone. After this
+    /// call, the post-step zone temperatures / humidities may overshoot
+    /// their setpoints by the capacity deficit, which is the expected
+    /// physical behavior of a capacity-limited HVAC system.
+    /// </para>
+    /// </remarks>
     public void UpdateHeatTransferWithinCapacityLimit()
     {
       List<int> mrIndex = new List<int>();
@@ -404,9 +472,15 @@ namespace Popolo.Core.Building
 
     #region 境界条件設定処理
 
-    /// <summary>Initializes wall and zone temperatures and humidity ratios.</summary>
+    /// <summary>Seeds every zone and wall in the building with uniform initial conditions.</summary>
     /// <param name="temperature">Dry-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg].</param>
+    /// <remarks>
+    /// Fans out to each <see cref="MultiRoom.InitializeAirState"/>. Call
+    /// after the model is fully configured and before the first solver
+    /// step to establish a well-defined starting state. May also be used to
+    /// re-seed state at the start of a new simulation scenario.
+    /// </remarks>
     public void InitializeAirState(double temperature, double humidityRatio)
     { foreach (MultiRoom ml in mRooms) ml.InitializeAirState(temperature, humidityRatio); }
 
@@ -461,12 +535,23 @@ namespace Popolo.Core.Building
       hasHTChgd[mRooms[rmIndex]] = hasWTChgd[mRooms[rmIndex]] = true;
     }
 
-    /// <summary>Sets the inter-zone air flow rate [kg/s].</summary>
-    /// <param name="rmIndex1">Source MultiRooms index.</param>
-    /// <param name="znIndex1">Source zone index.</param>
-    /// <param name="rmIndex2">Destination MultiRooms index.</param>
-    /// <param name="znIndex2">Destination zone index.</param>
-    /// <param name="airFlowRate">Inter-zone air flow rate [kg/s].</param>
+    /// <summary>Sets a symmetric air exchange between two zones, possibly in different multi-rooms [kg/s].</summary>
+    /// <param name="rmIndex1">Multi-room of zone 1.</param>
+    /// <param name="znIndex1">Zone 1 index (within its multi-room).</param>
+    /// <param name="rmIndex2">Multi-room of zone 2.</param>
+    /// <param name="znIndex2">Zone 2 index.</param>
+    /// <param name="airFlowRate">Air mass flow rate in each direction [kg/s].</param>
+    /// <remarks>
+    /// When both zones belong to the <b>same</b> multi-room, the flow is
+    /// solved as part of the tight-coupling linear system (identical to
+    /// <see cref="MultiRoom.SetCrossVentilation(int,int,double)"/>).
+    /// When the zones are in <b>different</b> multi-rooms, the flow
+    /// crosses the loose-coupling boundary of
+    /// <see cref="BuildingThermalModel"/>: each multi-room sees the other
+    /// zone's temperature and humidity from the previous time step as a
+    /// supply-air boundary condition (the one-time-step lag described in
+    /// <see cref="IReadOnlyBuildingThermalModel"/>).
+    /// </remarks>
     public void SetCrossVentilation(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2, double airFlowRate)
     {
       //同一の多数室の場合には連成計算
@@ -479,12 +564,19 @@ namespace Popolo.Core.Building
       }
     }
 
-    /// <summary>Sets the air flow rate from zone 1 to zone 2 [kg/s].</summary>
-    /// <param name="rmIndex1">Source MultiRooms index.</param>
+    /// <summary>Sets a directional air flow between two zones, possibly in different multi-rooms [kg/s].</summary>
+    /// <param name="rmIndex1">Multi-room of the source zone.</param>
     /// <param name="znIndex1">Source zone index.</param>
-    /// <param name="rmIndex2">Destination MultiRooms index.</param>
+    /// <param name="rmIndex2">Multi-room of the destination zone.</param>
     /// <param name="znIndex2">Destination zone index.</param>
-    /// <param name="airFlowRate">Air flow rate [kg/s].</param>
+    /// <param name="airFlowRate">Air mass flow rate from 1 to 2 [kg/s].</param>
+    /// <remarks>
+    /// One-directional counterpart of
+    /// <see cref="SetCrossVentilation(int,int,int,int,double)"/>; see that
+    /// method's remarks for same-multi-room vs cross-multi-room semantics.
+    /// The caller is responsible for keeping the overall air mass balance
+    /// consistent across all zones.
+    /// </remarks>
     public void SetAirFlow(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2, double airFlowRate)
     {
       //同一の多数室の場合には連成計算
@@ -685,9 +777,19 @@ namespace Popolo.Core.Building
 
     #region モデル検証
 
-    /// <summary>Checks whether any wall surfaces are not registered in any MultiRooms.</summary>
-    /// <param name="wallInfo">Information about unconnected wall surfaces.</param>
-    /// <returns>True if connection errors exist; otherwise false.</returns>
+    /// <summary>Validates that every wall surface in the model is connected to some zone or boundary.</summary>
+    /// <param name="wallInfo">On return, descriptions of every wall side that is not attached to any zone or boundary; empty when the model is consistent.</param>
+    /// <returns>True when at least one wall side is unconnected (error); false when every wall side is properly registered.</returns>
+    /// <remarks>
+    /// A well-formed model attaches each wall's F and B sides to exactly
+    /// one of: a zone (via <see cref="MultiRoom.AddWall(int,int,bool)"/>),
+    /// an outdoor boundary (<see cref="MultiRoom.SetOutsideWall"/>),
+    /// a ground boundary (<see cref="MultiRoom.SetGroundWall"/>), or an
+    /// adjacent-space boundary (<see cref="MultiRoom.UseAdjacentSpaceFactor"/>).
+    /// Unconnected sides cause undefined behavior in the solver. Call this
+    /// method after finishing model construction and before the first solver
+    /// step as a configuration sanity check.
+    /// </remarks>
     public bool HasConnectionError(out WallInfo[] wallInfo)
     {
       List<WallInfo> wInfo = new List<WallInfo>();
