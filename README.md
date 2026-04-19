@@ -29,8 +29,8 @@ Popolo is an open-source C# library for academic simulation of building thermal 
 - **Climate**
   - Solar position and irradiance on arbitrary inclined surfaces
   - Sky radiation (Berdahl–Fromberg, Brunt, cloud-cover correction)
-  - Stochastic weather generation from daily statistics (Watanabe method)
-  - Ground temperature (Kusuda model)
+  - Stochastic weather generation from daily statistics
+  - Ground temperature
 - **Heat Exchange & Equipment**
   - Counterflow / parallel-flow / cross-flow heat exchange (ε-NTU, LMTD)
   - Tube-in-fin heat exchanger, evaporator, condenser (with frost modelling)
@@ -58,7 +58,7 @@ Popolo is an open-source C# library for academic simulation of building thermal 
   - Buried pipes (radiant floor heating / cooling)
   - Windows with venetian blinds, sunshades, simple shading
 - **System Simulation**
-  - Multi-room thermal balance (MultiRooms, BuildingThermalModel)
+  - Multi-room thermal balance (MultiRoom, BuildingThermalModel)
   - Air handling unit with coils, humidifier, economizer
   - AHU / heat source sub-system orchestration
   - Variable Refrigerant Flow (VRF) with factory methods for
