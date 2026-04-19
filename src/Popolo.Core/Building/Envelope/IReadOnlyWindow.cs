@@ -21,7 +21,38 @@ using Popolo.Core.Climate;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a read-only view of a window assembly.</summary>
+  /// <summary>
+  /// Represents a read-only view of a window assembly composed of multiple
+  /// glazing layers and optional interior shading devices.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A window resolves solar radiation as the combined effect of glazing
+  /// transmittance / reflectance / absorptance, air-gap thermal resistances,
+  /// and any <see cref="IShadingDevice"/> installed between (or next to) the
+  /// glazing layers. The glazing optical properties can depend on the angle
+  /// of incidence for direct solar radiation, while diffuse properties are
+  /// integrated from the same angular coefficients.
+  /// </para>
+  /// <para>
+  /// F and B denote the two opposing sides, matching <see cref="IReadOnlyWall"/>:
+  /// for a typical exterior window, F is the outdoor side and B is the indoor
+  /// side. The interface therefore reports a separate family of properties
+  /// for each direction of solar incidence:
+  /// <list type="bullet">
+  ///   <item><description><b>Incident</b> (from outdoors): <see cref="DirectSolarIncidentTransmittance"/>,
+  ///     <see cref="DiffuseSolarIncidentTransmittance"/>, and their reflectance / absorptance pairs.</description></item>
+  ///   <item><description><b>Lost</b> (from indoors): <see cref="DiffuseSolarLostTransmittance"/> and its
+  ///     reflectance / absorptance counterparts (used for re-radiation from the zone).</description></item>
+  /// </list>
+  /// </para>
+  /// <para>
+  /// Exterior shading such as overhangs or fins is modeled separately by a
+  /// <see cref="SunShade"/> attached to the window surface; this is orthogonal
+  /// to the interior <see cref="IShadingDevice"/> stack accessed via
+  /// <see cref="GetShadingDevice"/>.
+  /// </para>
+  /// </remarks>
   public interface IReadOnlyWindow
   {
     /// <summary>Gets the window surface area [m²].</summary>

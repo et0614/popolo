@@ -23,7 +23,35 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a window assembly with multi-layer glazing and optional interior shading devices.</summary>
+  /// <inheritdoc cref="IReadOnlyWindow"/>
+  /// <remarks>
+  /// <para>
+  /// This is the mutable implementation of <see cref="IReadOnlyWindow"/>.
+  /// Build a window by specifying the normal-incidence transmittance and
+  /// reflectance arrays for each glazing layer (one entry per layer, ordered
+  /// from F to B) and the outdoor <see cref="IReadOnlyIncline"/>. Asymmetric
+  /// glazing (different F-side vs B-side properties) is supported by the
+  /// four-array constructor overload; symmetric glazing uses the two-array
+  /// overload.
+  /// </para>
+  /// <para>
+  /// After construction, install <see cref="IShadingDevice"/> objects at
+  /// specific layer positions (0 = outdoor air gap, up to <c>GlazingCount</c>
+  /// for the indoor surface) via <c>SetShadingDevice</c>. Angle-dependent
+  /// optical behavior for each glazing can be selected from presets
+  /// (<see cref="GlassType"/>) or supplied as custom coefficient arrays with
+  /// <c>SetAngleDependence</c>. The thermal resistance of individual glazing
+  /// layers and air gaps is configurable through <c>SetGlassResistance</c> /
+  /// <c>SetAirGapResistance</c>.
+  /// </para>
+  /// <para>
+  /// <c>UpdateOpticalProperties</c> recomputes the solar properties given the
+  /// current solar position and the state of all attached shading devices.
+  /// The window caches the last solar angle it was evaluated at and skips
+  /// recomputation when neither the sun nor any shading device has moved,
+  /// keeping the per-step cost low for steady conditions.
+  /// </para>
+  /// </remarks>
   public class Window : IReadOnlyWindow
   {
 

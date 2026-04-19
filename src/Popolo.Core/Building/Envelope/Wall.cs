@@ -25,9 +25,33 @@ using System.Collections.Generic;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a multi-layer wall or floor assembly with heat and moisture transfer.</summary>
+  /// <inheritdoc cref="IReadOnlyWall"/>
   /// <remarks>
-  /// F and B denote the two opposing sides. For external walls, F is conventionally the outdoor-facing side.
+  /// <para>
+  /// This is the mutable implementation of <see cref="IReadOnlyWall"/>. Configure
+  /// the wall by passing a <see cref="WallLayer"/> array to the constructor —
+  /// the wall <b>clones</b> each layer, so later mutations of the original
+  /// layer objects do not propagate. After construction, use
+  /// <see cref="Initialize(double)"/> or <see cref="Initialize(double,double)"/>
+  /// to set the initial temperature (and humidity) distribution, and install
+  /// radiant pipes with <c>AddPipe</c>.
+  /// </para>
+  /// <para>
+  /// The coefficient and inverse matrices of the response-factor model are
+  /// cached and recomputed lazily: internal flags indicate when layer
+  /// properties or pipe flow conditions have changed, and the matrices are
+  /// rebuilt on the next solver step. This keeps the per-step cost low when
+  /// properties are steady.
+  /// </para>
+  /// <para>
+  /// Boundary attachment (outdoor, ground, adjacent space, or another zone)
+  /// is owned by the enclosing <see cref="MultiRoom"/>, not by the wall
+  /// itself; a wall therefore has no notion of "which side is outside" until
+  /// it is placed. See <see cref="OutsideWallReference"/>,
+  /// <see cref="GroundWallReference"/>, and
+  /// <see cref="AdjacentSpaceWallReference"/> for the boundary kinds exposed
+  /// to callers.
+  /// </para>
   /// </remarks>
   public class Wall : IReadOnlyWall
   {
