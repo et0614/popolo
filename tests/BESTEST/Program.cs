@@ -237,13 +237,13 @@ namespace Popolo.Core.Validation.BESTEST
       };
 
       // モデルを作成
-      MultiRooms mRoom;
+      MultiRoom mRoom;
       Zone[] zones;
       Wall[] walls;
       Window[] windows;
       Sun sun = new Sun(39 + 8d / 60d, 360 - 104 + 9d / 60d, 360 - 105);
       MakeBuilding(testCase, out mRoom, out zones, out walls, out windows);
-      BuildingThermalModel bModel = new BuildingThermalModel(new MultiRooms[] { mRoom });
+      BuildingThermalModel bModel = new BuildingThermalModel(new MultiRoom[] { mRoom });
 
       using (StreamReader sReader = new StreamReader("BESTestWeather.csv"))
       using (StreamWriter sWriter = new StreamWriter(outputFilePath, false, Encoding.GetEncoding("Shift_JIS")))
@@ -539,7 +539,7 @@ namespace Popolo.Core.Validation.BESTEST
     #region 建物モデル作成処理
 
     private static void MakeBuilding(TestCase tCase,
-      out MultiRooms mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
+      out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
       if (tCase == TestCase.C960)
       {
@@ -640,7 +640,7 @@ namespace Popolo.Core.Validation.BESTEST
 
           if (tCase == TestCase.C900_J3)
             windows[i].SetShadingDevice(2,
-              new SimpleShadingDevice(SimpleShadingDevice.PredefinedDevices.BrightVenetianBlind));
+              new SimpleShadingDevice(SimpleShadingDevice.PredefinedDevice.BrightVenetianBlind));
         }
 
         if (hasSunShade)
@@ -660,7 +660,7 @@ namespace Popolo.Core.Validation.BESTEST
       else windows = new Window[0];
 
       // 多数室
-      mRoom = new MultiRooms(1, zones, walls, windows);
+      mRoom = new MultiRoom(1, zones, walls, windows);
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
@@ -684,7 +684,7 @@ namespace Popolo.Core.Validation.BESTEST
     }
 
     private static void MakeSunZoneBuilding(
-      out MultiRooms mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
+      out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
       const double aowal = 29.3;
       const double aowin = 21.0;
@@ -753,7 +753,7 @@ namespace Popolo.Core.Validation.BESTEST
       }
 
       // 多数室（2室）
-      mRoom = new MultiRooms(2, zones, walls, windows);
+      mRoom = new MultiRoom(2, zones, walls, windows);
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
@@ -795,7 +795,7 @@ namespace Popolo.Core.Validation.BESTEST
     }
 
     private static void MakeGroundCouplingBuilding(
-      out MultiRooms mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
+      out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
       const double aowal = 29.3;
       const double aowin = 21.0;
@@ -863,7 +863,7 @@ namespace Popolo.Core.Validation.BESTEST
       }
 
       // 多数室
-      mRoom = new MultiRooms(1, zones, walls, windows);
+      mRoom = new MultiRoom(1, zones, walls, windows);
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);

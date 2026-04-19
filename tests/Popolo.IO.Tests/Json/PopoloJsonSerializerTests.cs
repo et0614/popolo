@@ -39,7 +39,7 @@ namespace Popolo.IO.Tests.Json
             var zone = new Zone("Test Zone", 120, 10);
             var layers = new WallLayer[] { new WallLayer("Concrete", 1.4, 1934, 0.15) };
             var wall = new Wall(12.0, layers) { ID = 0 };
-            var mRooms = new MultiRooms(1, new[] { zone }, new[] { wall }, Array.Empty<Window>());
+            var mRooms = new MultiRoom(1, new[] { zone }, new[] { wall }, Array.Empty<Window>());
             mRooms.AddZone(0, 0);
             mRooms.AddWall(0, 0, true);
             mRooms.SetOutsideWall(0, true, new Incline(0d, Math.PI / 2));
@@ -236,8 +236,8 @@ namespace Popolo.IO.Tests.Json
             var json = PopoloJsonSerializer.Serialize(original);
             var restored = PopoloJsonSerializer.Deserialize(json);
 
-            var origRefs = ((MultiRooms)original.MultiRoom[0]).GetOutsideWallReferences();
-            var restRefs = ((MultiRooms)restored.MultiRoom[0]).GetOutsideWallReferences();
+            var origRefs = ((MultiRoom)original.MultiRoom[0]).GetOutsideWallReferences();
+            var restRefs = ((MultiRoom)restored.MultiRoom[0]).GetOutsideWallReferences();
 
             Assert.Equal(origRefs.Length, restRefs.Length);
             Assert.Equal(origRefs[0].IsSideF, restRefs[0].IsSideF);

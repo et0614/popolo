@@ -58,7 +58,7 @@ namespace Popolo.IO.Json.Building
   /// </code>
   /// <para>
   /// <b>Centralized wall storage:</b> All walls are stored at this level with
-  /// sequential IDs. <see cref="Zone"/> and <see cref="MultiRooms"/> refer to
+  /// sequential IDs. <see cref="Zone"/> and <see cref="MultiRoom"/> refer to
   /// walls by ID only. On write, IDs are assigned sequentially so that round-trip
   /// IDs are stable.
   /// </para>
@@ -218,7 +218,7 @@ namespace Popolo.IO.Json.Building
       if (mRoomsElem.ValueKind != JsonValueKind.Array)
         throw new JsonException($"'{PropMultiRooms}' must be an array.");
 
-      var mRoomsList = new List<MultiRooms>();
+      var mRoomsList = new List<MultiRoom>();
       foreach (var mRoomElem in mRoomsElem.EnumerateArray())
       {
         var dto = ReadMultiRoomsDtoFromElement(mRoomElem, options);
@@ -298,11 +298,11 @@ namespace Popolo.IO.Json.Building
       writer.WriteStartArray();
       foreach (var mr in value.MultiRoom)
       {
-        if (mr is MultiRooms concrete)
+        if (mr is MultiRoom concrete)
           JsonSerializer.Serialize(writer, concrete, options);
         else
           throw new JsonException(
-            $"Unsupported {nameof(IReadOnlyMultiRooms)} implementation: {mr?.GetType().FullName ?? "null"}.");
+            $"Unsupported {nameof(IReadOnlyMultiRoom)} implementation: {mr?.GetType().FullName ?? "null"}.");
       }
       writer.WriteEndArray();
 

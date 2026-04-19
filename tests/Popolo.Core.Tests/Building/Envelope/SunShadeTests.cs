@@ -48,7 +48,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     {
       var sun = new Sun(35.7, 139.7, 135.0); // 東京の緯度経度
       sun.Altitude = altitudeDeg * Math.PI / 180.0;
-      sun.Orientation = orientationDeg * Math.PI / 180.0;
+      sun.Azimuth = orientationDeg * Math.PI / 180.0;
       return sun;
     }
 
@@ -71,7 +71,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     public void MakeEmptySunShade_ShapeIsNone()
     {
       var shade = SunShade.MakeEmptySunShade();
-      Assert.Equal(SunShade.Shapes.None, shade.Shape);
+      Assert.Equal(SunShade.ShapeType.None, shade.Shape);
     }
 
     #endregion
@@ -103,7 +103,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var incline = MakeSouthVerticalIncline();
       var shade = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, incline);
 
-      Assert.Equal(SunShade.Shapes.LongHorizontal, shade.Shape);
+      Assert.Equal(SunShade.ShapeType.LongHorizontal, shade.Shape);
     }
 
     /// <summary>無限長水平庇で庇が大きいほど影率が大きい</summary>
@@ -181,7 +181,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeHorizontalSunShade(
           WinWidth, WinHeight, 0.5, 0.0, 0.0, 0.0, incline);
 
-      Assert.Equal(SunShade.Shapes.Horizontal, shade.Shape);
+      Assert.Equal(SunShade.ShapeType.Horizontal, shade.Shape);
     }
 
     /// <summary>有限長庇は無限長庇より影率が小さいか等しい</summary>
@@ -207,7 +207,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var incline = MakeSouthVerticalIncline();
       var shade = SunShade.MakeVerticalSunShade(WinWidth, WinHeight, 0.5, 0.0, true, incline);
 
-      Assert.Equal(SunShade.Shapes.LongVerticalLeft, shade.Shape);
+      Assert.Equal(SunShade.ShapeType.LongVerticalLeft, shade.Shape);
     }
 
     /// <summary>右袖壁のShapeがLongVerticalRight</summary>
@@ -217,7 +217,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var incline = MakeSouthVerticalIncline();
       var shade = SunShade.MakeVerticalSunShade(WinWidth, WinHeight, 0.5, 0.0, false, incline);
 
-      Assert.Equal(SunShade.Shapes.LongVerticalRight, shade.Shape);
+      Assert.Equal(SunShade.ShapeType.LongVerticalRight, shade.Shape);
     }
 
     /// <summary>袖壁で影率は0以上1以下</summary>

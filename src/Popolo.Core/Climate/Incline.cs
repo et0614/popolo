@@ -181,7 +181,7 @@ namespace Popolo.Core.Climate
     /// <param name="sun">Solar state</param>
     /// <returns>cosθ [-]</returns>
     public double GetDirectSolarRadiationRatio(IReadOnlySun sun)
-        => GetDirectSolarRadiationRatio(sun.Altitude, sun.Orientation);
+        => GetDirectSolarRadiationRatio(sun.Altitude, sun.Azimuth);
 
     /// <summary>
     /// Gets the direct solar irradiance on the tilted surface [W/m²].
@@ -259,7 +259,7 @@ namespace Popolo.Core.Climate
     /// <param name="sun">Solar state</param>
     /// <returns>Tangent of profile angle [-]</returns>
     public double GetTangentProfileAngle(IReadOnlySun sun)
-        => GetTangentProfileAngle(sun.Altitude, sun.Orientation);
+        => GetTangentProfileAngle(sun.Altitude, sun.Azimuth);
 
     /// <summary>
     /// Gets the profile angle (apparent solar altitude) [radian].
@@ -276,7 +276,7 @@ namespace Popolo.Core.Climate
     /// <param name="sun">Solar state</param>
     /// <returns>Profile angle [radian]</returns>
     public double GetProfileAngle(IReadOnlySun sun)
-        => GetProfileAngle(sun.Altitude, sun.Orientation);
+        => GetProfileAngle(sun.Altitude, sun.Azimuth);
 
     #endregion
 

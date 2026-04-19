@@ -1,4 +1,4 @@
-/* NMSimplex.cs
+/* NelderMeadSimplex.cs
  *
  * Copyright (C) 2014 E.Togashi
  *
@@ -23,7 +23,7 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Numerics
 {
   /// <summary>NelderとMeadによる滑降シンプレックス法</summary>
-  public static class NMSimplex
+  public static class NelderMeadSimplex
   {
 
     #region 定数

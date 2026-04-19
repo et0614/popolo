@@ -58,7 +58,7 @@ namespace Popolo.Core.Energy
       /// <summary>Roof-integrated (building-integrated) type.</summary>
       RoofIntegrated,
       /// <summary>Ground-mount (rack) type.</summary>
-      MountMode
+      GroundMount
     }
 
     #endregion
@@ -193,7 +193,7 @@ namespace Popolo.Core.Energy
       double a, b;
       switch (mount)
       {
-        case MountType.MountMode:
+        case MountType.GroundMount:
           a = 46; b = 0.41;
           break;
         case MountType.RoofIntegrated:

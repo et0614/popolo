@@ -27,7 +27,24 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a building thermal load calculation model that coordinates multiple multi-room systems.</summary>
+
+  /// <summary>
+  /// Represents an entire building composed of one or more loosely coupled
+  /// <see cref="MultiRoom"/> instances.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// Different <see cref="MultiRoom"/> instances within a <see cref="BuildingThermalModel"/>
+  /// exchange boundary conditions (e.g. temperatures of shared walls) with a
+  /// <b>one-time-step lag</b>. This weak coupling allows each <see cref="MultiRoom"/>
+  /// to be solved independently in parallel, at the cost of a small numerical
+  /// delay in inter-block heat transfer.
+  /// </para>
+  /// <para>
+  /// If tight coupling (simultaneous solution) is required between two regions,
+  /// place them in the same <see cref="MultiRoom"/> instead.
+  /// </para>
+  /// </remarks>
   public class BuildingThermalModel : IReadOnlyBuildingThermalModel
   {
 
@@ -49,7 +66,7 @@ namespace Popolo.Core.Building
       }
       set
       {
-        foreach (MultiRooms ml in mRooms) 
+        foreach (MultiRoom ml in mRooms) 
           ml.IsSolarIrradianceGiven = value;
       }
     }
@@ -62,16 +79,16 @@ namespace Popolo.Core.Building
     private bool isFirstForecast = true;
 
     /// <summary>Tracks whether sensible heat boundary conditions have changed for each MultiRooms.</summary>
-    private Dictionary<MultiRooms, bool> hasHTChgd = new Dictionary<MultiRooms, bool>();
+    private Dictionary<MultiRoom, bool> hasHTChgd = new Dictionary<MultiRoom, bool>();
 
     /// <summary>Tracks whether moisture boundary conditions have changed for each MultiRooms.</summary>
-    private Dictionary<MultiRooms, bool> hasWTChgd = new Dictionary<MultiRooms, bool>();
+    private Dictionary<MultiRoom, bool> hasWTChgd = new Dictionary<MultiRoom, bool>();
 
     /// <summary>All wall assemblies across all MultiRooms instances.</summary>
     internal List<Wall> walls;
 
     /// <summary>Array of multi-room systems.</summary>
-    private MultiRooms[] mRooms;
+    private MultiRoom[] mRooms;
 
     /// <summary>Calculation time step [s].</summary>
     private double timeStep = 3600;
@@ -84,7 +101,7 @@ namespace Popolo.Core.Building
     #region プロパティ
 
     /// <summary>Gets the array of multi-room systems.</summary>
-    public IReadOnlyMultiRooms[] MultiRoom { get { return mRooms; } }
+    public IReadOnlyMultiRoom[] MultiRoom { get { return mRooms; } }
 
     /// <summary>Gets the current simulation date and time.</summary>
     public DateTime CurrentDateTime { get; private set; }
@@ -118,7 +135,7 @@ namespace Popolo.Core.Building
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="mRooms">Array of multi-room systems.</param>
-    public BuildingThermalModel(MultiRooms[] mRooms)
+    public BuildingThermalModel(MultiRoom[] mRooms)
     {
       this.mRooms = mRooms;
       zoneVent = new InterZoneAirFlowCollection[mRooms.Length][];
@@ -180,7 +197,7 @@ namespace Popolo.Core.Building
       }
       else
       {
-        foreach (MultiRooms mr in mRooms)
+        foreach (MultiRoom mr in mRooms)
         {
           if (hasHTChgd[mr])
           {
@@ -205,7 +222,7 @@ namespace Popolo.Core.Building
         isFirstForecast = false;
       }
 
-      foreach (MultiRooms mr in mRooms)
+      foreach (MultiRoom mr in mRooms)
       {
         if (!mr.SolveMoistureTransferSimultaneously)
         {
@@ -221,7 +238,7 @@ namespace Popolo.Core.Building
     /// <summary>Commits the forecasted state and advances the wall heat transfer by one time step.</summary>
     public void FixState()
     {
-      foreach (MultiRooms mr in mRooms)
+      foreach (MultiRoom mr in mRooms)
       {
         mr.FixHeatTransfer();
         mr.FixMoistureTransfer();
@@ -239,7 +256,7 @@ namespace Popolo.Core.Building
     /// <summary>Reverts zone temperatures and humidity ratios from forecast values to current values.</summary>
     public void ResetAirState()
     {
-      foreach (MultiRooms mr in mRooms)
+      foreach (MultiRoom mr in mRooms)
       {
         mr.ResetAirState();
         hasHTChgd[mr] = hasWTChgd[mr] = true;
@@ -388,7 +405,7 @@ namespace Popolo.Core.Building
     /// <param name="temperature">Dry-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg].</param>
     public void InitializeAirState(double temperature, double humidityRatio)
-    { foreach (MultiRooms ml in mRooms) ml.InitializeAirState(temperature, humidityRatio); }
+    { foreach (MultiRoom ml in mRooms) ml.InitializeAirState(temperature, humidityRatio); }
 
     /// <summary>Updates outdoor conditions for all multi-room systems.</summary>
     /// <param name="dTime">Current date and time.</param>
@@ -404,7 +421,7 @@ namespace Popolo.Core.Building
       OutdoorTemperature = temperature;
       OutdoorHumidityRatio = humidityRatio;
       NocturnalRadiation = nocRadiation;
-      foreach (MultiRooms mr in mRooms)
+      foreach (MultiRoom mr in mRooms)
       {
         mr.UpdateOutdoorCondition(dTime, sun, temperature, humidityRatio, nocRadiation);
         hasHTChgd[mr] = hasWTChgd[mr] = true;
@@ -731,7 +748,7 @@ namespace Popolo.Core.Building
     public IReadOnlyWall[] GetWalls()
     {
       List<IReadOnlyWall> walls = new List<IReadOnlyWall>();
-      foreach (MultiRooms mrm in mRooms) walls.AddRange(mrm.Walls);
+      foreach (MultiRoom mrm in mRooms) walls.AddRange(mrm.Walls);
       return walls.ToArray();
     }
 
@@ -740,7 +757,7 @@ namespace Popolo.Core.Building
     public IReadOnlyZone[] GetZones()
     {
       List<IReadOnlyZone> zones = new List<IReadOnlyZone>();
-      foreach (MultiRooms mrm in mRooms) zones.AddRange(mrm.Zones);
+      foreach (MultiRoom mrm in mRooms) zones.AddRange(mrm.Zones);
       return zones.ToArray();
     }
 

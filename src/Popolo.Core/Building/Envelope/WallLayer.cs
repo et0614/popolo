@@ -28,7 +28,7 @@ namespace Popolo.Core.Building.Envelope
     #region 列挙型定義
 
     /// <summary>Specifies predefined wall layer materials with standard thermophysical properties.</summary>
-    public enum Materials
+    public enum Material
     {
       /// <summary>Cement mortar.</summary>
       Mortar,
@@ -270,284 +270,284 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Initializes a new instance with a predefined material and thickness.</summary>
     /// <param name="material">Predefined material type.</param>
     /// <param name="thickness">Layer thickness [m].</param>
-    public WallLayer(Materials material, double thickness)
+    public WallLayer(Material material, double thickness)
     {
       switch (material)
       {
-        case Materials.Mortar:
+        case Material.Mortar:
           Initialize("Mortar", 1.512, 1591.0, thickness);
           break;
-        case Materials.ReinforcedConcrete:
+        case Material.ReinforcedConcrete:
           Initialize("Reinforced Concrete", 1.600, 1896.0, thickness);
           break;
-        case Materials.LightweightAggregateConcrete1:
+        case Material.LightweightAggregateConcrete1:
           Initialize("Lightweight Aggregate Concrete 1", 0.810, 1900.0, thickness);
           break;
-        case Materials.LightweightAggregateConcrete2:
+        case Material.LightweightAggregateConcrete2:
           Initialize("Lightweight Aggregate Concrete 2", 0.580, 1599.0, thickness);
           break;
-        case Materials.AutoclavedLightweightConcrete:
+        case Material.AutoclavedLightweightConcrete:
           Initialize("Autoclaved Lightweight Concrete", 0.170, 661.4, thickness);
           break;
-        case Materials.Brick:
+        case Material.Brick:
           Initialize("Brick", 0.620, 1386.0, thickness);
           break;
-        case Materials.FireBrick:
+        case Material.FireBrick:
           Initialize("FireBrick", 0.990, 1553.0, thickness);
           break;
-        case Materials.Copper:
+        case Material.Copper:
           Initialize("Copper", 370.100, 3144.0, thickness);
           break;
-        case Materials.Aluminum:
+        case Material.Aluminum:
           Initialize("Aluminum", 200.000, 2428.0, thickness);
           break;
-        case Materials.Steel:
+        case Material.Steel:
           Initialize("Steel", 53.010, 3759.0, thickness);
           break;
-        case Materials.Lead:
+        case Material.Lead:
           Initialize("Lead", 35.010, 1469.0, thickness);
           break;
-        case Materials.StainlessSteel:
+        case Material.StainlessSteel:
           Initialize("Stainless Steel", 15.000, 3479.0, thickness);
           break;
-        case Materials.FloatGlass:
+        case Material.FloatGlass:
           Initialize("Float Glass", 1.000, 1914.0, thickness);
           break;
-        case Materials.PolyvinylChloride:
+        case Material.PolyvinylChloride:
           Initialize("Polyvinyl Chloride", 0.170, 1023.0, thickness);
           break;
-        case Materials.Wood1:
+        case Material.Wood1:
           Initialize("Wood (Cedar)", 0.120, 519.1, thickness);
           break;
-        case Materials.Wood2:
+        case Material.Wood2:
           Initialize("Wood (Pine, Lauan)", 0.150, 648.8, thickness);
           break;
-        case Materials.Wood3:
+        case Material.Wood3:
           Initialize("Wood (Cherry, Fagaceae)", 0.190, 845.6, thickness);
           break;
-        case Materials.Plywood:
+        case Material.Plywood:
           Initialize("Plywood", 0.190, 716.0, thickness);
           break;
-        case Materials.WoodWoolCement:
+        case Material.WoodWoolCement:
           Initialize("Wood Wool Cement", 0.100, 841.4, thickness);
           break;
-        case Materials.WoodChipCement:
+        case Material.WoodChipCement:
           Initialize("Wood Chip Cement", 0.170, 1679.0, thickness);
           break;
-        case Materials.HardBoard:
+        case Material.HardBoard:
           Initialize("Hard Board", 0.170, 1233.0, thickness);
           break;
-        case Materials.ParticleBoard:
+        case Material.ParticleBoard:
           Initialize("Particle Board", 0.150, 715.8, thickness);
           break;
-        case Materials.PlasterBoard:
+        case Material.PlasterBoard:
           Initialize("Plaster Board", 0.170, 1030.0, thickness);
           break;
-        case Materials.GypsumPlaster:
+        case Material.GypsumPlaster:
           Initialize("Gypsum Plaster", 0.600, 1637.0, thickness);
           break;
-        case Materials.WhiteWash:
+        case Material.WhiteWash:
           Initialize("White Wash", 0.700, 1093.0, thickness);
           break;
-        case Materials.SoilWall:
+        case Material.SoilWall:
           Initialize("Soil Wall", 0.690, 1126.0, thickness);
           break;
-        case Materials.FiberCoating:
+        case Material.FiberCoating:
           Initialize("Fiber Coating", 0.120, 4.2, thickness);
           break;
-        case Materials.Tatami:
+        case Material.Tatami:
           Initialize("Tatami", 0.110, 527.4, thickness);
           break;
-        case Materials.Tile:
+        case Material.Tile:
           Initialize("Tile", 1.300, 2018.0, thickness);
           break;
-        case Materials.PlasticTile:
+        case Material.PlasticTile:
           Initialize("Plastic Tile", 0.190, 4.2, thickness);
           break;
-        case Materials.GlassWoolInsulation_10K:
+        case Material.GlassWoolInsulation_10K:
           Initialize("Glass Wool Insulation 10kg/m3", 0.050, 8.4, thickness);
           break;
-        case Materials.GlassWoolInsulation_16K:
+        case Material.GlassWoolInsulation_16K:
           Initialize("Glass Wool Insulation 16kg/m3", 0.045, 13.4, thickness);
           break;
-        case Materials.GlassWoolInsulation_24K:
+        case Material.GlassWoolInsulation_24K:
           Initialize("Glass Wool Insulation 24kg/m3", 0.038, 20.1, thickness);
           break;
-        case Materials.GlassWoolInsulation_34K:
+        case Material.GlassWoolInsulation_34K:
           Initialize("Glass Wool Insulation 32kg/m3", 0.036, 26.8, thickness);
           break;
-        case Materials.HighGradeGlassWoolInsulation_16K:
+        case Material.HighGradeGlassWoolInsulation_16K:
           Initialize("High Grade Glass Wool Insulation 16kg/m3", 0.038, 13.4, thickness);
           break;
-        case Materials.HighGradeGlassWoolInsulation_24K:
+        case Material.HighGradeGlassWoolInsulation_24K:
           Initialize("High Grade Glass Wool Insulation 24kg/m3", 0.036, 20.1, thickness);
           break;
-        case Materials.BlowingGlassWoolInsulation_13K:
+        case Material.BlowingGlassWoolInsulation_13K:
           Initialize("Blowing Glass Wool Insulation 13kg/m3", 0.052, 10.9, thickness);
           break;
-        case Materials.BlowingGlassWoolInsulation_18K:
+        case Material.BlowingGlassWoolInsulation_18K:
           Initialize("Blowing Glass Wool Insulation 18kg/m3", 0.052, 16.7, thickness);
           break;
-        case Materials.BlowingGlassWoolInsulation_30K:
+        case Material.BlowingGlassWoolInsulation_30K:
           Initialize("Blowing Glass Wool Insulation 30kg/m3", 0.040, 29.3, thickness);
           break;
-        case Materials.BlowingGlassWoolInsulation_35K:
+        case Material.BlowingGlassWoolInsulation_35K:
           Initialize("Blowing Glass Wool Insulation 35kg/m3", 0.040, 37.7, thickness);
           break;
-        case Materials.RockWoolInsulationMat:
+        case Material.RockWoolInsulationMat:
           Initialize("Rock Wool Insulation Mat", 0.038, 33.5, thickness);
           break;
-        case Materials.RockWoolInsulationFelt:
+        case Material.RockWoolInsulationFelt:
           Initialize("Rock Wool Insulation Felt", 0.038, 41.9, thickness);
           break;
-        case Materials.RockWoolInsulationBoard:
+        case Material.RockWoolInsulationBoard:
           Initialize("Rock Wool Insulation Board", 0.036, 58.6, thickness);
           break;
-        case Materials.BlowingRockWoolInsulation_25K:
+        case Material.BlowingRockWoolInsulation_25K:
           Initialize("Blowing Rock Wool Insulation 25kg/m3", 0.047, 20.9, thickness);
           break;
-        case Materials.BlowingRockWoolInsulation_35K:
+        case Material.BlowingRockWoolInsulation_35K:
           Initialize("Blowing Rock Wool Insulation 35kg/m3", 0.051, 29.3, thickness);
           break;
-        case Materials.RockWoolAcousticBoard:
+        case Material.RockWoolAcousticBoard:
           Initialize("Rock Wool Acoustic Board", 0.058, 293.9, thickness);
           break;
-        case Materials.SprayedRockWool:
+        case Material.SprayedRockWool:
           Initialize("Sprayed Rock Wool", 0.047, 167.9, thickness);
           break;
-        case Materials.BeadMethodPolystyreneFoam_S:
+        case Material.BeadMethodPolystyreneFoam_S:
           Initialize("Bead Method Polystyrene Foam S", 0.034, 33.9, thickness);
           break;
-        case Materials.BeadMethodPolystyreneFoam_1:
+        case Material.BeadMethodPolystyreneFoam_1:
           Initialize("Bead Method Polystyrene Foam 1", 0.036, 37.7, thickness);
           break;
-        case Materials.BeadMethodPolystyreneFoam_2:
+        case Material.BeadMethodPolystyreneFoam_2:
           Initialize("Bead Method Polystyrene Foam 2", 0.037, 31.4, thickness);
           break;
-        case Materials.BeadMethodPolystyreneFoam_3:
+        case Material.BeadMethodPolystyreneFoam_3:
           Initialize("Bead Method Polystyrene Foam 3", 0.040, 25.1, thickness);
           break;
-        case Materials.BeadMethodPolystyreneFoam_4:
+        case Material.BeadMethodPolystyreneFoam_4:
           Initialize("Bead Method Polystyrene Foam 4", 0.043, 18.8, thickness);
           break;
-        case Materials.ExtrudedPolystyreneFoam_1:
+        case Material.ExtrudedPolystyreneFoam_1:
           Initialize("Extruded Polystyrene Foam 1", 0.040, 25.1, thickness);
           break;
-        case Materials.ExtrudedPolystyreneFoam_2:
+        case Material.ExtrudedPolystyreneFoam_2:
           Initialize("Extruded Polystyrene Foam 2", 0.034, 25.1, thickness);
           break;
-        case Materials.ExtrudedPolystyreneFoam_3:
+        case Material.ExtrudedPolystyreneFoam_3:
           Initialize("Extruded Polystyrene Foam 3", 0.028, 25.1, thickness);
           break;
-        case Materials.RigidUrethaneFoam_1_1:
+        case Material.RigidUrethaneFoam_1_1:
           Initialize("Rigid Urethane Foam 1_1", 0.024, 56.1, thickness);
           break;
-        case Materials.RigidUrethaneFoam_1_2:
+        case Material.RigidUrethaneFoam_1_2:
           Initialize("Rigid Urethane Foam 1_2", 0.024, 44.0, thickness);
           break;
-        case Materials.RigidUrethaneFoam_1_3:
+        case Material.RigidUrethaneFoam_1_3:
           Initialize("Rigid Urethane Foam 1_3", 0.026, 31.4, thickness);
           break;
-        case Materials.RigidUrethaneFoam_2_1:
+        case Material.RigidUrethaneFoam_2_1:
           Initialize("Rigid Urethane Foam 2_1", 0.023, 56.1, thickness);
           break;
-        case Materials.RigidUrethaneFoam_2_2:
+        case Material.RigidUrethaneFoam_2_2:
           Initialize("Rigid Urethane Foam 2_2", 0.023, 44.0, thickness);
           break;
-        case Materials.RigidUrethaneFoam_2_3:
+        case Material.RigidUrethaneFoam_2_3:
           Initialize("Rigid Urethane Foam 2_3", 0.024, 31.4, thickness);
           break;
-        case Materials.RigidUrethaneFoam_OnSite:
+        case Material.RigidUrethaneFoam_OnSite:
           Initialize("Rigid Urethane Foam (OnSite)", 0.026, 49.8, thickness);
           break;
-        case Materials.PolyethyleneFoam_A:
+        case Material.PolyethyleneFoam_A:
           Initialize("Polyethylene Foam A", 0.038, 62.8, thickness);
           break;
-        case Materials.PolyethyleneFoam_B:
+        case Material.PolyethyleneFoam_B:
           Initialize("Polyethylene Foam B", 0.042, 62.8, thickness);
           break;
-        case Materials.PhenolicFoam_1_1:
+        case Material.PhenolicFoam_1_1:
           Initialize("Phenolic Foam 1_1", 0.033, 37.7, thickness);
           break;
-        case Materials.PhenolicFoam_1_2:
+        case Material.PhenolicFoam_1_2:
           Initialize("Phenolic Foam 1_2", 0.030, 37.7, thickness);
           break;
-        case Materials.PhenolicFoam_2_1:
+        case Material.PhenolicFoam_2_1:
           Initialize("Phenolic Foam 2_1", 0.036, 56.5, thickness);
           break;
-        case Materials.PhenolicFoam_2_2:
+        case Material.PhenolicFoam_2_2:
           Initialize("Phenolic Foam 2_2", 0.034, 56.5, thickness);
           break;
-        case Materials.InsulationBoard_A:
+        case Material.InsulationBoard_A:
           Initialize("Insulation Board A", 0.049, 324.8, thickness);
           break;
-        case Materials.TatamiBoard:
+        case Material.TatamiBoard:
           Initialize("Tatami Board", 0.045, 15.1, thickness);
           break;
-        case Materials.SheathingInsulationBoard:
+        case Material.SheathingInsulationBoard:
           Initialize("Sheathing Insulation Board", 0.052, 390.1, thickness);
           break;
-        case Materials.CelluloseFiberInsulation_1:
+        case Material.CelluloseFiberInsulation_1:
           Initialize("Cellulose Fiber Insulation 1", 0.040, 37.7, thickness);
           break;
-        case Materials.CelluloseFiberInsulation_2:
+        case Material.CelluloseFiberInsulation_2:
           Initialize("Cellulose Fiber Insulation 2", 0.040, 62.8, thickness);
           break;
-        case Materials.Soil:
+        case Material.Soil:
           Initialize("Soil", 1.047, 3340.0, thickness);
           break;
-        case Materials.ExpandedPolystyrene:
+        case Material.ExpandedPolystyrene:
           Initialize("Expanded Polystyrene", 0.035, 300.0, thickness);
           break;
-        case Materials.CoveringMaterial:
+        case Material.CoveringMaterial:
           Initialize("Covering Material", 0.140, 1680.0, thickness);
           break;
-        case Materials.Linoleum:
+        case Material.Linoleum:
           Initialize("Linoleum", 0.190, 1470.0, thickness);
           break;
-        case Materials.Carpet:
+        case Material.Carpet:
           Initialize("Carpet", 0.080, 318.0, thickness);
           break;
-        case Materials.AsbestosPlate:
+        case Material.AsbestosPlate:
           Initialize("Asbestos Plate", 1.200, 1820.0, thickness);
           break;
-        case Materials.SealedAirGap:
+        case Material.SealedAirGap:
           Initialize("Sealed AirGap", 5.800, 0.838, thickness);
           break;
-        case Materials.AirGap:
+        case Material.AirGap:
           Initialize("Air Gap", 11.600, 0.838, thickness);
           break;
-        case Materials.PolystyreneFoam:
+        case Material.PolystyreneFoam:
           Initialize("Polystyrene Foam", 0.035, 80.0, thickness);
           break;
-        case Materials.StyreneFoam:
+        case Material.StyreneFoam:
           Initialize("Styrene Foam", 0.035, 10.0, thickness);
           break;
-        case Materials.RubberTile:
+        case Material.RubberTile:
           Initialize("Rubber Tile", 0.400, 784.0, thickness);
           break;
-        case Materials.Kawara:
+        case Material.Kawara:
           Initialize("Kawara", 1.000, 1506.0, thickness);
           break;
-        case Materials.LightweightConcrete:
+        case Material.LightweightConcrete:
           Initialize("Lightweight Concrete", 0.780, 1607.0, thickness);
           break;
-        case Materials.Asphalt:
+        case Material.Asphalt:
           Initialize("Asphalt", 0.110, 920.0, thickness);
           break;
-        case Materials.FlexibleBoard:
+        case Material.FlexibleBoard:
           Initialize("Flexible Board", 0.350, 1600.0, thickness);
           break;
-        case Materials.CalciumSilicateBoard:
+        case Material.CalciumSilicateBoard:
           Initialize("Calcium Silicate Board", 0.130, 680.0, thickness);
           break;
-        case Materials.PhenolicFoam:
+        case Material.PhenolicFoam:
           Initialize("Phenolic Foam", 0.020, 37.7, thickness);
           break;
-        case Materials.Granite:
+        case Material.Granite:
           Initialize("Granite", 4.300, 2.9, thickness);
           break;
-        case Materials.AcrylicResin:
+        case Material.AcrylicResin:
           Initialize("Acrylic Resin", 0.210, 1666.0, thickness);
           break;
         default:

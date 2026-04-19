@@ -32,7 +32,7 @@ namespace Popolo.Core.Building.Envelope
     #region 列挙型定義
 
     /// <summary>Predefined shading device types with standard optical properties.</summary>
-    public enum PredefinedDevices
+    public enum PredefinedDevice
     {
       /// <summary>Bright (light-colored) venetian blind.</summary>
       BrightVenetianBlind,
@@ -67,29 +67,29 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Initializes a new instance using a predefined device type.</summary>
     /// <param name="device">Predefined shading device type.</param>
     public SimpleShadingDevice
-      (PredefinedDevices device)
+      (PredefinedDevice device)
     {
       switch (device)
       {
-        case PredefinedDevices.BrightVenetianBlind:
+        case PredefinedDevice.BrightVenetianBlind:
           Transmittance = 0.05; Reflectance = 0.55;
           break;
-        case PredefinedDevices.GrayVenetianBlind:
+        case PredefinedDevice.GrayVenetianBlind:
           Transmittance = 0.05; Reflectance = 0.35;
           break;
-        case PredefinedDevices.TranslucentRollerShade:
+        case PredefinedDevice.TranslucentRollerShade:
           Transmittance = 0.25; Reflectance = 0.60;
           break;
-        case PredefinedDevices.OpaqueRollerShade:
+        case PredefinedDevice.OpaqueRollerShade:
           Transmittance = 0.00; Reflectance = 0.80;
           break;
-        case PredefinedDevices.BrightThinCurtain:
+        case PredefinedDevice.BrightThinCurtain:
           Transmittance = 0.60; Reflectance = 0.35;
           break;
-        case PredefinedDevices.BrightThickCurtain:
+        case PredefinedDevice.BrightThickCurtain:
           Transmittance = 0.10; Reflectance = 0.60;
           break;
-        case PredefinedDevices.DarkThickCurtain:
+        case PredefinedDevice.DarkThickCurtain:
           Transmittance = 0.00; Reflectance = 0.10;
           break;
         default:

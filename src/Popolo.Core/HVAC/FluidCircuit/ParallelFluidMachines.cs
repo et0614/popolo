@@ -1,4 +1,4 @@
-/* ParallelFluidMachineries.cs
+/* ParallelFluidMachines.cs
  * 
  * Copyright (C) 2015 E.Togashi
  * 
@@ -26,7 +26,7 @@ using Popolo.Core.Numerics;
 namespace Popolo.Core.HVAC.FluidCircuit
 {
   /// <summary>Represents a group of fluid machines connected in parallel.</summary>
-  public class ParallelFluidMachineries: ICircuitBranch
+  public class ParallelFluidMachines: ICircuitBranch
   {
 
     #region インスタンス変数・プロパティ
@@ -79,7 +79,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <summary>Static constructor.</summary>
     /// <param name="maxStageCount">Number of control stages.</param>
     /// <param name="designPressure">Design pressure [kPa].</param>
-    public ParallelFluidMachineries(int maxStageCount, double designPressure)
+    public ParallelFluidMachines(int maxStageCount, double designPressure)
     {
       if (maxStageCount <= 0) throw new PopoloOutOfRangeException(
         nameof(maxStageCount), maxStageCount, 1, null);

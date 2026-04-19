@@ -1,4 +1,4 @@
-﻿/* MultiRooms.cs
+﻿/* MultiRoom.cs
  * 
  * Copyright (C) 2016 E.Togashi
  * 
@@ -28,8 +28,15 @@ using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a multi-room building thermal model with heat and moisture balance calculation.</summary>
-  public class MultiRooms : IReadOnlyMultiRooms
+  /// <inheritdoc cref="IReadOnlyMultiRoom"/>
+  /// <remarks>
+  /// This is the mutable implementation of <see cref="IReadOnlyMultiRoom"/>.
+  /// Use the constructor to build a multi-room, then call the <c>Add*</c> and
+  /// <c>Set*</c> methods to configure zones, walls, windows, and boundary
+  /// conditions. For read-only access (e.g. when passing the model to other
+  /// components), use the <see cref="IReadOnlyMultiRoom"/> interface.
+  /// </remarks>
+  public class MultiRoom : IReadOnlyMultiRoom
   {
 
     #region 定数宣言
@@ -175,7 +182,7 @@ namespace Popolo.Core.Building
     /// <param name="zones">Array of thermal zones.</param>
     /// <param name="walls">Array of wall assemblies.</param>
     /// <param name="windows">Array of window assemblies.</param>
-    public MultiRooms(int rmCount, Zone[] zones, Wall[] walls, Window[] windows)
+    public MultiRoom(int rmCount, Zone[] zones, Wall[] walls, Window[] windows)
     {
       RoomCount = rmCount;
       ZoneCount = zones.Length;

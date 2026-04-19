@@ -27,7 +27,7 @@ namespace Popolo.Core.Building
     public interface IReadOnlyBuildingThermalModel
     {
         /// <summary>Gets the array of multi-room systems.</summary>
-        IReadOnlyMultiRooms[] MultiRoom { get; }
+        IReadOnlyMultiRoom[] MultiRoom { get; }
 
         /// <summary>Gets the current simulation date and time.</summary>
         DateTime CurrentDateTime { get; }

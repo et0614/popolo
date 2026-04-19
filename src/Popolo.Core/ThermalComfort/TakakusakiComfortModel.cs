@@ -66,19 +66,19 @@ namespace Popolo.Core.ThermalComfort
     public double OptimumPMV { get; private set; } = 0;
 
     /// <summary>Gets the Weibull scale parameter for the warm-side dissatisfaction.</summary>
-    public double EtaZero_Hot { get; private set; }
+    public double HotEtaZero { get; private set; }
 
     /// <summary>Gets the Weibull scale parameter for the cool-side dissatisfaction.</summary>
-    public double EtaZero_Cold { get; private set; }
+    public double ColdEtaZero { get; private set; }
 
     /// <summary>Gets the current environmental PMV value [-].</summary>
     public double PMV { get; private set; }
 
     /// <summary>Gets the probability of dissatisfaction due to warmth [-].</summary>
-    public double DissatisfiedProbability_Hot { get; private set; }
+    public double HotDissatisfiedProbability { get; private set; }
 
     /// <summary>Gets the probability of dissatisfaction due to coolness [-].</summary>
-    public double DissatisfiedProbability_Cold { get; private set; }
+    public double ColdDissatisfiedProbability { get; private set; }
 
     #endregion
 
@@ -106,8 +106,8 @@ namespace Popolo.Core.ThermalComfort
     private void InitializeParameters(double optPMV)
     {
       OptimumPMV = optPMV;
-      EtaZero_Hot = -Math.Pow(1.5 - 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
-      EtaZero_Cold = -Math.Pow(1.5 + 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
+      HotEtaZero = -Math.Pow(1.5 - 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
+      ColdEtaZero = -Math.Pow(1.5 + 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
     }
 
     #endregion
@@ -121,13 +121,13 @@ namespace Popolo.Core.ThermalComfort
       PMV = pmv;
       if (OptimumPMV < pmv)
       {
-        DissatisfiedProbability_Hot = 1.0 - Math.Exp(-Math.Pow(pmv - OptimumPMV, Beta) / EtaZero_Hot);
-        DissatisfiedProbability_Cold = 0;
+        HotDissatisfiedProbability = 1.0 - Math.Exp(-Math.Pow(pmv - OptimumPMV, Beta) / HotEtaZero);
+        ColdDissatisfiedProbability = 0;
       }
       else
       {
-        DissatisfiedProbability_Hot = 0;
-        DissatisfiedProbability_Cold = 1.0 - Math.Exp(-Math.Pow(OptimumPMV - pmv, Beta) / EtaZero_Cold);
+        HotDissatisfiedProbability = 0;
+        ColdDissatisfiedProbability = 1.0 - Math.Exp(-Math.Pow(OptimumPMV - pmv, Beta) / ColdEtaZero);
       }
     }
 
@@ -136,9 +136,9 @@ namespace Popolo.Core.ThermalComfort
     public ThermalSensation UpdateThermalSensationVote()
     {
       if (OptimumPMV < PMV)
-        return rnd.NextDouble() < DissatisfiedProbability_Hot ? ThermalSensation.Hot : ThermalSensation.Neutral;
+        return rnd.NextDouble() < HotDissatisfiedProbability ? ThermalSensation.Hot : ThermalSensation.Neutral;
       else
-        return rnd.NextDouble() < DissatisfiedProbability_Cold ? ThermalSensation.Cold : ThermalSensation.Neutral;
+        return rnd.NextDouble() < ColdDissatisfiedProbability ? ThermalSensation.Cold : ThermalSensation.Neutral;
     }
 
     #endregion

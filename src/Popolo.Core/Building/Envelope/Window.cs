@@ -30,7 +30,7 @@ namespace Popolo.Core.Building.Envelope
     #region 列挙型定義
 
     /// <summary>Specifies the glazing type.</summary>
-    public enum GlassTypes
+    public enum GlassType
     {
       /// <summary>Clear float glass.</summary>
       Transparent,
@@ -289,7 +289,7 @@ namespace Popolo.Core.Building.Envelope
       InsideSurface = new BoundarySurface(this, false);
 
       //入射角特性を透明フロートガラスで初期化
-      for (int i = 0; i < GlazingCount; i++) SetAngleDependence(i, GlassTypes.Transparent);
+      for (int i = 0; i < GlazingCount; i++) SetAngleDependence(i, GlassType.Transparent);
     }
 
     /// <summary>Initializes a new multi-layer glazing window assembly.</summary>
@@ -319,11 +319,11 @@ namespace Popolo.Core.Building.Envelope
         for (int i = 0; i < sDevices.Length; i++) sDevices[i].ProfileAngle = 0;
         return;
       }
-      bool sunMoved = (sun.Altitude != lstAlt || sun.Orientation != lstOri);
+      bool sunMoved = (sun.Altitude != lstAlt || sun.Azimuth != lstOri);
       if (sunMoved)
       {
         lstAlt = sun.Altitude;
-        lstOri = sun.Orientation;
+        lstOri = sun.Azimuth;
 
         //ガラスの直達日射入射角特性を反映
         if (0 < cos)
@@ -638,11 +638,11 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
     /// <param name="layerIndex">層番号</param>
     /// <param name="type">ガラス種類</param>
-    public void SetAngleDependence(int layerIndex, GlassTypes type)
+    public void SetAngleDependence(int layerIndex, GlassType type)
     {
       switch (type)
       {
-        case GlassTypes.HeatAbsorbing:
+        case GlassType.HeatAbsorbing:
           SetAngleDependence(layerIndex,
             new double[] { 1.760, 3.770, -14.901, 16.422, -6.052 },
             new double[] { 1.760, 3.770, -14.901, 16.422, -6.052 },
@@ -650,7 +650,7 @@ namespace Popolo.Core.Building.Envelope
             new double[] { 5.189, -12.392, 16.593, -11.851, 3.461 }
             );
           return;
-        case GlassTypes.HeatReflecting:
+        case GlassType.HeatReflecting:
           SetAngleDependence(layerIndex,
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
@@ -658,7 +658,7 @@ namespace Popolo.Core.Building.Envelope
             new double[] { 5.842, -15.264, -21.642, -15.948, 4.727 }
             );
           return;
-        case GlassTypes.LowEmissivity:
+        case GlassType.LowEmissivity:
           SetAngleDependence(layerIndex,
             new double[] { 2.273, 1.631, -10.358, 11.769, -4.316 },
             new double[] { 2.273, 1.631, -10.358, 11.769, -4.316 },

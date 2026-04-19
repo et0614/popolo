@@ -28,12 +28,12 @@ namespace Popolo.Core.Tests.Numerics
   public class NMSimplexTests
   {
     // 2次関数 f(x,y) = x^2 + y^2 → 最小値 0、最小点 (0,0)
-    private static readonly NMSimplex.OptimizeFunction QuadraticFunction =
+    private static readonly NelderMeadSimplex.OptimizeFunction QuadraticFunction =
         x => x[0] * x[0] + x[1] * x[1];
 
     // ローゼンブロック関数 f(x,y) = 100(y-x^2)^2 + (1-x)^2
     // → 最小値 0、最小点 (1,1)
-    private static readonly NMSimplex.OptimizeFunction RosenbrockFunction =
+    private static readonly NelderMeadSimplex.OptimizeFunction RosenbrockFunction =
         x => 100 * Math.Pow(x[1] - x[0] * x[0], 2) + Math.Pow(1 - x[0], 2);
 
     #region GetSolution（制約なし）のテスト
@@ -45,7 +45,7 @@ namespace Popolo.Core.Tests.Numerics
       double[] minX = { -10.0, -10.0 };
       double[] maxX = { 10.0, 10.0 };
 
-      double[] result = NMSimplex.GetSolution(
+      double[] result = NelderMeadSimplex.GetSolution(
           QuadraticFunction, minX, maxX, out bool success);
 
       Assert.True(success);
@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.Numerics
       double[] minX = { -5.0, -5.0 };
       double[] maxX = { 5.0, 5.0 };
 
-      double[] result = NMSimplex.GetSolution(
+      double[] result = NelderMeadSimplex.GetSolution(
           RosenbrockFunction, minX, maxX, out bool success);
 
       Assert.True(success);
@@ -75,7 +75,7 @@ namespace Popolo.Core.Tests.Numerics
       double[] minX = { -10.0, -10.0 };
       double[] maxX = { 10.0, 10.0 };
 
-      double[] result = NMSimplex.GetSolution(
+      double[] result = NelderMeadSimplex.GetSolution(
           QuadraticFunction, minX, maxX, out bool success);
 
       Assert.True(success);
@@ -87,7 +87,7 @@ namespace Popolo.Core.Tests.Numerics
     public void GetSolution_NullMinX_ThrowsPopoloArgumentException()
     {
       var ex = Assert.Throws<PopoloArgumentException>(
-          () => NMSimplex.GetSolution(
+          () => NelderMeadSimplex.GetSolution(
               QuadraticFunction, null!, new double[] { 1.0, 1.0 }, out _));
       Assert.Equal("minX", ex.ParamName);
     }
@@ -97,7 +97,7 @@ namespace Popolo.Core.Tests.Numerics
     public void GetSolution_MismatchedLength_ThrowsPopoloArgumentException()
     {
       var ex = Assert.Throws<PopoloArgumentException>(
-          () => NMSimplex.GetSolution(
+          () => NelderMeadSimplex.GetSolution(
               QuadraticFunction,
               new double[] { -1.0 },
               new double[] { 1.0, 2.0 },
@@ -113,13 +113,13 @@ namespace Popolo.Core.Tests.Numerics
     [Fact]
     public void GetSolution_WithConstraint_FindsConstrainedMinimum()
     {
-      NMSimplex.OptimizeFunction objective = x => x[0] + x[1];
-      NMSimplex.OptimizeFunction constraint = x => x[0] * x[0] + x[1] * x[1] - 1.0;
+      NelderMeadSimplex.OptimizeFunction objective = x => x[0] + x[1];
+      NelderMeadSimplex.OptimizeFunction constraint = x => x[0] * x[0] + x[1] * x[1] - 1.0;
 
       double[] minX = { -2.0, -2.0 };
       double[] maxX = { 2.0, 2.0 };
 
-      double[] result = NMSimplex.GetSolution(
+      double[] result = NelderMeadSimplex.GetSolution(
           objective, constraint, minX, maxX, out bool success);
 
       Assert.True(success);

@@ -45,7 +45,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     {
       var sun = new Sun(35.7, 139.7, 135.0);
       sun.Altitude = altitudeDeg * Math.PI / 180.0;
-      sun.Orientation = orientationDeg * Math.PI / 180.0;
+      sun.Azimuth = orientationDeg * Math.PI / 180.0;
       return sun;
     }
 

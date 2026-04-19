@@ -26,7 +26,7 @@ namespace Popolo.Core.Building.Envelope
   /// the wall ID, side flag, and the outdoor incline (orientation).
   /// </summary>
   /// <remarks>
-  /// Used by <see cref="MultiRooms"/> to enumerate its outside-wall boundary
+  /// Used by <see cref="MultiRoom"/> to enumerate its outside-wall boundary
   /// surfaces without exposing the internal <c>BoundarySurface</c> type.
   /// </remarks>
   public readonly struct OutsideWallReference

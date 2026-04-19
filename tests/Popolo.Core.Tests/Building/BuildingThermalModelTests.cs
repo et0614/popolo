@@ -162,7 +162,7 @@ namespace Popolo.Core.Tests.Building
       zones[1].VentilationRate = zones[1].AirMass / 3600.0 * 0.2;
 
       // 多数室
-      var mRoom = new MultiRooms(2, zones, walls, windows);
+      var mRoom = new MultiRoom(2, zones, walls, windows);
       mRoom.AddZone(0, 0);
       mRoom.AddZone(1, 1);
 
@@ -183,7 +183,7 @@ namespace Popolo.Core.Tests.Building
       mRoom.SetGroundTemperature(4, false, 20); // 床下土壌温度固定
       mRoom.SetGroundTemperature(9, false, 20);
 
-      var bModel = new BuildingThermalModel(new MultiRooms[] { mRoom });
+      var bModel = new BuildingThermalModel(new MultiRoom[] { mRoom });
       bModel.SetInsideConvectiveCoefficient(0, 5.0);
       bModel.SetOutsideConvectiveCoefficient(0, 15.0);
       return bModel;

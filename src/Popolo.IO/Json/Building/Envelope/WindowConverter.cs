@@ -79,12 +79,12 @@ namespace Popolo.IO.Json.Building.Envelope
   /// </para>
   /// <para>
   /// <b>SunShade:</b> <c>sunShade</c> is omitted on write when the shade's shape is
-  /// <see cref="SunShade.Shapes.None"/>. On read, a missing <c>sunShade</c> leaves
+  /// <see cref="SunShade.ShapeType.None"/>. On read, a missing <c>sunShade</c> leaves
   /// the Window's default empty SunShade in place.
   /// </para>
   /// <para>
   /// <b>Angle-of-incidence dependence</b> is not serialized. Deserialized windows
-  /// use the default <see cref="Window.GlassTypes.Transparent"/> angle
+  /// use the default <see cref="Window.GlassType.Transparent"/> angle
   /// dependence that the Window constructor installs.
   /// </para>
   /// <para>
@@ -378,7 +378,7 @@ namespace Popolo.IO.Json.Building.Envelope
       }
 
       // sunShade(None なら省略)
-      if (value.SunShade.Shape != SunShade.Shapes.None)
+      if (value.SunShade.Shape != SunShade.ShapeType.None)
       {
         writer.WritePropertyName(PropSunShade);
         JsonSerializer.Serialize(writer, value.SunShade, options);

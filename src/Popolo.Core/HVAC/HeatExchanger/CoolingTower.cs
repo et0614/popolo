@@ -31,8 +31,6 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #region 定数宣言
 
-
-
     /// <summary>Cooling tower characteristic coefficient c [-].</summary>
     private const double EXP_N = -0.6;
 

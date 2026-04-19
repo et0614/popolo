@@ -84,14 +84,14 @@ namespace Popolo.Core.Tests.HVAC.AirSide
             26.0, 0.0105);      // EA 入口条件
         ahu = new AirHandlingUnit(
             cCoil, hCoil,
-            AirHandlingUnit.HumidifierType.DropPervaporation,
+            AirHandlingUnit.HumidifierType.WettedMedia,
             saFan, raFan, regen);
       }
       else
       {
         ahu = new AirHandlingUnit(
             cCoil, hCoil,
-            AirHandlingUnit.HumidifierType.DropPervaporation,
+            AirHandlingUnit.HumidifierType.WettedMedia,
             saFan, raFan);
       }
 

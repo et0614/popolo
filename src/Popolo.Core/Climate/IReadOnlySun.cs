@@ -30,7 +30,7 @@ namespace Popolo.Core.Climate
     double Altitude { get; }
 
     /// <summary>Gets the solar azimuth angle [radian].</summary>
-    double Orientation { get; }
+    double Azimuth { get; }
 
     /// <summary>Gets the direct normal irradiance (DNI) [W/m²].</summary>
     double DirectNormalRadiation { get; }

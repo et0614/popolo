@@ -99,11 +99,11 @@ Psychrometric calculation at standard atmospheric pressure:
 using Popolo.Core.Physics;
 
 var air = new MoistAir(
-    drybulbTemperature: 26.0,      // [°C]
+    dryBulbTemperature: 26.0,      // [°C]
     humidityRatio: 0.0105);        // [kg/kg(DA)]
 
 Console.WriteLine($"Enthalpy         : {air.Enthalpy:F2} kJ/kg");
-Console.WriteLine($"Wet-bulb temp.   : {air.WetbulbTemperature:F2} °C");
+Console.WriteLine($"Wet-Bulb temp.   : {air.WetBulbTemperature:F2} °C");
 Console.WriteLine($"Relative humidity: {air.RelativeHumidity:F1} %");
 ```
 
@@ -139,7 +139,7 @@ var chiller = new SimpleCentrifugalChiller(
     hasInverter: false);
 
 var tower = new CoolingTower(
-    ratedCWEnteringTemp: 37, ratedCWLeavingTemp: 32, ratedWetbulbTemp: 27,
+    ratedCWEnteringTemp: 37, ratedCWLeavingTemp: 32, ratedWetBulbTemp: 27,
     ratedFlow: cdFlow, airFlow: CoolingTower.AirFlowDirection.CrossFlow,
     hasInverter: false);
 

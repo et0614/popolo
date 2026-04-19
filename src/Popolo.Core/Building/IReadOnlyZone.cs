@@ -43,7 +43,7 @@ namespace Popolo.Core.Building
     int RoomIndex { get; }
 
     /// <summary>Gets the multi-room system to which this zone belongs.</summary>
-    IReadOnlyMultiRooms MultiRoom { get; }
+    IReadOnlyMultiRoom MultiRoom { get; }
 
     /// <summary>Gets the sensible heat capacity of objects other than air [J/K].</summary>
     double HeatCapacity { get; }

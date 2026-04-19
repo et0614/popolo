@@ -30,7 +30,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
 {
   /// <summary>Unit tests for <see cref="SunShadeConverter"/>.</summary>
   /// <remarks>
-  /// Tests all 10 values of <see cref="SunShade.Shapes"/>:
+  /// Tests all 10 values of <see cref="SunShade.ShapeType"/>:
   /// None, Horizontal, LongHorizontal, VerticalLeft, VerticalRight,
   /// LongVerticalLeft, LongVerticalRight, VerticalBoth, LongVerticalBoth, Grid.
   /// </remarks>
@@ -91,14 +91,14 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     {
       const string json = """{ "kind": "sunShade", "shape": "None" }""";
       var ss = JsonSerializer.Deserialize<SunShade>(json, CreateOptions())!;
-      Assert.Equal(SunShade.Shapes.None, ss.Shape);
+      Assert.Equal(SunShade.ShapeType.None, ss.Shape);
     }
 
     [Fact]
     public void RoundTrip_None_PreservesShape()
     {
       var restored = Roundtrip(SunShade.MakeEmptySunShade());
-      Assert.Equal(SunShade.Shapes.None, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.None, restored.Shape);
     }
 
     #endregion
@@ -113,7 +113,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           tMargin: 0.2, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.LongHorizontal, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.LongHorizontal, restored.Shape);
       Assert.Equal(W, restored.WinWidth);
       Assert.Equal(H, restored.WinHeight);
       Assert.Equal(D, restored.Overhang);
@@ -127,7 +127,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           lMargin: 0.1, rMargin: 0.15, tMargin: 0.2, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.Horizontal, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.Horizontal, restored.Shape);
       Assert.Equal(0.1, restored.LeftMargin);
       Assert.Equal(0.15, restored.RightMargin);
       Assert.Equal(0.2, restored.TopMargin);
@@ -145,7 +145,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           sMargin: 0.12, isLeftSide: true, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.LongVerticalLeft, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.LongVerticalLeft, restored.Shape);
       Assert.Equal(0.12, restored.LeftMargin);
     }
 
@@ -156,7 +156,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           sMargin: 0.08, isLeftSide: false, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.LongVerticalRight, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.LongVerticalRight, restored.Shape);
       Assert.Equal(0.08, restored.RightMargin);
     }
 
@@ -168,7 +168,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           tMargin: 0.05, bMargin: 0.07, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.VerticalLeft, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.VerticalLeft, restored.Shape);
       Assert.Equal(0.10, restored.LeftMargin);
       Assert.Equal(0.05, restored.TopMargin);
       Assert.Equal(0.07, restored.BottomMargin);
@@ -182,7 +182,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           tMargin: 0.05, bMargin: 0.07, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.VerticalRight, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.VerticalRight, restored.Shape);
       Assert.Equal(0.10, restored.RightMargin);
     }
 
@@ -193,7 +193,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           lMargin: 0.12, rMargin: 0.13, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.LongVerticalBoth, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.LongVerticalBoth, restored.Shape);
       Assert.Equal(0.12, restored.LeftMargin);
       Assert.Equal(0.13, restored.RightMargin);
     }
@@ -206,7 +206,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           tMargin: 0.05, bMargin: 0.07, SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.VerticalBoth, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.VerticalBoth, restored.Shape);
       Assert.Equal(0.05, restored.TopMargin);
       Assert.Equal(0.07, restored.BottomMargin);
     }
@@ -224,7 +224,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
           SouthVerticalIncline());
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.Grid, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.Grid, restored.Shape);
       Assert.Equal(0.1, restored.LeftMargin);
       Assert.Equal(0.2, restored.TopMargin);
     }
@@ -242,13 +242,13 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     public void RoundTrip_Direct9ArgConstructor_PreservesAllMargins()
     {
       var original = new SunShade(
-          SunShade.Shapes.VerticalBoth, SouthVerticalIncline(),
+          SunShade.ShapeType.VerticalBoth, SouthVerticalIncline(),
           winHeight: 1.8, winWidth: 1.5, overhang: 0.6,
           topMargin: 0.05, bottomMargin: 0.07,
           leftMargin: 0.10, rightMargin: 0.11);
       var restored = Roundtrip(original);
 
-      Assert.Equal(SunShade.Shapes.VerticalBoth, restored.Shape);
+      Assert.Equal(SunShade.ShapeType.VerticalBoth, restored.Shape);
       Assert.Equal(0.10, restored.LeftMargin);
       Assert.Equal(0.11, restored.RightMargin);
       Assert.Equal(0.05, restored.TopMargin);

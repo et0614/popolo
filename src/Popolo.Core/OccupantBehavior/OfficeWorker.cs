@@ -49,11 +49,11 @@ namespace Popolo.Core.OccupantBehavior
       private enum LunchBreakTake
       {
         /// <summary>Always stays outside.</summary>
-        AlwaysOutGo = 0,
+        AlwaysGoesOut = 0,
         /// <summary>Always stays in the office.</summary>
-        NeverOutGo = 1,
+        NeverGoesOut = 1,
         /// <summary>Occasionally goes out.</summary>
-        SomeTimeOutGo = 2
+        SometimeGoesOut = 2
       }
 
       #endregion
@@ -269,9 +269,9 @@ namespace Popolo.Core.OccupantBehavior
         double[] aGoOut = new double[] { 0.176, 0.157, 0.179, 0.122, 0.221, 0.068, 0.070, 0.141, 0.179, 0.155 };  //常に外出
         double[] nGoOut = new double[] { 0.392, 0.446, 0.488, 0.451, 0.453, 0.534, 0.581, 0.500, 0.488, 0.452 };  //常に社内
         double bf = urGen.NextDouble();
-        if (bf < nGoOut[group]) lunchBreak = LunchBreakTake.NeverOutGo;
-        else if (bf < nGoOut[group] + aGoOut[group]) lunchBreak = LunchBreakTake.AlwaysOutGo;
-        else lunchBreak = LunchBreakTake.SomeTimeOutGo;
+        if (bf < nGoOut[group]) lunchBreak = LunchBreakTake.NeverGoesOut;
+        else if (bf < nGoOut[group] + aGoOut[group]) lunchBreak = LunchBreakTake.AlwaysGoesOut;
+        else lunchBreak = LunchBreakTake.SometimeGoesOut;
       }
 
       #endregion
@@ -343,7 +343,7 @@ namespace Popolo.Core.OccupantBehavior
 
         //昼休み**********************************************
         //外出する場合
-        if (lunchBreak == LunchBreakTake.AlwaysOutGo || urGen.NextDouble() < 0.488)
+        if (lunchBreak == LunchBreakTake.AlwaysGoesOut || urGen.NextDouble() < 0.488)
         {
           double min = lncStMdl[0] + lncStMdl[1] * Math.Sinh((nrGen.NextDouble() - lncStMdl[3]) / lncStMdl[2]);
           lnchOutGoTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.LunchStartHour, Office.LunchStartMinute, 0).AddMinutes(min);

@@ -102,17 +102,17 @@ namespace Popolo.Core.ThermalComfort
       RightArm = 512,
       /// <summary>Right hand.</summary>
       RightHand = 1024,
-      /// <summary>Left lower leg.</summary>
-      LeftThigh = 2048,
-      /// <summary>Left foot.</summary>
-      LeftLeg = 4096,
       /// <summary>Left thigh (upper leg).</summary>
+      LeftThigh = 2048,
+      /// <summary>Left lower leg.</summary>
+      LeftLeg = 4096,
+      /// <summary>Left foot.</summary>
       LeftFoot = 8192,
-      /// <summary>Right lower leg.</summary>
-      RightThigh = 16384,
-      /// <summary>Right foot.</summary>
-      RightLeg = 32768,
       /// <summary>Right thigh (upper leg).</summary>
+      RightThigh = 16384,
+      /// <summary>Right lower leg.</summary>
+      RightLeg = 32768,
+      /// <summary>Right foot.</summary>
       RightFoot = 65536,
     }
 

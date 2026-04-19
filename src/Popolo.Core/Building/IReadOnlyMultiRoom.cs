@@ -1,4 +1,4 @@
-/* IReadOnlyMultiRooms.cs
+/* IReadOnlyMultiRoom.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -23,8 +23,32 @@ using System;
 
 namespace Popolo.Core.Building
 {
-  /// <summary>Represents a read-only view of a multi-room building thermal model.</summary>
-  public interface IReadOnlyMultiRooms
+  /// <summary>
+  /// Represents a group of rooms that are solved as a single coupled system
+  /// within one time step.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A <see cref="IReadOnlyMultiRoom"/> defines the boundary of <b>tight thermal coupling</b>.
+  /// All rooms contained in the same multi-room are solved simultaneously
+  /// within each time step, including heat conduction through shared walls and
+  /// inter-zone air flow. Their temperatures are obtained as the solution of a
+  /// single linear system.
+  /// </para>
+  /// <para>
+  /// In contrast, multiple multi-rooms belonging to the same
+  /// <see cref="IReadOnlyBuildingThermalModel"/> are <b>loosely coupled</b>: they
+  /// exchange boundary conditions with a one-time-step lag, rather than being
+  /// solved together.
+  /// </para>
+  /// <para>
+  /// Use a single multi-room when parts of the building are thermally
+  /// interdependent. Split into multiple multi-rooms when weak coupling
+  /// (one-step lag) is acceptable, to reduce the linear-system size and enable
+  /// parallel computation.
+  /// </para>
+  /// </remarks>
+  public interface IReadOnlyMultiRoom
   {
     /// <summary>Gets the calculation time step [s].</summary>
     double TimeStep { get; }

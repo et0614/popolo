@@ -30,7 +30,7 @@ namespace Popolo.Core.Building.Envelope
     #region 列挙型
 
     /// <summary>Specifies the shape of the solar shading device.</summary>
-    public enum Shapes
+    public enum ShapeType
     {
       /// <summary>No shading device.</summary>
       None = 0,
@@ -62,7 +62,7 @@ namespace Popolo.Core.Building.Envelope
     public IReadOnlyIncline Incline { get; internal set; }
 
     /// <summary>Gets the shape of the shading device.</summary>
-    public Shapes Shape { private set; get; }
+    public ShapeType Shape { private set; get; }
 
     /// <summary>Gets the window height [m].</summary>
     public double WinHeight { private set; get; }
@@ -115,7 +115,7 @@ namespace Popolo.Core.Building.Envelope
     /// </para>
     /// </remarks>
     public SunShade(
-      Shapes shape, IReadOnlyIncline incline,
+      ShapeType shape, IReadOnlyIncline incline,
       double winHeight, double winWidth, double overhang,
       double topMargin, double bottomMargin, double leftMargin, double rightMargin)
     {
@@ -163,43 +163,43 @@ namespace Popolo.Core.Building.Envelope
       //日の出前と日没後はすべて影      
       if (sun.Altitude <= 0) return 1;
       //日除けが無ければ影は無し
-      if (Shape == Shapes.None) return 0;
+      if (Shape == ShapeType.None) return 0;
       //太陽が裏面にある場合にはすべて影
       if (Incline.GetDirectSolarRadiationRatio(sun) <= 0) return 1;
 
-      double dpW = Overhang * Math.Tan(Incline.HorizontalAngle - sun.Orientation);
+      double dpW = Overhang * Math.Tan(Incline.HorizontalAngle - sun.Azimuth);
       double dpH = Overhang * Incline.GetTangentProfileAngle(sun);
       double sr = 0;
       switch (Shape)
       {
-        case Shapes.Horizontal:
+        case ShapeType.Horizontal:
           sr = ComputeShadowArea_H(dpW, dpH, WinWidth, WinHeight, LeftMargin, TopMargin, RightMargin);
           break;
-        case Shapes.VerticalLeft:
+        case ShapeType.VerticalLeft:
           sr = ComputeShadowArea_H(dpH, dpW, WinHeight, WinWidth, TopMargin, LeftMargin, BottomMargin);
           break;
-        case Shapes.VerticalRight:
+        case ShapeType.VerticalRight:
           sr = ComputeShadowArea_H(dpH, -dpW, WinHeight, WinWidth, TopMargin, RightMargin, BottomMargin);
           break;
-        case Shapes.VerticalBoth:
+        case ShapeType.VerticalBoth:
           if (dpW < 0)
             sr = ComputeShadowArea_H(dpH, -dpW, WinHeight, WinWidth, TopMargin, RightMargin, BottomMargin);
           else sr = ComputeShadowArea_H(dpH, dpW, WinHeight, WinWidth, TopMargin, LeftMargin, BottomMargin);
           break;
-        case Shapes.LongHorizontal:
+        case ShapeType.LongHorizontal:
           sr = ComputeShadowArea_LH(dpH, WinWidth, WinHeight, TopMargin);
           break;
-        case Shapes.LongVerticalLeft:
+        case ShapeType.LongVerticalLeft:
           sr = ComputeShadowArea_LH(dpW, WinHeight, WinWidth, LeftMargin);
           break;
-        case Shapes.LongVerticalRight:
+        case ShapeType.LongVerticalRight:
           sr = ComputeShadowArea_LH(-dpW, WinHeight, WinWidth, RightMargin);
           break;
-        case Shapes.LongVerticalBoth:
+        case ShapeType.LongVerticalBoth:
           if (dpW < 0) sr = ComputeShadowArea_LH(-dpW, WinHeight, WinWidth, RightMargin);
           else sr = ComputeShadowArea_LH(dpW, WinHeight, WinWidth, LeftMargin);
           break;
-        case Shapes.Grid:
+        case ShapeType.Grid:
           sr = ComputeShadowArea_Grid
             (dpW, dpH, WinWidth, WinHeight, LeftMargin, TopMargin, RightMargin, BottomMargin);
           break;
@@ -212,11 +212,11 @@ namespace Popolo.Core.Building.Envelope
     #region 初期化処理
 
     /// <summary>Creates a <see cref="SunShade"/> instance with no shading effect.</summary>
-    /// <returns>A <see cref="SunShade"/> with shape <see cref="Shapes.None"/>.</returns>
+    /// <returns>A <see cref="SunShade"/> with shape <see cref="ShapeType.None"/>.</returns>
     public static SunShade MakeEmptySunShade()
     {
       SunShade ss = new SunShade(new Incline(0d, 0d));
-      ss.Shape = Shapes.None;
+      ss.Shape = ShapeType.None;
       return ss;
     }
 
@@ -231,7 +231,7 @@ namespace Popolo.Core.Building.Envelope
       (double wWidth, double wHeight, double depth, double tMargin, IReadOnlyIncline incline)
     {
       SunShade ss = new SunShade(incline);
-      ss.Shape = Shapes.LongHorizontal;
+      ss.Shape = ShapeType.LongHorizontal;
       ss.WinWidth = wWidth;
       ss.WinHeight = wHeight;
       ss.Overhang = depth;
@@ -252,7 +252,7 @@ namespace Popolo.Core.Building.Envelope
       double lMargin, double rMargin, double tMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeHorizontalSunShade(wWidth, wHeight, depth, tMargin, incline);
-      ss.Shape = Shapes.Horizontal;
+      ss.Shape = ShapeType.Horizontal;
       ss.LeftMargin = lMargin;
       ss.RightMargin = rMargin;
       return ss;
@@ -275,12 +275,12 @@ namespace Popolo.Core.Building.Envelope
       ss.Overhang = depth;
       if (isLeftSide)
       {
-        ss.Shape = Shapes.LongVerticalLeft;
+        ss.Shape = ShapeType.LongVerticalLeft;
         ss.LeftMargin = sMargin;
       }
       else
       {
-        ss.Shape = Shapes.LongVerticalRight;
+        ss.Shape = ShapeType.LongVerticalRight;
         ss.RightMargin = sMargin;
       }
       return ss;
@@ -300,8 +300,8 @@ namespace Popolo.Core.Building.Envelope
       double sMargin, bool isLeftSide, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, sMargin, isLeftSide, incline);
-      if (isLeftSide) ss.Shape = Shapes.VerticalLeft;
-      else ss.Shape = Shapes.VerticalRight;
+      if (isLeftSide) ss.Shape = ShapeType.VerticalLeft;
+      else ss.Shape = ShapeType.VerticalRight;
       ss.TopMargin = tMargin;
       ss.BottomMargin = bMargin;
       return ss;
@@ -320,7 +320,7 @@ namespace Popolo.Core.Building.Envelope
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, lMargin, true, incline);
       ss.RightMargin = rMargin;
-      ss.Shape = Shapes.LongVerticalBoth;
+      ss.Shape = ShapeType.LongVerticalBoth;
       return ss;
     }
 
@@ -338,7 +338,7 @@ namespace Popolo.Core.Building.Envelope
       double lMargin, double rMargin, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = MakeVerticalSunShade(wWidth, wHeight, depth, lMargin, rMargin, incline);
-      ss.Shape = Shapes.VerticalBoth;
+      ss.Shape = ShapeType.VerticalBoth;
       ss.TopMargin = tMargin;
       ss.BottomMargin = bMargin;
       return ss;
@@ -358,7 +358,7 @@ namespace Popolo.Core.Building.Envelope
       double lMargin, double rMargin, double tMargin, double bMargin, IReadOnlyIncline incline)
     {
       SunShade ss = new SunShade(incline);
-      ss.Shape = Shapes.Grid;
+      ss.Shape = ShapeType.Grid;
       ss.WinWidth = wWidth;
       ss.WinHeight = wHeight;
       ss.Overhang = depth;

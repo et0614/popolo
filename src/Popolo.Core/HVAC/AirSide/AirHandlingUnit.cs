@@ -53,11 +53,11 @@ namespace Popolo.Core.HVAC.AirSide
       /// <summary>Steam humidification.</summary>
       Steam,
       /// <summary>Evaporative (drip) humidification.</summary>
-      DropPervaporation,
+      WettedMedia,
       /// <summary>Water spray humidification.</summary>
       Atomizing,
       /// <summary>Ultrasonic humidification.</summary>
-      UltraSonic,
+      Ultrasonic,
     }
 
     #endregion
@@ -215,7 +215,7 @@ namespace Popolo.Core.HVAC.AirSide
 
       switch (humidType)
       {
-        case HumidifierType.DropPervaporation:
+        case HumidifierType.WettedMedia:
           WaterSupplyCoefficient = 0.5;
           MaxSaturationEfficiency = 0.8;
           WaterSupplyCoefficient = 0.5;
@@ -225,7 +225,7 @@ namespace Popolo.Core.HVAC.AirSide
           MaxSaturationEfficiency = 1.0;
           WaterSupplyCoefficient = 0.9;
           break;
-        case HumidifierType.UltraSonic:
+        case HumidifierType.Ultrasonic:
           WaterSupplyCoefficient = 0.9;
           MaxSaturationEfficiency = 0.5;
           WaterSupplyCoefficient = 0.9;

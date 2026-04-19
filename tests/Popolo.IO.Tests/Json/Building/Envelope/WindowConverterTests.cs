@@ -306,7 +306,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
                 }
                 """;
             var window = JsonSerializer.Deserialize<Window>(json, CreateOptions())!;
-            Assert.Equal(SunShade.Shapes.Horizontal, window.SunShade.Shape);
+            Assert.Equal(SunShade.ShapeType.Horizontal, window.SunShade.Shape);
         }
 
         #endregion
@@ -380,7 +380,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
 
             var restored = Roundtrip(original);
 
-            Assert.Equal(SunShade.Shapes.LongHorizontal, restored.SunShade.Shape);
+            Assert.Equal(SunShade.ShapeType.LongHorizontal, restored.SunShade.Shape);
             Assert.Equal(0.6, restored.SunShade.Overhang);
         }
 

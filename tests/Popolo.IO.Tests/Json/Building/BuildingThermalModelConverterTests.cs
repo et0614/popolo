@@ -51,7 +51,7 @@ namespace Popolo.IO.Tests.Json.Building
         {
             var zoneA = new Zone("Room A", 120.0, 10.0);
             var wall = MakeExternalWall(0);
-            var mRooms = new MultiRooms(1,
+            var mRooms = new MultiRoom(1,
                 new[] { zoneA }, new[] { wall }, Array.Empty<Window>());
             mRooms.AddZone(0, 0);
             mRooms.AddWall(0, 0, true);
@@ -72,7 +72,7 @@ namespace Popolo.IO.Tests.Json.Building
             // MultiRooms 1: 1 zone, 1 external wall
             var zone1 = new Zone("Zone 1", 100, 10);
             var wall1 = MakeExternalWall(0);
-            var mr1 = new MultiRooms(1, new[] { zone1 }, new[] { wall1 }, Array.Empty<Window>());
+            var mr1 = new MultiRoom(1, new[] { zone1 }, new[] { wall1 }, Array.Empty<Window>());
             mr1.AddZone(0, 0);
             mr1.AddWall(0, 0, true);
             mr1.SetOutsideWall(0, true, new Incline(0d, Math.PI / 2));
@@ -80,7 +80,7 @@ namespace Popolo.IO.Tests.Json.Building
             // MultiRooms 2: 1 zone, 1 ground wall
             var zone2 = new Zone("Zone 2", 200, 20);
             var wall2 = MakeExternalWall(1);
-            var mr2 = new MultiRooms(1, new[] { zone2 }, new[] { wall2 }, Array.Empty<Window>());
+            var mr2 = new MultiRoom(1, new[] { zone2 }, new[] { wall2 }, Array.Empty<Window>());
             mr2.AddZone(0, 0);
             mr2.AddWall(0, 0, true);
             mr2.SetGroundWall(0, true, 3.5);
@@ -267,8 +267,8 @@ namespace Popolo.IO.Tests.Json.Building
             var restored = JsonSerializer.Deserialize<BuildingThermalModel>(json, CreateOptions())!;
 
             // 外壁参照が正しく復元されているか
-            var origRefs = ((MultiRooms)original.MultiRoom[0]).GetOutsideWallReferences();
-            var restRefs = ((MultiRooms)restored.MultiRoom[0]).GetOutsideWallReferences();
+            var origRefs = ((MultiRoom)original.MultiRoom[0]).GetOutsideWallReferences();
+            var restRefs = ((MultiRoom)restored.MultiRoom[0]).GetOutsideWallReferences();
 
             Assert.Equal(origRefs.Length, restRefs.Length);
             Assert.Equal(origRefs[0].IsSideF, restRefs[0].IsSideF);
@@ -282,7 +282,7 @@ namespace Popolo.IO.Tests.Json.Building
             var restored = JsonSerializer.Deserialize<BuildingThermalModel>(json, CreateOptions())!;
 
             // MultiRooms[1] は地中壁設定 conductance=3.5
-            var groundRefs = ((MultiRooms)restored.MultiRoom[1]).GetGroundWallReferences();
+            var groundRefs = ((MultiRoom)restored.MultiRoom[1]).GetGroundWallReferences();
             Assert.Single(groundRefs);
             Assert.Equal(3.5, groundRefs[0].Conductance);
         }

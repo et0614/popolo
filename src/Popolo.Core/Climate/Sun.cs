@@ -81,7 +81,7 @@ namespace Popolo.Core.Climate
       /// Liu, B.Y.H., Jordan, R.C.: The interrelationship and characteristic distribution of
       /// direct, diffuse and total solar radiation, Solar Energy, Vol.4, No.3, 1960.
       /// </summary>
-      LiuAndJordan,
+      LiuJordan,
 
       /// <summary>
       /// Udagawa method.
@@ -381,7 +381,7 @@ namespace Popolo.Core.Climate
     public double Altitude { get; set; }
 
     /// <summary>Gets or sets the solar azimuth angle [radian].</summary>
-    public double Orientation { get; set; }
+    public double Azimuth { get; set; }
 
     /// <summary>Gets the latitude of the calculation site (positive north) [degree].</summary>
     public double Latitude { get; private set; }
@@ -603,7 +603,7 @@ namespace Popolo.Core.Climate
       GetSunPosition(Latitude, Longitude, StandardLongitude, dateTime,
           out double al, out double or);
       Altitude = al;
-      Orientation = or;
+      Azimuth = or;
     }
 
     /// <summary>
@@ -1042,7 +1042,7 @@ namespace Popolo.Core.Climate
         case SeparationMethod.Berlage:
           diffuseHorizontalRadiation = shi * 0.5 / (1 - 1.4 * Math.Log(aTransmissivity));
           break;
-        case SeparationMethod.LiuAndJordan:
+        case SeparationMethod.LiuJordan:
           diffuseHorizontalRadiation = sinAltitude * exRadiation * (0.271 - 0.2939 * ps);
           break;
         case SeparationMethod.Matsuo:

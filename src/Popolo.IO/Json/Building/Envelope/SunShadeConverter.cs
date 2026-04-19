@@ -96,7 +96,7 @@ namespace Popolo.IO.Json.Building.Envelope
         throw new JsonException($"Expected StartObject at the beginning of a {nameof(SunShade)}, but got {reader.TokenType}.");
 
       string? kind = null;
-      SunShade.Shapes? shape = null;
+      SunShade.ShapeType? shape = null;
       Incline? incline = null;
       double winHeight = 0, winWidth = 0, overhang = 0;
       double topMargin = 0, bottomMargin = 0, leftMargin = 0, rightMargin = 0;
@@ -122,8 +122,8 @@ namespace Popolo.IO.Json.Building.Envelope
             string? shapeStr = reader.GetString();
             if (shapeStr is null)
               throw new JsonException($"'{PropShape}' must be a string.");
-            if (!Enum.TryParse<SunShade.Shapes>(shapeStr, out var parsed))
-              throw new JsonException($"Unknown {nameof(SunShade.Shapes)} value: '{shapeStr}'.");
+            if (!Enum.TryParse<SunShade.ShapeType>(shapeStr, out var parsed))
+              throw new JsonException($"Unknown {nameof(SunShade.ShapeType)} value: '{shapeStr}'.");
             shape = parsed;
             break;
           case PropIncline:
@@ -147,7 +147,7 @@ namespace Popolo.IO.Json.Building.Envelope
         throw new JsonException($"Required property '{PropShape}' is missing from {nameof(SunShade)} JSON.");
 
       // Shape == None は incline 不要。
-      if (shape == SunShade.Shapes.None)
+      if (shape == SunShade.ShapeType.None)
         return SunShade.MakeEmptySunShade();
 
       // Shape != None は incline 必須。
@@ -177,7 +177,7 @@ namespace Popolo.IO.Json.Building.Envelope
       writer.WriteString(PropKind, ExpectedKind);
       writer.WriteString(PropShape, value.Shape.ToString());
 
-      if (value.Shape != SunShade.Shapes.None)
+      if (value.Shape != SunShade.ShapeType.None)
       {
         writer.WritePropertyName(PropIncline);
         // Incline は IReadOnlyIncline として保持されているが、IReadOnlyIncline の別実装に備えて

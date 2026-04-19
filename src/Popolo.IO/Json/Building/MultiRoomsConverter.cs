@@ -29,7 +29,7 @@ using Popolo.Core.Climate;
 namespace Popolo.IO.Json.Building
 {
   /// <summary>
-  /// JSON converter for <see cref="MultiRooms"/>.
+  /// JSON converter for <see cref="MultiRoom"/>.
   /// </summary>
   /// <remarks>
   /// <para>
@@ -58,7 +58,7 @@ namespace Popolo.IO.Json.Building
   /// }
   /// </code>
   /// <para>
-  /// <b>Two-pass deserialization:</b> A <see cref="MultiRooms"/> instance cannot be
+  /// <b>Two-pass deserialization:</b> A <see cref="MultiRoom"/> instance cannot be
   /// constructed without a <see cref="Wall"/>[] array, which lives at the
   /// <c>BuildingThermalModel</c> level. This converter therefore supports only
   /// the <b>Write</b> path directly; <see cref="Read"/> throws a
@@ -69,7 +69,7 @@ namespace Popolo.IO.Json.Building
   /// <c>BuildingThermalModelConverter</c> — which reads the JSON into a
   /// <see cref="MultiRoomsDto"/>. The enclosing converter then resolves wall
   /// references against its wall table and materializes the live
-  /// <see cref="MultiRooms"/> via <see cref="BuildMultiRooms"/>.
+  /// <see cref="MultiRoom"/> via <see cref="BuildMultiRooms"/>.
   /// </para>
   /// <para>
   /// <b>Interzone airflows</b> are serialized sparsely: only entries with a
@@ -81,7 +81,7 @@ namespace Popolo.IO.Json.Building
   /// and all transitive dependencies (Window, shading devices, etc.).
   /// </para>
   /// </remarks>
-  public sealed class MultiRoomsConverter : JsonConverter<MultiRooms>
+  public sealed class MultiRoomsConverter : JsonConverter<MultiRoom>
   {
 
     #region 定数
@@ -115,19 +115,19 @@ namespace Popolo.IO.Json.Building
     /// Throws — MultiRooms cannot be constructed without the wall table.
     /// Use <see cref="ReadDto"/> via <c>BuildingThermalModelConverter</c>.
     /// </summary>
-    public override MultiRooms Read(
+    public override MultiRoom Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
       throw new NotSupportedException(
-        $"{nameof(MultiRooms)} cannot be deserialized directly because its construction " +
+        $"{nameof(MultiRoom)} cannot be deserialized directly because its construction " +
         $"requires a {nameof(Wall)}[] array that is defined at the {nameof(Popolo.Core.Building.BuildingThermalModel)} level. " +
         $"Deserialize a {nameof(Popolo.Core.Building.BuildingThermalModel)} instead, or call " +
         $"{nameof(MultiRoomsConverter)}.{nameof(ReadDto)} directly from a higher-level converter.");
     }
 
-    /// <summary>Writes a <see cref="MultiRooms"/> to JSON.</summary>
+    /// <summary>Writes a <see cref="MultiRoom"/> to JSON.</summary>
     public override void Write(
-      Utf8JsonWriter writer, MultiRooms value, JsonSerializerOptions options)
+      Utf8JsonWriter writer, MultiRoom value, JsonSerializerOptions options)
     {
       if (value is null)
         throw new ArgumentNullException(nameof(value));
@@ -155,7 +155,7 @@ namespace Popolo.IO.Json.Building
     #region DTO 読み取り(BuildingThermalModelConverter が利用)
 
     /// <summary>
-    /// Reads a <see cref="MultiRooms"/> JSON block into an intermediate
+    /// Reads a <see cref="MultiRoom"/> JSON block into an intermediate
     /// <see cref="MultiRoomsDto"/> without resolving wall references.
     /// </summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the MultiRooms object.</param>
@@ -166,7 +166,7 @@ namespace Popolo.IO.Json.Building
       ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
       if (reader.TokenType != JsonTokenType.StartObject)
-        throw new JsonException($"Expected StartObject at the beginning of a {nameof(MultiRooms)}, but got {reader.TokenType}.");
+        throw new JsonException($"Expected StartObject at the beginning of a {nameof(MultiRoom)}, but got {reader.TokenType}.");
 
       var dto = new MultiRoomsDto();
       string? kind = null;
@@ -212,9 +212,9 @@ namespace Popolo.IO.Json.Building
 
       if (kind != ExpectedKind)
         throw new JsonException(
-          $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(MultiRooms)}, but got '{kind ?? "(missing)"}'.");
+          $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(MultiRoom)}, but got '{kind ?? "(missing)"}'.");
       if (!seenAlbedo)
-        throw new JsonException($"Required property '{PropAlbedo}' is missing from {nameof(MultiRooms)} JSON.");
+        throw new JsonException($"Required property '{PropAlbedo}' is missing from {nameof(MultiRoom)} JSON.");
 
       return dto;
     }
@@ -224,15 +224,15 @@ namespace Popolo.IO.Json.Building
     #region DTO → MultiRooms 構築(BuildingThermalModelConverter が利用)
 
     /// <summary>
-    /// Builds a live <see cref="MultiRooms"/> from an intermediate
+    /// Builds a live <see cref="MultiRoom"/> from an intermediate
     /// <see cref="MultiRoomsDto"/> by resolving wall references against the
     /// provided wall table.
     /// </summary>
     /// <param name="dto">Intermediate DTO produced by <see cref="ReadDto"/>.</param>
     /// <param name="wallsById">Map of wall ID to <see cref="Wall"/> instance.</param>
-    /// <returns>A fully configured <see cref="MultiRooms"/>.</returns>
+    /// <returns>A fully configured <see cref="MultiRoom"/>.</returns>
     /// <exception cref="JsonException">Thrown when a wall reference cannot be resolved.</exception>
-    internal static MultiRooms BuildMultiRooms(
+    internal static MultiRoom BuildMultiRooms(
       MultiRoomsDto dto, IReadOnlyDictionary<int, Wall> wallsById)
     {
       // 1. Zone / Window / Wall 配列を準備
@@ -251,7 +251,7 @@ namespace Popolo.IO.Json.Building
       var walls = wallsSorted.ToArray();
 
       // 2. MultiRooms インスタンス生成
-      var mRooms = new MultiRooms(
+      var mRooms = new MultiRoom(
         rmCount: dto.Rooms.Count,
         zones: flatZones.ToArray(),
         walls: walls,
@@ -375,7 +375,7 @@ namespace Popolo.IO.Json.Building
     }
 
     private static void WriteRooms(
-      Utf8JsonWriter writer, MultiRooms value, JsonSerializerOptions options)
+      Utf8JsonWriter writer, MultiRoom value, JsonSerializerOptions options)
     {
       // 各 zone の RoomIndex に基づいて rooms を組み立てる
       int roomCount = value.RoomCount;
@@ -462,7 +462,7 @@ namespace Popolo.IO.Json.Building
     }
 
     private static void WriteOutsideWalls(
-      Utf8JsonWriter writer, MultiRooms value, JsonSerializerOptions options)
+      Utf8JsonWriter writer, MultiRoom value, JsonSerializerOptions options)
     {
       var refs = value.GetOutsideWallReferences();
       writer.WritePropertyName(PropOutsideWalls);
@@ -530,7 +530,7 @@ namespace Popolo.IO.Json.Building
       }
     }
 
-    private static void WriteGroundWalls(Utf8JsonWriter writer, MultiRooms value)
+    private static void WriteGroundWalls(Utf8JsonWriter writer, MultiRoom value)
     {
       var refs = value.GetGroundWallReferences();
       writer.WritePropertyName(PropGroundWalls);
@@ -597,7 +597,7 @@ namespace Popolo.IO.Json.Building
       }
     }
 
-    private static void WriteAdjacentSpaces(Utf8JsonWriter writer, MultiRooms value)
+    private static void WriteAdjacentSpaces(Utf8JsonWriter writer, MultiRoom value)
     {
       var refs = value.GetAdjacentSpaceWallReferences();
       writer.WritePropertyName(PropAdjacentSpaces);
@@ -663,7 +663,7 @@ namespace Popolo.IO.Json.Building
       }
     }
 
-    private static void WriteInterZoneAirflows(Utf8JsonWriter writer, MultiRooms value)
+    private static void WriteInterZoneAirflows(Utf8JsonWriter writer, MultiRoom value)
     {
       writer.WritePropertyName(PropInterZoneAirflows);
       writer.WriteStartArray();

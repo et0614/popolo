@@ -92,8 +92,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         public void Parameters_EtaZero_ArePositive()
         {
             var ocp = new TakakusakiComfortModel(42, 0.0);
-            Assert.True(ocp.EtaZero_Hot  > 0, $"EtaZero_Hot={ocp.EtaZero_Hot:E3} should be positive");
-            Assert.True(ocp.EtaZero_Cold > 0, $"EtaZero_Cold={ocp.EtaZero_Cold:E3} should be positive");
+            Assert.True(ocp.HotEtaZero  > 0, $"EtaZero_Hot={ocp.HotEtaZero:E3} should be positive");
+            Assert.True(ocp.ColdEtaZero > 0, $"EtaZero_Cold={ocp.ColdEtaZero:E3} should be positive");
         }
 
         /// <summary>OptimumPMV = 0 のとき EtaZero_Hot == EtaZero_Cold（対称性）。</summary>
@@ -101,7 +101,7 @@ namespace Popolo.Core.Tests.ThermalComfort
         public void Parameters_NeutralOptimumPMV_IsSymmetric()
         {
             var ocp = new TakakusakiComfortModel(42, 0.0);
-            Assert.Equal(ocp.EtaZero_Hot, ocp.EtaZero_Cold, precision: 10);
+            Assert.Equal(ocp.HotEtaZero, ocp.ColdEtaZero, precision: 10);
         }
 
         #endregion
@@ -114,10 +114,10 @@ namespace Popolo.Core.Tests.ThermalComfort
         {
             var ocp = new TakakusakiComfortModel(42, 0.3);
             ocp.SetPMV(ocp.OptimumPMV);
-            Assert.True(ocp.DissatisfiedProbability_Hot  < 0.01,
-                $"At optimum PMV, P_hot={ocp.DissatisfiedProbability_Hot:F4} should be ~0");
-            Assert.True(ocp.DissatisfiedProbability_Cold < 0.01,
-                $"At optimum PMV, P_cold={ocp.DissatisfiedProbability_Cold:F4} should be ~0");
+            Assert.True(ocp.HotDissatisfiedProbability  < 0.01,
+                $"At optimum PMV, P_hot={ocp.HotDissatisfiedProbability:F4} should be ~0");
+            Assert.True(ocp.ColdDissatisfiedProbability < 0.01,
+                $"At optimum PMV, P_cold={ocp.ColdDissatisfiedProbability:F4} should be ~0");
         }
 
         /// <summary>環境 PMV が最適値より高いとき、暑い不満確率のみ正。</summary>
@@ -126,8 +126,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         {
             var ocp = new TakakusakiComfortModel(42, 0.0);
             ocp.SetPMV(1.5); // 最適値0より高い
-            Assert.True(ocp.DissatisfiedProbability_Hot  > 0,   "P_hot should be > 0");
-            Assert.Equal(0.0, ocp.DissatisfiedProbability_Cold,   precision: 10);
+            Assert.True(ocp.HotDissatisfiedProbability  > 0,   "P_hot should be > 0");
+            Assert.Equal(0.0, ocp.ColdDissatisfiedProbability,   precision: 10);
         }
 
         /// <summary>環境 PMV が最適値より低いとき、寒い不満確率のみ正。</summary>
@@ -136,8 +136,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         {
             var ocp = new TakakusakiComfortModel(42, 0.0);
             ocp.SetPMV(-1.5); // 最適値0より低い
-            Assert.True(ocp.DissatisfiedProbability_Cold > 0,   "P_cold should be > 0");
-            Assert.Equal(0.0, ocp.DissatisfiedProbability_Hot,   precision: 10);
+            Assert.True(ocp.ColdDissatisfiedProbability > 0,   "P_cold should be > 0");
+            Assert.Equal(0.0, ocp.HotDissatisfiedProbability,   precision: 10);
         }
 
         /// <summary>|PMV - OptimumPMV| が大きいほど不満確率が高くなる。</summary>
@@ -147,10 +147,10 @@ namespace Popolo.Core.Tests.ThermalComfort
             var ocp = new TakakusakiComfortModel(42, 0.0);
 
             ocp.SetPMV(0.5);
-            double pHot_small = ocp.DissatisfiedProbability_Hot;
+            double pHot_small = ocp.HotDissatisfiedProbability;
 
             ocp.SetPMV(2.0);
-            double pHot_large = ocp.DissatisfiedProbability_Hot;
+            double pHot_large = ocp.HotDissatisfiedProbability;
 
             Assert.True(pHot_large > pHot_small,
                 $"P_hot(PMV=2.0)={pHot_large:F4} > P_hot(PMV=0.5)={pHot_small:F4}");
@@ -167,8 +167,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         {
             var ocp = new TakakusakiComfortModel(42, 0.0);
             ocp.SetPMV(pmv);
-            Assert.InRange(ocp.DissatisfiedProbability_Hot,  0.0, 1.0);
-            Assert.InRange(ocp.DissatisfiedProbability_Cold, 0.0, 1.0);
+            Assert.InRange(ocp.HotDissatisfiedProbability,  0.0, 1.0);
+            Assert.InRange(ocp.ColdDissatisfiedProbability, 0.0, 1.0);
         }
 
         #endregion

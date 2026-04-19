@@ -88,7 +88,7 @@ namespace Popolo.IO.Tests.Json.Building
         ///  - zone 1 has internal-wall B side + 1 ground wall
         ///  - zone 0 → zone 1 airflow of 0.1 kg/s
         /// </summary>
-        private static MultiRooms MakeTwoZoneModel(out Wall[] walls)
+        private static MultiRoom MakeTwoZoneModel(out Wall[] walls)
         {
             var zoneA = new Zone("Room A", 120.0, 10.0);
             var zoneB = new Zone("Room B", 240.0, 20.0);
@@ -98,7 +98,7 @@ namespace Popolo.IO.Tests.Json.Building
             var gndWall = MakeExternalWall(3);
             walls = new Wall[] { extWall, intWall, gndWall };
 
-            var mRooms = new MultiRooms(
+            var mRooms = new MultiRoom(
                 rmCount: 2,
                 zones: new[] { zoneA, zoneB },
                 walls: walls,
@@ -235,7 +235,7 @@ namespace Popolo.IO.Tests.Json.Building
                   "outsideWalls": [], "groundWalls": [], "adjacentSpaces": [], "interZoneAirflows": [] }
                 """;
             Assert.Throws<NotSupportedException>(() =>
-                JsonSerializer.Deserialize<MultiRooms>(json, CreateOptions()));
+                JsonSerializer.Deserialize<MultiRoom>(json, CreateOptions()));
         }
 
         #endregion
@@ -430,7 +430,7 @@ namespace Popolo.IO.Tests.Json.Building
         {
             var zoneA = new Zone("A", 120, 10);
             var wall = MakeExternalWall(7);
-            var mRooms = new MultiRooms(1, new[] { zoneA }, new[] { wall }, Array.Empty<Window>());
+            var mRooms = new MultiRoom(1, new[] { zoneA }, new[] { wall }, Array.Empty<Window>());
             mRooms.AddZone(0, 0);
             mRooms.AddWall(0, 0, true);
             mRooms.UseAdjacentSpaceFactor(0, true, 0.7);
@@ -466,7 +466,7 @@ namespace Popolo.IO.Tests.Json.Building
             var zones = new Zone[6];
             for (int i = 0; i < 6; i++) zones[i] = new Zone($"Z{i}", 100, 10);
             var walls = new Wall[] { MakeExternalWall(1) };
-            var mRooms = new MultiRooms(3, zones, walls, Array.Empty<Window>());
+            var mRooms = new MultiRoom(3, zones, walls, Array.Empty<Window>());
             mRooms.AddZone(0, 0); mRooms.AddZone(0, 1);
             mRooms.AddZone(1, 2); mRooms.AddZone(1, 3);
             mRooms.AddZone(2, 4); mRooms.AddZone(2, 5);

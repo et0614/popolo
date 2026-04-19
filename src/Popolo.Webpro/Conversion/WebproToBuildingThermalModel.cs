@@ -109,7 +109,7 @@ namespace Popolo.Webpro.Conversion
       public BuildingThermalModel Model { get; }
 
       /// <summary>Gets the single <see cref="MultiRooms"/> instance wrapped by <see cref="Model"/>.</summary>
-      public MultiRooms MultiRooms { get; }
+      public MultiRoom MultiRooms { get; }
 
       /// <summary>Gets a mapping from WEBPRO room name to the <see cref="Zone"/> representing that room.</summary>
       public IReadOnlyDictionary<string, Zone> RoomNameToZone { get; }
@@ -128,7 +128,7 @@ namespace Popolo.Webpro.Conversion
 
       internal ConversionResult(
         BuildingThermalModel model,
-        MultiRooms multiRooms,
+        MultiRoom multiRooms,
         Dictionary<string, Zone> roomNameToZone,
         List<string> unmappedRoomNames)
       {
@@ -249,7 +249,7 @@ namespace Popolo.Webpro.Conversion
       }
 
       // MultiRooms 生成
-      var multiRooms = new MultiRooms(
+      var multiRooms = new MultiRoom(
         rmCount: 1,
         zones: zones.ToArray(),
         walls: walls.ToArray(),
@@ -278,7 +278,7 @@ namespace Popolo.Webpro.Conversion
           multiRooms.AddWindow(zone, window);
 
       // BuildingThermalModel 生成
-      var thermalModel = new BuildingThermalModel(new MultiRooms[] { multiRooms })
+      var thermalModel = new BuildingThermalModel(new MultiRoom[] { multiRooms })
       {
         TimeStep = 3600,
       };
@@ -417,7 +417,7 @@ namespace Popolo.Webpro.Conversion
       {
         window.SetShadingDevice(
           2,
-          new SimpleShadingDevice(SimpleShadingDevice.PredefinedDevices.BrightVenetianBlind));
+          new SimpleShadingDevice(SimpleShadingDevice.PredefinedDevice.BrightVenetianBlind));
       }
 
       return window;
@@ -456,7 +456,7 @@ namespace Popolo.Webpro.Conversion
     /// wall based on the WEBPRO <see cref="WebproWall.Type"/>.
     /// </summary>
     private static void ApplyBoundaryCondition(
-      MultiRooms multiRooms, Wall wall, WebproWall webproWall, Incline incline)
+      MultiRoom multiRooms, Wall wall, WebproWall webproWall, Incline incline)
     {
       switch (webproWall.Type)
       {

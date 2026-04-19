@@ -62,7 +62,7 @@ namespace Popolo.Core.Tests.Energy
     {
       var incline = new Incline(Incline.Orientation.W, Math.PI / 4);
       var panel = new PhotovoltaicPanel(
-          3000, PhotovoltaicPanel.MountType.MountMode,
+          3000, PhotovoltaicPanel.MountType.GroundMount,
           PhotovoltaicPanel.MaterialType.Amorphous, incline);
 
       Assert.Equal(incline.HorizontalAngle, panel.Incline.HorizontalAngle, precision: 6);
@@ -104,7 +104,7 @@ namespace Popolo.Core.Tests.Energy
     [Theory]
     [InlineData(PhotovoltaicPanel.MountType.RoofMount, PhotovoltaicPanel.MaterialType.Crystal)]
     [InlineData(PhotovoltaicPanel.MountType.RoofIntegrated, PhotovoltaicPanel.MaterialType.Crystal)]
-    [InlineData(PhotovoltaicPanel.MountType.MountMode, PhotovoltaicPanel.MaterialType.Amorphous)]
+    [InlineData(PhotovoltaicPanel.MountType.GroundMount, PhotovoltaicPanel.MaterialType.Amorphous)]
     public void GetPower_AtSTC_CloseToRatedOutput(
         PhotovoltaicPanel.MountType mount, PhotovoltaicPanel.MaterialType material)
     {
@@ -175,7 +175,7 @@ namespace Popolo.Core.Tests.Energy
     {
       double peakPower = 5000;
       var panelMount = new PhotovoltaicPanel(
-          peakPower, PhotovoltaicPanel.MountType.MountMode,
+          peakPower, PhotovoltaicPanel.MountType.GroundMount,
           PhotovoltaicPanel.MaterialType.Crystal, Incline.Orientation.S, 30);
       var panelInteg = new PhotovoltaicPanel(
           peakPower, PhotovoltaicPanel.MountType.RoofIntegrated,

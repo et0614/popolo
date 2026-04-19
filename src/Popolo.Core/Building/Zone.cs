@@ -54,7 +54,7 @@ namespace Popolo.Core.Building
     public int Index { get; internal set; }
 
     /// <summary>Gets the multi-room system to which this zone belongs.</summary>
-    public IReadOnlyMultiRooms MultiRoom { get; internal set; } = null!;
+    public IReadOnlyMultiRoom MultiRoom { get; internal set; } = null!;
 
     /// <summary>Gets or sets the sensible heat capacity of objects other than air [J/K].</summary>
     /// <remarks>
