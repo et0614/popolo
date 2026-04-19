@@ -1,10 +1,56 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- アセンブリ情報 -->
+    <AssemblyName>Popolo.IO</AssemblyName>
+    <RootNamespace>Popolo.IO</RootNamespace>
+
+    <!-- NuGetパッケージ情報 -->
+    <PackageId>Popolo.IO</PackageId>
+    <PackageIcon>icon.png</PackageIcon>
+    <Version>3.0.1</Version>
+    <Authors>E.Togashi</Authors>
+    <Description>File I/O for Popolo.Core: weather data readers and writers (EPW, HASP, TMY1, WEA2, EXA, CSV) and JSON serialization for BuildingThermalModel, MultiRoom, Zone, Wall, Window, Sun, and Incline.</Description>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/et0614/popolo</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/et0614/popolo</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>building;thermal;HVAC;simulation;weather;EPW;HASP;TMY1;JSON</PackageTags>
+
+    <!-- README を nuget.org の詳細ページに表示する -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- ドキュメントXMLを生成する -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- シンボル（デバッグ情報）をパッケージに含める -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- SourceLink: 利用者が F12 でソースに飛べるようにする -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- CI ビルドでは deterministic build を有効化 -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- README / icon をパッケージルートに同梱（nuget.org 詳細ページ用） -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SourceLink の GitHub プロバイダ（ビルドのみで利用、依存には出さない） -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Popolo.Core\Popolo.Core.csproj" />
