@@ -23,13 +23,38 @@ using Popolo.Core.Physics;
 namespace Popolo.Core.Climate
 {
   /// <summary>
-  /// Provides static methods for sky radiation and atmospheric calculations.
+  /// Provides static methods for long-wave sky radiation exchange and related
+  /// atmospheric estimates used by the building thermal model.
   /// </summary>
   /// <remarks>
+  /// <para>
+  /// In an outdoor heat balance, every surface facing the sky loses heat to
+  /// the cold upper atmosphere (nocturnal radiation) and gains heat from its
+  /// own downwelling infrared emission (atmospheric radiation). This class
+  /// computes both sides of that exchange from three common weather inputs:
+  /// the outdoor dry-bulb temperature, the cloud cover on a 0–10 scale, and
+  /// the water-vapor partial pressure of the ambient air.
+  /// </para>
+  /// <para>
+  /// The sky emissivity under clear-sky conditions is approximated by
+  /// <see cref="GetSkyEmissivity"/> as an increasing function of water-vapor
+  /// partial pressure; cloud cover then shifts the sky toward a near-black-body
+  /// emitter. Results feed
+  /// <see cref="Building.IReadOnlyBuildingThermalModel.NocturnalRadiation"/>
+  /// and, ultimately, the sol-air temperature on each exterior surface.
+  /// </para>
+  /// <para>
+  /// <see cref="GetPrecipitableWater"/> provides a separate utility used
+  /// primarily for atmospheric transmissivity calculations (see
+  /// <see cref="Sun"/>).
+  /// </para>
+  /// <para>
   /// References:
-  /// - Shukuya, M., "Light and Heat in the Architectural Environment — Numerical Approaches,"
-  ///   Maruzen, 1993, pp.20.
-  /// - Udagawa, M., "Air Conditioning Calculations with Personal Computers," 1986.
+  /// <list type="bullet">
+  ///   <item><description>Shukuya, M., "Light and Heat in the Architectural Environment — Numerical Approaches," Maruzen, 1993, p. 20.</description></item>
+  ///   <item><description>Udagawa, M., "Air Conditioning Calculations with Personal Computers," 1986.</description></item>
+  /// </list>
+  /// </para>
   /// </remarks>
   public static class Sky
   {
