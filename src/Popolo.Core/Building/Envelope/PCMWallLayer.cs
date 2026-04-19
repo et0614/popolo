@@ -22,7 +22,31 @@ using System.Collections.Generic;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a wall layer containing phase change material (PCM) with latent heat storage.</summary>
+  /// <summary>
+  /// Represents a wall layer containing phase-change material (PCM) that
+  /// stores and releases latent heat across a solid-liquid transition.
+  /// </summary>
+  /// <remarks>
+  /// <para>
+  /// PCM layers exhibit three phases — <see cref="State.Solid"/>,
+  /// <see cref="State.Equilibrium"/> (mushy zone), and <see cref="State.Liquid"/> —
+  /// with distinct thermal conductivity and volumetric specific heat in each.
+  /// The effective volumetric specific heat in the equilibrium zone is inflated
+  /// to account for the latent heat absorbed or released during phase change.
+  /// </para>
+  /// <para>
+  /// The F side and B side can be in different phase states simultaneously.
+  /// When either side changes phase, the overall thermal conductance and the
+  /// per-side heat capacities (<see cref="IReadOnlyWallLayer.HeatCapacity_F"/> /
+  /// <see cref="IReadOnlyWallLayer.HeatCapacity_B"/>) are recomputed from the
+  /// current phase assignments. Because properties vary with state,
+  /// <see cref="IReadOnlyWallLayer.IsVariableProperties"/> is always true.
+  /// </para>
+  /// <para>
+  /// Typical use cases include passive indoor temperature regulation in walls
+  /// or floors charged during peak solar hours and discharged overnight.
+  /// </para>
+  /// </remarks>
   public class PCMWallLayer : WallLayer
   {
 

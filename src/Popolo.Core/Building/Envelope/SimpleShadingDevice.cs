@@ -22,10 +22,29 @@ using System;
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
-  /// A simple solar shading device whose optical properties are defined
-  /// only at normal incidence.
+  /// A solar shading device modeled with constant, angle-independent optical
+  /// properties specified at normal incidence.
   /// </summary>
-  /// <remarks>ASHRAE Handbook of Fundamentals, 1985, Chapter 27.</remarks>
+  /// <remarks>
+  /// <para>
+  /// Use this implementation when only the typical performance (as
+  /// reported in handbooks) is known and the angular response does not need
+  /// to be resolved. The transmittance and reflectance are returned unchanged
+  /// for any profile angle, direct/diffuse distinction, or side of incidence.
+  /// </para>
+  /// <para>
+  /// A constructor overload accepts a <see cref="PredefinedDevice"/> enum value
+  /// and assigns representative transmittance/reflectance pairs drawn from the
+  /// ASHRAE Handbook of Fundamentals (1985), Chapter 27. For more detailed
+  /// modeling — especially slat-angle-dependent response — use
+  /// <see cref="VenetianBlind"/>.
+  /// </para>
+  /// <para>
+  /// When <see cref="IShadingDevice.Pulldowned"/> is false, the device is
+  /// retracted and <see cref="ComputeOpticalProperties"/> returns the
+  /// pass-through values (transmittance = 1, reflectance = 0).
+  /// </para>
+  /// </remarks>
   public class SimpleShadingDevice : IShadingDevice
   {
 

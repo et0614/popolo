@@ -5,11 +5,34 @@ namespace Popolo.Core.Building.Envelope
 {
 
   /// <summary>
-  /// Represents a horizontal air chamber (attic or crawl space) with detailed convective
-  /// heat transfer calculation. F side is upper; B side is lower.
+  /// Represents a horizontal air chamber (attic, ceiling plenum, or crawl space)
+  /// with a temperature-dependent convective heat transfer model.
   /// </summary>
   /// <remarks>
-  /// Uses the convective heat transfer correlation for an infinite horizontal fluid layer.
+  /// <para>
+  /// Unlike <see cref="AirGapLayer"/>, which uses a fixed thermal resistance,
+  /// <see cref="HorizontalAirChamber"/> solves convection explicitly at each
+  /// update. The convective heat transfer coefficient is derived from the
+  /// Nusselt-Rayleigh correlation for an infinite horizontal fluid layer
+  /// (Grashof and Prandtl numbers computed from the mean air temperature).
+  /// Below the critical Rayleigh number (1708), heat transfer reverts to pure
+  /// conduction.
+  /// </para>
+  /// <para>
+  /// Convention: the <b>F side is the upper surface</b> and the <b>B side is the
+  /// lower surface</b>. When the lower surface is cooler than the upper surface,
+  /// the fluid is stable and convection does not develop; the model returns a
+  /// conductive coefficient in that case. Radiative heat transfer between the
+  /// two surfaces is treated separately through a linearized coefficient that
+  /// uses per-surface emissivities.
+  /// </para>
+  /// <para>
+  /// Because the heat transfer coefficients depend on surface temperatures,
+  /// <see cref="IReadOnlyWallLayer.IsVariableProperties"/> is always true and
+  /// <c>UpdateState</c> is called during the solution loop. A small temperature
+  /// hysteresis (0.1 K) suppresses unnecessary recomputation on negligible
+  /// temperature changes.
+  /// </para>
   /// </remarks>
   public class HorizontalAirChamber : WallLayer
   {
