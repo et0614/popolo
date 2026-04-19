@@ -215,7 +215,7 @@ namespace Popolo.Core.Tests.ThermalComfort
         [Fact]
         public void GetMet_SeatedQuiet_IsAroundOneMet()
         {
-            double met = FangerModel.GetMet(FangerModel.Tasks.Resting_Seated_Quiet);
+            double met = FangerModel.GetMet(FangerModel.MetabolicActivity.RestingSeatedQuiet);
             // 1.0 met = 58.15 W/m2
             Assert.InRange(met, 0.9, 1.1);
         }
@@ -224,8 +224,8 @@ namespace Popolo.Core.Tests.ThermalComfort
         [Fact]
         public void GetMet_FastWalking_GreaterThanSeatedQuiet()
         {
-            double metSit  = FangerModel.GetMet(FangerModel.Tasks.Resting_Seated_Quiet);
-            double metWalk = FangerModel.GetMet(FangerModel.Tasks.Walking_Fast_18ms);
+            double metSit  = FangerModel.GetMet(FangerModel.MetabolicActivity.RestingSeatedQuiet);
+            double metWalk = FangerModel.GetMet(FangerModel.MetabolicActivity.WalkingFast18ms);
             Assert.True(metWalk > metSit,
                 $"Walking({metWalk:F1}) > Sitting({metSit:F1})");
         }

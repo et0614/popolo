@@ -385,13 +385,13 @@ namespace Popolo.Core.Validation.BESTEST
             double rad1 =
               windows[0].OutsideIncline.GetDirectSolarIrradiance(sun)
                 * windows[0].DirectSolarIncidentTransmittance
-                * (1 - windows[0].SunShade.GetShadowRate(sun))
+                * (1 - windows[0].SunShade.GetShadowRatio(sun))
               + windows[0].OutsideIncline.GetDiffuseSolarIrradiance(sun, mRoom.Albedo)
                 * windows[0].DiffuseSolarIncidentTransmittance;
             double rad2 =
               windows[1].OutsideIncline.GetDirectSolarIrradiance(sun)
                 * windows[1].DirectSolarIncidentTransmittance
-                * (1 - windows[1].SunShade.GetShadowRate(sun))
+                * (1 - windows[1].SunShade.GetShadowRatio(sun))
               + windows[1].OutsideIncline.GetDiffuseSolarIrradiance(sun, mRoom.Albedo)
                 * windows[1].DiffuseSolarIncidentTransmittance;
             sWriter.Write("," + rad1 + "," + rad2);

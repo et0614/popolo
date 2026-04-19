@@ -20,6 +20,7 @@
 using System;
 using System.Linq;
 
+using Popolo.Samples.Demos.Core;
 using Popolo.Samples.Demos.IO;
 using Popolo.Samples.Demos.Webpro;
 
@@ -51,6 +52,7 @@ namespace Popolo.Samples
     /// <summary>Registry of all available demos. Add new demos here.</summary>
     private static readonly IDemo[] Demos =
     {
+      new VRFNEDOTestDemo(),
       new AnnualSimulationDemo(),
       new WeatherToCsvDemo(),
     };

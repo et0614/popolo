@@ -32,19 +32,18 @@ namespace Popolo.Core.HVAC.VRF
 
     #region 定数宣言
 
+    /// <summary>Overall heat transfer coefficient for the dry coil section [kW/(m²·K)].</summary>
+    /// <remarks>
+    /// Derived from: air-to-refrigerant surface area ratio = 15,
+    /// refrigerant-side HTC = 6 kW/(m²·K), air-side HTC = 0.1 kW/(m²·K), fin efficiency = 0.9.
+    /// </remarks>
+    public const double HeatTransferCoefficient = 0.074;
 
     /// <summary>Sublimation latent heat of ice [kJ/kg].</summary>
     private const double SUBLIMINATION_LATENT_HEAT = 2837;
 
     /// <summary>Isobaric specific heat of ice [kJ/(kg·K)].</summary>
     private const double ICE_ISOBARIC_SPECIFIC_HEAT = 2.090;
-
-    /// <summary>Overall heat transfer coefficient for the dry coil section [kW/(m²·K)].</summary>
-    /// <remarks>
-    /// Derived from: air-to-refrigerant surface area ratio = 15,
-    /// refrigerant-side HTC = 6 kW/(m²·K), air-side HTC = 0.1 kW/(m²·K), fin efficiency = 0.9.
-    /// </remarks>
-    public const double HEAT_TRANSFER_COEF = 0.074;
 
     /// <summary>Overall heat transfer coefficient degradation factor due to frosting.</summary>
     /// <remarks>A value of 0.1 gives good agreement with NEDO field measurement tests.</remarks>
@@ -88,10 +87,10 @@ namespace Popolo.Core.HVAC.VRF
     public double NominalHeatingCapacity { get; private set; }
 
     /// <summary>Gets the evaporator heat transfer surface area [m²].</summary>
-    public double SurfaceArea_Evaporator { get; private set; }
+    public double EvaporatorSurfaceArea { get; private set; }
 
     /// <summary>Gets the condenser heat transfer surface area [m²].</summary>
-    public double SurfaceArea_Condenser { get; private set; }
+    public double CondenserSurfaceArea { get; private set; }
 
     /// <summary>Gets the dry heat transfer surface area [m²].</summary>
     public double DrySurfaceArea { get; private set; }
@@ -104,7 +103,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <remarks>Always 0 m² for a condenser unit.</remarks>
     public double FrostSurfaceArea
     {
-      get { return SurfaceArea_Evaporator - (DrySurfaceArea + WetSurfaceArea); }
+      get { return EvaporatorSurfaceArea - (DrySurfaceArea + WetSurfaceArea); }
     }
 
     /// <summary>Gets the nominal air mass flow rate [kg/s].</summary>
@@ -181,10 +180,10 @@ namespace Popolo.Core.HVAC.VRF
     }
 
     /// <summary>Gets the nominal fan electric power in cooling mode [kW].</summary>
-    public double NominalFanElectricity_C { get; private set; }
+    public double NominalCoolingFanElectricity { get; private set; }
 
     /// <summary>Gets the nominal fan electric power in heating mode [kW].</summary>
-    public double NominalFanElectricity_H { get; private set; }
+    public double NominalHeatingFanElectricity { get; private set; }
 
     /// <summary>Gets or sets the fan operating rate [-].</summary>
     public double FanOperatingRatio { get; set; }
@@ -205,9 +204,9 @@ namespace Popolo.Core.HVAC.VRF
       get
       {
         double eRate = IsInverterControlledFan ? AirFlowRate / NominalAirFlowRate : 1.0;
-        if (CurrentMode == Mode.Cooling) return NominalFanElectricity_C * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
-        else if (CurrentMode == Mode.Heating) return NominalFanElectricity_H * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
-        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalFanElectricity_C, NominalFanElectricity_H) * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate); //この処理は良くない
+        if (CurrentMode == Mode.Cooling) return NominalCoolingFanElectricity * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
+        else if (CurrentMode == Mode.Heating) return NominalHeatingFanElectricity * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
+        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalCoolingFanElectricity, NominalHeatingFanElectricity) * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate); //この処理は良くない
         else return 0;
       }
     }
@@ -255,10 +254,10 @@ namespace Popolo.Core.HVAC.VRF
       InletAirTemperature = OutletAirSetpointTemperature = OutletAirTemperature = evpInletAirTemperature;
       InletAirHumidityRatio = OutletAirHumidityRatio = evpInletAirHumidityRatio;
       NominalCoolingCapacity = evpHeatTransfer;
-      NominalFanElectricity_C = fanElectricity;
+      NominalCoolingFanElectricity = fanElectricity;
 
       //伝熱面積を初期化する
-      SurfaceArea_Evaporator = GetSurfaceArea_Evaporator(
+      EvaporatorSurfaceArea = GetEvaporatorSurfaceArea(
         airFlowRate, evpTemperature, evpHeatTransfer,
         evpInletAirTemperature, evpInletAirHumidityRatio, borderRelativeHumidity);
 
@@ -291,10 +290,10 @@ namespace Popolo.Core.HVAC.VRF
       InletAirTemperature = OutletAirSetpointTemperature = OutletAirTemperature = cndInletAirTemperature;
       InletAirHumidityRatio = OutletAirHumidityRatio = cndInletAirHumidityRatio;
       NominalHeatingCapacity = cndHeatTransfer;
-      NominalFanElectricity_H = fanElectricity;
+      NominalHeatingFanElectricity = fanElectricity;
 
       //伝熱面積を初期化する
-      SurfaceArea_Condenser = GetSurfaceArea_Condenser(
+      CondenserSurfaceArea = GetCondenserSurfaceArea(
         airFlowRate, cndTemperature, cndHeatTransfer,
         cndInletAirTemperature, cndInletAirHumidityRatio);
 
@@ -312,20 +311,20 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="evpInletAirTemperature">Inlet air dry-bulb temperature in cooling mode [°C].</param>
     /// <param name="evpInletAirHumidityRatio">Inlet air humidity ratio in cooling mode [kg/kg].</param>
     /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%].</param>
-    /// <param name="fanElectricity_C">Fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingFanElectricity">Fan electric power in cooling mode [kW].</param>
     /// <param name="cndTemperature">Condensing temperature [°C].</param>
     /// <param name="cndHeatTransfer">Condenser heat transfer [kW] (positive = heating).</param>
     /// <param name="cndInletAirTemperature">Inlet air dry-bulb temperature in heating mode [°C].</param>
     /// <param name="cndInletAirHumidityRatio">Inlet air humidity ratio in heating mode [kg/kg].</param>
-    /// <param name="fanElectricity_H">Fan electric power in heating mode [kW].</param>
+    /// <param name="heatingFanElectricity">Fan electric power in heating mode [kW].</param>
     public VRFUnit(
       double airFlowRate,
       double evpTemperature, double evpHeatTransfer,
       double evpInletAirTemperature, double evpInletAirHumidityRatio, double borderRelativeHumidity,
-      double fanElectricity_C,
+      double coolingFanElectricity,
       double cndTemperature, double cndHeatTransfer,
       double cndInletAirTemperature, double cndInletAirHumidityRatio,
-      double fanElectricity_H)
+      double heatingFanElectricity)
     {
       if (0 <= evpHeatTransfer) throw new PopoloArgumentException(
         "Evaporator heat transfer must be negative (cooling removes heat from air). "
@@ -341,14 +340,14 @@ namespace Popolo.Core.HVAC.VRF
       InletAirHumidityRatio = OutletAirHumidityRatio = evpInletAirHumidityRatio;
       NominalCoolingCapacity = evpHeatTransfer;
       NominalHeatingCapacity = cndHeatTransfer;
-      NominalFanElectricity_C = fanElectricity_C;
-      NominalFanElectricity_H = fanElectricity_H;
+      NominalCoolingFanElectricity = coolingFanElectricity;
+      NominalHeatingFanElectricity = heatingFanElectricity;
 
       //伝熱面積を初期化する
-      SurfaceArea_Evaporator = GetSurfaceArea_Evaporator(
+      EvaporatorSurfaceArea = GetEvaporatorSurfaceArea(
         airFlowRate, evpTemperature, evpHeatTransfer,
         evpInletAirTemperature, evpInletAirHumidityRatio, borderRelativeHumidity);
-      SurfaceArea_Condenser = GetSurfaceArea_Condenser(
+      CondenserSurfaceArea = GetCondenserSurfaceArea(
         airFlowRate, cndTemperature, cndHeatTransfer,
         cndInletAirTemperature, cndInletAirHumidityRatio);
 
@@ -371,7 +370,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
     /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%].</param>
     /// <returns>Evaporator heat transfer surface area [m²].</returns>
-    public static double GetSurfaceArea_Evaporator(
+    public static double GetEvaporatorSurfaceArea(
       double airFlowRate,
       double evpTemperature, double heatTransfer,
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
@@ -398,20 +397,20 @@ namespace Popolo.Core.HVAC.VRF
       {
         epsilon = heatTransfer / (mca * (inletAirTemperature - evpTemperature));
         if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Evaporator",
+          "GetEvaporatorSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
-        return -Math.Log(1 - epsilon) * mca / HEAT_TRANSFER_COEF;
+        return -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
       }
       //湿りコイルまで到達する場合
       epsilon = qD / (mca * (inletAirTemperature - evpTemperature));
       if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Evaporator",
+          "GetEvaporatorSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
-      double sD = -Math.Log(1 - epsilon) * mca / HEAT_TRANSFER_COEF;
+      double sD = -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
 
       double qW, sW, xFB, tFB, cpmaFB;
       //湿りコイルがある場合
@@ -429,14 +428,14 @@ namespace Popolo.Core.HVAC.VRF
         double hFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         qW = (hWB - hFB) * airFlowRate;
-        double kW = HEAT_TRANSFER_COEF / (0.5 * (cpmaWB + cpmaFB));
+        double kW = HeatTransferCoefficient / (0.5 * (cpmaWB + cpmaFB));
 
         //湿りコイルで伝熱が終了する場合
         if (heatTransfer - qD < qW)
         {
           epsilon = (heatTransfer - qD) / (airFlowRate * (hWB - hEvp));
           if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Evaporator",
+          "GetEvaporatorSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
@@ -445,7 +444,7 @@ namespace Popolo.Core.HVAC.VRF
         //着霜コイルまで到達する場合
         epsilon = qW / (airFlowRate * (hWB - hEvp));
         if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Evaporator",
+          "GetEvaporatorSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
@@ -462,14 +461,14 @@ namespace Popolo.Core.HVAC.VRF
       }
 
       //着霜コイル面積の計算
-      double kF = HEAT_TRANSFER_COEF / cpmaFB * F_PENALTY;
+      double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
       double hdF = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       epsilon = (heatTransfer - qD - qW) / (airFlowRate * (hdF - hdEvp));
       if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Evaporator",
+          "GetEvaporatorSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
@@ -485,7 +484,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
     /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
     /// <returns>Condenser heat transfer surface area [m²].</returns>
-    public static double GetSurfaceArea_Condenser(
+    public static double GetCondenserSurfaceArea(
       double airFlowRate,
       double condensingTempearture, double heatTransfer,
       double inletAirTemperature, double inletAirHumidityRatio)
@@ -494,11 +493,11 @@ namespace Popolo.Core.HVAC.VRF
       double mca = cpma * airFlowRate;
       double epsilon = heatTransfer / (mca * (condensingTempearture - inletAirTemperature));
       if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetSurfaceArea_Condenser",
+          "GetCondenserSurfaceArea",
           $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
           + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, cndTemp={condensingTempearture:F2}°C, "
           + $"heatTransfer={heatTransfer:F3} kW.");
-      return -Math.Log(1 - epsilon) * mca / HEAT_TRANSFER_COEF;
+      return -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
     }
 
     #endregion
@@ -523,7 +522,7 @@ namespace Popolo.Core.HVAC.VRF
       ThermoOffTimeRatio = 1.0;
       OutletAirTemperature = InletAirTemperature;
       OutletAirHumidityRatio = InletAirHumidityRatio;
-      DrySurfaceArea = SurfaceArea_Evaporator;
+      DrySurfaceArea = EvaporatorSurfaceArea;
       WetSurfaceArea = 0;
       HeatTransfer = 0;
       RefrigerantTemperature = InletAirTemperature; //前回の計算に応じて冷媒温度が不確定になってしまうのでしっかりと更新すべき。2024.10.16
@@ -634,7 +633,7 @@ namespace Popolo.Core.HVAC.VRF
             return;
           }
           GetEvaporatorHeatTransfer(
-            refrigerantTemperature, airFlowRate, SurfaceArea_Evaporator, inletAirTemperature,
+            refrigerantTemperature, airFlowRate, EvaporatorSurfaceArea, inletAirTemperature,
             inletAirHumidityRatio, borderRelativeHumidity,
             out double ht, out double to, out double wo, out double sd, out double sw, out double dfl);
           OutletAirTemperature = to;
@@ -687,14 +686,14 @@ namespace Popolo.Core.HVAC.VRF
 
           double sp = UseWaterSpray ? sprayEffectiveness : 0;
           GetCondenserHeatTransfer(
-            refrigerantTemperature, airFlowRate, NominalAirFlowRate, SurfaceArea_Condenser,
+            refrigerantTemperature, airFlowRate, NominalAirFlowRate, CondenserSurfaceArea,
             inletAirTemperature, inletAirHumidityRatio, sp,
             out double ht2, out double to2, out double wo2, out double ws);
           OutletAirTemperature = to2;
           OutletAirHumidityRatio = wo2;
           HeatTransfer = ht2;
           WaterSupply = ws;
-          DrySurfaceArea = SurfaceArea_Evaporator; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
           WetSurfaceArea = 0;
           DefrostLoad = 0;
 
@@ -784,7 +783,7 @@ namespace Popolo.Core.HVAC.VRF
       //露点まで冷却するために必要な面積を計算
       double qD = mca * (inletAirTemperature - tWB);
       double epsilonD = qD / (mca * (inletAirTemperature - evpTemperature));
-      if (epsilonD <= 1) sD = -Math.Log(1 - epsilonD) * mca / HEAT_TRANSFER_COEF;
+      if (epsilonD <= 1) sD = -Math.Log(1 - epsilonD) * mca / HeatTransferCoefficient;
       else sD = surfaceArea;
 
       double hWB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(tWB, inletAirHumidityRatio);
@@ -799,7 +798,7 @@ namespace Popolo.Core.HVAC.VRF
         defrostLoad = 0;
         outletAirHumidityRatio = inletAirHumidityRatio;
 
-        epsilonD = 1 - Math.Exp(-HEAT_TRANSFER_COEF * sD / mca);
+        epsilonD = 1 - Math.Exp(-HeatTransferCoefficient * sD / mca);
         qD = epsilonD * mca * (inletAirTemperature - evpTemperature);
         outletAirTemperature = inletAirTemperature - qD / mca;
         heatTransfer = -qD;
@@ -820,7 +819,7 @@ namespace Popolo.Core.HVAC.VRF
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
         qW = (hWB - hFB) * airFlowRate;
-        double kW = HEAT_TRANSFER_COEF / (0.5 * (cpmaWB + cpmaFB));
+        double kW = HeatTransferCoefficient / (0.5 * (cpmaWB + cpmaFB));
         double epsilonW = qW / (airFlowRate * (hWB - hEvp));
         if (epsilonW <= 1) sW = -Math.Log(1 - epsilonW) * airFlowRate / kW;
         else sW = surfaceArea - sD;
@@ -853,7 +852,7 @@ namespace Popolo.Core.HVAC.VRF
       }
 
       //着霜コイルの計算
-      double kF = HEAT_TRANSFER_COEF / cpmaFB * F_PENALTY;
+      double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
       double hdFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
@@ -920,7 +919,7 @@ namespace Popolo.Core.HVAC.VRF
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 
-      double epsilon = 1 - Math.Exp(-HEAT_TRANSFER_COEF * surfaceArea / mca);
+      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
       double q = epsilon * mca * (cndTemperature - inletAirTemperature);
       outletAirTemperature = inletAirTemperature + q / mca;
       outletAirHumidityRatio = inletAirHumidityRatio;
@@ -972,7 +971,7 @@ namespace Popolo.Core.HVAC.VRF
             return;
           }
 
-          GetEvaporatingTemperature(heatLoad, airFlowRate, SurfaceArea_Evaporator,
+          GetEvaporatingTemperature(heatLoad, airFlowRate, EvaporatorSurfaceArea,
             inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, deductDefrostLoad,
             out double te, out double to, out double wo, out double sd, out double sw, out double dfl);
           OutletAirTemperature = to;
@@ -993,14 +992,14 @@ namespace Popolo.Core.HVAC.VRF
             return;
           }
 
-          GetCondensingTemperature(heatLoad, airFlowRate, SurfaceArea_Condenser,
+          GetCondensingTemperature(heatLoad, airFlowRate, CondenserSurfaceArea,
             inletAirTemperature, inletAirHumidityRatio, (UseWaterSpray ? sprayEffectiveness : 0),
             out double tc, out double to2, out double wo2, out double ws);
           OutletAirTemperature = to2;
           OutletAirHumidityRatio = wo2;
           RefrigerantTemperature = tc;
           WaterSupply = ws;
-          DrySurfaceArea = SurfaceArea_Evaporator; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
           WetSurfaceArea = 0;
           DefrostLoad = 0;
           break;
@@ -1087,7 +1086,7 @@ namespace Popolo.Core.HVAC.VRF
 
       outletAirTemperature = inletAirTemperature + heatTransfer / mca;
       outletAirHumidityRatio = inletAirHumidityRatio;
-      double epsilon = 1 - Math.Exp(-HEAT_TRANSFER_COEF * surfaceArea / mca);
+      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
       condensingTemperature = inletAirTemperature + heatTransfer / (epsilon * mca);
     }
 
@@ -1136,7 +1135,7 @@ namespace Popolo.Core.HVAC.VRF
           }
 
           ControlOutletAirTemperature(
-            OutletAirTemperature, airFlowRate, SurfaceArea_Evaporator,
+            OutletAirTemperature, airFlowRate, EvaporatorSurfaceArea,
             inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
             out double te, out double ht, out double wo, out double sd, out double sw, out double dfl);
           HeatTransfer = ht;
@@ -1170,7 +1169,7 @@ namespace Popolo.Core.HVAC.VRF
           }
 
           ControlOutletAirTemperature(
-            newTO, airFlowRate, SurfaceArea_Condenser,
+            newTO, airFlowRate, CondenserSurfaceArea,
             inletAirTemperature, inletAirHumidityRatio, (UseWaterSpray ? sprayEffectiveness : 0),
             out double tc, out double ht2, out double wo2, out double ws);
           HeatTransfer = ht2;
@@ -1179,7 +1178,7 @@ namespace Popolo.Core.HVAC.VRF
           else OutletAirHumidityRatio = wo2;
           RefrigerantTemperature = tc;
           WaterSupply = ws;
-          DrySurfaceArea = SurfaceArea_Evaporator; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
           WetSurfaceArea = 0;
           DefrostLoad = 0;
           break;
@@ -1263,7 +1262,7 @@ namespace Popolo.Core.HVAC.VRF
 
       heatTransfer = (outletAirSetpointTemperature - inletAirTemperature) * mca;
       outletAirHumidityRatio = inletAirHumidityRatio;
-      double epsilon = 1 - Math.Exp(-HEAT_TRANSFER_COEF * surfaceArea / mca);
+      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
       condensingTemperature = inletAirTemperature + heatTransfer / (epsilon * mca);
     }
 

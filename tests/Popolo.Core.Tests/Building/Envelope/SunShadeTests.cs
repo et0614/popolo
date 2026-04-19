@@ -63,7 +63,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeEmptySunShade();
       var sun = MakeSun(45);
 
-      Assert.Equal(0.0, shade.GetShadowRate(sun), precision: 6);
+      Assert.Equal(0.0, shade.GetShadowRatio(sun), precision: 6);
     }
 
     /// <summary>Shape=NoneはShapeプロパティがNone</summary>
@@ -89,7 +89,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, incline);
       var sun = MakeSun(altitudeDeg);
 
-      Assert.Equal(1.0, shade.GetShadowRate(sun), precision: 6);
+      Assert.Equal(1.0, shade.GetShadowRatio(sun), precision: 6);
     }
 
     #endregion
@@ -117,9 +117,9 @@ namespace Popolo.Core.Tests.Building.Envelope
       var medium = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.6, 0.0, incline);
       var large = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 1.2, 0.0, incline);
 
-      double sr1 = small.GetShadowRate(sun);
-      double sr2 = medium.GetShadowRate(sun);
-      double sr3 = large.GetShadowRate(sun);
+      double sr1 = small.GetShadowRatio(sun);
+      double sr2 = medium.GetShadowRatio(sun);
+      double sr3 = large.GetShadowRatio(sun);
 
       Assert.True(sr1 < sr2, $"small({sr1:F4}) should be < medium({sr2:F4})");
       Assert.True(sr2 < sr3, $"medium({sr2:F4}) should be < large({sr3:F4})");
@@ -136,8 +136,8 @@ namespace Popolo.Core.Tests.Building.Envelope
       var incline = MakeSouthVerticalIncline();
       var shade = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, incline);
 
-      double sr30 = shade.GetShadowRate(MakeSun(30)); // 高度低い→プロファイル角小→影短い
-      double sr60 = shade.GetShadowRate(MakeSun(60)); // 高度高い→プロファイル角大→影長い
+      double sr30 = shade.GetShadowRatio(MakeSun(30)); // 高度低い→プロファイル角小→影短い
+      double sr60 = shade.GetShadowRatio(MakeSun(60)); // 高度高い→プロファイル角大→影長い
 
       Assert.True(sr60 > sr30,
           $"60° ({sr60:F4}) should be > 30° ({sr30:F4})");
@@ -154,7 +154,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, incline);
       var sun = MakeSun(altitudeDeg);
 
-      double sr = shade.GetShadowRate(sun);
+      double sr = shade.GetShadowRatio(sun);
       Assert.InRange(sr, 0.0, 1.0);
     }
 
@@ -166,7 +166,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.0, 0.0, incline);
       var sun = MakeSun(45);
 
-      Assert.Equal(0.0, shade.GetShadowRate(sun), precision: 6);
+      Assert.Equal(0.0, shade.GetShadowRatio(sun), precision: 6);
     }
 
     #endregion
@@ -193,7 +193,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var finite = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, 0.0, 0.0, incline);
       var infinite = SunShade.MakeHorizontalSunShade(WinWidth, WinHeight, 0.5, 0.0, incline);
 
-      Assert.True(finite.GetShadowRate(sun) <= infinite.GetShadowRate(sun));
+      Assert.True(finite.GetShadowRatio(sun) <= infinite.GetShadowRatio(sun));
     }
 
     #endregion
@@ -232,7 +232,7 @@ namespace Popolo.Core.Tests.Building.Envelope
       var shade = SunShade.MakeVerticalSunShade(WinWidth, WinHeight, 0.5, 0.0, isLeft, incline);
       var sun = MakeSun(45, orientationDeg);
 
-      Assert.InRange(shade.GetShadowRate(sun), 0.0, 1.0);
+      Assert.InRange(shade.GetShadowRatio(sun), 0.0, 1.0);
     }
 
     #endregion

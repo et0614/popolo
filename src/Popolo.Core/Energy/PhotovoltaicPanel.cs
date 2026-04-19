@@ -155,7 +155,7 @@ namespace Popolo.Core.Energy
         double dryBulbTemperature, double velocity, IReadOnlySun sun)
     {
       double totalIrradiance =
-          Incline.GetDirectSolarRadiationRate(sun) * sun.DirectNormalRadiation
+          Incline.GetDirectSolarRadiationRatio(sun) * sun.DirectNormalRadiation
           + Incline.ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation;
       return GetPower(dryBulbTemperature, velocity, totalIrradiance);
     }

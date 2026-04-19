@@ -28,7 +28,7 @@ using Popolo.Webpro.Json.EnumConverters;
 
 namespace Popolo.Webpro.Tests.Json
 {
-    /// <summary>Unit tests for <see cref="WebproWallConfigureJsonConverter"/>.</summary>
+    /// <summary>Unit tests for <see cref="WebproWallConfigurationJsonConverter"/>.</summary>
     public class WebproWallConfigureJsonConverterTests
     {
         #region ヘルパー
@@ -36,7 +36,7 @@ namespace Popolo.Webpro.Tests.Json
         private static JsonSerializerOptions CreateOptions()
         {
             var opts = new JsonSerializerOptions();
-            opts.Converters.Add(new WebproWallConfigureJsonConverter());
+            opts.Converters.Add(new WebproWallConfigurationJsonConverter());
             opts.Converters.Add(new WebproWallLayerJsonConverter());
             opts.Converters.Add(new StructureTypeJsonConverter());
             opts.Converters.Add(new WallInputMethodJsonConverter());
@@ -66,7 +66,7 @@ namespace Popolo.Webpro.Tests.Json
                   ]
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
 
             Assert.Equal(StructureType.Others, wc.Structure);
             Assert.Null(wc.SolarAbsorptionRatio);
@@ -89,7 +89,7 @@ namespace Popolo.Webpro.Tests.Json
                   "layers": []
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
 
             // 読み込めることのみ検証(wall_type_webpro は DTO にない)
             Assert.Equal(WallInputMethod.MaterialNumberAndThickness, wc.Method);
@@ -105,7 +105,7 @@ namespace Popolo.Webpro.Tests.Json
                   "layers":        []
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Equal(StructureType.None, wc.Structure);
         }
 
@@ -119,7 +119,7 @@ namespace Popolo.Webpro.Tests.Json
                   "layers":        []
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Equal(WallInputMethod.None, wc.Method);
         }
 
@@ -134,7 +134,7 @@ namespace Popolo.Webpro.Tests.Json
                   "layers":               []
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Equal(0.7, wc.SolarAbsorptionRatio);
         }
 
@@ -148,7 +148,7 @@ namespace Popolo.Webpro.Tests.Json
                   "layers":        []
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Empty(wc.Layers);
         }
 
@@ -163,7 +163,7 @@ namespace Popolo.Webpro.Tests.Json
                   "Info":          "note"
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Equal("note", wc.Information);
         }
 
@@ -179,7 +179,7 @@ namespace Popolo.Webpro.Tests.Json
                   "nestedThing":      { "a": 1 }
                 }
                 """;
-            var wc = JsonSerializer.Deserialize<WebproWallConfigure>(json, CreateOptions())!;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
             Assert.Equal(StructureType.Others, wc.Structure);
         }
 
@@ -192,13 +192,13 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_NonObjectRoot_Throws()
         {
             Assert.Throws<JsonException>(() =>
-                JsonSerializer.Deserialize<WebproWallConfigure>("[]", CreateOptions()));
+                JsonSerializer.Deserialize<WebproWallConfiguration>("[]", CreateOptions()));
         }
 
         [Fact]
         public void Write_Throws()
         {
-            var wc = new WebproWallConfigure();
+            var wc = new WebproWallConfiguration();
             Assert.Throws<NotSupportedException>(() =>
                 JsonSerializer.Serialize(wc, CreateOptions()));
         }

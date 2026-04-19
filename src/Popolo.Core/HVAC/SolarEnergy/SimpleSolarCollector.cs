@@ -173,7 +173,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
     public double GetWaterFlowRate
       (IReadOnlySun sun, double waterTemperature, double temperatureDifferrence, double ambientTemperature)
     {
-      double totalIrradiance = Incline.GetDirectSolarRadiationRate(sun) * sun.DirectNormalRadiation 
+      double totalIrradiance = Incline.GetDirectSolarRadiationRatio(sun) * sun.DirectNormalRadiation 
         + Incline.ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation;
       return GetWaterFlowRate(totalIrradiance, waterTemperature, temperatureDifferrence, ambientTemperature);
     }
@@ -214,7 +214,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
     public double GetOutletTemperature
       (IReadOnlySun sun, double waterTemperature, double waterFlowRate, double ambientTemperature)
     {
-      double totalIrradiance = Incline.GetDirectSolarRadiationRate(sun) * sun.DirectNormalRadiation
+      double totalIrradiance = Incline.GetDirectSolarRadiationRatio(sun) * sun.DirectNormalRadiation
         + Incline.ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation;
       return GetOutletTemperature(totalIrradiance, waterTemperature, waterFlowRate, ambientTemperature);
     }

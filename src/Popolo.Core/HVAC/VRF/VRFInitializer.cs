@@ -541,9 +541,6 @@ namespace Popolo.Core.HVAC.VRF
               $"No catalogue data for cooling capacity: {coolingCapacity}.",
               nameof(coolingCapacity));
       }
-
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 
@@ -801,9 +798,6 @@ namespace Popolo.Core.HVAC.VRF
               $"No catalogue data for cooling capacity: {coolingCapacity}.",
               nameof(coolingCapacity));
       }
-
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 
@@ -1188,9 +1182,6 @@ namespace Popolo.Core.HVAC.VRF
               $"No catalogue data for cooling capacity: {coolingCapacity}.",
               nameof(coolingCapacity));
       }
-
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 

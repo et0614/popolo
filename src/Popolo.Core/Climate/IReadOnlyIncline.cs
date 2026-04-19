@@ -55,7 +55,7 @@ namespace Popolo.Core.Climate
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <param name="orientation">Solar azimuth [radian]</param>
     /// <returns>cosθ [-] (clamped to 0 when the sun is behind the surface)</returns>
-    double GetDirectSolarRadiationRate(double altitude, double orientation);
+    double GetDirectSolarRadiationRatio(double altitude, double orientation);
 
     /// <summary>
     /// Gets the cosine of the angle of incidence of direct solar radiation
@@ -63,7 +63,7 @@ namespace Popolo.Core.Climate
     /// </summary>
     /// <param name="sun">Solar state</param>
     /// <returns>cosθ [-]</returns>
-    double GetDirectSolarRadiationRate(IReadOnlySun sun);
+    double GetDirectSolarRadiationRatio(IReadOnlySun sun);
 
     /// <summary>
     /// Gets the direct solar irradiance on the tilted surface [W/m²].

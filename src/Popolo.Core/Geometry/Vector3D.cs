@@ -29,7 +29,7 @@ namespace Popolo.Core.Geometry
     #region 定数
 
     /// <summary>ゼロとみなす誤差の閾値</summary>
-    public const double EPSILON_TOL = 0.00001d;
+    public const double GeometryTolerance = 0.00001d;
 
     #endregion
 
@@ -96,7 +96,7 @@ namespace Popolo.Core.Geometry
     /// </exception>
     public static Vector3D GetUnitVector(Vector3D vec)
     {
-      if (vec.Length < EPSILON_TOL)
+      if (vec.Length < GeometryTolerance)
         throw new PopoloArgumentException(
             "Cannot normalize a zero-length vector.", nameof(vec));
 
@@ -135,7 +135,7 @@ namespace Popolo.Core.Geometry
     /// </exception>
     public void Normalize()
     {
-      if (Length < EPSILON_TOL)
+      if (Length < GeometryTolerance)
         throw new PopoloArgumentException(
             "Cannot normalize a zero-length vector.", "this");
 
@@ -161,24 +161,24 @@ namespace Popolo.Core.Geometry
       return new Vector3D(vec1.X - vec2.X, vec1.Y - vec2.Y, vec1.Z - vec2.Z);
     }
 
-    /// <summary>等値比較（各成分の誤差が EPSILON_TOL 未満のとき等しいとみなす）</summary>
+    /// <summary>等値比較（各成分の誤差が GeometryTolerance 未満のとき等しいとみなす）</summary>
     public override bool Equals(object? obj)
     {
       if (obj == null || GetType() != obj.GetType()) return false;
       Vector3D tgt = (Vector3D)obj;
       return
-          Math.Abs(tgt.X - X) < EPSILON_TOL &&
-          Math.Abs(tgt.Y - Y) < EPSILON_TOL &&
-          Math.Abs(tgt.Z - Z) < EPSILON_TOL;
+          Math.Abs(tgt.X - X) < GeometryTolerance &&
+          Math.Abs(tgt.Y - Y) < GeometryTolerance &&
+          Math.Abs(tgt.Z - Z) < GeometryTolerance;
     }
 
     /// <summary>ハッシュコードを取得する</summary>
     public override int GetHashCode()
     {
       return HashCode.Combine(
-          Math.Round(X / EPSILON_TOL),
-          Math.Round(Y / EPSILON_TOL),
-          Math.Round(Z / EPSILON_TOL));
+          Math.Round(X / GeometryTolerance),
+          Math.Round(Y / GeometryTolerance),
+          Math.Round(Z / GeometryTolerance));
     }
 
     #endregion

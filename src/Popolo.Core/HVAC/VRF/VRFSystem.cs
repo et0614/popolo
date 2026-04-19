@@ -76,13 +76,24 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    /// <summary>Nominal condensing temperature for indoor units [°C].</summary>
-    /// <remarks>The EnergyPlus model specifies a control range of 42–46.</remarks>
-    public const double NOMINAL_CONDENSING_TEMPERATURE = 46;
+    /// <summary>Nominal condensing temperature [°C] used as both the reference point for rated-condition performance estimation and the default control target.</summary>
+    /// <remarks>
+    /// Used for (1) estimating system performance curves at rated JIS operating conditions,
+    /// and (2) providing the default value for <see cref="TargetCondensingTemperature"/> and
+    /// heating-mode <see cref="ModeParameters.MaxCondensingTemperature"/>.
+    /// This value (46 °C) corresponds to the upper bound of the EnergyPlus control range (42–46 °C).
+    /// </remarks>
+    public const double NominalCondensingTemperature = 46;
 
-    /// <summary>Nominal evaporating temperature for indoor units [°C].</summary>
-    /// <remarks>The EnergyPlus model specifies a control range of 3–13.</remarks>
-    public const double NOMINAL_EVAPORATING_TEMPERATURE = 10;
+    /// <summary>Nominal evaporating temperature [°C] used as both the reference point for rated-condition performance estimation and the default control target.</summary>
+    /// <remarks>
+    /// Used for (1) estimating system performance curves at rated JIS operating conditions,
+    /// and (2) providing the default value for <see cref="TargetEvaporatingTemperature"/> and
+    /// cooling-mode <see cref="ModeParameters.MinEvaporatingTemperature"/>.
+    /// This value (10 °C) lies within the EnergyPlus control range (3–13 °C),
+    /// representing a typical rated cooling operating point.
+    /// </remarks>
+    public const double NominalEvaporatingTemperature = 10;
 
     /// <summary>Nominal superheat degree [°C].</summary>
     private const double SUPER_HEAT_NOM = 1;
@@ -101,7 +112,7 @@ namespace Popolo.Core.HVAC.VRF
     #region 列挙型定義
 
     /// <summary>VRF system operating mode.</summary>
-    [Flags]    
+    [Flags]
     public enum Mode
     {
       /// <summary>Shut-off mode.</summary>
@@ -139,23 +150,25 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets the number of indoor units.</summary>
     public int IndoorUnitCount { get { return indoorUnits.Count; } }
 
-    /// <summary>Outdoor unit heat exchanger for cooling mode (acts as condenser).</summary>
-    private VRFUnit outdoorUnit_C;
-
-    /// <summary>Outdoor unit heat exchanger for heating mode (acts as evaporator).</summary>
-    private VRFUnit? outdoorUnit_H;
-
     /// <summary>Gets the list of indoor unit heat exchangers.</summary>
     public IReadOnlyVRFUnit[] IndoorUnits
     { get { return indoorUnits.ToArray(); } }
 
-    /// <summary>Gets the outdoor unit for cooling mode (condenser).</summary>
-    public IReadOnlyVRFUnit OutdoorUnit_C
-    { get { return outdoorUnit_C; } }
+    /// <summary>Gets the cooling-mode parameters and state (always present).</summary>
+    public ModeParameters Cooling { get; } = new ModeParameters
+    {
+      MaxEvaporatingTemperature = 15,
+      MinEvaporatingTemperature = NominalEvaporatingTemperature,
+      MaxCondensingTemperature = NominalCondensingTemperature,
+      MinCondensingTemperature = 25,
+    };
 
-    /// <summary>Gets the outdoor unit for heating mode (evaporator).</summary>
-    public IReadOnlyVRFUnit? OutdoorUnit_H
-    { get { return outdoorUnit_H; } }
+    /// <summary>Gets the heating-mode parameters and state (null for cooling-only systems).</summary>
+    public ModeParameters? Heating { get; private set; }
+
+    IReadOnlyModeParameters IReadOnlyVRFSystem.Cooling => Cooling;
+
+    IReadOnlyModeParameters? IReadOnlyVRFSystem.Heating => Heating;
 
     /// <summary>Gets the compressor electric power consumption [kW].</summary>
     public double CompressorElectricity { get; private set; }
@@ -168,8 +181,8 @@ namespace Popolo.Core.HVAC.VRF
     {
       get
       {
-        if (CurrentMode == Mode.Cooling) return outdoorUnit_C.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
-        else if (CurrentMode == Mode.Heating && outdoorUnit_H != null) return outdoorUnit_H.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
+        if (CurrentMode == Mode.Cooling) return Cooling.outdoorUnit.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
+        else if (CurrentMode == Mode.Heating && Heating != null) return Heating.outdoorUnit.FanElectricity * ((double)ActiveOutdoorUnitCount / OutdoorUnitDivisionCount);
         else return 0;
       }
     }
@@ -208,22 +221,22 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets or sets the outdoor air dry-bulb temperature [°C].</summary>
     public double OutdoorAirDryBulbTemperature
     {
-      get { return outdoorUnit_C.InletAirTemperature; }
+      get { return Cooling.outdoorUnit.InletAirTemperature; }
       set
       {
-        outdoorUnit_C.InletAirTemperature = value;
-        if (outdoorUnit_H != null) outdoorUnit_H.InletAirTemperature = value;
+        Cooling.outdoorUnit.InletAirTemperature = value;
+        if (Heating != null) Heating.outdoorUnit.InletAirTemperature = value;
       }
     }
 
     /// <summary>Gets or sets the outdoor air humidity ratio [kg/kg].</summary>
     public double OutdoorAirHumidityRatio
     {
-      get { return outdoorUnit_C.InletAirHumidityRatio; }
+      get { return Cooling.outdoorUnit.InletAirHumidityRatio; }
       set
       {
-        outdoorUnit_C.InletAirHumidityRatio = value;
-        if (outdoorUnit_H != null) outdoorUnit_H.InletAirHumidityRatio = value;
+        Cooling.outdoorUnit.InletAirHumidityRatio = value;
+        if (Heating != null) Heating.outdoorUnit.InletAirHumidityRatio = value;
       }
     }
 
@@ -255,8 +268,8 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets or sets a value indicating whether water spray is applied to the outdoor unit.</summary>
     public bool UseWaterSpray
     {
-      get { return outdoorUnit_C.UseWaterSpray; }
-      set { outdoorUnit_C.UseWaterSpray = value; }
+      get { return Cooling.outdoorUnit.UseWaterSpray; }
+      set { Cooling.outdoorUnit.UseWaterSpray = value; }
     }
 
     /// <summary>Gets or sets the installation height of indoor units relative to the outdoor unit [m].</summary>
@@ -282,79 +295,74 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 冷房運転関連のプロパティ
+    #region 冷房・暖房運転関連のプロパティ
 
-    /// <summary>Gets the nominal cooling capacity [kW].</summary>
-    public double NominalCoolingCapacity { get; private set; }
+    /// <summary>
+    /// Parameters and state specific to one operating mode (cooling or heating).
+    /// </summary>
+    /// <remarks>
+    /// Accessed as <see cref="Cooling"/> for cooling mode and <see cref="Heating"/> for heating mode.
+    /// For a cooling-only system, <see cref="Heating"/> is <c>null</c>.
+    /// </remarks>
+    public sealed class ModeParameters : IReadOnlyModeParameters
+    {
+      /// <summary>Outdoor unit heat exchanger (internal mutable reference).</summary>
+      internal VRFUnit outdoorUnit = null!;
 
-    /// <summary>Gets the nominal compression head in cooling mode [kW].</summary>
-    public double NominalHead_C { get; private set; }
+      /// <summary>Gets the outdoor unit (acts as condenser in cooling mode, evaporator in heating mode).</summary>
+      public IReadOnlyVRFUnit OutdoorUnit => outdoorUnit;
 
-    /// <summary>Gets the pipe resistance coefficient for cooling mode [1/m].</summary>
-    public double PipeResistanceCoefficient_C { get; private set; }
+      /// <summary>Gets the nominal capacity [kW] (negative for cooling, positive for heating).</summary>
+      public double NominalCapacity { get; internal set; }
 
-    /// <summary>Gets the compression head efficiency ratio at the nominal cooling operating point [-].</summary>
-    public double NominalEfficiency_C { get; private set; }
+      /// <summary>Gets the nominal compression head [kW].</summary>
+      public double NominalHead { get; internal set; }
 
-    /// <summary>Gets coefficient A of the compression head efficiency ratio characteristic curve for cooling [-].</summary>
-    public double HeadEfficiencyRatioCoefA_C { get; private set; }
+      /// <summary>Gets the pipe resistance coefficient [1/m].</summary>
+      public double PipeResistanceCoefficient { get; internal set; }
 
-    /// <summary>Gets coefficient B of the compression head efficiency ratio characteristic curve for cooling [-].</summary>
-    public double HeadEfficiencyRatioCoefB_C { get; private set; }
+      /// <summary>Gets the compression head efficiency ratio at the nominal operating point [-].</summary>
+      public double NominalEfficiency { get; internal set; }
 
-    /// <summary>Gets the electric power consumption at the nominal cooling operating point [kW].</summary>
-    public double NominalElectricity_C { get; private set; }
+      /// <summary>Gets coefficient A of the compression head efficiency ratio characteristic curve [-].</summary>
+      public double HeadEfficiencyRatioCoefA { get; internal set; }
 
-    /// <summary>Gets or sets the maximum evaporating temperature in cooling mode [°C].</summary>
-    public double MaxEvaporatingTemperature { get; set; } = 15;
+      /// <summary>Gets coefficient B of the compression head efficiency ratio characteristic curve [-].</summary>
+      public double HeadEfficiencyRatioCoefB { get; internal set; }
 
-    /// <summary>Gets the minimum evaporating temperature in cooling mode [°C].</summary>
-    /// <remarks>Currently, the temperature cannot be lowered below the nominal value, except in heating mode.</remarks>
-    public double MinEvaporatingTemperature { get; set; } = NOMINAL_EVAPORATING_TEMPERATURE;
+      /// <summary>Gets the electric power consumption at the nominal operating point [kW].</summary>
+      public double NominalElectricity { get; internal set; }
 
-    /// <summary>Gets or sets the minimum condensing temperature in cooling mode [°C].</summary>
-    public double MinCondensingTemperatureOnCoolingMode { get; set; } = 25;
+      /// <summary>Gets or sets the maximum evaporating temperature [°C].</summary>
+      /// <remarks>
+      /// In cooling mode, this is the primary upper bound for the evaporating temperature.
+      /// In heating mode, this is a secondary boundary used when solving the condensing temperature.
+      /// </remarks>
+      public double MaxEvaporatingTemperature { get; set; }
+
+      /// <summary>Gets or sets the minimum evaporating temperature [°C].</summary>
+      /// <remarks>In cooling mode, this is the primary lower bound for the evaporating temperature.</remarks>
+      public double MinEvaporatingTemperature { get; set; }
+
+      /// <summary>Gets or sets the maximum condensing temperature [°C].</summary>
+      /// <remarks>In heating mode, this is the primary upper bound for the condensing temperature.</remarks>
+      public double MaxCondensingTemperature { get; set; }
+
+      /// <summary>Gets or sets the minimum condensing temperature [°C].</summary>
+      /// <remarks>
+      /// In heating mode, this is the primary lower bound for the condensing temperature.
+      /// In cooling mode, this is a secondary boundary used when solving the evaporating temperature.
+      /// </remarks>
+      public double MinCondensingTemperature { get; set; }
+    }
 
     /// <summary>Gets or sets the target evaporating temperature for free-running calculation [°C].</summary>
-    public double TargetEvaporatingTemperature { get; set; } = NOMINAL_EVAPORATING_TEMPERATURE;
-
-    #endregion
-
-    #region 暖房運転関連のプロパティ
-
-    /// <summary>Gets the nominal heating capacity [kW].</summary>
-    public double NominalHeatingCapacity { get; private set; }
-
-    /// <summary>Gets the nominal compression head in heating mode [kW].</summary>
-    public double NominalHead_H { get; private set; }
-
-    /// <summary>Gets the pipe resistance coefficient for heating mode [1/m].</summary>
-    public double PipeResistanceCoefficient_H { get; private set; }
-
-    /// <summary>Gets the compression head efficiency ratio at the nominal heating operating point [-].</summary>
-    public double NominalEfficiency_H { get; private set; }
-
-    /// <summary>Gets coefficient A of the compression head efficiency ratio characteristic curve for heating [-].</summary>
-    public double HeadEfficiencyRatioCoefA_H { get; private set; }
-
-    /// <summary>Gets coefficient B of the compression head efficiency ratio characteristic curve for heating [-].</summary>
-    public double HeadEfficiencyRatioCoefB_H { get; private set; }
-
-    /// <summary>Gets the electric power consumption at the nominal heating operating point [kW].</summary>
-    public double NominalElectricity_H { get; private set; }
-
-    /// <summary>Gets the maximum condensing temperature in heating mode [°C].</summary>
-    /// <remarks>Currently, the temperature cannot be raised above the nominal value, except in cooling mode.</remarks>
-    public double MaxCondensingTemperature { get; set; } = NOMINAL_CONDENSING_TEMPERATURE;
-
-    /// <summary>Gets or sets the minimum condensing temperature in heating mode [°C].</summary>
-    public double MinCondensingTemperature { get; set; } = 40;
-
-    /// <summary>Gets or sets the maximum evaporating temperature in heating mode [°C].</summary>
-    public double MaxEvaporatingTemperatureOnHeatingMode { get; set; } = 25;
+    /// <remarks>Used only in cooling mode.</remarks>
+    public double TargetEvaporatingTemperature { get; set; } = NominalEvaporatingTemperature;
 
     /// <summary>Gets or sets the target condensing temperature for free-running calculation [°C].</summary>
-    public double TargetCondensingTemperature { get; set; } = NOMINAL_CONDENSING_TEMPERATURE;
+    /// <remarks>Used only in heating mode.</remarks>
+    public double TargetCondensingTemperature { get; set; } = NominalCondensingTemperature;
 
     #endregion
 
@@ -364,351 +372,362 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Initializes a new instance as a heat-pump (cooling/heating switchable) machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
-    /// <param name="midLoadMidTempCapacity_C">Intermediate mid-temperature cooling capacity [kW].</param>
-    /// <param name="midLoadMidTempElectricity_C">Electric power at intermediate mid-temperature cooling condition [kW].</param>
-    /// <param name="outdoorHexAirFlow_H">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_H">Outdoor unit fan electric power in heating mode [kW].</param>
-    /// <param name="nominalCapacity_H">Nominal heating capacity [kW] (positive).</param>
-    /// <param name="nominalElectricity_H">Nominal electric power in heating mode [kW].</param>
-    /// <param name="midLoadCapacity_H">Intermediate standard heating capacity [kW].</param>
-    /// <param name="midLoadElectricity_H">Electric power at intermediate standard heating condition [kW].</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="coolingMidLoadMidTempCapacity">Intermediate mid-temperature cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadMidTempElectricity">Electric power at intermediate mid-temperature cooling condition [kW].</param>
+    /// <param name="heatingOutdoorHexAirFlow">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
+    /// <param name="heatingOutdoorHexFanElectricity">Outdoor unit fan electric power in heating mode [kW].</param>
+    /// <param name="heatingNominalCapacity">Nominal heating capacity [kW] (positive).</param>
+    /// <param name="heatingNominalElectricity">Nominal electric power in heating mode [kW].</param>
+    /// <param name="heatingMidLoadCapacity">Intermediate standard heating capacity [kW].</param>
+    /// <param name="heatingMidLoadElectricity">Electric power at intermediate standard heating condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the cooling correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor for cooling mode [-].</param>
-    /// <param name="longPipeLength_H">Pipe length at which the heating correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_H">Pipe length correction factor for heating mode [-].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the cooling correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor for cooling mode [-].</param>
+    /// <param name="heatingLongPipeLength">Pipe length at which the heating correction factor applies [m].</param>
+    /// <param name="heatingPipeCorrectionFactor">Pipe length correction factor for heating mode [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     public VRFSystem(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double midLoadMidTempCapacity_C, double midLoadMidTempElectricity_C,
-      double outdoorHexAirFlow_H, double outdoorHexFanElectricity_H,
-      double nominalCapacity_H, double nominalElectricity_H,
-      double midLoadCapacity_H, double midLoadElectricity_H,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double coolingMidLoadMidTempCapacity, double coolingMidLoadMidTempElectricity,
+      double heatingOutdoorHexAirFlow, double heatingOutdoorHexFanElectricity,
+      double heatingNominalCapacity, double heatingNominalElectricity,
+      double heatingMidLoadCapacity, double heatingMidLoadElectricity,
       double nominalPipeLength,
-      double longPipeLength_C, double pipeCorrectionFactor_C,
-      double longPipeLength_H, double pipeCorrectionFactor_H,
+      double coolingLongPipeLength, double coolingPipeCorrectionFactor,
+      double heatingLongPipeLength, double heatingPipeCorrectionFactor,
       VRFUnit iHex) : this(
         refrigerant,
-        outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalElectricity_C, midLoadCapacity_C, midLoadElectricity_C, midLoadMidTempCapacity_C, midLoadMidTempElectricity_C,
-        outdoorHexAirFlow_H, outdoorHexFanElectricity_H,
-        nominalCapacity_H, nominalElectricity_H, midLoadCapacity_H, midLoadElectricity_H,
+        coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, coolingNominalElectricity, coolingMidLoadCapacity, coolingMidLoadElectricity, coolingMidLoadMidTempCapacity, coolingMidLoadMidTempElectricity,
+        heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
+        heatingNominalCapacity, heatingNominalElectricity, heatingMidLoadCapacity, heatingMidLoadElectricity,
         nominalPipeLength,
-        longPipeLength_C, pipeCorrectionFactor_C,
-        longPipeLength_H, pipeCorrectionFactor_H,
+        coolingLongPipeLength, coolingPipeCorrectionFactor,
+        heatingLongPipeLength, heatingPipeCorrectionFactor,
         iHex, 0.0)
     { }
 
     /// <summary>Initializes a new instance as a heat-pump (cooling/heating switchable) machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
-    /// <param name="outdoorHexAirFlow_H">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_H">Outdoor unit fan electric power in heating mode [kW].</param>
-    /// <param name="nominalCapacity_H">Nominal heating capacity [kW] (positive).</param>
-    /// <param name="nominalElectricity_H">Nominal electric power in heating mode [kW].</param>
-    /// <param name="midLoadCapacity_H">Intermediate standard heating capacity [kW].</param>
-    /// <param name="midLoadElectricity_H">Electric power at intermediate standard heating condition [kW].</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="heatingOutdoorHexAirFlow">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
+    /// <param name="heatingOutdoorHexFanElectricity">Outdoor unit fan electric power in heating mode [kW].</param>
+    /// <param name="heatingNominalCapacity">Nominal heating capacity [kW] (positive).</param>
+    /// <param name="heatingNominalElectricity">Nominal electric power in heating mode [kW].</param>
+    /// <param name="heatingMidLoadCapacity">Intermediate standard heating capacity [kW].</param>
+    /// <param name="heatingMidLoadElectricity">Electric power at intermediate standard heating condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the cooling correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor for cooling mode [-].</param>
-    /// <param name="longPipeLength_H">Pipe length at which the heating correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_H">Pipe length correction factor for heating mode [-].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the cooling correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor for cooling mode [-].</param>
+    /// <param name="heatingLongPipeLength">Pipe length at which the heating correction factor applies [m].</param>
+    /// <param name="heatingPipeCorrectionFactor">Pipe length correction factor for heating mode [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     public VRFSystem(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double outdoorHexAirFlow_H, double outdoorHexFanElectricity_H,
-      double nominalCapacity_H, double nominalElectricity_H,
-      double midLoadCapacity_H, double midLoadElectricity_H,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double heatingOutdoorHexAirFlow, double heatingOutdoorHexFanElectricity,
+      double heatingNominalCapacity, double heatingNominalElectricity,
+      double heatingMidLoadCapacity, double heatingMidLoadElectricity,
       double nominalPipeLength,
-      double longPipeLength_C, double pipeCorrectionFactor_C,
-      double longPipeLength_H, double pipeCorrectionFactor_H,
+      double coolingLongPipeLength, double coolingPipeCorrectionFactor,
+      double heatingLongPipeLength, double heatingPipeCorrectionFactor,
       VRFUnit iHex) : this(
         refrigerant,
-        outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalElectricity_C, midLoadCapacity_C, midLoadElectricity_C,
-        outdoorHexAirFlow_H, outdoorHexFanElectricity_H,
-        nominalCapacity_H, nominalElectricity_H, midLoadCapacity_H, midLoadElectricity_H,
+        coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, coolingNominalElectricity, coolingMidLoadCapacity, coolingMidLoadElectricity,
+        heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
+        heatingNominalCapacity, heatingNominalElectricity, heatingMidLoadCapacity, heatingMidLoadElectricity,
         nominalPipeLength,
-        longPipeLength_C, pipeCorrectionFactor_C,
-        longPipeLength_H, pipeCorrectionFactor_H,
+        coolingLongPipeLength, coolingPipeCorrectionFactor,
+        heatingLongPipeLength, heatingPipeCorrectionFactor,
         iHex, 0.0)
     { }
 
     /// <summary>Initializes a new instance as a heat-pump (cooling/heating switchable) machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
-    /// <param name="midLoadMidTempCapacity_C">Intermediate mid-temperature cooling capacity [kW].</param>
-    /// <param name="midLoadMidTempElectricity_C">Electric power at intermediate mid-temperature cooling condition [kW].</param>
-    /// <param name="outdoorHexAirFlow_H">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_H">Outdoor unit fan electric power in heating mode [kW].</param>
-    /// <param name="nominalCapacity_H">Nominal heating capacity [kW] (positive).</param>
-    /// <param name="nominalElectricity_H">Nominal electric power in heating mode [kW].</param>
-    /// <param name="midLoadCapacity_H">Intermediate standard heating capacity [kW].</param>
-    /// <param name="midLoadElectricity_H">Electric power at intermediate standard heating condition [kW].</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="coolingMidLoadMidTempCapacity">Intermediate mid-temperature cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadMidTempElectricity">Electric power at intermediate mid-temperature cooling condition [kW].</param>
+    /// <param name="heatingOutdoorHexAirFlow">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
+    /// <param name="heatingOutdoorHexFanElectricity">Outdoor unit fan electric power in heating mode [kW].</param>
+    /// <param name="heatingNominalCapacity">Nominal heating capacity [kW] (positive).</param>
+    /// <param name="heatingNominalElectricity">Nominal electric power in heating mode [kW].</param>
+    /// <param name="heatingMidLoadCapacity">Intermediate standard heating capacity [kW].</param>
+    /// <param name="heatingMidLoadElectricity">Electric power at intermediate standard heating condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the cooling correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor for cooling mode [-].</param>
-    /// <param name="longPipeLength_H">Pipe length at which the heating correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_H">Pipe length correction factor for heating mode [-].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the cooling correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor for cooling mode [-].</param>
+    /// <param name="heatingLongPipeLength">Pipe length at which the heating correction factor applies [m].</param>
+    /// <param name="heatingPipeCorrectionFactor">Pipe length correction factor for heating mode [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     /// <param name="totalEfficiency">Overall efficiency of the gas engine heat pump [-].</param>
     public VRFSystem(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double midLoadMidTempCapacity_C, double midLoadMidTempElectricity_C,
-      double outdoorHexAirFlow_H, double outdoorHexFanElectricity_H,
-      double nominalCapacity_H, double nominalElectricity_H,
-      double midLoadCapacity_H, double midLoadElectricity_H,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double coolingMidLoadMidTempCapacity, double coolingMidLoadMidTempElectricity,
+      double heatingOutdoorHexAirFlow, double heatingOutdoorHexFanElectricity,
+      double heatingNominalCapacity, double heatingNominalElectricity,
+      double heatingMidLoadCapacity, double heatingMidLoadElectricity,
       double nominalPipeLength,
-      double longPipeLength_C, double pipeCorrectionFactor_C,
-      double longPipeLength_H, double pipeCorrectionFactor_H,
+      double coolingLongPipeLength, double coolingPipeCorrectionFactor,
+      double heatingLongPipeLength, double heatingPipeCorrectionFactor,
       VRFUnit iHex, double totalEfficiency) : this(
-        refrigerant, outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalElectricity_C,
-        midLoadCapacity_C, midLoadElectricity_C,
-        midLoadMidTempCapacity_C, midLoadMidTempElectricity_C, nominalPipeLength,
-        longPipeLength_C, pipeCorrectionFactor_C, iHex)
+        refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, coolingNominalElectricity,
+        coolingMidLoadCapacity, coolingMidLoadElectricity,
+        coolingMidLoadMidTempCapacity, coolingMidLoadMidTempElectricity, nominalPipeLength,
+        coolingLongPipeLength, coolingPipeCorrectionFactor, iHex)
     {
 
       InitHeatingModel(
-        refrigerant, outdoorHexAirFlow_H, outdoorHexFanElectricity_H, 
-        nominalCapacity_H, nominalElectricity_H, 
-        midLoadCapacity_H, midLoadElectricity_H, 
-        nominalPipeLength, longPipeLength_H, pipeCorrectionFactor_H, 
+        refrigerant, heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
+        heatingNominalCapacity, heatingNominalElectricity,
+        heatingMidLoadCapacity, heatingMidLoadElectricity,
+        nominalPipeLength, heatingLongPipeLength, heatingPipeCorrectionFactor,
         iHex, totalEfficiency);
     }
 
     /// <summary>Initializes a new instance as a heat-pump (cooling/heating switchable) machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
-    /// <param name="outdoorHexAirFlow_H">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_H">Outdoor unit fan electric power in heating mode [kW].</param>
-    /// <param name="nominalCapacity_H">Nominal heating capacity [kW] (positive).</param>
-    /// <param name="nominalElectricity_H">Nominal electric power in heating mode [kW].</param>
-    /// <param name="midLoadCapacity_H">Intermediate standard heating capacity [kW].</param>
-    /// <param name="midLoadElectricity_H">Electric power at intermediate standard heating condition [kW].</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="heatingOutdoorHexAirFlow">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
+    /// <param name="heatingOutdoorHexFanElectricity">Outdoor unit fan electric power in heating mode [kW].</param>
+    /// <param name="heatingNominalCapacity">Nominal heating capacity [kW] (positive).</param>
+    /// <param name="heatingNominalElectricity">Nominal electric power in heating mode [kW].</param>
+    /// <param name="heatingMidLoadCapacity">Intermediate standard heating capacity [kW].</param>
+    /// <param name="heatingMidLoadElectricity">Electric power at intermediate standard heating condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the cooling correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor for cooling mode [-].</param>
-    /// <param name="longPipeLength_H">Pipe length at which the heating correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_H">Pipe length correction factor for heating mode [-].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the cooling correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor for cooling mode [-].</param>
+    /// <param name="heatingLongPipeLength">Pipe length at which the heating correction factor applies [m].</param>
+    /// <param name="heatingPipeCorrectionFactor">Pipe length correction factor for heating mode [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     /// <param name="totalEfficiency">Overall efficiency of the gas engine heat pump [-].</param>
     public VRFSystem(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double outdoorHexAirFlow_H, double outdoorHexFanElectricity_H,
-      double nominalCapacity_H, double nominalElectricity_H,
-      double midLoadCapacity_H, double midLoadElectricity_H,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double heatingOutdoorHexAirFlow, double heatingOutdoorHexFanElectricity,
+      double heatingNominalCapacity, double heatingNominalElectricity,
+      double heatingMidLoadCapacity, double heatingMidLoadElectricity,
       double nominalPipeLength,
-      double longPipeLength_C, double pipeCorrectionFactor_C,
-      double longPipeLength_H, double pipeCorrectionFactor_H,
+      double coolingLongPipeLength, double coolingPipeCorrectionFactor,
+      double heatingLongPipeLength, double heatingPipeCorrectionFactor,
       VRFUnit iHex, double totalEfficiency) : this(
-        refrigerant, outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalElectricity_C,
-        midLoadCapacity_C, midLoadElectricity_C, 
-        nominalPipeLength, longPipeLength_C, pipeCorrectionFactor_C, iHex)
+        refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, coolingNominalElectricity,
+        coolingMidLoadCapacity, coolingMidLoadElectricity,
+        nominalPipeLength, coolingLongPipeLength, coolingPipeCorrectionFactor, iHex)
     {
       InitHeatingModel(
-        refrigerant, outdoorHexAirFlow_H, outdoorHexFanElectricity_H,
-        nominalCapacity_H, nominalElectricity_H,
-        midLoadCapacity_H, midLoadElectricity_H,
-        nominalPipeLength, longPipeLength_H, pipeCorrectionFactor_H,
+        refrigerant, heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
+        heatingNominalCapacity, heatingNominalElectricity,
+        heatingMidLoadCapacity, heatingMidLoadElectricity,
+        nominalPipeLength, heatingLongPipeLength, heatingPipeCorrectionFactor,
         iHex, totalEfficiency);
     }
 
     /// <summary>Initializes the heating mode model parameters.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_H">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_H">Outdoor unit fan electric power in heating mode [kW].</param>
-    /// <param name="nominalCapacity_H">Nominal heating capacity [kW] (positive).</param>
-    /// <param name="nominalElectricity_H">Nominal electric power in heating mode [kW].</param>
-    /// <param name="midLoadCapacity_H">Intermediate standard heating capacity [kW].</param>
-    /// <param name="midLoadElectricity_H">Electric power at intermediate standard heating condition [kW].</param>
+    /// <param name="heatingOutdoorHexAirFlow">Outdoor unit air mass flow rate in heating mode [kg/s].</param>
+    /// <param name="heatingOutdoorHexFanElectricity">Outdoor unit fan electric power in heating mode [kW].</param>
+    /// <param name="heatingNominalCapacity">Nominal heating capacity [kW] (positive).</param>
+    /// <param name="heatingNominalElectricity">Nominal electric power in heating mode [kW].</param>
+    /// <param name="heatingMidLoadCapacity">Intermediate standard heating capacity [kW].</param>
+    /// <param name="heatingMidLoadElectricity">Electric power at intermediate standard heating condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_H">Pipe length at which the heating correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_H">Pipe length correction factor for heating mode [-].</param>
+    /// <param name="heatingLongPipeLength">Pipe length at which the heating correction factor applies [m].</param>
+    /// <param name="heatingPipeCorrectionFactor">Pipe length correction factor for heating mode [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     /// <param name="totalEfficiency">Overall efficiency of the gas engine heat pump [-].</param>
     private void InitHeatingModel(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_H, double outdoorHexFanElectricity_H,
-      double nominalCapacity_H, double nominalElectricity_H,
-      double midLoadCapacity_H, double midLoadElectricity_H,
+      double heatingOutdoorHexAirFlow, double heatingOutdoorHexFanElectricity,
+      double heatingNominalCapacity, double heatingNominalElectricity,
+      double heatingMidLoadCapacity, double heatingMidLoadElectricity,
       double nominalPipeLength,
-      double longPipeLength_H, double pipeCorrectionFactor_H,
-      VRFUnit iHex, double totalEfficiency) 
+      double heatingLongPipeLength, double heatingPipeCorrectionFactor,
+      VRFUnit iHex, double totalEfficiency)
     {
       //プロパティ設定
-      NominalHeatingCapacity = nominalCapacity_H;
-      NominalElectricity_H = nominalElectricity_H;
+      var heating = new ModeParameters
+      {
+        NominalCapacity = heatingNominalCapacity,
+        NominalElectricity = heatingNominalElectricity,
+        MaxEvaporatingTemperature = 25,
+        MinEvaporatingTemperature = NominalEvaporatingTemperature,
+        MaxCondensingTemperature = NominalCondensingTemperature,
+        MinCondensingTemperature = 40,
+      };
+      Heating = heating;
       PipeLength = nominalPipeLength;
       TotalEfficiencyOfGasEngineHeatpump = totalEfficiency;
 
       //暖房定格運転時のパラメータ推定
       double pResist, nomHead;
-      EstimateOutdoorUnitNominalParameters_Heating(
-        refrigerant, outdoorHexAirFlow_H, outdoorHexFanElectricity_H,
-        nominalCapacity_H, totalEfficiency * nominalElectricity_H, nominalPipeLength, longPipeLength_H, pipeCorrectionFactor_H,
-        out pResist, out nomHead, out outdoorUnit_H);
-      PipeResistanceCoefficient_H = pResist;
-      NominalHead_H = nomHead;
+      EstimateHeatingOutdoorUnitNominalParameters(
+        refrigerant, heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
+        heatingNominalCapacity, totalEfficiency * heatingNominalElectricity, nominalPipeLength, heatingLongPipeLength, heatingPipeCorrectionFactor,
+        out pResist, out nomHead, out VRFUnit heatingOutdoorUnit);
+      heating.outdoorUnit = heatingOutdoorUnit;
+      heating.PipeResistanceCoefficient = pResist;
+      heating.NominalHead = nomHead;
 
       //部分負荷時の特性推定
       double midHead;
-      EstimatePartialLoadParameters_Heating(
-        refrigerant, nominalPipeLength, PipeResistanceCoefficient_H, NominalHead_H,
-        nominalCapacity_H, outdoorUnit_H, iHex, totalEfficiency * midLoadElectricity_H, midLoadCapacity_H, out midHead);
+      EstimateHeatingPartialLoadParameters(
+        refrigerant, nominalPipeLength, heating.PipeResistanceCoefficient, heating.NominalHead,
+        heatingNominalCapacity, heating.outdoorUnit, iHex, totalEfficiency * heatingMidLoadElectricity, heatingMidLoadCapacity, out midHead);
 
       double cA, cB;
       MakePartialLoadCharacteristicCurve(
-        NominalHead_H, nominalElectricity_H, midHead, midLoadElectricity_H, out cA, out cB);
-      HeadEfficiencyRatioCoefA_H = cA;
-      HeadEfficiencyRatioCoefB_H = cB;
-      NominalEfficiency_H = NominalHead_H / nominalElectricity_H;
+        heating.NominalHead, heatingNominalElectricity, midHead, heatingMidLoadElectricity, out cA, out cB);
+      heating.HeadEfficiencyRatioCoefA = cA;
+      heating.HeadEfficiencyRatioCoefB = cB;
+      heating.NominalEfficiency = heating.NominalHead / heatingNominalElectricity;
 
       //入口空気をJIS定格標準条件に戻す
-      outdoorUnit_H.InletAirTemperature = JIS_OA_DBT_NOM_H;
+      heating.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_H;
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
-      outdoorUnit_H.InletAirHumidityRatio = oHmd;
+      heating.outdoorUnit.InletAirHumidityRatio = oHmd;
     }
 
     /// <summary>Initializes a new instance as a cooling-only machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
     /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor [-].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor [-].</param>
     /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
     public VRFSystem(
       Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double nominalPipeLength, double longPipeLength_C, double pipeCorrectionFactor_C,
-      VRFUnit iHex) 
-    {
-      //プロパティ設定
-      this.refrigerant = refrigerant;
-      NominalCoolingCapacity = nominalCapacity_C;
-      NominalElectricity_C = nominalElectricity_C;
-      PipeLength = nominalPipeLength;
-
-      //定格運転時のパラメータ推定
-      double pResist, nomHead;
-      EstimateOutdoorUnitNominalParameters_Cooling(
-        refrigerant, outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalPipeLength, longPipeLength_C, pipeCorrectionFactor_C,
-        out pResist, out nomHead, out outdoorUnit_C);
-      PipeResistanceCoefficient_C = pResist;
-      NominalHead_C = nomHead;
-
-      //部分負荷時の特性推定
-      EstimatePartialLoadParameters_Cooling(
-        refrigerant, nominalPipeLength, PipeResistanceCoefficient_C, NominalHead_C,
-        nominalCapacity_C, outdoorUnit_C, iHex, midLoadCapacity_C, out double midHead1);
-      MakePartialLoadCharacteristicCurve(
-        NominalHead_C, nominalElectricity_C, midHead1, midLoadElectricity_C, out double cA, out double cB);
-      HeadEfficiencyRatioCoefA_C = cA;
-      HeadEfficiencyRatioCoefB_C = cB;
-      NominalEfficiency_C = NominalHead_C / nominalElectricity_C;
-
-      //入口空気をJIS定格標準条件に戻す
-      outdoorUnit_C.InletAirTemperature = JIS_OA_DBT_NOM_C;
-      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
-      outdoorUnit_C.InletAirHumidityRatio = oHmd;
-    }
-
-    /// <summary>Initializes a new instance as a cooling-only machine.</summary>
-    /// <param name="refrigerant">Refrigerant property calculator.</param>
-    /// <param name="outdoorHexAirFlow_C">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
-    /// <param name="outdoorHexFanElectricity_C">Outdoor unit fan electric power in cooling mode [kW].</param>
-    /// <param name="nominalCapacity_C">Nominal cooling capacity [kW] (negative).</param>
-    /// <param name="nominalElectricity_C">Nominal electric power in cooling mode [kW].</param>
-    /// <param name="midLoadCapacity_C">Intermediate standard cooling capacity [kW].</param>
-    /// <param name="midLoadElectricity_C">Electric power at intermediate standard cooling condition [kW].</param>
-    /// <param name="midLoadMidTempCapacity_C">Intermediate mid-temperature cooling capacity [kW].</param>
-    /// <param name="midLoadMidTempElectricity_C">Electric power at intermediate mid-temperature cooling condition [kW].</param>
-    /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
-    /// <param name="longPipeLength_C">Pipe length at which the correction factor applies [m].</param>
-    /// <param name="pipeCorrectionFactor_C">Pipe length correction factor [-].</param>
-    /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
-    public VRFSystem(
-      Refrigerant refrigerant,
-      double outdoorHexAirFlow_C, double outdoorHexFanElectricity_C,
-      double nominalCapacity_C, double nominalElectricity_C,
-      double midLoadCapacity_C, double midLoadElectricity_C,
-      double midLoadMidTempCapacity_C, double midLoadMidTempElectricity_C,
-      double nominalPipeLength, double longPipeLength_C, double pipeCorrectionFactor_C,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double nominalPipeLength, double coolingLongPipeLength, double coolingPipeCorrectionFactor,
       VRFUnit iHex)
     {
       //プロパティ設定
       this.refrigerant = refrigerant;
-      NominalCoolingCapacity = nominalCapacity_C;
-      NominalElectricity_C = nominalElectricity_C;
+      Cooling.NominalCapacity = coolingNominalCapacity;
+      Cooling.NominalElectricity = coolingNominalElectricity;
       PipeLength = nominalPipeLength;
 
       //定格運転時のパラメータ推定
       double pResist, nomHead;
-      EstimateOutdoorUnitNominalParameters_Cooling(
-        refrigerant, outdoorHexAirFlow_C, outdoorHexFanElectricity_C,
-        nominalCapacity_C, nominalPipeLength, longPipeLength_C, pipeCorrectionFactor_C,
-        out pResist, out nomHead, out outdoorUnit_C);
-      PipeResistanceCoefficient_C = pResist;
-      NominalHead_C = nomHead;
+      EstimateCoolingOutdoorUnitNominalParameters(
+        refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, nominalPipeLength, coolingLongPipeLength, coolingPipeCorrectionFactor,
+        out pResist, out nomHead, out VRFUnit coolingOutdoorUnit);
+      Cooling.outdoorUnit = coolingOutdoorUnit;
+      Cooling.PipeResistanceCoefficient = pResist;
+      Cooling.NominalHead = nomHead;
+
+      //部分負荷時の特性推定
+      EstimateCoolingPartialLoadParameters(
+        refrigerant, nominalPipeLength, Cooling.PipeResistanceCoefficient, Cooling.NominalHead,
+        coolingNominalCapacity, Cooling.outdoorUnit, iHex, coolingMidLoadCapacity, out double midHead1);
+      MakePartialLoadCharacteristicCurve(
+        Cooling.NominalHead, coolingNominalElectricity, midHead1, coolingMidLoadElectricity, out double cA, out double cB);
+      Cooling.HeadEfficiencyRatioCoefA = cA;
+      Cooling.HeadEfficiencyRatioCoefB = cB;
+      Cooling.NominalEfficiency = Cooling.NominalHead / coolingNominalElectricity;
+
+      //入口空気をJIS定格標準条件に戻す
+      Cooling.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_C;
+      double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
+      Cooling.outdoorUnit.InletAirHumidityRatio = oHmd;
+    }
+
+    /// <summary>Initializes a new instance as a cooling-only machine.</summary>
+    /// <param name="refrigerant">Refrigerant property calculator.</param>
+    /// <param name="coolingOutdoorHexAirFlow">Outdoor unit air mass flow rate in cooling mode [kg/s].</param>
+    /// <param name="coolingOutdoorHexFanElectricity">Outdoor unit fan electric power in cooling mode [kW].</param>
+    /// <param name="coolingNominalCapacity">Nominal cooling capacity [kW] (negative).</param>
+    /// <param name="coolingNominalElectricity">Nominal electric power in cooling mode [kW].</param>
+    /// <param name="coolingMidLoadCapacity">Intermediate standard cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadElectricity">Electric power at intermediate standard cooling condition [kW].</param>
+    /// <param name="coolingMidLoadMidTempCapacity">Intermediate mid-temperature cooling capacity [kW].</param>
+    /// <param name="coolingMidLoadMidTempElectricity">Electric power at intermediate mid-temperature cooling condition [kW].</param>
+    /// <param name="nominalPipeLength">Nominal pipe length [m].</param>
+    /// <param name="coolingLongPipeLength">Pipe length at which the correction factor applies [m].</param>
+    /// <param name="coolingPipeCorrectionFactor">Pipe length correction factor [-].</param>
+    /// <param name="iHex">Indoor unit used to define rated operating conditions.</param>
+    public VRFSystem(
+      Refrigerant refrigerant,
+      double coolingOutdoorHexAirFlow, double coolingOutdoorHexFanElectricity,
+      double coolingNominalCapacity, double coolingNominalElectricity,
+      double coolingMidLoadCapacity, double coolingMidLoadElectricity,
+      double coolingMidLoadMidTempCapacity, double coolingMidLoadMidTempElectricity,
+      double nominalPipeLength, double coolingLongPipeLength, double coolingPipeCorrectionFactor,
+      VRFUnit iHex)
+    {
+      //プロパティ設定
+      this.refrigerant = refrigerant;
+      Cooling.NominalCapacity = coolingNominalCapacity;
+      Cooling.NominalElectricity = coolingNominalElectricity;
+      PipeLength = nominalPipeLength;
+
+      //定格運転時のパラメータ推定
+      double pResist, nomHead;
+      EstimateCoolingOutdoorUnitNominalParameters(
+        refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
+        coolingNominalCapacity, nominalPipeLength, coolingLongPipeLength, coolingPipeCorrectionFactor,
+        out pResist, out nomHead, out VRFUnit coolingOutdoorUnit);
+      Cooling.outdoorUnit = coolingOutdoorUnit;
+      Cooling.PipeResistanceCoefficient = pResist;
+      Cooling.NominalHead = nomHead;
 
       //部分負荷時の特性推定
       double midHead1, midHead2;
-      EstimatePartialLoadParameters_Cooling(
-        refrigerant, nominalPipeLength, PipeResistanceCoefficient_C, NominalHead_C,
-        nominalCapacity_C, outdoorUnit_C, iHex, midLoadCapacity_C, midLoadMidTempCapacity_C, out midHead1, out midHead2);
+      EstimateCoolingPartialLoadParameters(
+        refrigerant, nominalPipeLength, Cooling.PipeResistanceCoefficient, Cooling.NominalHead,
+        coolingNominalCapacity, Cooling.outdoorUnit, iHex, coolingMidLoadCapacity, coolingMidLoadMidTempCapacity, out midHead1, out midHead2);
       double cA, cB;
       MakePartialLoadCharacteristicCurve(
-        NominalHead_C, nominalElectricity_C, midHead1, midLoadElectricity_C, midHead2, midLoadMidTempElectricity_C, out cA, out cB);
-      HeadEfficiencyRatioCoefA_C = cA;
-      HeadEfficiencyRatioCoefB_C = cB;
-      NominalEfficiency_C = NominalHead_C / nominalElectricity_C;
+        Cooling.NominalHead, coolingNominalElectricity, midHead1, coolingMidLoadElectricity, midHead2, coolingMidLoadMidTempElectricity, out cA, out cB);
+      Cooling.HeadEfficiencyRatioCoefA = cA;
+      Cooling.HeadEfficiencyRatioCoefB = cB;
+      Cooling.NominalEfficiency = Cooling.NominalHead / coolingNominalElectricity;
 
       //入口空気をJIS定格標準条件に戻す
-      outdoorUnit_C.InletAirTemperature = JIS_OA_DBT_NOM_C;
+      Cooling.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_C;
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
-      outdoorUnit_C.InletAirHumidityRatio = oHmd;
+      Cooling.outdoorUnit.InletAirHumidityRatio = oHmd;
     }
 
     #endregion
@@ -727,27 +746,27 @@ namespace Popolo.Core.HVAC.VRF
       //冷房時
       else if (CurrentMode == Mode.Cooling)
       {
-        if (controlHeatload) UpdateState_Cooling_WithControl();
-        else UpdateState_Cooling_NoControl();
+        if (controlHeatload) UpdateCoolingStateWithControl();
+        else UpdateCoolingStateWithoutControl();
       }
       //暖房時
       else
       {
-        if (controlHeatload) UpdateState_Heating_WithControl();
-        else UpdateState_Heating_NoControl();
+        if (controlHeatload) UpdateHeatingStateWithControl();
+        else UpdateHeatingStateWithoutControl();
       }
     }
 
     /// <summary>Handles the zero-load case (thermo-off or shut-off).</summary>
     private void UpdateNoLoad()
     {
-      EvaporatingTemperature = MaxEvaporatingTemperature;
-      CondensingTemperature = MinCondensingTemperature;
+      EvaporatingTemperature = Cooling.MaxEvaporatingTemperature;
+      CondensingTemperature = Heating?.MinCondensingTemperature ?? Cooling.MinCondensingTemperature;
       PartialLoadRatio = CompressorElectricity = CompressionHead = 0;
       CompressorInletPressure = CompressorOutletPressure = 0;
 
-      outdoorUnit_C.ThermoOff();
-      outdoorUnit_H?.ThermoOff();
+      Cooling.outdoorUnit.ThermoOff();
+      Heating?.outdoorUnit.ThermoOff();
 
       //室内機
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -763,21 +782,21 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="condensingPressure">Output: condensing pressure [kPa].</param>
     /// <returns>Compression head error [kW].</returns>
     private double CalcCoolingHeadError
-      (double headAssumption, double coolingLoad, double compressorInletEnthalpy, double compressorInletDensity, 
+      (double headAssumption, double coolingLoad, double compressorInletEnthalpy, double compressorInletDensity,
       double evaporatingPressure, out double condensingPressure)
     {
       //必要凝縮圧力の計算
       double qCnd = -coolingLoad + headAssumption;
-      VRFUnit oUnt = outdoorUnit_C;
+      VRFUnit oUnt = Cooling.outdoorUnit;
       oUnt.SolveHeatLoad(qCnd, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, false);
 
       //凝縮器出口冷媒状態の計算
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC,
         out double _, out double _, out condensingPressure);
-      if(refrigerant.MaxPressure < condensingPressure)
+      if (refrigerant.MaxPressure < condensingPressure)
         return condensingPressure - refrigerant.MaxPressure; //冷媒計算可能範囲を上回る場合には過剰分を誤差として出力
       //圧縮比の制限
-      refrigerant.GetSaturatedPropertyFromTemperature(MinCondensingTemperatureOnCoolingMode + KTOC, out _, out _, out double minCondensingPressure);
+      refrigerant.GetSaturatedPropertyFromTemperature(Cooling.MinCondensingTemperature + KTOC, out _, out _, out double minCondensingPressure);
       minCondensingPressure = Math.Max(minCondensingPressure, evaporatingPressure * MIN_COMPRESSION_RATIO);
       if (condensingPressure < minCondensingPressure)
       {
@@ -796,7 +815,7 @@ namespace Popolo.Core.HVAC.VRF
       double vR = mR / compressorInletDensity;
 
       //圧力損失[kPa]の計算
-      double dP = PipeResistanceCoefficient_C * mR * vR * PipeLength;
+      double dP = Cooling.PipeResistanceCoefficient * mR * vR * PipeLength;
       dP += 0.001 * IndoorUnitHeight * 9.8 * compressorInletDensity;
 
       //圧縮ヘッド[kW]の計算
@@ -823,7 +842,7 @@ namespace Popolo.Core.HVAC.VRF
       for (int i = 0; i < indoorUnits.Count; i++)
       {
         VRFUnit unt = indoorUnits[i];
-        if(controlIndoorUnits) unt.UpdateWithRefrigerantTemperature
+        if (controlIndoorUnits) unt.UpdateWithRefrigerantTemperature
             (evaporatingTemperature, unt.NominalAirFlowRate, unt.InletAirTemperature, unt.InletAirHumidityRatio, true, ControlThermoOffWithSensibleHeat);
         else unt.UpdateWithRefrigerantTemperature(evaporatingTemperature, false);
 
@@ -834,8 +853,8 @@ namespace Popolo.Core.HVAC.VRF
         out _, out double iUnitOutletDensity2, out double iUnitOutletEnthalpy2, out _);
 
       //必要凝縮圧力の計算
-      double qCnd = -qEvpSum + NominalHead_C;
-      VRFUnit oUnt = outdoorUnit_C;
+      double qCnd = -qEvpSum + Cooling.NominalHead;
+      VRFUnit oUnt = Cooling.outdoorUnit;
       oUnt.SolveHeatLoad(qCnd, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, false);
       //2025.01.19: 臨界点近傍で冷媒物性計算が不安定になることに対応
       if (refrigerant.CriticalTemperature * 0.98 < oUnt.RefrigerantTemperature + KTOC)
@@ -844,7 +863,7 @@ namespace Popolo.Core.HVAC.VRF
       //凝縮器出口冷媒状態の計算
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC,
         out _, out _, out double cndPressure);
-      if (refrigerant.MaxPressure < cndPressure) 
+      if (refrigerant.MaxPressure < cndPressure)
         return cndPressure - refrigerant.MaxPressure; //冷媒の計算範囲外に飛び出した場合には、不足分を誤差として出力
       CompressorOutletPressure = cndPressure;
       refrigerant.GetStateFromPressureAndTemperature(CompressorOutletPressure, oUnt.RefrigerantTemperature + KTOC - SubCoolDegree,
@@ -855,7 +874,7 @@ namespace Popolo.Core.HVAC.VRF
       double vR = mR / iUnitOutletDensity2;
 
       //圧力損失[kPa]の計算
-      double dP = PipeResistanceCoefficient_C * mR * vR * PipeLength;
+      double dP = Cooling.PipeResistanceCoefficient * mR * vR * PipeLength;
       dP += 0.001 * IndoorUnitHeight * 9.8 * iUnitOutletDensity2;
 
       //圧縮ヘッド[kW]の計算
@@ -868,14 +887,14 @@ namespace Popolo.Core.HVAC.VRF
       double kp2 = kappa / (kappa - 1);
       double head2 = kp2 * CompressorInletPressure * (mR / rhoVap) * (Math.Pow(CompressorOutletPressure / CompressorInletPressure, 1d / kp2) - 1);
 
-      return head2 - NominalHead_C;
+      return head2 - Cooling.NominalHead;
     }
 
     /// <summary>Computes the electric power [kW] from the compression head [kW] accounting for partial load characteristics.</summary>
     /// <param name="head">Compression head [kW].</param>
-    private void CalculateElectricity_C(double head)
+    private void CalculateCoolingElectricity(double head)
     {
-      PartialLoadRatio = head / NominalHead_C; //システムとしての負荷率
+      PartialLoadRatio = head / Cooling.NominalHead; //システムとしての負荷率
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
@@ -888,16 +907,16 @@ namespace Popolo.Core.HVAC.VRF
       double eRate;
       //連続運転
       if (MinimumPartialLoadRatio <= plUnit)
-        eRate = HeadEfficiencyRatioCoefA_C * plUnit + HeadEfficiencyRatioCoefB_C;
+        eRate = Cooling.HeadEfficiencyRatioCoefA * plUnit + Cooling.HeadEfficiencyRatioCoefB;
       //発停運転
       else
       {
-        double eMin = HeadEfficiencyRatioCoefA_C * MinimumPartialLoadRatio + HeadEfficiencyRatioCoefB_C;
+        double eMin = Cooling.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Cooling.HeadEfficiencyRatioCoefB;
         double rme = eMin * MIN_ER_RATE;
         eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
       CompressionHead = head;
-      CompressorElectricity = head / (eRate * NominalEfficiency_C);
+      CompressorElectricity = head / (eRate * Cooling.NominalEfficiency);
     }
 
     /// <summary>Computes the compression head error [kW] for a given assumed value (used in heating mode convergence).</summary>
@@ -915,13 +934,13 @@ namespace Popolo.Core.HVAC.VRF
       double qRcv = 0;
       if (IsGasEngineHeatpump)
       {
-        double effHd = CalculateHeadEfficiency_H(headAssumption);
+        double effHd = CalculateHeatingHeadEfficiency(headAssumption);
         qRcv = headAssumption * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
       //必要蒸発圧力の計算
       double qEvp = Math.Max(0, heatingLoad - headAssumption);
-      VRFUnit oUnt = outdoorUnit_H!;
+      VRFUnit oUnt = Heating!.outdoorUnit;
       //屋外機の処理熱量計算時には廃熱回収を差し引く（冷媒循環量計算時はひいては駄目）
       oUnt.SolveHeatLoad(-Math.Max(0, qEvp - qRcv), oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true); //デフロストを反映
 
@@ -930,7 +949,7 @@ namespace Popolo.Core.HVAC.VRF
       if (evaporatingPressure < refrigerant.MinPressure)
         return refrigerant.MinPressure - evaporatingPressure; //冷媒計算可能範囲を上回る場合には過剰分を誤差として出力
       //圧縮比の制限
-      refrigerant.GetSaturatedPropertyFromTemperature(MaxEvaporatingTemperatureOnHeatingMode + KTOC, out _, out _, out double maxEvaporatingPressure);
+      refrigerant.GetSaturatedPropertyFromTemperature(Heating!.MaxEvaporatingTemperature + KTOC, out _, out _, out double maxEvaporatingPressure);
       maxEvaporatingPressure = Math.Min(maxEvaporatingPressure, condensingPressure / MIN_COMPRESSION_RATIO);
       if (maxEvaporatingPressure < evaporatingPressure)
       {
@@ -960,7 +979,7 @@ namespace Popolo.Core.HVAC.VRF
 
       //凝縮圧力の誤差を出力
       double pCnd2 = CompressorOutletPressure
-      - PipeResistanceCoefficient_H * mR * (mR / rhoVap) * PipeLength
+      - Heating!.PipeResistanceCoefficient * mR * (mR / rhoVap) * PipeLength
       + 0.001 * IndoorUnitHeight * 9.8 * rhoVap;
       return condensingPressure - pCnd2;
     }
@@ -973,7 +992,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="evaporatingPressure">Output: evaporating pressure [kPa].</param>
     /// <returns>Compression head error [kW]; a positive value means the nominal head is insufficient.</returns>
     private double CalcCondensingTemperatureError
-      (double condensingTemperature, double heatRecovery, 
+      (double condensingTemperature, double heatRecovery,
       out double heatingLoad, out double condensingPressure, out double evaporatingPressure)
     {
       //凝縮温度にもとづいて屋内機を更新
@@ -993,13 +1012,13 @@ namespace Popolo.Core.HVAC.VRF
         out _, out _, out double iUnitOutletEnthalpy2, out _);
 
       //必要蒸発圧力の計算
-      double qEvp = heatingLoad - NominalHead_H;
+      double qEvp = heatingLoad - Heating!.NominalHead;
       if (qEvp < 0) //ヘッドだけで負荷が賄える場合
       {
         evaporatingPressure = refrigerant.MinPressure;
         return qEvp; //2023.07.28
       }
-      VRFUnit oUnt = outdoorUnit_H!;
+      VRFUnit oUnt = Heating!.outdoorUnit;
       //屋外機の処理熱量計算時には廃熱回収を差し引く（冷媒循環量計算時は引いては駄目）
       oUnt.SolveHeatLoad(-Math.Max(0, qEvp - heatRecovery), oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true);
 
@@ -1014,13 +1033,13 @@ namespace Popolo.Core.HVAC.VRF
 
       //圧縮機出口比エンタルピー[kJ/kg]の計算
       double mR = (Math.Max(0, qEvp + oUnt.DefrostLoad)) / (oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11 Bugfix:圧縮ヘッドのみで負荷がまかなえてしまう場合に収束計算エラーが発生したため
-      double hCmpOut = oUnitOutletEnthalpy + Math.Min(NominalHead_H / mR, oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11: 低負荷時に極めて大きい比エンタルピーになる場合があったため、圧縮機によるh上昇は蒸発器のΔh以下とした。収束計算破綻回避処理である、物理的な意味はない。
+      double hCmpOut = oUnitOutletEnthalpy + Math.Min(Heating!.NominalHead / mR, oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11: 低負荷時に極めて大きい比エンタルピーになる場合があったため、圧縮機によるh上昇は蒸発器のΔh以下とした。収束計算破綻回避処理である、物理的な意味はない。
 
       //圧縮機出口圧力[kPa]の計算
       refrigerant.GetStateFromPressureAndEnthalpy(condensingPressure, hCmpOut,
         out _, out double rhoVap, out _, out _);  //圧力降下後の冷媒密度で計算
       CompressorOutletPressure = condensingPressure
-      + PipeResistanceCoefficient_H * mR * (mR / rhoVap) * PipeLength
+      + Heating!.PipeResistanceCoefficient * mR * (mR / rhoVap) * PipeLength
       - 0.001 * IndoorUnitHeight * 9.8 * rhoVap;
 
       //圧縮ヘッド[kW]の計算
@@ -1029,23 +1048,23 @@ namespace Popolo.Core.HVAC.VRF
       double kp2 = kappa / (kappa - 1);
       double head2 = kp2 * evaporatingPressure * (mR / rhoCmpIn) * (Math.Pow(CompressorOutletPressure / evaporatingPressure, 1d / kp2) - 1);
 
-      return head2 - NominalHead_H;
+      return head2 - Heating!.NominalHead;
     }
 
     /// <summary>Computes the electric power [kW] from the compression head [kW] accounting for partial load characteristics.</summary>
     /// <param name="head">Compression head [kW].</param>
-    private void CalculateElectricity_H(double head)
-    { 
-      CompressorElectricity = head / CalculateHeadEfficiency_H(head);
+    private void CalculateHeatingElectricity(double head)
+    {
+      CompressorElectricity = head / CalculateHeatingHeadEfficiency(head);
       CompressionHead = head;
     }
 
     /// <summary>Computes the head efficiency ratio [-] from the compression head [kW].</summary>
     /// <param name="head">Compression head [kW].</param>
     /// <returns>Compression head efficiency ratio [-].</returns>
-    private double CalculateHeadEfficiency_H(double head)
+    private double CalculateHeatingHeadEfficiency(double head)
     {
-      PartialLoadRatio = head / NominalHead_H; //システムとしての負荷率
+      PartialLoadRatio = head / Heating!.NominalHead; //システムとしての負荷率
 
       //ユニットの運転台数と負荷率を確認
       int nOP;
@@ -1058,15 +1077,15 @@ namespace Popolo.Core.HVAC.VRF
       double eRate;
       //連続運転
       if (MinimumPartialLoadRatio <= plUnit)
-        eRate = HeadEfficiencyRatioCoefA_H * plUnit + HeadEfficiencyRatioCoefB_H;
+        eRate = Heating!.HeadEfficiencyRatioCoefA * plUnit + Heating!.HeadEfficiencyRatioCoefB;
       //発停運転
       else
       {
-        double eMin = HeadEfficiencyRatioCoefA_H * MinimumPartialLoadRatio + HeadEfficiencyRatioCoefB_H;
+        double eMin = Heating!.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Heating!.HeadEfficiencyRatioCoefB;
         double rme = eMin * MIN_ER_RATE;
         eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
-      return eRate * NominalEfficiency_H;
+      return eRate * Heating!.NominalEfficiency;
     }
 
     #endregion
@@ -1074,10 +1093,10 @@ namespace Popolo.Core.HVAC.VRF
     #region 制御有の場合の状態更新処理（熱負荷ないしは給気温度を指定）
 
     /// <summary>Performs the cooling mode state update with setpoint control.</summary>
-    private void UpdateState_Cooling_WithControl()
+    private void UpdateCoolingStateWithControl()
     {
       //屋内機の計算
-      double lmtTemp = MaxEvaporatingTemperature;
+      double lmtTemp = Cooling.MaxEvaporatingTemperature;
       double qEvpSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -1090,7 +1109,7 @@ namespace Popolo.Core.HVAC.VRF
         lmtTemp = Math.Min(lmtTemp, unt.RefrigerantTemperature);  //最大負荷系統の冷媒温度を保存
         qEvpSum += unt.HeatTransfer;
       }
-      lmtTemp = Math.Max(lmtTemp, MinEvaporatingTemperature);
+      lmtTemp = Math.Max(lmtTemp, Cooling.MinEvaporatingTemperature);
 
       //熱負荷が無い場合にはサーモオフして終了
       if (0 <= qEvpSum)
@@ -1120,7 +1139,7 @@ namespace Popolo.Core.HVAC.VRF
       };
 
       //過負荷判定
-      bool overLoad = 0 < eFncHead(NominalHead_C);
+      bool overLoad = 0 < eFncHead(Cooling.NominalHead);
       //過負荷の場合には蒸発温度を収束計算
       if (overLoad)
       {
@@ -1128,8 +1147,8 @@ namespace Popolo.Core.HVAC.VRF
         if (0 <= eFncEvpTmp(lmtTemp))
         {
           Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_C;
-          CompressionHead = NominalHead_C;
+          CompressorElectricity = Cooling.NominalElectricity;
+          CompressionHead = Cooling.NominalHead;
           PartialLoadRatio = 1.0;
         }
         //蒸発温度を低くしないと成立しない場合
@@ -1138,16 +1157,16 @@ namespace Popolo.Core.HVAC.VRF
           //ヘッドを調整して熱量は合わせられる場合
           if (eFncHead(0) < 0)
           {
-            double hd = Roots.Bisection(eFncHead, 0, NominalHead_C, 0.001, 0.001, 20);
+            double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
             eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-            CalculateElectricity_C(hd);
+            CalculateCoolingElectricity(hd);
           }
           //成立しない場合
           else
           {
-            eFncHead(NominalHead_C);
-            CompressorElectricity = NominalElectricity_C;
-            CompressionHead = NominalHead_C;
+            eFncHead(Cooling.NominalHead);
+            CompressorElectricity = Cooling.NominalElectricity;
+            CompressionHead = Cooling.NominalHead;
             PartialLoadRatio = 1.0;
           }
         }
@@ -1155,9 +1174,9 @@ namespace Popolo.Core.HVAC.VRF
       //軽負荷の場合にはヘッドを収束計算
       else
       {
-        double hd = Roots.Bisection(eFncHead, 0, NominalHead_C, 0.001, 0.001, 20);
+        double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
         eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-        CalculateElectricity_C(hd);
+        CalculateCoolingElectricity(hd);
       }
 
       //屋内機のサーモオフ時間を調整
@@ -1172,14 +1191,14 @@ namespace Popolo.Core.HVAC.VRF
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
       EvaporatingTemperature = indoorUnits[0].RefrigerantTemperature;
-      CondensingTemperature = outdoorUnit_C.RefrigerantTemperature;
+      CondensingTemperature = Cooling.outdoorUnit.RefrigerantTemperature;
     }
 
     /// <summary>Performs the heating mode state update with setpoint control.</summary>
-    private void UpdateState_Heating_WithControl()
+    private void UpdateHeatingStateWithControl()
     {
       //屋内機の計算
-      double lmtTemp = MinCondensingTemperature;
+      double lmtTemp = Heating!.MinCondensingTemperature;
       double qCndSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -1192,7 +1211,7 @@ namespace Popolo.Core.HVAC.VRF
         lmtTemp = Math.Max(lmtTemp, unt.RefrigerantTemperature);  //最大負荷系統の冷媒温度を保存
         qCndSum += unt.HeatTransfer;
       }
-      lmtTemp = Math.Min(MaxCondensingTemperature, lmtTemp);
+      lmtTemp = Math.Min(Heating!.MaxCondensingTemperature, lmtTemp);
 
       //熱負荷が無い場合にはサーモオフして終了
       if (qCndSum <= 0)
@@ -1211,8 +1230,8 @@ namespace Popolo.Core.HVAC.VRF
       double qRcvN = 0;
       if (IsGasEngineHeatpump)
       {
-        double effHd = CalculateHeadEfficiency_H(NominalHead_H);
-        qRcvN = NominalHead_H * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
+        double effHd = CalculateHeatingHeadEfficiency(Heating!.NominalHead);
+        qRcvN = Heating!.NominalHead * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
       //圧縮ヘッドの収束計算用誤差関数*****************************
@@ -1232,8 +1251,8 @@ namespace Popolo.Core.HVAC.VRF
 
       //過負荷判定
       bool overLoad;
-      if (qCndSum < NominalHead_H + qRcvN) overLoad = false;
-      else overLoad = 0 < eFncHead(NominalHead_H);
+      if (qCndSum < Heating!.NominalHead + qRcvN) overLoad = false;
+      else overLoad = 0 < eFncHead(Heating!.NominalHead);
       //過負荷の場合には凝縮温度を収束計算
       if (overLoad)
       {
@@ -1241,8 +1260,8 @@ namespace Popolo.Core.HVAC.VRF
         if (0 <= eFncCndTmp(lmtTemp))
         {
           lmtTemp = Roots.Bisection(eFncCndTmp, 15, lmtTemp, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_H;
-          CompressionHead = NominalHead_H;
+          CompressorElectricity = Heating!.NominalElectricity;
+          CompressionHead = Heating!.NominalHead;
           PartialLoadRatio = 1.0;
           eFncCndTmp(lmtTemp);
         }
@@ -1252,16 +1271,16 @@ namespace Popolo.Core.HVAC.VRF
           //ヘッドを調整して熱量は合わせられる場合
           if (eFncHead(0) < 0)
           {
-            double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, NominalHead_H), 0.001, 0.001, 20);
+            double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
             eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-            CalculateElectricity_H(hd);
+            CalculateHeatingElectricity(hd);
           }
           //成立しない場合
           else
           {
-            eFncHead(NominalHead_H);
-            CompressorElectricity = NominalElectricity_H;
-            CompressionHead = NominalHead_H;
+            eFncHead(Heating!.NominalHead);
+            CompressorElectricity = Heating!.NominalElectricity;
+            CompressionHead = Heating!.NominalHead;
             PartialLoadRatio = 1.0;
           }
         }
@@ -1269,9 +1288,9 @@ namespace Popolo.Core.HVAC.VRF
       //軽負荷の場合にはヘッドを収束計算
       else
       {
-        double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, NominalHead_H), 0.001, 0.001, 20);
+        double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
         eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-        CalculateElectricity_H(hd);
+        CalculateHeatingElectricity(hd);
       }
 
       //屋内機のサーモオフ時間を調整
@@ -1285,7 +1304,7 @@ namespace Popolo.Core.HVAC.VRF
       //プロパティ書き込み
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
-      EvaporatingTemperature = outdoorUnit_H!.RefrigerantTemperature;
+      EvaporatingTemperature = Heating!.outdoorUnit.RefrigerantTemperature;
       CondensingTemperature = indoorUnits[0].RefrigerantTemperature;
     }
 
@@ -1294,10 +1313,10 @@ namespace Popolo.Core.HVAC.VRF
     #region 制御無の場合の状態更新処理（冷媒温度、室内機風量、サーモOn/Off状態を指定：成り行き）
 
     /// <summary>Performs the cooling mode state update in free-running mode.</summary>
-    private void UpdateState_Cooling_NoControl()
+    private void UpdateCoolingStateWithoutControl()
     {
       //成り行き計算の場合には勝手にファンを落とさない
-      for (int i = 0; i < indoorUnits.Count; i++) 
+      for (int i = 0; i < indoorUnits.Count; i++)
         indoorUnits[i].ShutoffFanWhenThermoOff = false;
 
       //蒸発温度が制御できると仮定して屋内機処理熱を計算
@@ -1338,43 +1357,43 @@ namespace Popolo.Core.HVAC.VRF
       };
 
       //過負荷判定
-      bool overLoad = 0 < eFncHead(NominalHead_C);
+      bool overLoad = 0 < eFncHead(Cooling.NominalHead);
       //過負荷の場合には蒸発温度を収束計算
       if (overLoad)
       {
-        if (eFncEvpTmp(MinEvaporatingTemperature) < 0) //下限蒸発温度にかかるための過負荷
+        if (eFncEvpTmp(Cooling.MinEvaporatingTemperature) < 0) //下限蒸発温度にかかるための過負荷
         {
-          double hd = Roots.Bisection(eFncHead, 0, NominalHead_C, 0.001, 0.001, 20);
+          double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
           eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-          CalculateElectricity_C(hd);
+          CalculateCoolingElectricity(hd);
         }
         else //圧縮機の能力不足による過負荷
         {
-          Roots.Bisection(eFncEvpTmp, MinEvaporatingTemperature, 30, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_C;
-          CompressionHead = NominalHead_C;
+          Roots.Bisection(eFncEvpTmp, Cooling.MinEvaporatingTemperature, 30, 0.001, 0.001, 20);
+          CompressorElectricity = Cooling.NominalElectricity;
+          CompressionHead = Cooling.NominalHead;
           PartialLoadRatio = 1.0;
         }
       }
       //軽負荷の場合にはヘッドを収束計算
       else
       {
-        double hd = Roots.Bisection(eFncHead, 0, NominalHead_C, 0.001, 0.001, 20);
+        double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
         eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-        CalculateElectricity_C(hd);
+        CalculateCoolingElectricity(hd);
       }
 
       //プロパティ書き込み
       refrigerant.GetSaturatedPropertyFromTemperature(indoorUnits[0].RefrigerantTemperature + KTOC, out _, out _, out evpPressure);
-      refrigerant.GetSaturatedPropertyFromTemperature(outdoorUnit_C.RefrigerantTemperature + KTOC, out _, out _, out cndPressure);
+      refrigerant.GetSaturatedPropertyFromTemperature(Cooling.outdoorUnit.RefrigerantTemperature + KTOC, out _, out _, out cndPressure);
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
       EvaporatingTemperature = indoorUnits[0].RefrigerantTemperature;
-      CondensingTemperature = outdoorUnit_C.RefrigerantTemperature;
+      CondensingTemperature = Cooling.outdoorUnit.RefrigerantTemperature;
     }
 
     /// <summary>Performs the heating mode state update in free-running mode.</summary>
-    private void UpdateState_Heating_NoControl()
+    private void UpdateHeatingStateWithoutControl()
     {
       //成り行き計算の場合には勝手にファンを落とさない
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -1407,8 +1426,8 @@ namespace Popolo.Core.HVAC.VRF
       double qRcvN = 0;
       if (IsGasEngineHeatpump)
       {
-        double effHd = CalculateHeadEfficiency_H(NominalHead_H);
-        qRcvN = NominalHead_H * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
+        double effHd = CalculateHeatingHeadEfficiency(Heating!.NominalHead);
+        qRcvN = Heating!.NominalHead * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
       //圧縮ヘッドの収束計算用誤差関数*****************************
@@ -1428,37 +1447,37 @@ namespace Popolo.Core.HVAC.VRF
 
       //過負荷判定
       bool overLoad;
-      if (qCndSum < NominalHead_H + qRcvN) overLoad = false;
-      else overLoad = 0 < eFncHead(NominalHead_H);
+      if (qCndSum < Heating!.NominalHead + qRcvN) overLoad = false;
+      else overLoad = 0 < eFncHead(Heating!.NominalHead);
       //過負荷の場合には凝縮温度を収束計算
       if (overLoad)
       {
-        if (eFncCndTmp(MaxCondensingTemperature) < 0) //凝縮温度上限値を超えることによる過負荷
+        if (eFncCndTmp(Heating!.MaxCondensingTemperature) < 0) //凝縮温度上限値を超えることによる過負荷
         {
-          double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, NominalHead_H), 0.001, 0.001, 20);
+          double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
           eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-          CalculateElectricity_H(hd);
+          CalculateHeatingElectricity(hd);
         }
         else //圧縮機能力が不足することによる過負荷
         {
-          Roots.Bisection(eFncCndTmp, 15, MaxCondensingTemperature, 0.001, 0.001, 20);
-          CompressorElectricity = NominalElectricity_H;
-          CompressionHead = NominalHead_H;
+          Roots.Bisection(eFncCndTmp, 15, Heating!.MaxCondensingTemperature, 0.001, 0.001, 20);
+          CompressorElectricity = Heating!.NominalElectricity;
+          CompressionHead = Heating!.NominalHead;
           PartialLoadRatio = 1.0;
         }
       }
       //軽負荷の場合にはヘッドを収束計算
       else
       {
-        double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, NominalHead_H), 0.001, 0.001, 20);
+        double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
         eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
-        CalculateElectricity_H(hd);
+        CalculateHeatingElectricity(hd);
       }
 
       //プロパティ書き込み
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
-      EvaporatingTemperature = outdoorUnit_H!.RefrigerantTemperature;
+      EvaporatingTemperature = Heating!.outdoorUnit.RefrigerantTemperature;
       CondensingTemperature = indoorUnits[0].RefrigerantTemperature;
     }
 
@@ -1490,8 +1509,8 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Sets the operating mode of an indoor unit.</summary>
     /// <param name="mode">Operating mode.</param>
     public void SetIndoorUnitMode(VRFUnit.Mode mode)
-    { 
-      for(int i=0;i<IndoorUnitCount;i++)
+    {
+      for (int i = 0; i < IndoorUnitCount; i++)
         indoorUnits[i].CurrentMode = mode;
     }
 
@@ -1560,8 +1579,8 @@ namespace Popolo.Core.HVAC.VRF
       foreach (VRFUnit iHex in indoorUnits)
         hSum += iHex.HeatTransfer;
       //デフロスト負荷があれば差し引く
-      if (CurrentMode == Mode.Heating && outdoorUnit_H!.DefrostLoad != 0)
-        hSum = Math.Max(0, hSum - outdoorUnit_H.DefrostLoad);
+      if (CurrentMode == Mode.Heating && Heating!.outdoorUnit.DefrostLoad != 0)
+        hSum = Math.Max(0, hSum - Heating!.outdoorUnit.DefrostLoad);
       return hSum;
     }
 
@@ -1571,16 +1590,16 @@ namespace Popolo.Core.HVAC.VRF
     public double GetHeatLoad(int indoorUnitIndex)
     {
       //デフロスト負荷があれば負担する
-      if (CurrentMode == Mode.Heating && outdoorUnit_H!.DefrostLoad != 0)
+      if (CurrentMode == Mode.Heating && Heating!.outdoorUnit.DefrostLoad != 0)
       {
         double hSum = 0;
         foreach (VRFUnit iHex in indoorUnits)
           hSum += iHex.HeatTransfer;
         double rate = indoorUnits[indoorUnitIndex].HeatTransfer / hSum;
-        return Math.Max(0, indoorUnits[indoorUnitIndex].HeatTransfer - outdoorUnit_H.DefrostLoad * rate);
+        return Math.Max(0, indoorUnits[indoorUnitIndex].HeatTransfer - Heating!.outdoorUnit.DefrostLoad * rate);
       }
       //なければ室内機負荷をそのまま出力
-      else 
+      else
         return indoorUnits[indoorUnitIndex].HeatTransfer;
     }
 
@@ -1616,7 +1635,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="pipeResistanceCoefficient">Output: pipe resistance coefficient [1/m].</param>
     /// <param name="nominalHead">Output: nominal compression head [kW].</param>
     /// <param name="outdoorHex">Output: outdoor unit heat exchanger.</param>
-    public static void EstimateOutdoorUnitNominalParameters_Cooling(
+    public static void EstimateCoolingOutdoorUnitNominalParameters(
       Refrigerant refrigerant,
       double oHexAirFlowRate, double fanElectricity, double coolingCapacity,
       double nominalPipeLength, double longPipeLength, double pipeCorrectionFactor,
@@ -1632,14 +1651,14 @@ namespace Popolo.Core.HVAC.VRF
 
       //配管長補正条件の蒸発器入口比エンタルピー
       double cndTempAdj = JIS_OA_DBT_NOM_C - pipeCorrectionFactor * (JIS_OA_DBT_NOM_C - cndTemp);  //凝縮温度の補正
-      double evpTempAdj = JIS_IA_DBT_C - pipeCorrectionFactor * (JIS_IA_DBT_C - NOMINAL_EVAPORATING_TEMPERATURE);
+      double evpTempAdj = JIS_IA_DBT_C - pipeCorrectionFactor * (JIS_IA_DBT_C - NominalEvaporatingTemperature);
       refrigerant.GetSaturatedPropertyFromTemperature(cndTempAdj + KTOC, out rhoLiq, out _, out double cndPressurePC);
       double hIHexInPC = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTempAdj - SUB_COOL_NOM + KTOC, rhoLiq);
 
       //圧縮機入口冷媒状態
       double hIHexOutRef;
-      refrigerant.GetSaturatedPropertyFromTemperature(NOMINAL_EVAPORATING_TEMPERATURE + KTOC, out _, out _, out double evpPressureRef);
-      refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, NOMINAL_EVAPORATING_TEMPERATURE + KTOC + SUPER_HEAT_NOM, out _, out _, out hIHexOutRef, out _);
+      refrigerant.GetSaturatedPropertyFromTemperature(NominalEvaporatingTemperature + KTOC, out _, out _, out double evpPressureRef);
+      refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, NominalEvaporatingTemperature + KTOC + SUPER_HEAT_NOM, out _, out _, out hIHexOutRef, out _);
 
       //配管長補正条件の圧縮機入口冷媒状態
       double hIHexOutPC;
@@ -1674,7 +1693,7 @@ namespace Popolo.Core.HVAC.VRF
       };
       pipeResistanceCoefficient = Roots.Newton(eFnc1, 0, 1, 0.01, 0.01, 20);
       nominalHead = nmHead;
-      
+
       //屋外機伝熱面積
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       outdoorHex = new VRFUnit
@@ -1694,7 +1713,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="midCapacity2">Intermediate mid-temperature-condition cooling capacity [kW] (negative).</param>
     /// <param name="midHead1">Output: compression head at intermediate standard condition [kW].</param>
     /// <param name="midHead2">Output: compression head at intermediate mid-temperature condition [kW].</param>
-    public static void EstimatePartialLoadParameters_Cooling(
+    public static void EstimateCoolingPartialLoadParameters(
       Refrigerant refrigerant,
       double nominalPipeLength, double pipeResistanceCoefficient, double nominalHead, double nominalCapacity,
       VRFUnit outdoorHex, VRFUnit indoorHex,
@@ -1782,9 +1801,9 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="indoorHex">Indoor unit heat exchanger.</param>
     /// <param name="midCapacity1">Intermediate standard-condition cooling capacity [kW] (negative).</param>
     /// <param name="midHead1">Output: compression head at intermediate standard condition [kW].</param>
-    public static void EstimatePartialLoadParameters_Cooling(
+    public static void EstimateCoolingPartialLoadParameters(
       Refrigerant refrigerant,
-      double nominalPipeLength, double pipeResistanceCoefficient, 
+      double nominalPipeLength, double pipeResistanceCoefficient,
       double nominalHead, double nominalCapacity,
       VRFUnit outdoorHex, VRFUnit indoorHex,
       double midCapacity1, out double midHead1)
@@ -1850,7 +1869,7 @@ namespace Popolo.Core.HVAC.VRF
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
         (JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
-        (iHexAirFlowRate, fanElectricity, NOMINAL_EVAPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd, borderRelativeHumidity);
+        (iHexAirFlowRate, fanElectricity, NominalEvaporatingTemperature, coolingCapacity, JIS_IA_DBT_C, iHmd, borderRelativeHumidity);
       iUnit.CurrentMode = VRFUnit.Mode.Cooling;
       return iUnit;
     }
@@ -1914,7 +1933,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="pipeResistanceCoefficient">Output: pipe resistance coefficient [1/m].</param>
     /// <param name="nominalHead">Output: nominal compression head [kW].</param>
     /// <param name="outdoorHex">Output: outdoor unit heat exchanger.</param>
-    public static void EstimateOutdoorUnitNominalParameters_Heating(
+    public static void EstimateHeatingOutdoorUnitNominalParameters(
       Refrigerant refrigerant,
       double oHexAirFlowRate, double fanElectricity, double heatingCapacity, double totalEnergyRecover,
       double nominalPipeLength, double longPipeLength, double pipeCorrectionFactor,
@@ -1925,12 +1944,12 @@ namespace Popolo.Core.HVAC.VRF
       double evpTempRef = -0.34 * (heatingCapacity / oHexAirFlowRate) + 4.091;
 
       //基準条件の蒸発器入口比エンタルピー
-      refrigerant.GetSaturatedPropertyFromTemperature(NOMINAL_CONDENSING_TEMPERATURE + KTOC, out double rhoLiq, out _, out double cndPressureRef);
-      double hIHexInRef = refrigerant.GetEnthalpyFromTemperatureAndDensity(NOMINAL_CONDENSING_TEMPERATURE - SUB_COOL_NOM + KTOC, rhoLiq);
+      refrigerant.GetSaturatedPropertyFromTemperature(NominalCondensingTemperature + KTOC, out double rhoLiq, out _, out double cndPressureRef);
+      double hIHexInRef = refrigerant.GetEnthalpyFromTemperatureAndDensity(NominalCondensingTemperature - SUB_COOL_NOM + KTOC, rhoLiq);
 
       //配管長補正条件の蒸発器入口比エンタルピー
       double evpTempAdj = JIS_OA_DBT_NOM_H - pipeCorrectionFactor * (JIS_OA_DBT_NOM_H - evpTempRef);  //蒸発温度の補正
-      double cndTempAdj = JIS_IA_DBT_H - pipeCorrectionFactor * (JIS_IA_DBT_H - NOMINAL_CONDENSING_TEMPERATURE);  //凝縮温度の補正
+      double cndTempAdj = JIS_IA_DBT_H - pipeCorrectionFactor * (JIS_IA_DBT_H - NominalCondensingTemperature);  //凝縮温度の補正
       refrigerant.GetSaturatedPropertyFromTemperature(cndTempAdj + KTOC, out rhoLiq, out _, out double cndPressurePC);
       double hIHexInPC = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTempAdj - SUB_COOL_NOM + KTOC, rhoLiq);
 
@@ -1993,7 +2012,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="totalEnergyRecover">Total energy recovery [kW].</param>
     /// <param name="midCapacity">Intermediate standard-condition heating capacity [kW] (positive).</param>
     /// <param name="midHead">Output: compression head at intermediate standard condition [kW].</param>
-    public static void EstimatePartialLoadParameters_Heating(
+    public static void EstimateHeatingPartialLoadParameters(
       Refrigerant refrigerant,
       double nominalPipeLength, double pipeResistanceCoefficient, double nominalHead, double nominalCapacity,
       VRFUnit outdoorHex, VRFUnit indoorHex, double totalEnergyRecover,
@@ -2054,7 +2073,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="midHead1">Output: compression head at intermediate standard condition [kW].</param>
     /// <param name="midHead2">Output: compression head at minimum standard condition [kW].</param>
     /// <remarks>The minimum standard condition does not appear to be mandatory published information under JIS.</remarks>
-    public static void EstimatePartialLoadParameters_Heating(
+    public static void EstimateHeatingPartialLoadParameters(
       Refrigerant refrigerant,
       double nominalPipeLength, double pipeResistanceCoefficient, double nominalHead, double nominalCapacity,
       VRFUnit outdoorHex, VRFUnit indoorHex,
@@ -2113,13 +2132,13 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="heatingCapacity">Heating capacity [kW] (positive = heating).</param>
     /// <returns>Initialized indoor unit.</returns>
     public static VRFUnit MakeIndoorUnit(
-      double iHexAirFlowRate, 
+      double iHexAirFlowRate,
       double coolingFanElectricity, double coolingCapacity,
       double heatingFanElectricity, double heatingCapacity)
     {
       return MakeIndoorUnit(
-        iHexAirFlowRate, 
-        coolingFanElectricity, coolingCapacity, 95, 
+        iHexAirFlowRate,
+        coolingFanElectricity, coolingCapacity, 95,
         heatingFanElectricity, heatingCapacity);
     }
 
@@ -2136,14 +2155,14 @@ namespace Popolo.Core.HVAC.VRF
       double coolingFanElectricity, double coolingCapacity, double borderRelativeHumidity,
       double heatingFanElectricity, double heatingCapacity)
     {
-      double iHmd_C = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
+      double coolingIndoorHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
         (JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
-      double iHmd_H = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
+      double heatingIndoorHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
         (JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
         (iHexAirFlowRate,
-        NOMINAL_EVAPORATING_TEMPERATURE, coolingCapacity, JIS_IA_DBT_C, iHmd_C, borderRelativeHumidity, coolingFanElectricity,
-        NOMINAL_CONDENSING_TEMPERATURE, heatingCapacity, JIS_IA_DBT_H, iHmd_H, heatingFanElectricity);
+        NominalEvaporatingTemperature, coolingCapacity, JIS_IA_DBT_C, coolingIndoorHumidityRatio, borderRelativeHumidity, coolingFanElectricity,
+        NominalCondensingTemperature, heatingCapacity, JIS_IA_DBT_H, heatingIndoorHumidityRatio, heatingFanElectricity);
       iUnit.CurrentMode = VRFUnit.Mode.Cooling;
       return iUnit;
     }
@@ -2159,7 +2178,7 @@ namespace Popolo.Core.HVAC.VRF
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature
         (JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
       VRFUnit iUnit = new VRFUnit
-        (iHexAirFlowRate, fanElectricity, NOMINAL_CONDENSING_TEMPERATURE, heatingCapacity, JIS_IA_DBT_H, iHmd);
+        (iHexAirFlowRate, fanElectricity, NominalCondensingTemperature, heatingCapacity, JIS_IA_DBT_H, iHmd);
       iUnit.CurrentMode = VRFUnit.Mode.Heating;
       return iUnit;
     }

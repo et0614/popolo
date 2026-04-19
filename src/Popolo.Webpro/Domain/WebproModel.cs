@@ -92,8 +92,8 @@ namespace Popolo.Webpro.Domain
     /// <see cref="WebproWall.WallSpec"/> of each <see cref="WebproWall"/>.
     /// Corresponds to the <c>WallConfigure</c> JSON section.
     /// </remarks>
-    public Dictionary<string, WebproWallConfigure> WallConfigurations { get; }
-      = new Dictionary<string, WebproWallConfigure>();
+    public Dictionary<string, WebproWallConfiguration> WallConfigurations { get; }
+      = new Dictionary<string, WebproWallConfiguration>();
 
     /// <summary>Gets the dictionary of named window specifications, keyed by spec ID.</summary>
     /// <remarks>
@@ -101,8 +101,8 @@ namespace Popolo.Webpro.Domain
     /// <see cref="WebproWindow.ID"/> of each <see cref="WebproWindow"/>.
     /// Corresponds to the <c>WindowConfigure</c> JSON section.
     /// </remarks>
-    public Dictionary<string, WebproWindowConfigure> WindowConfigurations { get; }
-      = new Dictionary<string, WebproWindowConfigure>();
+    public Dictionary<string, WebproWindowConfiguration> WindowConfigurations { get; }
+      = new Dictionary<string, WebproWindowConfiguration>();
 
     /// <summary>Gets the set of room names that are air-conditioned.</summary>
     /// <remarks>

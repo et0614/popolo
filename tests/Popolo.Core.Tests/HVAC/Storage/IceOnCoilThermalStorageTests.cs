@@ -70,21 +70,21 @@ namespace Popolo.Core.Tests.HVAC.Storage
     [Fact]
     public void Constants_IceDensity_Is917()
     {
-      Assert.Equal(917d, IceOnCoilThermalStorage.ICE_DENSITY);
+      Assert.Equal(917d, IceOnCoilThermalStorage.IceDensity);
     }
 
     /// <summary>氷の融解潜熱 [kJ/kg] は 334。</summary>
     [Fact]
     public void Constants_IceLatentHeat_Is334()
     {
-      Assert.Equal(334d, IceOnCoilThermalStorage.ICE_LATENT_HEAT);
+      Assert.Equal(334d, IceOnCoilThermalStorage.IceLatentHeat);
     }
 
     /// <summary>氷の比熱 [kJ/(kg·K)] は 2.1。</summary>
     [Fact]
     public void Constants_IceSpecificHeat_Is2Point1()
     {
-      Assert.Equal(2.1, IceOnCoilThermalStorage.ICE_SPECIFIC_HEAT);
+      Assert.Equal(2.1, IceOnCoilThermalStorage.IceSpecificHeat);
     }
 
     #endregion
@@ -157,7 +157,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     [Fact]
     public void NumberOfSegments_Is10()
     {
-      Assert.Equal(10, IceOnCoilThermalStorage.SEGMENTS_COUNT);
+      Assert.Equal(10, IceOnCoilThermalStorage.SegmentsCount);
     }
 
     #endregion
@@ -341,8 +341,8 @@ namespace Popolo.Core.Tests.HVAC.Storage
       double ipf = tank.GetIcePackingFactor();
       Assert.True(ipf >= 0, $"IPF = {ipf:F4} must be non-negative");
       // 水槽が完全に凍ったときのIPF上限は 氷質量/水質量 ≒ 917/1000
-      Assert.True(ipf <= IceOnCoilThermalStorage.ICE_DENSITY / PhysicsConstants.NominalWaterDensity + 1e-6,
-          $"IPF = {ipf:F4} cannot exceed ICE_DENSITY/WATER_DENSITY = {IceOnCoilThermalStorage.ICE_DENSITY / PhysicsConstants.NominalWaterDensity:F4}");
+      Assert.True(ipf <= IceOnCoilThermalStorage.IceDensity / PhysicsConstants.NominalWaterDensity + 1e-6,
+          $"IPF = {ipf:F4} cannot exceed ICE_DENSITY/WATER_DENSITY = {IceOnCoilThermalStorage.IceDensity / PhysicsConstants.NominalWaterDensity:F4}");
     }
 
     /// <summary>十分長く製氷運転すると IPF がほぼ最大値(≒ ICE_DENSITY/WATER_DENSITY)まで到達する。</summary>
@@ -357,7 +357,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       tank.AmbientTemperature = 2.0;
       // 十分に長く(20時間相当)
       for (int i = 0; i < 1200; i++) tank.Update(-5.0, 0.5);
-      double maxIpf = IceOnCoilThermalStorage.ICE_DENSITY / PhysicsConstants.NominalWaterDensity;
+      double maxIpf = IceOnCoilThermalStorage.IceDensity / PhysicsConstants.NominalWaterDensity;
       Assert.True(tank.GetIcePackingFactor() > 0.5 * maxIpf,
           $"IPF = {tank.GetIcePackingFactor():F4} should approach {maxIpf:F4} after long freezing");
     }

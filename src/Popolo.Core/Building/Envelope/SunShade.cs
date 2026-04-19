@@ -158,14 +158,14 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the shadow area ratio [-] on the window for the given solar position.</summary>
     /// <param name="sun">Solar state.</param>
     /// <returns>Shadow area ratio [-] (0 = fully sunlit, 1 = fully shaded).</returns>
-    public double GetShadowRate(IReadOnlySun sun)
+    public double GetShadowRatio(IReadOnlySun sun)
     {
       //日の出前と日没後はすべて影      
       if (sun.Altitude <= 0) return 1;
       //日除けが無ければ影は無し
       if (Shape == Shapes.None) return 0;
       //太陽が裏面にある場合にはすべて影
-      if (Incline.GetDirectSolarRadiationRate(sun) <= 0) return 1;
+      if (Incline.GetDirectSolarRadiationRatio(sun) <= 0) return 1;
 
       double dpW = Overhang * Math.Tan(Incline.HorizontalAngle - sun.Orientation);
       double dpH = Overhang * Incline.GetTangentProfileAngle(sun);

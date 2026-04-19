@@ -21,10 +21,10 @@ namespace Popolo.Core.HVAC.VRF
     double NominalHeatingCapacity { get; }
 
     /// <summary>Gets the evaporator heat transfer surface area [m²].</summary>
-    double SurfaceArea_Evaporator { get; }
+    double EvaporatorSurfaceArea { get; }
 
     /// <summary>Gets the condenser heat transfer surface area [m²].</summary>
-    double SurfaceArea_Condenser { get; }
+    double CondenserSurfaceArea { get; }
 
     /// <summary>Gets the dry heat transfer surface area [m²].</summary>
     double DrySurfaceArea { get; }
@@ -81,10 +81,10 @@ namespace Popolo.Core.HVAC.VRF
     double SprayEffectiveness { get; }
 
     /// <summary>Gets the nominal fan electric power in cooling mode [kW].</summary>
-    double NominalFanElectricity_C { get; }
+    double NominalCoolingFanElectricity { get; }
 
     /// <summary>Gets the nominal fan electric power in heating mode [kW].</summary>
-    double NominalFanElectricity_H { get; }
+    double NominalHeatingFanElectricity { get; }
 
     /// <summary>Gets the current fan operating rate [-].</summary>
     double FanOperatingRatio { get; }

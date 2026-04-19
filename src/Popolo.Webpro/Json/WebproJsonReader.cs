@@ -89,9 +89,9 @@ namespace Popolo.Webpro.Json
 
       // Leaf DTO converters
       options.Converters.Add(new WebproWallLayerJsonConverter());
-      options.Converters.Add(new WebproWallConfigureJsonConverter());
+      options.Converters.Add(new WebproWallConfigurationJsonConverter());
       options.Converters.Add(new WebproWindowJsonConverter());
-      options.Converters.Add(new WebproWindowConfigureJsonConverter());
+      options.Converters.Add(new WebproWindowConfigurationJsonConverter());
 
       // Mid-level DTO converters
       options.Converters.Add(new WebproBuildingJsonConverter());

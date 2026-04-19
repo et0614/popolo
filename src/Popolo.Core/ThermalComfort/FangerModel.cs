@@ -42,70 +42,70 @@ namespace Popolo.Core.ThermalComfort
     #region 列挙型
 
     /// <summary>Metabolic activity types with associated metabolic rates [met].</summary>
-    public enum Tasks
+    public enum MetabolicActivity
     {
       /// <summary>Resting: sleeping (0.7 met).</summary>
-      Resting_Sleeping,
+      RestingSleeping,
       /// <summary>Resting: reclining (0.8 met).</summary>
-      Resting_Reclining,
+      RestingReclining,
       /// <summary>Resting: seated quiet (1.0 met).</summary>
-      Resting_Seated_Quiet,
+      RestingSeatedQuiet,
       /// <summary>Resting: standing relaxed (1.2 met).</summary>
-      Resting_Standing_Relaxed,
+      RestingStandingRelaxed,
       /// <summary>Walking: slow, 0.9 m/s (2.0 met).</summary>
-      Walking_Slow_09ms,
+      WalkingSlow09ms,
       /// <summary>Walking: normal, 1.2 m/s (2.6 met).</summary>
-      Walking_Normal_12ms,
+      WalkingNormal12ms,
       /// <summary>Walking: fast, 1.8 m/s (3.8 met).</summary>
-      Walking_Fast_18ms,
+      WalkingFast18ms,
       /// <summary>Office: seated reading/writing (1.0 met).</summary>
-      OfficeActivities_Seated_Reading_Writing,
+      OfficeSeatedReadingWriting,
       /// <summary>Office: typing (1.1 met).</summary>
-      OfficeActivities_Typing,
+      OfficeTyping,
       /// <summary>Office: filing, seated (1.2 met).</summary>
-      OfficeActivities_Filing_Seated,
+      OfficeFilingSeated,
       /// <summary>Office: filing, standing (1.4 met).</summary>
-      OfficeActivities_Filing_Standing,
+      OfficeFilingStanding,
       /// <summary>Office: walking (1.7 met).</summary>
-      OfficeActivities_Walking,
+      OfficeWalking,
       /// <summary>Office: lifting and packing (2.1 met).</summary>
-      OfficeActivities_Lifting_Packing,
+      OfficeLiftingPacking,
       /// <summary>Driving: automobile (1.5 met).</summary>
-      Driving_Automobile,
+      DrivingAutomobile,
       /// <summary>Driving: aircraft, routine (1.2 met).</summary>
-      Driving_Aircraft_Routine,
+      DrivingAircraftRoutine,
       /// <summary>Driving: aircraft, instrument landing (1.8 met).</summary>
-      Driving_Aircraft_Instrument_Landing,
+      DrivingAircraftInstrumentLanding,
       /// <summary>Driving: aircraft, combat (2.4 met).</summary>
-      Driving_Aircraft_Combat,
+      DrivingAircraftCombat,
       /// <summary>Driving: heavy vehicle (3.2 met).</summary>
-      Driving_HeavyVehicle,
-      /// <summary>Other: cooking (1.8 met).</summary>
-      Other_Occupational_Cooking,
-      /// <summary>Other: house cleaning (2.7 met).</summary>
-      Other_Occupational_HouseCleaning,
-      /// <summary>Other: seated, heavy limb movement (2.2 met).</summary>
-      Other_Occupational_Seated_HeavyLimbMovement,
-      /// <summary>Other: machine work, sawing (2.2 met).</summary>
-      Other_Occupational_MachineWork_Sawing,
-      /// <summary>Other: machine work, light (1.8 met).</summary>
-      Other_Occupational_MachineWork_Light,
-      /// <summary>Other: machine work, heavy (4.0 met).</summary>
-      Other_Occupational_MachineWork_Heavy,
-      /// <summary>Other: handling 50 kg bags (4.0 met).</summary>
-      Other_Occupational_Handling50kgBags,
-      /// <summary>Other: pick and shovel work (4.4 met).</summary>
-      Other_Occupational_PickAndShovelWork,
-      /// <summary>Other: dancing (3.4 met).</summary>
-      Other_Leisure_Dancing,
-      /// <summary>Other: exercise (3.5 met).</summary>
-      Other_Leisure_Exercise,
-      /// <summary>Other: tennis (3.8 met).</summary>
-      Other_Leisure_Tennis,
-      /// <summary>Other: basketball (5.8 met).</summary>
-      Other_Leisure_Basketball,
-      /// <summary>Other: wrestling (7.8 met).</summary>
-      Other_Leisure_Wrestling
+      DrivingHeavyVehicle,
+      /// <summary>Occupational: cooking (1.8 met).</summary>
+      OccupationalCooking,
+      /// <summary>Occupational: house cleaning (2.7 met).</summary>
+      OccupationalHouseCleaning,
+      /// <summary>Occupational: seated, heavy limb movement (2.2 met).</summary>
+      OccupationalSeatedHeavyLimbMovement,
+      /// <summary>Occupational: machine work, sawing (2.2 met).</summary>
+      OccupationalMachineWorkSawing,
+      /// <summary>Occupational: machine work, light (1.8 met).</summary>
+      OccupationalMachineWorkLight,
+      /// <summary>Occupational: machine work, heavy (4.0 met).</summary>
+      OccupationalMachineWorkHeavy,
+      /// <summary>Occupational: handling 50 kg bags (4.0 met).</summary>
+      OccupationalHandling50kgBags,
+      /// <summary>Occupational: pick and shovel work (4.4 met).</summary>
+      OccupationalPickAndShovelWork,
+      /// <summary>Leisure: dancing (3.4 met).</summary>
+      LeisureDancing,
+      /// <summary>Leisure: exercise (3.5 met).</summary>
+      LeisureExercise,
+      /// <summary>Leisure: tennis (3.8 met).</summary>
+      LeisureTennis,
+      /// <summary>Leisure: basketball (5.8 met).</summary>
+      LeisureBasketball,
+      /// <summary>Leisure: wrestling (7.8 met).</summary>
+      LeisureWrestling
     }
 
     #endregion
@@ -292,71 +292,71 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Gets the metabolic rate [met] for the specified activity.</summary>
     /// <param name="task">Activity type.</param>
     /// <returns>Metabolic rate [met].</returns>
-    public static double GetMet(Tasks task)
+    public static double GetMet(MetabolicActivity task)
     {
       switch (task)
       {
-        case Tasks.Driving_Aircraft_Combat:
+        case MetabolicActivity.DrivingAircraftCombat:
           return 2.4;
-        case Tasks.Driving_Aircraft_Instrument_Landing:
+        case MetabolicActivity.DrivingAircraftInstrumentLanding:
           return 1.8;
-        case Tasks.Driving_Aircraft_Routine:
+        case MetabolicActivity.DrivingAircraftRoutine:
           return 1.2;
-        case Tasks.Driving_Automobile:
+        case MetabolicActivity.DrivingAutomobile:
           return 1.5;
-        case Tasks.Driving_HeavyVehicle:
+        case MetabolicActivity.DrivingHeavyVehicle:
           return 3.2;
-        case Tasks.OfficeActivities_Filing_Seated:
+        case MetabolicActivity.OfficeFilingSeated:
           return 1.2;
-        case Tasks.OfficeActivities_Filing_Standing:
+        case MetabolicActivity.OfficeFilingStanding:
           return 1.4;
-        case Tasks.OfficeActivities_Lifting_Packing:
+        case MetabolicActivity.OfficeLiftingPacking:
           return 2.1;
-        case Tasks.OfficeActivities_Seated_Reading_Writing:
+        case MetabolicActivity.OfficeSeatedReadingWriting:
           return 1.0;
-        case Tasks.OfficeActivities_Typing:
+        case MetabolicActivity.OfficeTyping:
           return 1.1;
-        case Tasks.OfficeActivities_Walking:
+        case MetabolicActivity.OfficeWalking:
           return 1.7;
-        case Tasks.Other_Leisure_Basketball:
+        case MetabolicActivity.LeisureBasketball:
           return 5.8;
-        case Tasks.Other_Leisure_Dancing:
+        case MetabolicActivity.LeisureDancing:
           return 3.4;
-        case Tasks.Other_Leisure_Exercise:
+        case MetabolicActivity.LeisureExercise:
           return 3.5;
-        case Tasks.Other_Leisure_Tennis:
+        case MetabolicActivity.LeisureTennis:
           return 3.8;
-        case Tasks.Other_Leisure_Wrestling:
+        case MetabolicActivity.LeisureWrestling:
           return 7.8;
-        case Tasks.Other_Occupational_Cooking:
+        case MetabolicActivity.OccupationalCooking:
           return 1.8;
-        case Tasks.Other_Occupational_Handling50kgBags:
+        case MetabolicActivity.OccupationalHandling50kgBags:
           return 4.0;
-        case Tasks.Other_Occupational_HouseCleaning:
+        case MetabolicActivity.OccupationalHouseCleaning:
           return 2.7;
-        case Tasks.Other_Occupational_MachineWork_Heavy:
+        case MetabolicActivity.OccupationalMachineWorkHeavy:
           return 4.0;
-        case Tasks.Other_Occupational_MachineWork_Light:
+        case MetabolicActivity.OccupationalMachineWorkLight:
           return 1.8;
-        case Tasks.Other_Occupational_MachineWork_Sawing:
+        case MetabolicActivity.OccupationalMachineWorkSawing:
           return 2.2;
-        case Tasks.Other_Occupational_PickAndShovelWork:
+        case MetabolicActivity.OccupationalPickAndShovelWork:
           return 4.4;
-        case Tasks.Other_Occupational_Seated_HeavyLimbMovement:
+        case MetabolicActivity.OccupationalSeatedHeavyLimbMovement:
           return 2.2;
-        case Tasks.Resting_Reclining:
+        case MetabolicActivity.RestingReclining:
           return 0.8;
-        case Tasks.Resting_Seated_Quiet:
+        case MetabolicActivity.RestingSeatedQuiet:
           return 1.0;
-        case Tasks.Resting_Sleeping:
+        case MetabolicActivity.RestingSleeping:
           return 0.7;
-        case Tasks.Resting_Standing_Relaxed:
+        case MetabolicActivity.RestingStandingRelaxed:
           return 1.2;
-        case Tasks.Walking_Fast_18ms:
+        case MetabolicActivity.WalkingFast18ms:
           return 3.8;
-        case Tasks.Walking_Normal_12ms:
+        case MetabolicActivity.WalkingNormal12ms:
           return 2.6;
-        case Tasks.Walking_Slow_09ms:
+        case MetabolicActivity.WalkingSlow09ms:
           return 2.0;
         default:
           throw new Exceptions.PopoloArgumentException("Unknown task type.", nameof(task));

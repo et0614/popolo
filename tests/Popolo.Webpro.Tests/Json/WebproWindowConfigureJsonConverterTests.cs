@@ -28,7 +28,7 @@ using Popolo.Webpro.Json.EnumConverters;
 
 namespace Popolo.Webpro.Tests.Json
 {
-    /// <summary>Unit tests for <see cref="WebproWindowConfigureJsonConverter"/>.</summary>
+    /// <summary>Unit tests for <see cref="WebproWindowConfigurationJsonConverter"/>.</summary>
     public class WebproWindowConfigureJsonConverterTests
     {
         #region ヘルパー
@@ -36,7 +36,7 @@ namespace Popolo.Webpro.Tests.Json
         private static JsonSerializerOptions CreateOptions()
         {
             var opts = new JsonSerializerOptions();
-            opts.Converters.Add(new WebproWindowConfigureJsonConverter());
+            opts.Converters.Add(new WebproWindowConfigurationJsonConverter());
             opts.Converters.Add(new WindowInputMethodJsonConverter());
             opts.Converters.Add(new WindowFrameJsonConverter());
             return opts;
@@ -63,7 +63,7 @@ namespace Popolo.Webpro.Tests.Json
                   "Info":         null
                 }
                 """;
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
 
             Assert.Equal(1, wnc.Area);
             Assert.True(double.IsNaN(wnc.Width));
@@ -94,7 +94,7 @@ namespace Popolo.Webpro.Tests.Json
                   "Info":          null
                 }
                 """;
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
 
             Assert.Equal(WindowInputMethod.WindowSpec, wnc.Method);
             Assert.Equal(WindowFrame.None, wnc.Frame);
@@ -121,7 +121,7 @@ namespace Popolo.Webpro.Tests.Json
                   "windowIvalue":  null
                 }
                 """;
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
 
             Assert.Equal(WindowInputMethod.FrameTypeAndGlazingSpec, wnc.Method);
             Assert.Equal(WindowFrame.Resin, wnc.Frame);
@@ -133,7 +133,7 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_LayerTypeSingle_SetsIsSingleGlazingTrue()
         {
             const string json = """{ "layerType": "単層" }""";
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
             Assert.True(wnc.IsSingleGlazing);
         }
 
@@ -141,7 +141,7 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_LayerTypeMulti_SetsIsSingleGlazingFalse()
         {
             const string json = """{ "layerType": "複層" }""";
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
             Assert.False(wnc.IsSingleGlazing);
         }
 
@@ -149,7 +149,7 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_LayerTypeNull_SetsIsSingleGlazingFalse()
         {
             const string json = """{ "layerType": null }""";
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
             Assert.False(wnc.IsSingleGlazing);
         }
 
@@ -157,7 +157,7 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_MinimalJson_DefaultsApplied()
         {
             const string json = "{ }";
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
 
             Assert.Equal(0, wnc.Area);
             Assert.Equal(0, wnc.Width);
@@ -176,7 +176,7 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_UnknownPropertyIgnored()
         {
             const string json = """{ "windowArea": 1, "futureField": "x" }""";
-            var wnc = JsonSerializer.Deserialize<WebproWindowConfigure>(json, CreateOptions())!;
+            var wnc = JsonSerializer.Deserialize<WebproWindowConfiguration>(json, CreateOptions())!;
             Assert.Equal(1, wnc.Area);
         }
 
@@ -189,13 +189,13 @@ namespace Popolo.Webpro.Tests.Json
         public void Read_NonObjectRoot_Throws()
         {
             Assert.Throws<JsonException>(() =>
-                JsonSerializer.Deserialize<WebproWindowConfigure>("[]", CreateOptions()));
+                JsonSerializer.Deserialize<WebproWindowConfiguration>("[]", CreateOptions()));
         }
 
         [Fact]
         public void Write_Throws()
         {
-            var wnc = new WebproWindowConfigure();
+            var wnc = new WebproWindowConfiguration();
             Assert.Throws<NotSupportedException>(() =>
                 JsonSerializer.Serialize(wnc, CreateOptions()));
         }

@@ -245,7 +245,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //缶体熱損失係数の計算
       heatLossCoefficient = Boiler.GetHeatLossCoefficient
-        (desorbHeat, AbsorptionRefrigerationCycle.NOM_DSB_LIQ_TEMP, AMB_TEMP, Fuel,
+        (desorbHeat, AbsorptionRefrigerationCycle.NominalDesorberLiquidTemperature, AMB_TEMP, Fuel,
         SMK_TEMP, AIR_RATIO, NominalCoolingFuelConsumption, AMB_TEMP);
 
       //温水ボイラ初期化
@@ -328,7 +328,7 @@ namespace Popolo.Core.HVAC.HeatSource
         HeatingLoad = 0;
         FuelConsumption = Boiler.GetFuelConsumption
           (dsbH, tdsb, AMB_TEMP, Fuel, SMK_TEMP, AIR_RATIO, heatLossCoefficient,
-          AMB_TEMP, AbsorptionRefrigerationCycle.NOM_DSB_LIQ_TEMP);
+          AMB_TEMP, AbsorptionRefrigerationCycle.NominalDesorberLiquidTemperature);
         ElectricConsumption = CoolingLoad / NominalCoolingCapacity * NominalElectricConsumption;
         DesorbTemperature = tdsb;
         EvaporatingTemperature = tevp;

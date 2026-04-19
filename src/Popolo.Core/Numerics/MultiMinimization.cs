@@ -40,7 +40,7 @@ namespace Popolo.Core.Numerics
     #region プロパティ
 
     /// <summary>数値微分のための差分評価係数</summary>
-    public static double DELTA { get; set; } = 1e-7;
+    public static double Delta { get; set; } = 1e-7;
 
     #endregion
 
@@ -91,7 +91,7 @@ namespace Popolo.Core.Numerics
           for (int i = 0; i < num; i++)
           {
             double tmp = vecX[i];
-            double dx = Math.Abs(tmp) * DELTA;
+            double dx = Math.Abs(tmp) * Delta;
             if (dx < 1e-8) dx = 1e-8;
             vecX[i] += dx;
             double fx2 = mFnc(vecX, iteration);
@@ -293,7 +293,7 @@ namespace Popolo.Core.Numerics
       for (int i = 0; i < num; i++)
       {
         double tmp = vecX[i];
-        double dx = Math.Abs(tmp) * DELTA;
+        double dx = Math.Abs(tmp) * Delta;
         if (dx < 1e-8) dx = 1e-8;
         vecX[i] += dx;
         dif[i] = (mFnc(vecX, iter) - fx) / dx;

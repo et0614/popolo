@@ -1,4 +1,4 @@
-/* WebproWallConfigure.cs
+/* WebproWallConfiguration.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -25,13 +25,13 @@ namespace Popolo.Webpro.Domain
 {
   /// <summary>
   /// Data transfer object representing a named WEBPRO wall construction
-  /// (<c>WallConfigure[key]</c> in the input JSON).
+  /// (<c>WallConfiguration[key]</c> in the input JSON).
   /// </summary>
   /// <remarks>
   /// <para>
   /// Corresponds to the legacy <c>WebproWallConfigureJson</c> type in
   /// Popolo v2.3. This is a pure POCO — JSON parsing lives in
-  /// <see cref="Popolo.Webpro.Json.WebproWallConfigureJsonConverter"/>.
+  /// <see cref="Popolo.Webpro.Json.WebproWallConfigurationJsonConverter"/>.
   /// </para>
   /// <para>
   /// The <c>wall_type_webpro</c> property sometimes present in WEBPRO JSON
@@ -40,7 +40,7 @@ namespace Popolo.Webpro.Domain
   /// envelope level via <see cref="WallType"/> instead.
   /// </para>
   /// </remarks>
-  public sealed class WebproWallConfigure
+  public sealed class WebproWallConfiguration
   {
     /// <summary>Gets or sets the structural classification (木造, 鉄筋コンクリート造等, etc.).</summary>
     /// <remarks>

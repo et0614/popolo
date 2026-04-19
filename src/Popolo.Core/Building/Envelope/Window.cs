@@ -310,7 +310,7 @@ namespace Popolo.Core.Building.Envelope
     public void UpdateOpticalProperties(IReadOnlySun sun)
     {
       //ガラス・日射遮蔽物単体の光学特性の更新処理//////////////////////////////
-      double cos = OutsideIncline.GetDirectSolarRadiationRate(sun);
+      double cos = OutsideIncline.GetDirectSolarRadiationRatio(sun);
       if (sun.Altitude <= 0)
       {
         DirectSolarIncidentTransmittance = 0;

@@ -70,8 +70,8 @@ namespace Popolo.Core.Tests.HVAC.VRF
         public void Constructor_Evaporator_SurfaceAreaIsPositive()
         {
             var evp = MakeEvaporator();
-            Assert.True(evp.SurfaceArea_Evaporator > 0,
-                $"SurfaceArea_Evaporator={evp.SurfaceArea_Evaporator:F4} m2 > 0");
+            Assert.True(evp.EvaporatorSurfaceArea > 0,
+                $"SurfaceArea_Evaporator={evp.EvaporatorSurfaceArea:F4} m2 > 0");
         }
 
         [Fact]
@@ -93,8 +93,8 @@ namespace Popolo.Core.Tests.HVAC.VRF
         public void Constructor_Condenser_SurfaceAreaIsPositive()
         {
             var cnd = MakeCondenser();
-            Assert.True(cnd.SurfaceArea_Condenser > 0,
-                $"SurfaceArea_Condenser={cnd.SurfaceArea_Condenser:F4} m2 > 0");
+            Assert.True(cnd.CondenserSurfaceArea > 0,
+                $"SurfaceArea_Condenser={cnd.CondenserSurfaceArea:F4} m2 > 0");
         }
 
         #endregion

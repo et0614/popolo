@@ -614,69 +614,69 @@ namespace Popolo.Core.ThermalComfort
         //BM行列を生成
         //核
         bMatrix[os + 0, os + 0] = heatCapacity[Layer.Core] / tStep
-          + BLD_SPECIFICHEAT * bloodFlow[Layer.Core] + 2d * hConductance[3] + hConductance[0];
+          + BodySpecificHeat * bloodFlow[Layer.Core] + 2d * hConductance[3] + hConductance[0];
         bMatrix[os + 0, os + 1] = -hConductance[0];
-        bMatrix[os + 0, os + 4] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Core] - hConductance[3];
+        bMatrix[os + 0, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Core] - hConductance[3];
         bMatrix[os + 0, os + 5] = -hConductance[3];
         //筋肉
         bMatrix[os + 1, os + 0] = -hConductance[0];
         bMatrix[os + 1, os + 1] = heatCapacity[Layer.Muscle] / tStep
-          + BLD_SPECIFICHEAT * bloodFlow[Layer.Muscle] + hConductance[0] + hConductance[1];
+          + BodySpecificHeat * bloodFlow[Layer.Muscle] + hConductance[0] + hConductance[1];
         bMatrix[os + 1, os + 2] = -hConductance[1];
-        bMatrix[os + 1, os + 4] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Muscle];
+        bMatrix[os + 1, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Muscle];
         //脂肪
         bMatrix[os + 2, os + 1] = -hConductance[1];
         bMatrix[os + 2, os + 2] = heatCapacity[Layer.Fat] / tStep
-          + BLD_SPECIFICHEAT * bloodFlow[Layer.Fat] + hConductance[1] + hConductance[2];
+          + BodySpecificHeat * bloodFlow[Layer.Fat] + hConductance[1] + hConductance[2];
         bMatrix[os + 2, os + 3] = -hConductance[2];
-        bMatrix[os + 2, os + 4] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Fat];
+        bMatrix[os + 2, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Fat];
         //皮膚
         bMatrix[os + 3, os + 2] = -hConductance[2];
         bMatrix[os + 3, os + 3] = heatCapacity[Layer.Skin] / tStep
-          + BLD_SPECIFICHEAT * bloodFlow[Layer.Skin] + hConductance[2]
+          + BodySpecificHeat * bloodFlow[Layer.Skin] + hConductance[2]
           + contactPortionRate * hConductance[6] + (1 - contactPortionRate) * hConductance[7];
         if ((node & LIMBS) != 0) bMatrix[os + 3, os + 3] += hConductance[4];
-        bMatrix[os + 3, os + 4] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Skin];
+        bMatrix[os + 3, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Skin];
         //動脈
         double upperFlow = bloodFlow[Layer.DeepVein] + bloodFlow[Layer.SuperficialVein];
         bMatrix[os + 4, os + 0] = -hConductance[3];
         bMatrix[os + 4, os + 4] = heatCapacity[Layer.Artery] / tStep +
-          BLD_SPECIFICHEAT * upperFlow + hConductance[3] + hConductance[5];
+          BodySpecificHeat * upperFlow + hConductance[3] + hConductance[5];
         bMatrix[os + 4, os + 5] = -hConductance[5];
         //静脈
-        bMatrix[os + 5, os + 0] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Core] - hConductance[3];
-        bMatrix[os + 5, os + 1] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Muscle];
-        bMatrix[os + 5, os + 2] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Fat];
-        bMatrix[os + 5, os + 3] = -BLD_SPECIFICHEAT * bloodFlow[Layer.Skin];
+        bMatrix[os + 5, os + 0] = -BodySpecificHeat * bloodFlow[Layer.Core] - hConductance[3];
+        bMatrix[os + 5, os + 1] = -BodySpecificHeat * bloodFlow[Layer.Muscle];
+        bMatrix[os + 5, os + 2] = -BodySpecificHeat * bloodFlow[Layer.Fat];
+        bMatrix[os + 5, os + 3] = -BodySpecificHeat * bloodFlow[Layer.Skin];
         bMatrix[os + 5, os + 4] = -hConductance[5];
         bMatrix[os + 5, os + 5] = heatCapacity[Layer.DeepVein] / tStep
-          + BLD_SPECIFICHEAT * bloodFlow[Layer.DeepVein] + hConductance[3] + hConductance[5];
+          + BodySpecificHeat * bloodFlow[Layer.DeepVein] + hConductance[3] + hConductance[5];
         if (node == Node.Pelvis)
-          bMatrix[os + 5, os + 5] += BLD_SPECIFICHEAT * bloodFlow[Layer.SuperficialVein];
+          bMatrix[os + 5, os + 5] += BodySpecificHeat * bloodFlow[Layer.SuperficialVein];
         //四肢部位のみ（表在静脈）
         if ((node & LIMBS) != 0)
         {
           bMatrix[os + 6, os + 3] = -hConductance[4];
           if ((node & TERMINAL_NODE) != 0)
-            bMatrix[os + 6, os + 4] = -BLD_SPECIFICHEAT * bloodFlow[Layer.SuperficialVein];
+            bMatrix[os + 6, os + 4] = -BodySpecificHeat * bloodFlow[Layer.SuperficialVein];
           bMatrix[os + 6, os + 6] = heatCapacity[Layer.SuperficialVein] / tStep +
-            BLD_SPECIFICHEAT * bloodFlow[Layer.SuperficialVein] + hConductance[4];
+            BodySpecificHeat * bloodFlow[Layer.SuperficialVein] + hConductance[4];
 
           if ((node & LIMBS) != 0) bMatrix[os + 3, os + 6] = -hConductance[4];
         }
 
         //上流部位の動脈血流入
         if (upperStreamPart != null)
-          bMatrix[os + 4, mOffset[upperStreamPart.node] + 4] = -BLD_SPECIFICHEAT * upperFlow;
-        else bMatrix[os + 4, 0] = -BLD_SPECIFICHEAT * upperFlow;
+          bMatrix[os + 4, mOffset[upperStreamPart.node] + 4] = -BodySpecificHeat * upperFlow;
+        else bMatrix[os + 4, 0] = -BodySpecificHeat * upperFlow;
 
         //下流部位の静脈血流入
         foreach (bodyPart bp in downStreamParts)
         {
           //深部静脈
-          bMatrix[os + 5, mOffset[bp.node] + 5] = -BLD_SPECIFICHEAT * bp.bloodFlow[Layer.DeepVein];
+          bMatrix[os + 5, mOffset[bp.node] + 5] = -BodySpecificHeat * bp.bloodFlow[Layer.DeepVein];
           //表在静脈
-          double downFlow = -BLD_SPECIFICHEAT * bp.bloodFlow[Layer.SuperficialVein];
+          double downFlow = -BodySpecificHeat * bp.bloodFlow[Layer.SuperficialVein];
           if (node == Node.Pelvis) bMatrix[os + 5, mOffset[bp.node] + 6] += downFlow;
           else bMatrix[os + 6, mOffset[bp.node] + 6] = downFlow;
         }

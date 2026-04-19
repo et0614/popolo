@@ -264,13 +264,13 @@ namespace Popolo.Core.Building.Envelope
 
       //F側開口からの拡散日射に対する透過率・反射率
       for (int i = 0; i < bVec.Length; i++) bVec[i] = vFacOF[i];
-      LinearAlgebraOperations.Multiplicate(iaMatrixINV, bVec, eVec, 1, 0);
+      LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
       ComputeRateToOpenings(eVec, out difRhoF_U, out difRhoF_L, out difTauF_U, out difTauF_L);
       difTauF_L += vFacOF[SP_N * 2];
 
       //B側開口からの拡散日射に対する透過率・反射率
       for (int i = 0; i < bVec.Length; i++) bVec[i] = vFacOB[i];
-      LinearAlgebraOperations.Multiplicate(iaMatrixINV, bVec, eVec, 1, 0);
+      LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
       ComputeRateToOpenings(eVec, out difTauB_U, out difTauB_L, out difRhoB_U, out difRhoB_L);
       difTauB_L += vFacOB[SP_N * 2];
     }
@@ -293,7 +293,7 @@ namespace Popolo.Core.Building.Envelope
       int bf = 0;
       if (ProfileAngle < -SlatAngle) bf = SP_N;
       for (int i = 0; i < SP_N; i++) bVec[i + bf] = Math.Min(1, Math.Max(0, dRrad - i)) / dRrad;
-      LinearAlgebraOperations.Multiplicate(iaMatrixINV, bVec, eVec, 1, 0);
+      LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
 
       //開口部へ向かう日射を計算
       ComputeRateToOpenings(eVec, out dirRhoF_U, out dirRhoF_L, out dirTauF_U, out dirTauF_L);

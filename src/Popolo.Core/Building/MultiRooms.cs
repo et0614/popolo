@@ -305,8 +305,8 @@ namespace Popolo.Core.Building
         vecTH[i] = zones[i].Temperature;
         if (SolveMoistureTransferSimultaneously) vecTH[i + ZoneCount] = zones[i].HumidityRatio;
       }
-      LinearAlgebraOperations.Multiplicate(matB, vecTH, vecC, 1, 1);
-      LinearAlgebraOperations.Multiplicate(matAInv, vecC, vecTWS, 1, 0);
+      LinearAlgebraOperations.Multiply(matB, vecTH, vecC, 1, 1);
+      LinearAlgebraOperations.Multiply(matAInv, vecC, vecTWS, 1, 0);
 
       //温湿度条件を設定
       for (int i = 0; i < RoomCount; i++)
@@ -542,10 +542,10 @@ namespace Popolo.Core.Building
       }
 
       //IJ行列作成処理
-      LinearAlgebraOperations.Multiplicate(matF, matAInv, matBf);
-      LinearAlgebraOperations.Multiplicate(matBf, matB, matI);
+      LinearAlgebraOperations.Multiply(matF, matAInv, matBf);
+      LinearAlgebraOperations.Multiply(matBf, matB, matI);
       LinearAlgebraOperations.Subtract(matD, matI);
-      LinearAlgebraOperations.Multiplicate(matBf, vecC, vecEJ, 1, 1);
+      LinearAlgebraOperations.Multiply(matBf, vecC, vecEJ, 1, 1);
     }
 
     /// <summary>Sets the outdoor air conditions (temperature, humidity, and nocturnal radiation).</summary>
@@ -1011,9 +1011,9 @@ namespace Popolo.Core.Building
           }
         }
         LinearAlgebraOperations.GetInverse(ffRhoL, ffRhoInv);
-        LinearAlgebraOperations.Multiplicate(formFactor[i], ffRhoInv, ffRhoL);
+        LinearAlgebraOperations.Multiply(formFactor[i], ffRhoInv, ffRhoL);
         LinearAlgebraOperations.GetInverse(ffRhoS, ffRhoInv);
-        LinearAlgebraOperations.Multiplicate(formFactor[i], ffRhoInv, ffRhoS);
+        LinearAlgebraOperations.Multiply(formFactor[i], ffRhoInv, ffRhoS);
         for (int j = 0; j < wsn; j++)
         {
           BoundarySurface ws1 = surfaces[wInd[j]];
@@ -1096,7 +1096,7 @@ namespace Popolo.Core.Building
               else
               {
                 IReadOnlyIncline inc = win.OutsideIncline;
-                dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetShadowRate(Sun));
+                dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetShadowRatio(Sun));
                 dif = inc.GetDiffuseSolarIrradiance(Sun, Albedo);
               }
               radToSurf_S[indx1] +=

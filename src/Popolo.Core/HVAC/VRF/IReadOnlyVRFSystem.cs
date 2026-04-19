@@ -1,6 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+/* IReadOnlyVRFSystem.cs
+ *
+ * Copyright (C) 2026 E.Togashi
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
 
 namespace Popolo.Core.HVAC.VRF
 {
@@ -25,11 +40,11 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets the list of indoor unit heat exchangers.</summary>
     IReadOnlyVRFUnit[] IndoorUnits { get; }
 
-    /// <summary>Gets the outdoor unit for cooling mode (condenser).</summary>
-    IReadOnlyVRFUnit OutdoorUnit_C { get; }
+    /// <summary>Gets the cooling-mode parameters and state (always present).</summary>
+    IReadOnlyModeParameters Cooling { get; }
 
-    /// <summary>Gets the outdoor unit for heating mode (evaporator).</summary>
-    IReadOnlyVRFUnit? OutdoorUnit_H { get; }
+    /// <summary>Gets the heating-mode parameters and state (null for cooling-only systems).</summary>
+    IReadOnlyModeParameters? Heating { get; }
 
     /// <summary>Gets the compressor electric power consumption [kW].</summary>
     double CompressorElectricity { get; }
@@ -94,72 +109,14 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 冷房運転関連のプロパティ
-
-    /// <summary>Gets the nominal cooling capacity [kW].</summary>
-    double NominalCoolingCapacity { get; }
-
-    /// <summary>Gets the nominal compression head in cooling mode [kW].</summary>
-    double NominalHead_C { get; }
-
-    /// <summary>Gets the pipe resistance coefficient for cooling mode [1/m].</summary>
-    double PipeResistanceCoefficient_C { get; }
-
-    /// <summary>Gets the compression head efficiency ratio at the nominal cooling operating point [-].</summary>
-    double NominalEfficiency_C { get; }
-
-    /// <summary>Gets coefficient A of the compression head efficiency ratio characteristic curve for cooling [-].</summary>
-    double HeadEfficiencyRatioCoefA_C { get; }
-
-    /// <summary>Gets coefficient B of the compression head efficiency ratio characteristic curve for cooling [-].</summary>
-    double HeadEfficiencyRatioCoefB_C { get; }
-
-    /// <summary>Gets the electric power consumption at the nominal cooling operating point [kW].</summary>
-    double NominalElectricity_C { get; }
-
-    /// <summary>Gets the maximum evaporating temperature in cooling mode [°C].</summary>
-    double MaxEvaporatingTemperature { get; }
-
-    /// <summary>Gets the minimum evaporating temperature in cooling mode [°C].</summary>
-    /// <remarks>Currently, the temperature cannot be lowered below the nominal value, except in heating mode.</remarks>
-    double MinEvaporatingTemperature { get; }
+    #region 冷房・暖房運転の温度制限プロパティ
 
     /// <summary>Gets the target evaporating temperature for free-running calculation [°C].</summary>
+    /// <remarks>Used only in cooling mode.</remarks>
     double TargetEvaporatingTemperature { get; set; }
 
-    #endregion
-
-    #region 暖房運転関連のプロパティ
-
-    /// <summary>Gets the nominal heating capacity [kW].</summary>
-    double NominalHeatingCapacity { get; }
-
-    /// <summary>Gets the nominal compression head in heating mode [kW].</summary>
-    double NominalHead_H { get; }
-
-    /// <summary>Gets the pipe resistance coefficient for heating mode [1/m].</summary>
-    double PipeResistanceCoefficient_H { get; }
-
-    /// <summary>Gets the compression head efficiency ratio at the nominal heating operating point [-].</summary>
-    double NominalEfficiency_H { get; }
-
-    /// <summary>Gets coefficient A of the compression head efficiency ratio characteristic curve for heating [-].</summary>
-    double HeadEfficiencyRatioCoefA_H { get; }
-
-    /// <summary>Gets coefficient B of the compression head efficiency ratio characteristic curve for heating [-].</summary>
-    double HeadEfficiencyRatioCoefB_H { get; }
-
-    /// <summary>Gets the electric power consumption at the nominal heating operating point [kW].</summary>
-    double NominalElectricity_H { get; }
-
-    /// <summary>Gets the maximum condensing temperature in heating mode [°C].</summary>
-    /// <remarks>Currently, the temperature cannot be raised above the nominal value, except in cooling mode.</remarks>
-    double MaxCondensingTemperature { get; }
-
-    /// <summary>Gets the minimum condensing temperature in heating mode [°C].</summary>
-    double MinCondensingTemperature { get; }
-
     /// <summary>Gets the target condensing temperature for free-running calculation [°C].</summary>
+    /// <remarks>Used only in heating mode.</remarks>
     double TargetCondensingTemperature { get; }
 
     #endregion

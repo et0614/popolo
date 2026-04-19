@@ -98,7 +98,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <summary>入力ベクトルとの積を計算して出力ベクトルに格納する</summary>
     /// <param name="vec1">入力ベクトル</param>
     /// <param name="vec2">出力：出力ベクトル</param>
-    public void Multiplicate(IVector vec1, ref IVector vec2)
+    public void Multiply(IVector vec1, ref IVector vec2)
     {
       vec2.Initialize(0);
       for (int i = 0; i < Rows; i++)
@@ -111,7 +111,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <summary>転置行列と入力ベクトルとの積を計算して出力ベクトルに格納する</summary>
     /// <param name="vec1">入力ベクトル</param>
     /// <param name="vec2">出力：出力ベクトル</param>
-    public void MultiplicateTranspose(IVector vec1, ref IVector vec2)
+    public void MultiplyTransposed(IVector vec1, ref IVector vec2)
     {
       vec2.Initialize(0);
       for (int i = 0; i < Rows; i++)
@@ -136,7 +136,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       //初回の残差ベクトルを設定
       double bnrm = 0;
       double rnrm = 0;
-      Multiplicate(vecX, ref r);
+      Multiply(vecX, ref r);
       for (int i = 0; i < Rows; i++)
       {
         r[i] = rr[i] = p[i] = pp[i] = vecB[i] - r[i];
@@ -148,8 +148,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       int maxIter = 10 * Rows;
       for (int iter = 0; iter < maxIter; iter++)
       {
-        Multiplicate(p, ref ap);
-        MultiplicateTranspose(pp, ref app);
+        Multiply(p, ref ap);
+        MultiplyTransposed(pp, ref app);
         double apnrm = 0;
         for (int i = 0; i < Rows; i++) apnrm += ap[i] * pp[i];
         double ak = rnrm / apnrm;
@@ -161,7 +161,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         }
 
         //収束判定
-        Multiplicate(vecX, ref ap);
+        Multiply(vecX, ref ap);
         double err = 0;
         for (int i = 0; i < Rows; i++)
         {

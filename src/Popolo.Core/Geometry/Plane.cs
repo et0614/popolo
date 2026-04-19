@@ -25,9 +25,6 @@ namespace Popolo.Core.Geometry
   /// <summary>3次元空間の平面を表すクラス</summary>
   public class Plane
   {
-    /// <summary>ゼロとみなす誤差の閾値</summary>
-    public const double EPSILON_TOL = 0.00001d;
-
     /// <summary>平面上の点を取得する</summary>
     public Point Point { get; }
 
@@ -88,7 +85,7 @@ namespace Popolo.Core.Geometry
           line.Point.X - Point.X,
           line.Point.Y - Point.Y,
           line.Point.Z - Point.Z);
-      return Math.Abs(NormalUnit.GetDot(vec)) < EPSILON_TOL;
+      return Math.Abs(NormalUnit.GetDot(vec)) < Vector3D.GeometryTolerance;
     }
 
     /// <summary>線と交わっているか否か</summary>
@@ -100,7 +97,7 @@ namespace Popolo.Core.Geometry
           Point.Y == line.Point.Y &&
           Point.Z == line.Point.Z) return true;
       if (Contains(line)) return true;
-      return EPSILON_TOL <= Math.Abs(line.Vector.GetDot(NormalUnit));
+      return Vector3D.GeometryTolerance <= Math.Abs(line.Vector.GetDot(NormalUnit));
     }
 
     /// <summary>直線と交差する点を求める</summary>

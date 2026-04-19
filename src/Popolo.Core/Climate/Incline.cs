@@ -166,7 +166,7 @@ namespace Popolo.Core.Climate
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <param name="orientation">Solar azimuth [radian]</param>
     /// <returns>cosθ [-] (clamped to 0 when the sun is behind the surface)</returns>
-    public double GetDirectSolarRadiationRate(double altitude, double orientation)
+    public double GetDirectSolarRadiationRatio(double altitude, double orientation)
     {
       double sh = Math.Sin(altitude);
       double ch = Math.Cos(altitude);
@@ -180,8 +180,8 @@ namespace Popolo.Core.Climate
     /// </summary>
     /// <param name="sun">Solar state</param>
     /// <returns>cosθ [-]</returns>
-    public double GetDirectSolarRadiationRate(IReadOnlySun sun)
-        => GetDirectSolarRadiationRate(sun.Altitude, sun.Orientation);
+    public double GetDirectSolarRadiationRatio(IReadOnlySun sun)
+        => GetDirectSolarRadiationRatio(sun.Altitude, sun.Orientation);
 
     /// <summary>
     /// Gets the direct solar irradiance on the tilted surface [W/m²].
@@ -189,7 +189,7 @@ namespace Popolo.Core.Climate
     /// <param name="sun">Solar state</param>
     /// <returns>Direct solar irradiance [W/m²]</returns>
     public double GetDirectSolarIrradiance(IReadOnlySun sun)
-        => GetDirectSolarRadiationRate(sun) * sun.DirectNormalRadiation;
+        => GetDirectSolarRadiationRatio(sun) * sun.DirectNormalRadiation;
 
     /// <summary>
     /// Gets the diffuse solar irradiance on the tilted surface [W/m²],
@@ -221,7 +221,7 @@ namespace Popolo.Core.Climate
     /// <param name="sun">Solar state</param>
     /// <returns>Direct solar illuminance [lx]</returns>
     public double GetDirectSolarIlluminance(IReadOnlySun sun)
-        => GetDirectSolarRadiationRate(sun) * sun.DirectNormalIlluminance;
+        => GetDirectSolarRadiationRatio(sun) * sun.DirectNormalIlluminance;
 
     /// <summary>
     /// Gets the diffuse solar illuminance on the tilted surface [lx].
@@ -245,7 +245,7 @@ namespace Popolo.Core.Climate
     /// <returns>Tangent of profile angle [-]</returns>
     public double GetTangentProfileAngle(double altitude, double orientation)
     {
-      double cosTheta = GetDirectSolarRadiationRate(altitude, orientation);
+      double cosTheta = GetDirectSolarRadiationRatio(altitude, orientation);
       if (cosTheta <= 0) return -Math.PI;
       return (Math.Sin(altitude) * _sinBeta
           - Math.Cos(altitude) * _cosBeta
@@ -325,7 +325,7 @@ namespace Popolo.Core.Climate
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <param name="orientation">Solar azimuth [radian]</param>
     /// <returns>cosθ [-]</returns>
-    public static double GetDirectSolarRadiationRateToIncline(
+    public static double GetDirectSolarRadiationRatioToIncline(
         double horizontalAngle, double verticalAngle,
         double altitude, double orientation)
     {

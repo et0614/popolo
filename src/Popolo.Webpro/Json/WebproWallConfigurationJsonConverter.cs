@@ -1,4 +1,4 @@
-/* WebproWallConfigureJsonConverter.cs
+/* WebproWallConfigurationJsonConverter.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -27,7 +27,7 @@ using Popolo.Webpro.Domain.Enums;
 namespace Popolo.Webpro.Json
 {
   /// <summary>
-  /// JSON converter for <see cref="WebproWallConfigure"/> — a named wall
+  /// JSON converter for <see cref="WebproWallConfiguration"/> — a named wall
   /// construction found as a value inside <c>WallConfigure</c>.
   /// </summary>
   /// <remarks>
@@ -59,7 +59,7 @@ namespace Popolo.Webpro.Json
   /// Unknown properties are skipped for forward compatibility.
   /// </para>
   /// </remarks>
-  public sealed class WebproWallConfigureJsonConverter : JsonConverter<WebproWallConfigure>
+  public sealed class WebproWallConfigurationJsonConverter : JsonConverter<WebproWallConfiguration>
   {
 
     #region 定数
@@ -74,14 +74,14 @@ namespace Popolo.Webpro.Json
 
     #region JsonConverter 実装
 
-    public override WebproWallConfigure Read(
+    public override WebproWallConfiguration Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
       if (reader.TokenType != JsonTokenType.StartObject)
         throw new JsonException(
-          $"Expected StartObject for {nameof(WebproWallConfigure)}, but got {reader.TokenType}.");
+          $"Expected StartObject for {nameof(WebproWallConfiguration)}, but got {reader.TokenType}.");
 
-      var result = new WebproWallConfigure();
+      var result = new WebproWallConfiguration();
 
       while (reader.Read())
       {
@@ -123,10 +123,10 @@ namespace Popolo.Webpro.Json
 
     /// <summary>Write is not supported — WEBPRO integration is import-only.</summary>
     public override void Write(
-      Utf8JsonWriter writer, WebproWallConfigure value, JsonSerializerOptions options)
+      Utf8JsonWriter writer, WebproWallConfiguration value, JsonSerializerOptions options)
     {
       throw new NotSupportedException(
-        $"Writing {nameof(WebproWallConfigure)} to JSON is not supported; " +
+        $"Writing {nameof(WebproWallConfiguration)} to JSON is not supported; " +
         $"use the Popolo native JSON schema for outbound serialization.");
     }
 
@@ -135,7 +135,7 @@ namespace Popolo.Webpro.Json
     #region layers の読み取り
 
     private static void ReadLayers(
-      ref Utf8JsonReader reader, WebproWallConfigure target, JsonSerializerOptions options)
+      ref Utf8JsonReader reader, WebproWallConfiguration target, JsonSerializerOptions options)
     {
       if (reader.TokenType == JsonTokenType.Null) return;
       if (reader.TokenType != JsonTokenType.StartArray)

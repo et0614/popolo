@@ -1,4 +1,4 @@
-/* WebproWindowConfigure.cs
+/* WebproWindowConfiguration.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -29,7 +29,7 @@ namespace Popolo.Webpro.Domain
   /// <para>
   /// Corresponds to the legacy <c>WebproWindowConfigureJson</c> in
   /// Popolo v2.3. This is a pure POCO — JSON parsing lives in
-  /// <see cref="Popolo.Webpro.Json.WebproWindowConfigureJsonConverter"/>.
+  /// <see cref="Popolo.Webpro.Json.WebproWindowConfigurationJsonConverter"/>.
   /// </para>
   /// <para>
   /// <b>NaN convention for missing numeric fields:</b> WEBPRO JSON often
@@ -42,7 +42,7 @@ namespace Popolo.Webpro.Domain
   /// test for the unset state before consuming these values.
   /// </para>
   /// </remarks>
-  public sealed class WebproWindowConfigure
+  public sealed class WebproWindowConfiguration
   {
     /// <summary>Gets or sets the representative window area [m²].</summary>
     public double Area { get; set; }

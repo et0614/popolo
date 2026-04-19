@@ -27,8 +27,6 @@ namespace Popolo.Core.Geometry
   /// <summary>複数のトリゴンから構成される多角形を表すクラス</summary>
   public class MultiTrigon
   {
-    /// <summary>ゼロとみなす誤差の閾値</summary>
-    public const double EPSILON_TOL = 0.00001d;
 
     /// <summary>面積を取得する</summary>
     public double Area { get; private set; }
@@ -96,7 +94,7 @@ namespace Popolo.Core.Geometry
         Vector3D vec = ray.Point - trigons[i].Plane.Point;
         if (vec.Length != 0)
         {
-          if (EPSILON_TOL < Math.Abs(vec.GetDot(trigons[i].Plane.NormalUnit)))
+          if (Vector3D.GeometryTolerance < Math.Abs(vec.GetDot(trigons[i].Plane.NormalUnit)))
           {
             if (trigons[i].CrossedWith(ray, out Point? cpt) && cpt != null)
             {

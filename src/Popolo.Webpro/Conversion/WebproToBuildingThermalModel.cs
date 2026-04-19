@@ -305,7 +305,7 @@ namespace Popolo.Webpro.Conversion
     /// <summary>Builds a Popolo <see cref="Wall"/> from a WEBPRO wall DTO.</summary>
     private static Wall BuildWall(
       WebproWall webproWall,
-      IReadOnlyDictionary<string, WebproWallConfigure> wallConfigurations,
+      IReadOnlyDictionary<string, WebproWallConfiguration> wallConfigurations,
       MaterialCatalog catalog)
     {
       // 壁の総面積 (窓含む)
@@ -340,7 +340,7 @@ namespace Popolo.Webpro.Conversion
     }
 
     /// <summary>Builds the ordered layer array for a WEBPRO wall configuration.</summary>
-    private static WallLayer[] BuildWallLayers(WebproWallConfigure wallConf, MaterialCatalog catalog)
+    private static WallLayer[] BuildWallLayers(WebproWallConfiguration wallConf, MaterialCatalog catalog)
     {
       var layers = new WallLayer[wallConf.Layers.Count];
       for (int i = 0; i < wallConf.Layers.Count; i++)
@@ -354,7 +354,7 @@ namespace Popolo.Webpro.Conversion
     /// <summary>Builds the <see cref="Window"/> instances for a single WEBPRO wall.</summary>
     private static IEnumerable<Window> BuildWindowsForWall(
       WebproWall webproWall,
-      IReadOnlyDictionary<string, WebproWindowConfigure> windowConfigurations,
+      IReadOnlyDictionary<string, WebproWindowConfiguration> windowConfigurations,
       GlazingCatalog catalog,
       Incline incline)
     {
@@ -387,7 +387,7 @@ namespace Popolo.Webpro.Conversion
     /// resistance, and optionally installs a bright venetian blind.
     /// </remarks>
     private static Window BuildWindow(
-      WebproWindowConfigure windowConf,
+      WebproWindowConfiguration windowConf,
       double area,
       Incline incline,
       bool hasBlind,
@@ -425,10 +425,10 @@ namespace Popolo.Webpro.Conversion
 
     /// <summary>
     /// Resolves (τ, U-value) for a window configuration based on its
-    /// <see cref="WebproWindowConfigure.Method"/>.
+    /// <see cref="WebproWindowConfiguration.Method"/>.
     /// </summary>
     private static (double tau, double htCoef) ResolveGlazingPerformance(
-      WebproWindowConfigure windowConf, GlazingCatalog catalog)
+      WebproWindowConfiguration windowConf, GlazingCatalog catalog)
     {
       switch (windowConf.Method)
       {

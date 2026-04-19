@@ -121,7 +121,7 @@ namespace Popolo.Core.Tests.Climate
         public void GetDirectSolarRadiationRate_VerticalSun_OnHorizontalSurface_IsOne()
         {
             var incline = new Incline(0d, 0d); //水平面
-            double rate = incline.GetDirectSolarRadiationRate(HalfPi, 0);
+            double rate = incline.GetDirectSolarRadiationRatio(HalfPi, 0);
             Assert.Equal(1.0, rate, precision: 4);
         }
 
@@ -131,7 +131,7 @@ namespace Popolo.Core.Tests.Climate
         {
             //南向き垂直面、太陽が真北方向から来る場合
             var incline = new Incline(0d, HalfPi); //南向き垂直
-            double rate = incline.GetDirectSolarRadiationRate(0.1, Pi); //太陽が北向き
+            double rate = incline.GetDirectSolarRadiationRatio(0.1, Pi); //太陽が北向き
             Assert.Equal(0, rate, precision: 4);
         }
 
@@ -143,7 +143,7 @@ namespace Popolo.Core.Tests.Climate
         public void GetDirectSolarRadiationRate_IsInRange(double altitude, double orientation)
         {
             var incline = new Incline(0d, HalfPi); //南向き垂直
-            double rate = incline.GetDirectSolarRadiationRate(altitude, orientation);
+            double rate = incline.GetDirectSolarRadiationRatio(altitude, orientation);
             Assert.InRange(rate, 0.0, 1.0);
         }
 

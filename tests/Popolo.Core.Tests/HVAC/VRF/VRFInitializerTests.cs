@@ -512,9 +512,6 @@ namespace Popolo.Core.HVAC.VRF
         default:
           throw new Exception("There is no such model.");
       }
-
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 
@@ -770,9 +767,6 @@ namespace Popolo.Core.HVAC.VRF
         default:
           throw new Exception("There is no such model.");
       }
-
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 
@@ -1135,8 +1129,6 @@ namespace Popolo.Core.HVAC.VRF
           throw new Exception("There is no such model.");
       }
 
-      vrfSystem.MaxEvaporatingTemperature = VRFSystem.NOMINAL_EVAPORATING_TEMPERATURE;
-      vrfSystem.MinCondensingTemperature = VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
       vrfSystem.IndoorUnitHeight = indoorUnitHeight;
       vrfSystem.UseWaterSpray = useWaterSpray;
 

@@ -297,7 +297,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           }
         }
 
-        Multiplicate(qi, mA, mA2);
+        Multiply(qi, mA, mA2);
         mA2.CopyTo(mA);
       }
 
@@ -405,7 +405,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="mA">A行列</param>
     /// <param name="mB">B行列</param>
     /// <param name="mC">C行列</param>
-    public static void Multiplicate(IMatrix mA, IMatrix mB, IMatrix mC)
+    public static void Multiply(IMatrix mA, IMatrix mB, IMatrix mC)
     {
       mC.Initialize(0);
       for (int i = 0; i < mA.Rows; i++)
@@ -426,7 +426,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="vC">ベクトルC（解が上書きされる）</param>
     /// <param name="alpha">第一項の係数</param>
     /// <param name="beta">第二項の係数</param>
-    public static void Multiplicate(IMatrix mA, IVector vB, IVector vC, double alpha, double beta)
+    public static void Multiply(IMatrix mA, IVector vB, IVector vC, double alpha, double beta)
     {
       for (int i = 0; i < mA.Rows; i++)
       {

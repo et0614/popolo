@@ -35,10 +35,10 @@ namespace Popolo.Core.ThermalComfort
     #region 定数宣言
 
     /// <summary>Standard deviation of individual optimum PMV values [-] across occupants.</summary>
-    public const double SIGMA_M = 0.85;
+    public const double SigmaM = 0.85;
 
     /// <summary>Shape parameter of the Weibull distribution.</summary>
-    public const double BETA = 7.0;
+    public const double Beta = 7.0;
 
     #endregion
 
@@ -89,7 +89,7 @@ namespace Popolo.Core.ThermalComfort
     public TakakusakiComfortModel(uint rndSeed)
     {
       rnd = new MersenneTwister(rndSeed);
-      InitializeParameters((new NormalRandom(rnd, 0, SIGMA_M)).NextDouble());
+      InitializeParameters((new NormalRandom(rnd, 0, SigmaM)).NextDouble());
     }
 
     /// <summary>Initializes a new instance with a specified optimum PMV value.</summary>
@@ -106,8 +106,8 @@ namespace Popolo.Core.ThermalComfort
     private void InitializeParameters(double optPMV)
     {
       OptimumPMV = optPMV;
-      EtaZero_Hot = -Math.Pow(1.5 - 0.185 * OptimumPMV, BETA) / Math.Log(0.5);
-      EtaZero_Cold = -Math.Pow(1.5 + 0.185 * OptimumPMV, BETA) / Math.Log(0.5);
+      EtaZero_Hot = -Math.Pow(1.5 - 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
+      EtaZero_Cold = -Math.Pow(1.5 + 0.185 * OptimumPMV, Beta) / Math.Log(0.5);
     }
 
     #endregion
@@ -121,13 +121,13 @@ namespace Popolo.Core.ThermalComfort
       PMV = pmv;
       if (OptimumPMV < pmv)
       {
-        DissatisfiedProbability_Hot = 1.0 - Math.Exp(-Math.Pow(pmv - OptimumPMV, BETA) / EtaZero_Hot);
+        DissatisfiedProbability_Hot = 1.0 - Math.Exp(-Math.Pow(pmv - OptimumPMV, Beta) / EtaZero_Hot);
         DissatisfiedProbability_Cold = 0;
       }
       else
       {
         DissatisfiedProbability_Hot = 0;
-        DissatisfiedProbability_Cold = 1.0 - Math.Exp(-Math.Pow(OptimumPMV - pmv, BETA) / EtaZero_Cold);
+        DissatisfiedProbability_Cold = 1.0 - Math.Exp(-Math.Pow(OptimumPMV - pmv, Beta) / EtaZero_Cold);
       }
     }
 

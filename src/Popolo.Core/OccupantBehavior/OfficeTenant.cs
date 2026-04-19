@@ -127,7 +127,7 @@ namespace Popolo.Core.OccupantBehavior
     /// <summary>Gets the male ratio among workers [-].</summary>
     /// <param name="ind">Industry category.</param>
     /// <returns>Male ratio among workers [-].</returns>
-    public static double GetMaleRate(CategoryOfIndustry ind)
+    public static double GetMaleRatio(CategoryOfIndustry ind)
     {
       switch (ind)
       {
@@ -423,7 +423,7 @@ namespace Popolo.Core.OccupantBehavior
       while (true)
       {
         //性別決定
-        bool isMale = uRnd.NextDouble() < GetMaleRate(Industry);
+        bool isMale = uRnd.NextDouble() < GetMaleRatio(Industry);
 
         //職業決定
         OfficeWorker.CategoryOfJob job;
@@ -502,7 +502,7 @@ namespace Popolo.Core.OccupantBehavior
       NormalRandom nRnd = new NormalRandom(uRnd);
 
       //性別決定
-      bool isMale = uRnd.NextDouble() < GetMaleRate(Industry);
+      bool isMale = uRnd.NextDouble() < GetMaleRatio(Industry);
 
       //職業決定
       OfficeWorker.CategoryOfJob job;

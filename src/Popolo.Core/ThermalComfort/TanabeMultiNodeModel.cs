@@ -37,7 +37,7 @@ namespace Popolo.Core.ThermalComfort
     #region 定数宣言
 
     /// <summary>Volumetric specific heat of blood [J/(mL·K)].</summary>
-    public const double BLD_SPECIFICHEAT = 3.842;
+    public const double BodySpecificHeat = 3.842;
 
     /// <summary>Conversion factor from metabolic rate [met] to heat flux [W/m²].</summary>
     private const double CONVERT_MET_TO_W = 58.2;
@@ -435,8 +435,8 @@ namespace Popolo.Core.ThermalComfort
         parts[Node.RightShoulder], parts[Node.Pelvis], parts[Node.Chest], parts[Node.Back]};
       for (int i = 0; i < bps.Length; i++)
       {
-        double dvf = BLD_SPECIFICHEAT * bps[i].bloodFlow[Layer.DeepVein];
-        double svf = BLD_SPECIFICHEAT * bps[i].bloodFlow[Layer.SuperficialVein];
+        double dvf = BodySpecificHeat * bps[i].bloodFlow[Layer.DeepVein];
+        double svf = BodySpecificHeat * bps[i].bloodFlow[Layer.SuperficialVein];
         bMatrix[0, 0] += (dvf + svf);
         bMatrix[0, bodyPart.mOffset[bps[i].node] + 5] = -dvf;
         bMatrix[0, bodyPart.mOffset[bps[i].node] + 6] = -svf;

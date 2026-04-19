@@ -33,21 +33,21 @@ namespace Popolo.Core.HVAC.HeatSource
 
     /// <summary>Nominal evaporating temperature [°C].</summary>
     /// <remarks>A lower limit of approximately 5°C applies due to vacuum maintenance requirements.</remarks>
-    public const double NOM_EVP_TEMP = 5;
+    public const double NominalEvaporatingTemperature = 5;
 
     /// <summary>Nominal condensing temperature [°C].</summary>
-    public const double NOM_CND_TEMP = 40;
+    public const double NominalCondensingTemperature = 40;
 
     /// <summary>Nominal desorption temperature (solution side) [°C].</summary>
     /// <remarks>An upper limit of approximately 160°C applies due to mild-steel corrosion concerns.</remarks>
-    public const double NOM_DSB_LIQ_TEMP = 155;
+    public const double NominalDesorberLiquidTemperature = 155;
 
     /// <summary>Nominal desorption temperature (saturated vapour side) [°C].</summary>
     /// <remarks>To avoid pressure vessel requirements, keeping pressure below atmospheric gives approximately 98°C.</remarks>
-    public const double NOM_DSB_VAP_TEMP = 98;
+    public const double NominalDesorberVaporTemperature = 98;
     
     /// <summary>Heat loss fraction relative to the high-temperature desorber heat input.</summary>
-    private const double HEATLOSS_RATE = 0.05;
+    private const double HeatLossFraction = 0.05;
 
     #endregion
 
@@ -76,8 +76,8 @@ namespace Popolo.Core.HVAC.HeatSource
       out double hexKA, out double solFlowRate, out double desorbHeat)
     {
       //凝縮器（吸収器）と蒸発器の伝熱係数KA[kW/K]
-      evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NOM_EVP_TEMP);
-      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
+      evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NominalEvaporatingTemperature);
+      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NominalCondensingTemperature);
 
       //再生器投入熱量[kW]
       double qE = chWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (chWaterITemperature - chWaterOTemperature);
@@ -88,17 +88,17 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //再生器と吸収器出口の水溶液状態
       LithiumBromide lbDo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (PhysicsConstants.ToKelvin(htWaterITemperature - dsbTemperatureApploach), PhysicsConstants.ToKelvin(NOM_CND_TEMP));
+        (PhysicsConstants.ToKelvin(htWaterITemperature - dsbTemperatureApploach), PhysicsConstants.ToKelvin(NominalCondensingTemperature));
       LithiumBromide lbAo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (PhysicsConstants.ToKelvin(NOM_CND_TEMP), PhysicsConstants.ToKelvin(NOM_EVP_TEMP));
+        (PhysicsConstants.ToKelvin(NominalCondensingTemperature), PhysicsConstants.ToKelvin(NominalEvaporatingTemperature));
 
       //溶液循環比[-]
       double aW = lbDo.MassFraction / (lbDo.MassFraction - lbAo.MassFraction);
 
       //冷媒の比エンタルピー[kJ/kg]
-      double hRVDo = Water.GetSaturatedVaporEnthalpy(NOM_CND_TEMP);
-      double hRLEi = Water.GetSaturatedLiquidEnthalpy(NOM_CND_TEMP);
-      double hRVEo = Water.GetSaturatedVaporEnthalpy(NOM_EVP_TEMP);
+      double hRVDo = Water.GetSaturatedVaporEnthalpy(NominalCondensingTemperature);
+      double hRLEi = Water.GetSaturatedLiquidEnthalpy(NominalCondensingTemperature);
+      double hRVEo = Water.GetSaturatedVaporEnthalpy(NominalEvaporatingTemperature);
 
       //冷媒および水溶液の循環量[kg/s]
       double mR = qE / (hRVEo - hRLEi);
@@ -112,7 +112,7 @@ namespace Popolo.Core.HVAC.HeatSource
         lbDo.SpecificHeat * mAi, lbAo.SpecificHeat * solFlowRate, qX, HeatExchange.FlowType.CounterFlow);
 
       //再生器の伝熱係数KA[kW/K]
-      LithiumBromide lbDi2 = LithiumBromide.MakeFromEnthalpyAndVaporTemperature(hSDi, PhysicsConstants.ToKelvin(NOM_CND_TEMP));
+      LithiumBromide lbDi2 = LithiumBromide.MakeFromEnthalpyAndVaporTemperature(hSDi, PhysicsConstants.ToKelvin(NominalCondensingTemperature));
       double cp = GetSolutionAverageSpecificHeat(lbDi2, lbDo);
       double mcHW = hotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       double mcSL = solFlowRate * cp;
@@ -152,7 +152,7 @@ namespace Popolo.Core.HVAC.HeatSource
           out tcdo, out tho);
       };
 
-      chWaterOTemperature = NOM_EVP_TEMP + 0.001;
+      chWaterOTemperature = NominalEvaporatingTemperature + 0.001;
       Minimization.GoldenSection(ref chWaterOTemperature, chWaterITemperature - 0.001, mFnc);
       cdWaterOTemperature = tcdo;
       htWaterOTemperature = tho;
@@ -309,31 +309,31 @@ namespace Popolo.Core.HVAC.HeatSource
       out double lHexKA, out double solFlowRate, out double desorbHeat)
     {
       //凝縮器（吸収器）と蒸発器の伝熱係数KA[kW/K]
-      evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NOM_EVP_TEMP);
-      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NOM_CND_TEMP);
+      evaporatorKA = GetRefrigerantHexKA(chWaterITemperature, chWaterOTemperature, chWaterFlowRate, NominalEvaporatingTemperature);
+      condenserKA = GetRefrigerantHexKA(cdWaterITemperature, cdWaterOTemperature, cdWaterFlowRate, NominalCondensingTemperature);
 
       //再生器投入熱量[kW]の計算
       double qE = chWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (chWaterITemperature - chWaterOTemperature);
       double qCDAB = cdWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (cdWaterOTemperature - cdWaterITemperature);
-      double qD = desorbHeat = (qCDAB - qE) / (1 - HEATLOSS_RATE);
+      double qD = desorbHeat = (qCDAB - qE) / (1 - HeatLossFraction);
 
       //水溶液状態の計算
       LithiumBromide lbHDo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (PhysicsConstants.ToKelvin(NOM_DSB_LIQ_TEMP), PhysicsConstants.ToKelvin(NOM_DSB_VAP_TEMP));
+        (PhysicsConstants.ToKelvin(NominalDesorberLiquidTemperature), PhysicsConstants.ToKelvin(NominalDesorberVaporTemperature));
       LithiumBromide lbAo = LithiumBromide.MakeFromLiquidTemperatureAndVaporTemperature
-        (PhysicsConstants.ToKelvin(NOM_CND_TEMP), PhysicsConstants.ToKelvin(NOM_EVP_TEMP));
+        (PhysicsConstants.ToKelvin(NominalCondensingTemperature), PhysicsConstants.ToKelvin(NominalEvaporatingTemperature));
       LithiumBromide lbLDo = LithiumBromide.MakeFromVaporTemperatureAndMassFraction
-        (PhysicsConstants.ToKelvin(NOM_CND_TEMP), lbHDo.MassFraction);
+        (PhysicsConstants.ToKelvin(NominalCondensingTemperature), lbHDo.MassFraction);
 
       //溶液循環比[-]
       double aW = lbHDo.MassFraction / (lbHDo.MassFraction - lbAo.MassFraction);
 
       //冷媒比エンタルピー[kJ/kg]の計算
-      double hRVHDo = Water.GetSaturatedVaporEnthalpy(NOM_DSB_VAP_TEMP);
-      double hRLHDo = Water.GetSaturatedLiquidEnthalpy(NOM_DSB_VAP_TEMP);
-      double hRVLDo = Water.GetSaturatedVaporEnthalpy(NOM_CND_TEMP);
-      double hRLEi = Water.GetSaturatedLiquidEnthalpy(NOM_CND_TEMP);
-      double hRVEo = Water.GetSaturatedVaporEnthalpy(NOM_EVP_TEMP);
+      double hRVHDo = Water.GetSaturatedVaporEnthalpy(NominalDesorberVaporTemperature);
+      double hRLHDo = Water.GetSaturatedLiquidEnthalpy(NominalDesorberVaporTemperature);
+      double hRVLDo = Water.GetSaturatedVaporEnthalpy(NominalCondensingTemperature);
+      double hRLEi = Water.GetSaturatedLiquidEnthalpy(NominalCondensingTemperature);
+      double hRVEo = Water.GetSaturatedVaporEnthalpy(NominalEvaporatingTemperature);
 
       //冷媒循環量[kg/s]
       double mR = qE / (hRVEo - hRLEi);
@@ -355,7 +355,7 @@ namespace Popolo.Core.HVAC.HeatSource
         double mSAi = mSAo - mR;
 
         //凝縮器・吸収器の処理熱量[kW]
-        double qCD = (hRLHDo - hRLEi) * mRH + (hRVLDo - hRLEi) * mRL - qD * HEATLOSS_RATE;
+        double qCD = (hRLHDo - hRLEi) * mRH + (hRVLDo - hRLEi) * mRL - qD * HeatLossFraction;
         double qAB = qCDAB - qCD;
 
         //低温溶液熱交換器出口水溶液
@@ -378,10 +378,10 @@ namespace Popolo.Core.HVAC.HeatSource
 
       //低温再生器の伝熱係数KA[kW/K]の計算
       LithiumBromide lbLDi2 = LithiumBromide.MakeFromEnthalpyAndVaporTemperature
-        (lbLDi.Enthalpy, PhysicsConstants.ToKelvin(NOM_CND_TEMP));
+        (lbLDi.Enthalpy, PhysicsConstants.ToKelvin(NominalCondensingTemperature));
       double cp = GetSolutionAverageSpecificHeat(lbLDi2, lbLDo);
       double effectiveness = (lbLDo.LiquidTemperature - lbLDi2.LiquidTemperature) 
-        / (PhysicsConstants.ToKelvin(NOM_DSB_VAP_TEMP) - lbLDi2.LiquidTemperature);
+        / (PhysicsConstants.ToKelvin(NominalDesorberVaporTemperature) - lbLDi2.LiquidTemperature);
       lowDesorborKA = -Math.Log(1 - effectiveness) * (cp * (mRL * aW));
 
       //溶液熱交換器の伝熱係数KA[kW/K]の計算
@@ -430,7 +430,7 @@ namespace Popolo.Core.HVAC.HeatSource
       };
 
       //冷水出口温度を収束計算
-      double chilledWaterOutletTemperature = Roots.Newton(eFnc, NOM_EVP_TEMP + 0.01, 0.001, 0.0001, 0.01, 20);
+      double chilledWaterOutletTemperature = Roots.Newton(eFnc, NominalEvaporatingTemperature + 0.01, 0.001, 0.0001, 0.01, 20);
       dsbTemperature = tdsv;
       thinMFraction = wth;
       thickMFraction = wtk;
@@ -550,7 +550,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       //冷却水出口温度
       double qE = chWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * (chWaterITemperature - chWaterOTemperature);
-      double qCDAB = qE + desorbHeat / (1 + HEATLOSS_RATE);
+      double qCDAB = qE + desorbHeat / (1 + HeatLossFraction);
       cdWaterOTemperature = cdWaterITemperature + qCDAB / (cdWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat);
 
       //蒸発温度と凝縮温度

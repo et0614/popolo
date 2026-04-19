@@ -1,4 +1,4 @@
-/* WebproWindowConfigureJsonConverter.cs
+/* WebproWindowConfigurationJsonConverter.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -27,7 +27,7 @@ using Popolo.Webpro.Domain.Enums;
 namespace Popolo.Webpro.Json
 {
   /// <summary>
-  /// JSON converter for <see cref="WebproWindowConfigure"/> — a named window
+  /// JSON converter for <see cref="WebproWindowConfiguration"/> — a named window
   /// specification found as a value inside <c>WindowConfigure</c>.
   /// </summary>
   /// <remarks>
@@ -62,11 +62,11 @@ namespace Popolo.Webpro.Json
   /// </para>
   /// <para>
   /// <b>layerType:</b> The string <c>"単層"</c> sets
-  /// <see cref="WebproWindowConfigure.IsSingleGlazing"/> to true; any other
+  /// <see cref="WebproWindowConfiguration.IsSingleGlazing"/> to true; any other
   /// value (including <c>"複層"</c>) sets it to false.
   /// </para>
   /// </remarks>
-  public sealed class WebproWindowConfigureJsonConverter : JsonConverter<WebproWindowConfigure>
+  public sealed class WebproWindowConfigurationJsonConverter : JsonConverter<WebproWindowConfiguration>
   {
 
     #region 定数
@@ -90,14 +90,14 @@ namespace Popolo.Webpro.Json
 
     #region JsonConverter 実装
 
-    public override WebproWindowConfigure Read(
+    public override WebproWindowConfiguration Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
       if (reader.TokenType != JsonTokenType.StartObject)
         throw new JsonException(
-          $"Expected StartObject for {nameof(WebproWindowConfigure)}, but got {reader.TokenType}.");
+          $"Expected StartObject for {nameof(WebproWindowConfiguration)}, but got {reader.TokenType}.");
 
-      var result = new WebproWindowConfigure();
+      var result = new WebproWindowConfiguration();
 
       while (reader.Read())
       {
@@ -155,10 +155,10 @@ namespace Popolo.Webpro.Json
 
     /// <summary>Write is not supported — WEBPRO integration is import-only.</summary>
     public override void Write(
-      Utf8JsonWriter writer, WebproWindowConfigure value, JsonSerializerOptions options)
+      Utf8JsonWriter writer, WebproWindowConfiguration value, JsonSerializerOptions options)
     {
       throw new NotSupportedException(
-        $"Writing {nameof(WebproWindowConfigure)} to JSON is not supported; " +
+        $"Writing {nameof(WebproWindowConfiguration)} to JSON is not supported; " +
         $"use the Popolo native JSON schema for outbound serialization.");
     }
 

@@ -395,7 +395,7 @@ namespace Popolo.Core.Building.Envelope
         tempAndHumid2[key] += uP[key] * bPipes[key].InletWaterTemperature;
       }
       //逆行列で解を求める
-      LinearAlgebraOperations.Multiplicate(uxMatrix, tempAndHumid2, tempAndHumid, 1, 0);
+      LinearAlgebraOperations.Multiply(uxMatrix, tempAndHumid2, tempAndHumid, 1, 0);
 
       //物性変化があり得る層の状態を計算して行列更新の要否を確認
       for (int i = 0; i < variableLayers.Length; i++)
