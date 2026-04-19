@@ -137,20 +137,36 @@ namespace Popolo.Core.Building
     /// <returns>Array of heat gain elements.</returns>
     IHeatGain[] GetHeatGains();
 
-    /// <summary>Integrates the convective sensible heat gains from all elements [W].</summary>
-    /// <returns>Total convective sensible heat gain [W].</returns>
+    /// <summary>Sums the convective sensible heat gain from every heat-gain element in this zone [W].</summary>
+    /// <returns>
+    /// Total convective sensible heat gain [W]. Includes the zone's
+    /// <c>BaseHeatGain</c> slot plus every element added via
+    /// <c>AddHeatGain</c>; implementations that depend on zone state
+    /// (e.g., temperature-dependent equipment) are evaluated against the
+    /// current zone state.
+    /// </returns>
     double IntegrateConvectiveHeatgains();
 
-    /// <summary>Integrates the radiative sensible heat gains from all elements [W].</summary>
-    /// <returns>Total radiative sensible heat gain [W].</returns>
+    /// <summary>Sums the radiative sensible heat gain from every heat-gain element in this zone [W].</summary>
+    /// <returns>
+    /// Total radiative sensible heat gain [W]. Radiative gains are
+    /// distributed to interior surfaces by the zone solver rather than
+    /// added to the air node directly.
+    /// </returns>
     double IntegrateRadiativeHeatGains();
 
-    /// <summary>Integrates the moisture gains from all elements [kg/s].</summary>
+    /// <summary>Sums the moisture generation from every heat-gain element in this zone [kg/s].</summary>
     /// <returns>Total moisture generation rate [kg/s].</returns>
     double IntegrateMoistureGains();
 
-    /// <summary>Computes the mean surface temperature weighted by emissivity and area.</summary>
-    /// <returns>Emissivity–area weighted mean surface temperature [°C].</returns>
+    /// <summary>Returns the area- and emissivity-weighted mean surface temperature (MRT) [°C].</summary>
+    /// <returns>
+    /// Weighted mean surface temperature [°C], defined as
+    /// <c>Σ(Aᵢ · εᵢ · Tᵢ) / Σ(Aᵢ · εᵢ)</c> over the wall and window
+    /// surfaces facing this zone. When no surfaces are registered, returns
+    /// the zone air temperature as a fallback. Typically used as the
+    /// radiant temperature input to thermal-comfort models.
+    /// </returns>
     double GetMeanSurfaceTemperature();
 
     /// <summary>Gets the total window area facing this zone [m²].</summary>
@@ -163,12 +179,20 @@ namespace Popolo.Core.Building
     /// <summary>Gets references to all walls facing this zone (wall ID + side flag).</summary>
     WallSurfaceReference[] GetWallReferences();
 
-    /// <summary>Gets the sensible heat input from supply air [W].</summary>
-    /// <returns>Supply air sensible heat [W].</returns>
+    /// <summary>Gets the net sensible heat delivered by HVAC supply air [W].</summary>
+    /// <returns>
+    /// Supply-air sensible heat [W] = cp · m_flow · (T_supply − T_zone).
+    /// Positive when the supply air warms the zone; negative when it cools.
+    /// Returns 0 when <c>SupplyAirFlowRate</c> is 0.
+    /// </returns>
     double GetSupplyAirHeat();
 
-    /// <summary>Gets the moisture input from supply air [kg/s].</summary>
-    /// <returns>Supply air moisture [kg/s].</returns>
+    /// <summary>Gets the net moisture delivered by HVAC supply air [kg/s].</summary>
+    /// <returns>
+    /// Supply-air moisture flow [kg/s] = m_flow · (w_supply − w_zone).
+    /// Positive when the supply air humidifies the zone; negative when it
+    /// dehumidifies. Returns 0 when <c>SupplyAirFlowRate</c> is 0.
+    /// </returns>
     double GetSupplyAirMoisture();
   }
 }

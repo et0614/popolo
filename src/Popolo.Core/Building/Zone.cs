@@ -193,32 +193,52 @@ namespace Popolo.Core.Building
       HumidityRatio = humidityRatio;
     }
 
-    /// <summary>Enables dry-bulb temperature control with the specified setpoint.</summary>
-    /// <param name="setpoint">Temperature setpoint [°C].</param>
+    /// <summary>Switches this zone to <b>temperature-setpoint</b> mode.</summary>
+    /// <param name="setpoint">Dry-bulb temperature setpoint [°C].</param>
+    /// <remarks>
+    /// Sets <see cref="IReadOnlyZone.TemperatureControlled"/> to true; the
+    /// solver pins the air temperature to <paramref name="setpoint"/> and
+    /// reports the HVAC sensible heat supply needed (clamped by
+    /// <see cref="HeatingCapacity"/> / <see cref="CoolingCapacity"/>).
+    /// Mutually exclusive with <see cref="ControlHeatSupply"/>.
+    /// </remarks>
     public void ControlDryBulbTemperature(double setpoint)
     {
       TemperatureControlled = true;
       TemperatureSetpoint = setpoint;
     }
 
-    /// <summary>Disables temperature control and sets a fixed sensible heat supply.</summary>
-    /// <param name="heatSupply">Sensible heat supply [W].</param>
+    /// <summary>Switches this zone to <b>fixed heat-supply</b> mode.</summary>
+    /// <param name="heatSupply">Sensible heat supply [W]. Positive = heating, negative = cooling.</param>
+    /// <remarks>
+    /// Sets <see cref="IReadOnlyZone.TemperatureControlled"/> to false; the
+    /// solver applies the given load and lets the temperature float.
+    /// Mutually exclusive with <see cref="ControlDryBulbTemperature"/>.
+    /// </remarks>
     public void ControlHeatSupply(double heatSupply)
     {
       TemperatureControlled = false;
       HeatSupply = heatSupply;
     }
 
-    /// <summary>Enables humidity ratio control with the specified setpoint.</summary>
+    /// <summary>Switches this zone to <b>humidity-setpoint</b> mode.</summary>
     /// <param name="setpoint">Humidity ratio setpoint [kg/kg].</param>
+    /// <remarks>
+    /// Latent counterpart of <see cref="ControlDryBulbTemperature"/>;
+    /// mutually exclusive with <see cref="ControlMoistureSupply"/>.
+    /// </remarks>
     public void ControlHumidityRatio(double setpoint)
     {
       HumidityControlled = true;
       HumidityRatioSetpoint = setpoint;
     }
 
-    /// <summary>Disables humidity control and sets a fixed moisture supply.</summary>
-    /// <param name="moistureSupply">Moisture supply [kg/s].</param>
+    /// <summary>Switches this zone to <b>fixed moisture-supply</b> mode.</summary>
+    /// <param name="moistureSupply">Moisture supply [kg/s]. Positive = humidification, negative = dehumidification.</param>
+    /// <remarks>
+    /// Latent counterpart of <see cref="ControlHeatSupply"/>; mutually
+    /// exclusive with <see cref="ControlHumidityRatio"/>.
+    /// </remarks>
     public void ControlMoistureSupply(double moistureSupply)
     {
       HumidityControlled = false;
@@ -245,10 +265,16 @@ namespace Popolo.Core.Building
 
     #region 発熱関連の処理
 
-    /// <summary>Sets the base heat gain values for this zone.</summary>
+    /// <summary>Updates the zone's built-in <see cref="BaseHeatGain"/> slot in place.</summary>
     /// <param name="convectiveHeatGain">Convective sensible heat gain [W].</param>
     /// <param name="radiativeHeatGain">Radiative sensible heat gain [W].</param>
     /// <param name="moistureGain">Moisture generation rate [kg/s].</param>
+    /// <remarks>
+    /// Mutates the existing <see cref="SimpleHeatGain"/> object stored in
+    /// <see cref="BaseHeatGain"/> rather than replacing the reference, so
+    /// any external handle to that object observes the new values. Additive
+    /// with elements added through <see cref="AddHeatGain"/>.
+    /// </remarks>
     public void SetBaseHeatGain
       (double convectiveHeatGain, double radiativeHeatGain, double moistureGain)
     {
