@@ -132,22 +132,36 @@ namespace Popolo.Core.Building.Envelope
     /// <returns>The buried pipe, or null if no pipe is embedded at that node.</returns>
     IReadOnlyBuriedPipe GetPipe(int node);
 
-    /// <summary>Gets the heat transfer rate from the buried pipe at the specified node [W].</summary>
-    /// <param name="mIndex">Node index.</param>
-    /// <returns>Heat transfer rate from the pipe [W].</returns>
+    /// <summary>Gets the heat released from the buried pipe into the surrounding wall mass [W].</summary>
+    /// <param name="mIndex">Node index (must match one of the embedded pipes).</param>
+    /// <returns>
+    /// Heat transferred from water to slab [W]. Positive when the pipe is
+    /// heating the slab, negative when it is cooling. Returns 0 when the
+    /// pipe's water flow rate is 0. Values reflect the most recent solver
+    /// step.
+    /// </returns>
     double GetHeatTransferFromPipe(int mIndex);
 
     /// <summary>Gets the outlet water temperature of the buried pipe at the specified node [°C].</summary>
     /// <param name="mIndex">Node index.</param>
-    /// <returns>Outlet water temperature [°C].</returns>
+    /// <returns>
+    /// Outlet water temperature [°C], derived from the inlet temperature
+    /// and the heat rejected to (or absorbed from) the wall mass. When the
+    /// flow rate is 0 the inlet temperature is returned unchanged.
+    /// </returns>
     double GetOutletWaterTemperature(int mIndex);
 
     /// <summary>Gets the wall layer array.</summary>
     IReadOnlyWallLayer[] Layers { get; }
 
-    /// <summary>Gets the surface heat flux [W/m²]. Positive values indicate heat absorption.</summary>
+    /// <summary>Gets the net heat flux entering the surface from the sol-air side [W/m²].</summary>
     /// <param name="isSideF">True for the F side; false for the B side.</param>
-    /// <returns>Surface heat flux [W/m²].</returns>
+    /// <returns>
+    /// Surface heat flux [W/m²] = film_coefficient × (sol_air_temperature − surface_temperature).
+    /// Positive when the surface is being warmed by the sol-air (heat flowing
+    /// into the wall), negative when the surface is rejecting heat to the
+    /// sol-air.
+    /// </returns>
     double GetSurfaceHeatTransfer(bool isSideF);
 
 
