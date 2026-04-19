@@ -22,11 +22,10 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>ガンマ分布に従う乱数系列を生成するクラス</summary>
+  /// <summary>Generates random samples from a gamma distribution.</summary>
   /// <remarks>
-  /// 谷崎久志 (2008) 「ガンマ乱数の生成方法について」 『国民経済雑誌』第197巻, 第4号, pp.17-30.
   /// H. Tanizaki (2008) "A Simple Gamma Random Number Generator for Arbitrary Shape Parameters,"
-  /// Economics Bulletin, Vol.3, No.7, pp.1-10.
+  /// Economics Bulletin, Vol. 3, No. 7, pp. 1-10.
   /// </remarks>
   [Serializable]
   public class GammaRandom
@@ -34,42 +33,42 @@ namespace Popolo.Core.Numerics
 
     #region インスタンス変数
 
-    /// <summary>一様乱数生成器</summary>
+    /// <summary>Uniform random number generator.</summary>
     private readonly MersenneTwister random;
 
-    /// <summary>内部パラメータ</summary>
+    /// <summary>Internal parameters used by the sampler.</summary>
     private readonly double n, b1, b2, c1, c2;
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>形状パラメータαを取得する</summary>
+    /// <summary>Gets the shape parameter α.</summary>
     public double Alpha { get; private set; }
 
-    /// <summary>尺度パラメータβを取得する</summary>
+    /// <summary>Gets the scale parameter β.</summary>
     public double Beta { get; private set; }
 
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="seed">乱数シード</param>
-    /// <param name="alpha">形状パラメータα（0より大きい値）</param>
-    /// <param name="beta">尺度パラメータβ（0より大きい値）</param>
+    /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
+    /// <param name="seed">Random seed.</param>
+    /// <param name="alpha">Shape parameter α (must be positive).</param>
+    /// <param name="beta">Scale parameter β (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// alpha または beta が0以下の場合。
+    /// Thrown when <paramref name="alpha"/> or <paramref name="beta"/> is not positive.
     /// </exception>
     public GammaRandom(uint seed, double alpha, double beta)
         : this(new MersenneTwister(seed), alpha, beta) { }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="rnd">一様乱数生成器</param>
-    /// <param name="alpha">形状パラメータα（0より大きい値）</param>
-    /// <param name="beta">尺度パラメータβ（0より大きい値）</param>
+    /// <summary>Initializes a new instance using the specified uniform RNG.</summary>
+    /// <param name="rnd">Uniform random number generator.</param>
+    /// <param name="alpha">Shape parameter α (must be positive).</param>
+    /// <param name="beta">Scale parameter β (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// alpha または beta が0以下の場合。
+    /// Thrown when <paramref name="alpha"/> or <paramref name="beta"/> is not positive.
     /// </exception>
     public GammaRandom(MersenneTwister rnd, double alpha, double beta)
     {
@@ -100,8 +99,8 @@ namespace Popolo.Core.Numerics
 
     #region メソッド
 
-    /// <summary>ガンマ分布に従う乱数を返す</summary>
-    /// <returns>ガンマ分布に従う乱数</returns>
+    /// <summary>Returns a sample drawn from the gamma distribution.</summary>
+    /// <returns>A random sample from the configured gamma distribution.</returns>
     public double NextDouble()
     {
       double x, y, w1, w2, v1, v2;

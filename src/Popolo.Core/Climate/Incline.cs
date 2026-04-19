@@ -73,7 +73,7 @@ namespace Popolo.Core.Climate
 
     #region インスタンス変数
 
-    /// <summary>方位角・傾斜角の正弦・余弦（計算の高速化のため事前計算）</summary>
+    /// <summary>Precomputed sine and cosine of the azimuth and tilt angles (cached for performance).</summary>
     private double _sinBeta, _cosBeta, _sinAlpha, _cosAlpha;
 
     #endregion

@@ -22,46 +22,46 @@ using System;
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
 
-  /// <summary>ベクトル</summary>
+  /// <summary>Dense vector backed by a one-dimensional array.</summary>
   [Serializable]
   public class Vector: IVector
   {
-    /// <summary>ベクトル</summary>
+    /// <summary>Underlying element storage.</summary>
     private double[] vector;
 
-    /// <summary>ベクトル長を取得する</summary>
+    /// <summary>Gets the length (number of elements) of the vector.</summary>
     public int Length { get { return vector.Length; } }
 
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="index">要素番号</param>
-    /// <returns>要素の値</returns>
+    /// <summary>Gets or sets the element at the specified index.</summary>
+    /// <param name="index">Element index.</param>
+    /// <returns>Element value.</returns>
     public double this[int index]
     {
       get { return vector[index]; }
       set { vector[index] = value; }
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="length">ベクトル長</param>
+    /// <summary>Initializes a new instance with the specified length.</summary>
+    /// <param name="length">Length of the vector.</param>
     public Vector(int length)
     { vector = new double[length]; }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="data">データ</param>
+    /// <summary>Initializes a new instance from the given array (copied).</summary>
+    /// <param name="data">Source element array.</param>
     public Vector(double[] data)
     { vector = (double[])data.Clone(); }
 
-    /// <summary>ユークリッドノルムを計算する</summary>
-    /// <returns>ユークリッドノルム</returns>
+    /// <summary>Computes the Euclidean norm of the vector.</summary>
+    /// <returns>Euclidean norm.</returns>
     public double ComputeEuclideanNorm()
     { return new VectorView(this, 0).ComputeEuclideanNorm(); }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     public void Initialize(double val)
     { for (int i = 0; i < vector.Length; i++) vector[i] = val; }
 
-    /// <summary>配列に変換する</summary>
+    /// <summary>Returns a copy of the underlying array.</summary>
     public double[] ToArray()
     {
       return (double[])vector.Clone();

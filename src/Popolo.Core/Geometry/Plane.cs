@@ -22,30 +22,30 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>3次元空間の平面を表すクラス</summary>
+  /// <summary>Represents a plane in three-dimensional space.</summary>
   public class Plane
   {
-    /// <summary>平面上の点を取得する</summary>
+    /// <summary>Gets a point on the plane.</summary>
     public Point Point { get; }
 
-    /// <summary>単位法線ベクトルを取得する</summary>
+    /// <summary>Gets the unit normal vector.</summary>
     public Vector3D NormalUnit { get; }
 
-    /// <summary>平面の方程式 Ax+By+Cz+D=0 の係数Aを取得する</summary>
+    /// <summary>Gets the coefficient A of the plane equation Ax + By + Cz + D = 0.</summary>
     public double A { get { return NormalUnit.X; } }
 
-    /// <summary>平面の方程式 Ax+By+Cz+D=0 の係数Bを取得する</summary>
+    /// <summary>Gets the coefficient B of the plane equation Ax + By + Cz + D = 0.</summary>
     public double B { get { return NormalUnit.Y; } }
 
-    /// <summary>平面の方程式 Ax+By+Cz+D=0 の係数Cを取得する</summary>
+    /// <summary>Gets the coefficient C of the plane equation Ax + By + Cz + D = 0.</summary>
     public double C { get { return NormalUnit.Z; } }
 
-    /// <summary>平面の方程式 Ax+By+Cz+D=0 の定数項Dを取得する</summary>
+    /// <summary>Gets the constant term D of the plane equation Ax + By + Cz + D = 0.</summary>
     public double D { get; private set; }
 
-    /// <summary>点と法線ベクトルからインスタンスを初期化する</summary>
-    /// <param name="point">平面上の点</param>
-    /// <param name="normal">法線ベクトル</param>
+    /// <summary>Initializes a new instance from a point and a normal vector.</summary>
+    /// <param name="point">A point on the plane.</param>
+    /// <param name="normal">Normal vector of the plane.</param>
     public Plane(Point point, Vector3D normal)
     {
       Point = point;
@@ -53,13 +53,13 @@ namespace Popolo.Core.Geometry
       D = -(NormalUnit.X * point.X + NormalUnit.Y * point.Y + NormalUnit.Z * point.Z);
     }
 
-    /// <summary>平面の方程式の係数からインスタンスを初期化する</summary>
-    /// <param name="a">係数A</param>
-    /// <param name="b">係数B</param>
-    /// <param name="c">係数C</param>
-    /// <param name="d">定数項D</param>
+    /// <summary>Initializes a new instance from the coefficients of the plane equation.</summary>
+    /// <param name="a">Coefficient A.</param>
+    /// <param name="b">Coefficient B.</param>
+    /// <param name="c">Coefficient C.</param>
+    /// <param name="d">Constant term D.</param>
     /// <exception cref="PopoloArgumentException">
-    /// a, b, c が全てゼロの場合（法線ベクトルがゼロ）。
+    /// Thrown when a, b, and c are all zero (the normal vector would be zero).
     /// </exception>
     public Plane(double a, double b, double c, double d)
     {
@@ -72,13 +72,13 @@ namespace Popolo.Core.Geometry
           "The normal vector (a, b, c) must not be zero.", nameof(a));
     }
 
-    /// <summary>コピーコンストラクタ</summary>
-    /// <param name="pln">コピーする平面</param>
+    /// <summary>Copy constructor.</summary>
+    /// <param name="pln">Source plane to copy.</param>
     public Plane(Plane pln) : this(pln.Point, pln.NormalUnit) { }
 
-    /// <summary>平面内に線を含んでいるか否か</summary>
-    /// <param name="line">線</param>
-    /// <returns>平面内に線を含んでいるか否か</returns>
+    /// <summary>Determines whether this plane contains the specified line.</summary>
+    /// <param name="line">The line to test.</param>
+    /// <returns>True if the plane contains the line; otherwise false.</returns>
     public bool Contains(Line line)
     {
       Vector3D vec = new Vector3D(
@@ -88,9 +88,9 @@ namespace Popolo.Core.Geometry
       return Math.Abs(NormalUnit.GetDot(vec)) < Vector3D.GeometryTolerance;
     }
 
-    /// <summary>線と交わっているか否か</summary>
-    /// <param name="line">線</param>
-    /// <returns>線と交わっているか否か</returns>
+    /// <summary>Determines whether this plane intersects the specified line.</summary>
+    /// <param name="line">The line to test.</param>
+    /// <returns>True if the plane intersects the line; otherwise false.</returns>
     public bool CrossedWith(Line line)
     {
       if (Point.X == line.Point.X &&
@@ -100,9 +100,9 @@ namespace Popolo.Core.Geometry
       return Vector3D.GeometryTolerance <= Math.Abs(line.Vector.GetDot(NormalUnit));
     }
 
-    /// <summary>直線と交差する点を求める</summary>
-    /// <param name="line">直線</param>
-    /// <returns>直線と交差する点。交わらない場合は null。</returns>
+    /// <summary>Returns the intersection point with the specified line.</summary>
+    /// <param name="line">The line to test.</param>
+    /// <returns>The intersection point, or null if the line does not intersect the plane.</returns>
     public Point? GetCrossedPoint(Line line)
     {
       if (!CrossedWith(line)) return null;

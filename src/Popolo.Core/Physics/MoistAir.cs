@@ -155,7 +155,7 @@ namespace Popolo.Core.Physics
 
     #region 入力検証
 
-    /// <summary>絶対零度 [°C]（温度の物理的下限）</summary>
+    /// <summary>Absolute zero [°C] (physical lower bound of temperature).</summary>
     private const double AbsoluteZero = PhysicsConstants.CelsiusToKelvinOffset * -1.0;
 
     private static void ValidateTemperature(double temperature, string paramName)

@@ -22,22 +22,22 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>特殊関数を扱うクラス</summary>
-  /// <remarks>ニューメリカルレシピ</remarks>
+  /// <summary>Provides numerical special functions.</summary>
+  /// <remarks>Adapted from "Numerical Recipes".</remarks>
   public static class SpecialFunctions
   {
 
     #region 不完全ガンマ関数
 
-    /// <summary>不完全ガンマ関数P(a,x)を計算する</summary>
-    /// <param name="a">形状パラメータ（正の値）</param>
-    /// <param name="x">積分上限（0以上）</param>
-    /// <returns>不完全ガンマ関数P(a,x)の値</returns>
+    /// <summary>Computes the regularized incomplete gamma function P(a, x).</summary>
+    /// <param name="a">Shape parameter (must be positive).</param>
+    /// <param name="x">Upper integration limit (non-negative).</param>
+    /// <returns>Value of P(a, x).</returns>
     /// <exception cref="PopoloArgumentException">
-    /// a が0以下、またはx が負の場合。
+    /// Thrown when <paramref name="a"/> is not positive or <paramref name="x"/> is negative.
     /// </exception>
     /// <exception cref="PopoloNumericalException">
-    /// 反復計算が収束しない場合。
+    /// Thrown when the iterative computation does not converge.
     /// </exception>
     public static double GammaP(double a, double x)
     {
@@ -56,15 +56,15 @@ namespace Popolo.Core.Numerics
         return 1.0 - gcf(a, x);
     }
 
-    /// <summary>不完全ガンマ関数Q(a,x)を計算する</summary>
-    /// <param name="a">形状パラメータ（正の値）</param>
-    /// <param name="x">積分上限（0以上）</param>
-    /// <returns>不完全ガンマ関数Q(a,x)の値</returns>
+    /// <summary>Computes the regularized incomplete gamma function Q(a, x) = 1 - P(a, x).</summary>
+    /// <param name="a">Shape parameter (must be positive).</param>
+    /// <param name="x">Upper integration limit (non-negative).</param>
+    /// <returns>Value of Q(a, x).</returns>
     /// <exception cref="PopoloArgumentException">
-    /// a が0以下、またはx が負の場合。
+    /// Thrown when <paramref name="a"/> is not positive or <paramref name="x"/> is negative.
     /// </exception>
     /// <exception cref="PopoloNumericalException">
-    /// 反復計算が収束しない場合。
+    /// Thrown when the iterative computation does not converge.
     /// </exception>
     public static double GammaQ(double a, double x)
     {
@@ -83,9 +83,9 @@ namespace Popolo.Core.Numerics
         return gcf(a, x);
     }
 
-    /// <summary>相補誤差関数erfc()を計算する</summary>
-    /// <param name="x">入力値</param>
-    /// <returns>相補誤差関数の値</returns>
+    /// <summary>Computes the complementary error function erfc(x).</summary>
+    /// <param name="x">Input value.</param>
+    /// <returns>Value of erfc(x).</returns>
     public static double ComplementaryErrorFunction(double x)
     {
       return x < 0.0 ? 1.0 + GammaP(0.5, x * x) : GammaQ(0.5, x * x);

@@ -21,33 +21,33 @@ using System;
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>行列インターフェース</summary>
+  /// <summary>Mutable matrix interface.</summary>
   public interface IMatrix : IReadOnlyMatrix
   {
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="row">行番号</param>
-    /// <param name="column">列番号</param>
-    /// <returns>要素の値値</returns>
+    /// <summary>Gets or sets the element at the specified row and column.</summary>
+    /// <param name="row">Row index.</param>
+    /// <param name="column">Column index.</param>
+    /// <returns>Element value.</returns>
     new double this[int row, int column] { get; set; }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     void Initialize(double val);
   }
 
-  /// <summary>読み取り専用行列インターフェース</summary>
+  /// <summary>Read-only matrix interface.</summary>
   public interface IReadOnlyMatrix
   {
-    /// <summary>行数を取得する</summary>
+    /// <summary>Gets the number of rows.</summary>
     int Rows { get; }
 
-    /// <summary>列数を取得する</summary>
+    /// <summary>Gets the number of columns.</summary>
     int Columns { get; }
 
-    /// <summary>要素の値を取得する</summary>
-    /// <param name="row">行番号</param>
-    /// <param name="column">列番号</param>
-    /// <returns>要素の値値</returns>
+    /// <summary>Gets the element at the specified row and column.</summary>
+    /// <param name="row">Row index.</param>
+    /// <param name="column">Column index.</param>
+    /// <returns>Element value.</returns>
     double this[int row, int column] { get; }
   }
 

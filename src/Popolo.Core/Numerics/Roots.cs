@@ -22,19 +22,19 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>1変数非線形関数の求根を行うクラス</summary>
+  /// <summary>Utility for finding the roots of a univariate nonlinear function.</summary>
   public static class Roots
   {
 
-    /// <summary>機械イプシロン</summary>
+    /// <summary>Machine epsilon.</summary>
     private static readonly double MECH_EPS;
 
-    /// <summary>誤差関数</summary>
-    /// <param name="x">入力値</param>
-    /// <returns>誤差</returns>
+    /// <summary>Residual function.</summary>
+    /// <param name="x">Input value.</param>
+    /// <returns>Residual value.</returns>
     public delegate double ErrorFunction(double x);
 
-    /// <summary>静的コンストラクタ</summary>
+    /// <summary>Static constructor.</summary>
     static Roots()
     {
       MECH_EPS = 1.0;
@@ -49,21 +49,21 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>二分法で求根する</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="a">求根範囲1</param>
-    /// <param name="b">求根範囲2</param>
-    /// <param name="fa">求根範囲1での評価値</param>
-    /// <param name="fb">求根範囲2での評価値</param>
-    /// <param name="errTolerance">誤差量許容値</param>
-    /// <param name="collecTolerance">修正量許容値</param>
-    /// <param name="maxIter">最大反復回数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root by bisection using precomputed values at the bracket endpoints.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="a">First bracket endpoint.</param>
+    /// <param name="b">Second bracket endpoint.</param>
+    /// <param name="fa">Residual value at <paramref name="a"/>.</param>
+    /// <param name="fb">Residual value at <paramref name="b"/>.</param>
+    /// <param name="errTolerance">Tolerance on the residual.</param>
+    /// <param name="collecTolerance">Tolerance on the interval width.</param>
+    /// <param name="maxIter">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// fa と fb が同符号のとき（根が囲い込まれていない）。
+    /// Thrown when <paramref name="fa"/> and <paramref name="fb"/> have the same sign (the root is not bracketed).
     /// </exception>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Bisection(ErrorFunction eFnc, double a, double b,
         double fa, double fb, double errTolerance, double collecTolerance, int maxIter)
@@ -98,19 +98,19 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>二分法で求根する</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="a">求根範囲1</param>
-    /// <param name="b">求根範囲2</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">修正量許容値</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root by bisection.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="a">First bracket endpoint.</param>
+    /// <param name="b">Second bracket endpoint.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="collectionTolerance">Tolerance on the interval width.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// a と b が根を囲い込んでいない場合。
+    /// Thrown when <paramref name="a"/> and <paramref name="b"/> do not bracket a root.
     /// </exception>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Bisection(ErrorFunction eFnc, double a, double b,
         double errorTolerance, double collectionTolerance, int maxIteration)
@@ -119,14 +119,14 @@ namespace Popolo.Core.Numerics
           errorTolerance, collectionTolerance, maxIteration);
     }
 
-    /// <summary>Brent法で求根する</summary>
-    /// <param name="a">求根範囲1</param>
-    /// <param name="b">求根範囲2</param>
-    /// <param name="errorTolerance">許容誤差</param>
-    /// <param name="eFnc">誤差関数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root using Brent's method.</summary>
+    /// <param name="a">First bracket endpoint.</param>
+    /// <param name="b">Second bracket endpoint.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="eFnc">Residual function.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Brent(double a, double b, double errorTolerance, ErrorFunction eFnc)
     {
@@ -210,16 +210,16 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>ニュートン法で求根する（数値微分）</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="x">初期値</param>
-    /// <param name="delta">数値微分用デルタ</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">修正量許容値</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root using Newton's method with numerical differentiation.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="x">Initial guess.</param>
+    /// <param name="delta">Step size used for numerical differentiation.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="collectionTolerance">Tolerance on the correction step.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Newton(ErrorFunction eFnc, double x, double delta,
         double errorTolerance, double collectionTolerance, int maxIteration)
@@ -243,16 +243,16 @@ namespace Popolo.Core.Numerics
       return x;
     }
 
-    /// <summary>ニュートン法で求根する（解析的微分）</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="eFncD">誤差関数の微分</param>
-    /// <param name="x">初期値</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">修正量許容値</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root using Newton's method with an analytic derivative.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="eFncD">Derivative of the residual function.</param>
+    /// <param name="x">Initial guess.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="collectionTolerance">Tolerance on the correction step.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Newton(ErrorFunction eFnc, ErrorFunction eFncD,
         double x, double errorTolerance, double collectionTolerance, int maxIteration)
@@ -275,16 +275,16 @@ namespace Popolo.Core.Numerics
       return x;
     }
 
-    /// <summary>ニュートン法と二分法を組み合わせて求根する</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="x">初期値</param>
-    /// <param name="delta">数値微分用デルタ</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">修正量許容値</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <returns>解</returns>
+    /// <summary>Finds a root by combining Newton's method with bisection fallback.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="x">Initial guess.</param>
+    /// <param name="delta">Step size used for numerical differentiation.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="collectionTolerance">Tolerance on the correction step.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double NewtonBisection(ErrorFunction eFnc, double x, double delta,
         double errorTolerance, double collectionTolerance, int maxIteration)

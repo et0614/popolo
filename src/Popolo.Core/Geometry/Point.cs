@@ -22,22 +22,22 @@ using Popolo.Core.Numerics;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>3次元空間の点を表すクラス</summary>
+  /// <summary>Represents a point in three-dimensional space.</summary>
   public class Point
   {
-    /// <summary>X座標を取得する</summary>
+    /// <summary>Gets the X coordinate.</summary>
     public double X { get; private set; }
 
-    /// <summary>Y座標を取得する</summary>
+    /// <summary>Gets the Y coordinate.</summary>
     public double Y { get; private set; }
 
-    /// <summary>Z座標を取得する</summary>
+    /// <summary>Gets the Z coordinate.</summary>
     public double Z { get; private set; }
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="x">X座標</param>
-    /// <param name="y">Y座標</param>
-    /// <param name="z">Z座標</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="x">X coordinate.</param>
+    /// <param name="y">Y coordinate.</param>
+    /// <param name="z">Z coordinate.</param>
     public Point(double x, double y, double z)
     {
       X = x;
@@ -45,8 +45,8 @@ namespace Popolo.Core.Geometry
       Z = z;
     }
 
-    /// <summary>コピーコンストラクタ</summary>
-    /// <param name="point">コピー元の点</param>
+    /// <summary>Copy constructor.</summary>
+    /// <param name="point">Source point to copy.</param>
     public Point(Point point)
     {
       X = point.X;
@@ -54,9 +54,9 @@ namespace Popolo.Core.Geometry
       Z = point.Z;
     }
 
-    /// <summary>他の点までの距離を求める</summary>
-    /// <param name="point">他の点</param>
-    /// <returns>距離</returns>
+    /// <summary>Returns the Euclidean distance to another point.</summary>
+    /// <param name="point">The other point.</param>
+    /// <returns>Distance between the two points.</returns>
     public double GetDistance(Point point)
     {
       return Math.Sqrt(
@@ -65,9 +65,9 @@ namespace Popolo.Core.Geometry
           Math.Pow(Z - point.Z, 2));
     }
 
-    /// <summary>ランダムな光線を生成する</summary>
-    /// <param name="mRnd">一様乱数生成器</param>
-    /// <returns>ランダムな光線</returns>
+    /// <summary>Generates a random ray originating from this point.</summary>
+    /// <param name="mRnd">Uniform random number generator.</param>
+    /// <returns>A ray with a random direction.</returns>
     public Line GenerateRandomRay(MersenneTwister mRnd)
     {
       double theta = 2 * Math.PI * mRnd.NextDouble();
@@ -80,13 +80,13 @@ namespace Popolo.Core.Geometry
       return new Line(this, direction);
     }
 
-    /// <summary>点から点へのベクトルを生成する（pt1 - pt2）</summary>
+    /// <summary>Returns the vector from <paramref name="pt2"/> to <paramref name="pt1"/> (pt1 - pt2).</summary>
     public static Vector3D operator -(Point pt1, Point pt2)
     {
       return new Vector3D(pt1.X - pt2.X, pt1.Y - pt2.Y, pt1.Z - pt2.Z);
     }
 
-    /// <summary>2点の座標和からベクトルを生成する</summary>
+    /// <summary>Returns a vector formed by adding the coordinates of two points.</summary>
     public static Vector3D operator +(Point pt1, Point pt2)
     {
       return new Vector3D(pt1.X + pt2.X, pt1.Y + pt2.Y, pt1.Z + pt2.Z);

@@ -65,7 +65,7 @@ namespace Popolo.Core.Energy
 
     #region プロパティ
 
-    /// <summary>インバータ効率のバッキングフィールド</summary>
+    /// <summary>Backing field for the inverter efficiency.</summary>
     private double _inverterEfficiency = 0.9;
 
     /// <summary>Gets or sets the inverter efficiency [-] (clamped to [0, 1]).</summary>
@@ -185,7 +185,7 @@ namespace Popolo.Core.Energy
       return totalIrradiance / 1000.0 * kpt * peakPower * inverterEfficiency;
     }
 
-    /// <summary>パネル温度上昇による出力補正係数を計算する（湯川ら 1996）</summary>
+    /// <summary>Computes the output correction factor due to the rise in panel temperature (Yukawa et al., 1996).</summary>
     private static double GetTemperatureRiseCorrectionFactor(
         double dryBulbTemperature, double velocity, double totalIrradiance,
         MountType mount, MaterialType material)

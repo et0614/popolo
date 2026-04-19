@@ -21,39 +21,39 @@ using System;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>三角形ポリゴンを表すクラス</summary>
+  /// <summary>Represents a triangular polygon.</summary>
   public class Trigon
   {
     #region プロパティ
 
     private readonly Point vertA, vertB, vertC;
 
-    /// <summary>頂点Aを取得する</summary>
+    /// <summary>Gets vertex A.</summary>
     public Point VertexA { get { return vertA; } }
 
-    /// <summary>頂点Bを取得する</summary>
+    /// <summary>Gets vertex B.</summary>
     public Point VertexB { get { return vertB; } }
 
-    /// <summary>頂点Cを取得する</summary>
+    /// <summary>Gets vertex C.</summary>
     public Point VertexC { get { return vertC; } }
 
-    /// <summary>平面を取得する</summary>
+    /// <summary>Gets the plane on which the triangle lies.</summary>
     public Plane Plane { get; private set; }
 
-    /// <summary>面積を取得する</summary>
+    /// <summary>Gets the area of the triangle.</summary>
     public double Area { get; private set; }
 
-    /// <summary>(0,0,1) を基準としたときの回転行列</summary>
+    /// <summary>Gets the rotation matrix that aligns (0, 0, 1) with the plane normal.</summary>
     public double[,] RotationMatrix { get; private set; }
 
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="vertA">頂点A</param>
-    /// <param name="vertB">頂点B</param>
-    /// <param name="vertC">頂点C</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="vertA">Vertex A.</param>
+    /// <param name="vertB">Vertex B.</param>
+    /// <param name="vertC">Vertex C.</param>
     public Trigon(Point vertA, Point vertB, Point vertC)
     {
       this.vertA = new Point(vertA);
@@ -79,10 +79,10 @@ namespace Popolo.Core.Geometry
 
     #region インスタンスメソッド
 
-    /// <summary>線と交わっているか否か</summary>
-    /// <param name="line">線</param>
-    /// <param name="crossedPoint">交差点の座標（交わらない場合は null）</param>
-    /// <returns>線と交わっているか否か</returns>
+    /// <summary>Determines whether the triangle intersects the specified line.</summary>
+    /// <param name="line">The line to test.</param>
+    /// <param name="crossedPoint">The intersection point (null if the line does not intersect).</param>
+    /// <returns>True if the triangle intersects the line; otherwise false.</returns>
     public bool CrossedWith(Line line, out Point? crossedPoint)
     {
       crossedPoint = Plane.GetCrossedPoint(line);
@@ -103,9 +103,9 @@ namespace Popolo.Core.Geometry
       return true;
     }
 
-    /// <summary>ベクトルを回転行列で変換する</summary>
-    /// <param name="vec">変換するベクトル</param>
-    /// <returns>変換後のベクトル</returns>
+    /// <summary>Transforms a vector by the rotation matrix.</summary>
+    /// <param name="vec">Vector to transform.</param>
+    /// <returns>Transformed vector.</returns>
     public Vector3D Rotate(Vector3D vec)
     {
       return new Vector3D(
@@ -118,10 +118,10 @@ namespace Popolo.Core.Geometry
 
     #region 静的メソッド
 
-    /// <summary>vec1 を vec2 の方向に回転させる回転行列を作成する</summary>
-    /// <param name="vec1">元のベクトル</param>
-    /// <param name="vec2">回転後のベクトル</param>
-    /// <returns>3x3回転行列</returns>
+    /// <summary>Builds a 3x3 rotation matrix that rotates <paramref name="vec1"/> to align with <paramref name="vec2"/>.</summary>
+    /// <param name="vec1">Source vector.</param>
+    /// <param name="vec2">Target vector after rotation.</param>
+    /// <returns>3x3 rotation matrix.</returns>
     public static double[,] MakeRotationMatrix(Vector3D vec1, Vector3D vec2)
     {
       Vector3D vc = vec1 + vec2;

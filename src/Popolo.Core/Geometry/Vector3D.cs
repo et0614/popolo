@@ -22,39 +22,39 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>3次元空間のベクトルを表すクラス</summary>
+  /// <summary>Represents a vector in three-dimensional space.</summary>
   public class Vector3D
   {
 
     #region 定数
 
-    /// <summary>ゼロとみなす誤差の閾値</summary>
+    /// <summary>Tolerance below which a value is treated as zero.</summary>
     public const double GeometryTolerance = 0.00001d;
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>X成分を取得する</summary>
+    /// <summary>Gets the X component.</summary>
     public double X { get; private set; }
 
-    /// <summary>Y成分を取得する</summary>
+    /// <summary>Gets the Y component.</summary>
     public double Y { get; private set; }
 
-    /// <summary>Z成分を取得する</summary>
+    /// <summary>Gets the Z component.</summary>
     public double Z { get; private set; }
 
-    /// <summary>ベクトルの長さを取得する</summary>
+    /// <summary>Gets the length (magnitude) of the vector.</summary>
     public double Length { get; private set; }
 
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="x">X成分</param>
-    /// <param name="y">Y成分</param>
-    /// <param name="z">Z成分</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="x">X component.</param>
+    /// <param name="y">Y component.</param>
+    /// <param name="z">Z component.</param>
     public Vector3D(double x, double y, double z)
     {
       X = x;
@@ -63,8 +63,8 @@ namespace Popolo.Core.Geometry
       Length = GetLength(this);
     }
 
-    /// <summary>コピーコンストラクタ</summary>
-    /// <param name="vector">コピー元のベクトル</param>
+    /// <summary>Copy constructor.</summary>
+    /// <param name="vector">Source vector to copy.</param>
     public Vector3D(Vector3D vector)
     {
       X = vector.X;
@@ -77,9 +77,9 @@ namespace Popolo.Core.Geometry
 
     #region 静的メソッド
 
-    /// <summary>ベクトルの長さを求める</summary>
-    /// <param name="vector">ベクトル</param>
-    /// <returns>ベクトルの長さ</returns>
+    /// <summary>Returns the length (magnitude) of a vector.</summary>
+    /// <param name="vector">Input vector.</param>
+    /// <returns>Length of the vector.</returns>
     public static double GetLength(Vector3D vector)
     {
       return Math.Sqrt(
@@ -88,11 +88,11 @@ namespace Popolo.Core.Geometry
           vector.Z * vector.Z);
     }
 
-    /// <summary>正規化した単位ベクトルを取得する</summary>
-    /// <param name="vec">正規化するベクトル</param>
-    /// <returns>正規化した単位ベクトル</returns>
+    /// <summary>Returns the normalized (unit) vector.</summary>
+    /// <param name="vec">Vector to normalize.</param>
+    /// <returns>Unit vector in the same direction as <paramref name="vec"/>.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// vec の長さがゼロの場合。
+    /// Thrown when the length of <paramref name="vec"/> is zero.
     /// </exception>
     public static Vector3D GetUnitVector(Vector3D vec)
     {
@@ -110,17 +110,17 @@ namespace Popolo.Core.Geometry
 
     #region インスタンスメソッド
 
-    /// <summary>他のベクトルとの内積を取得する</summary>
-    /// <param name="vector">他のベクトル</param>
-    /// <returns>内積</returns>
+    /// <summary>Returns the dot product with another vector.</summary>
+    /// <param name="vector">The other vector.</param>
+    /// <returns>Dot product.</returns>
     public double GetDot(Vector3D vector)
     {
       return X * vector.X + Y * vector.Y + Z * vector.Z;
     }
 
-    /// <summary>他のベクトルとの外積を取得する</summary>
-    /// <param name="vector">他のベクトル</param>
-    /// <returns>外積ベクトル</returns>
+    /// <summary>Returns the cross product with another vector.</summary>
+    /// <param name="vector">The other vector.</param>
+    /// <returns>Cross-product vector.</returns>
     public Vector3D GetCross(Vector3D vector)
     {
       return new Vector3D(
@@ -129,9 +129,9 @@ namespace Popolo.Core.Geometry
           X * vector.Y - Y * vector.X);
     }
 
-    /// <summary>自身を単位ベクトルに正規化する</summary>
+    /// <summary>Normalizes this vector to unit length.</summary>
     /// <exception cref="PopoloArgumentException">
-    /// ベクトルの長さがゼロの場合。
+    /// Thrown when the length of the vector is zero.
     /// </exception>
     public void Normalize()
     {
@@ -149,19 +149,19 @@ namespace Popolo.Core.Geometry
 
     #region 演算子
 
-    /// <summary>ベクトルの加算</summary>
+    /// <summary>Vector addition.</summary>
     public static Vector3D operator +(Vector3D vec1, Vector3D vec2)
     {
       return new Vector3D(vec1.X + vec2.X, vec1.Y + vec2.Y, vec1.Z + vec2.Z);
     }
 
-    /// <summary>ベクトルの減算</summary>
+    /// <summary>Vector subtraction.</summary>
     public static Vector3D operator -(Vector3D vec1, Vector3D vec2)
     {
       return new Vector3D(vec1.X - vec2.X, vec1.Y - vec2.Y, vec1.Z - vec2.Z);
     }
 
-    /// <summary>等値比較（各成分の誤差が GeometryTolerance 未満のとき等しいとみなす）</summary>
+    /// <summary>Equality comparison (components are considered equal if their differences are below <see cref="GeometryTolerance"/>).</summary>
     public override bool Equals(object? obj)
     {
       if (obj == null || GetType() != obj.GetType()) return false;
@@ -172,7 +172,7 @@ namespace Popolo.Core.Geometry
           Math.Abs(tgt.Z - Z) < GeometryTolerance;
     }
 
-    /// <summary>ハッシュコードを取得する</summary>
+    /// <summary>Returns a hash code for the vector.</summary>
     public override int GetHashCode()
     {
       return HashCode.Combine(

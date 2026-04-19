@@ -23,26 +23,26 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>疎行列</summary>
+  /// <summary>Sparse matrix storing non-zero elements in per-row dictionaries.</summary>
   [Serializable]
   public class SparseMatrix : IMatrix
   {
 
     #region インスタンス変数・プロパティ
 
-    /// <summary>非0要素を格納する連想配列</summary>
+    /// <summary>Per-row dictionaries that hold the non-zero elements.</summary>
     private Dictionary<int, double>[] elem;
 
-    /// <summary>行数を取得する</summary>
+    /// <summary>Gets the number of rows.</summary>
     public int Rows { get; private set; }
 
-    /// <summary>列数を取得する</summary>
+    /// <summary>Gets the number of columns.</summary>
     public int Columns { get; private set; }
 
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="row">行番号</param>
-    /// <param name="column">列番号</param>
-    /// <returns>要素の値値</returns>
+    /// <summary>Gets or sets the element at the specified row and column.</summary>
+    /// <param name="row">Row index.</param>
+    /// <param name="column">Column index.</param>
+    /// <returns>Element value.</returns>
     public double this[int row, int column]
     {
       get
@@ -68,9 +68,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region コンストラクタ
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="rows">行数</param>
-    /// <param name="columns">列数</param>
+    /// <summary>Initializes a new instance with the specified dimensions.</summary>
+    /// <param name="rows">Number of rows.</param>
+    /// <param name="columns">Number of columns.</param>
     public SparseMatrix(int rows, int columns)
     {
       Rows = rows;
@@ -83,9 +83,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region インスタンスメソッド
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
-    /// <remarks>疎行列で0以外での初期化は無意味</remarks>
+    /// <summary>Clears all non-zero elements (only zero initialization is supported).</summary>
+    /// <param name="val">Initialization value. Must be zero.</param>
+    /// <remarks>Initializing a sparse matrix with a non-zero value is not meaningful.</remarks>
     public void Initialize(double val)
     {
       if (val == 0.0)
@@ -95,9 +95,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         nameof(val));
     }
 
-    /// <summary>入力ベクトルとの積を計算して出力ベクトルに格納する</summary>
-    /// <param name="vec1">入力ベクトル</param>
-    /// <param name="vec2">出力：出力ベクトル</param>
+    /// <summary>Computes the matrix-vector product and stores the result in <paramref name="vec2"/>.</summary>
+    /// <param name="vec1">Input vector.</param>
+    /// <param name="vec2">Output vector that receives the product.</param>
     public void Multiply(IVector vec1, ref IVector vec2)
     {
       vec2.Initialize(0);
@@ -108,9 +108,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>転置行列と入力ベクトルとの積を計算して出力ベクトルに格納する</summary>
-    /// <param name="vec1">入力ベクトル</param>
-    /// <param name="vec2">出力：出力ベクトル</param>
+    /// <summary>Computes the product of the transposed matrix with the input vector.</summary>
+    /// <param name="vec1">Input vector.</param>
+    /// <param name="vec2">Output vector that receives the product.</param>
     public void MultiplyTransposed(IVector vec1, ref IVector vec2)
     {
       vec2.Initialize(0);
@@ -121,9 +121,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>連立一次方程式Ax=bの解xを出力する</summary>
-    /// <param name="vecB">右辺ベクトルb</param>
-    /// <param name="vecX">出力:変数ベクトルx</param>
+    /// <summary>Solves the linear system Ax = b for x.</summary>
+    /// <param name="vecB">Right-hand side vector b.</param>
+    /// <param name="vecX">Output solution vector x.</param>
     public void SolveLinearEquation(IVector vecB, ref IVector vecX)
     {
       IVector ap = new Vector(Rows);
@@ -184,8 +184,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         "Iteration error in SparseMatrix");
     }
 
-    /// <summary>逆行列に変換する</summary>
-    /// <remarks>Gauss Jordan法</remarks>
+    /// <summary>Replaces this matrix in place with its inverse.</summary>
+    /// <remarks>Uses the Gauss-Jordan elimination method.</remarks>
     public void ConvertToInverseMatrix()
     {
       //Pivot配列初期化

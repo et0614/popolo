@@ -24,23 +24,23 @@ using Popolo.Core.Numerics;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>複数のトリゴンから構成される多角形を表すクラス</summary>
+  /// <summary>Represents a polygon composed of multiple triangles.</summary>
   public class MultiTrigon
   {
 
-    /// <summary>面積を取得する</summary>
+    /// <summary>Gets the total area.</summary>
     public double Area { get; private set; }
 
-    /// <summary>トリゴンの面積比累積配列</summary>
+    /// <summary>Cumulative area-ratio array over the triangles.</summary>
     private double[] areaRatios = Array.Empty<double>();
 
-    /// <summary>トリゴンのリスト</summary>
+    /// <summary>List of triangles.</summary>
     private readonly List<Trigon> trigons = new List<Trigon>();
 
-    /// <summary>名称を設定・取得する</summary>
+    /// <summary>Gets or sets the name.</summary>
     public string? Name { get; set; }
 
-    /// <summary>モンテカルロ法に備えた初期化処理</summary>
+    /// <summary>Initializes internal state for Monte Carlo simulation.</summary>
     public void InitializeForMonteCarloSimulation()
     {
       areaRatios = new double[trigons.Count + 2];
@@ -54,9 +54,9 @@ namespace Popolo.Core.Geometry
       areaRatios[areaRatios.Length - 1] = double.MaxValue;
     }
 
-    /// <summary>ランダムな光線を発生させる</summary>
-    /// <param name="mRnd">一様乱数生成器</param>
-    /// <returns>ランダムな光線</returns>
+    /// <summary>Generates a random ray from the surface.</summary>
+    /// <param name="mRnd">Uniform random number generator.</param>
+    /// <returns>A ray with a random origin and direction.</returns>
     public Line GenerateRandomRay(MersenneTwister mRnd)
     {
       Trigon trg = SelectTrigon(mRnd.NextDouble());
@@ -80,10 +80,10 @@ namespace Popolo.Core.Geometry
       return new Line(org, direction);
     }
 
-    /// <summary>光線が交差するか否か</summary>
-    /// <param name="ray">光線</param>
-    /// <param name="length">交差点までの距離</param>
-    /// <returns>光線が交差するか否か</returns>
+    /// <summary>Determines whether a ray intersects this polygon.</summary>
+    /// <param name="ray">Ray to test.</param>
+    /// <param name="length">Distance from the ray origin to the nearest intersection.</param>
+    /// <returns>True if the ray intersects the polygon; otherwise false.</returns>
     public bool IsCrossed(Line ray, out double length)
     {
       length = double.MaxValue;
@@ -113,7 +113,7 @@ namespace Popolo.Core.Geometry
       return isCrossed;
     }
 
-    /// <summary>面積比に応じて確率的にトリゴンを選択する</summary>
+    /// <summary>Probabilistically selects a triangle proportional to its area.</summary>
     private Trigon SelectTrigon(double rnd)
     {
       int hIndx = areaRatios.Length - 1;
@@ -127,9 +127,9 @@ namespace Popolo.Core.Geometry
       return trigons[lIndx];
     }
 
-    /// <summary>ASCII形式のSTLデータをロードする</summary>
-    /// <param name="stlData">STLデータ文字列</param>
-    /// <returns>読み込んだ MultiTrigon。endsolid で正常終了しない場合は null。</returns>
+    /// <summary>Loads STL data in ASCII format.</summary>
+    /// <param name="stlData">STL data string.</param>
+    /// <returns>The loaded <see cref="MultiTrigon"/>, or null if the data does not terminate with "endsolid".</returns>
     public static MultiTrigon? LoadSTL_ASCII(string stlData)
     {
       MultiTrigon mtr = new MultiTrigon();

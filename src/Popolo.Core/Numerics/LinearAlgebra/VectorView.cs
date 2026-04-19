@@ -23,54 +23,54 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
 
-  /// <summary>ベクトル</summary>
+  /// <summary>A view of a contiguous slice of a <see cref="IVector"/> or a row/column of a <see cref="IMatrix"/>.</summary>
   [Serializable]
   public class VectorView : IVector
   {
 
     #region static変数
 
-    /// <summary>取り扱える最大値の平方根</summary>
+    /// <summary>Square root of the maximum representable value (used for scaling).</summary>
     private static double DGIANT = Math.Sqrt(double.MaxValue);
 
-    /// <summary>取り扱える正の最小値の平方根</summary>
+    /// <summary>Square root of the smallest positive representable value (used for scaling).</summary>
     private static double DDWARF = Math.Sqrt(double.Epsilon);
 
     #endregion
 
     #region インスタンス変数
 
-    /// <summary>部分ベクトル開始番号</summary>
+    /// <summary>Start index of the subvector within the source vector.</summary>
     private int startIndex;
 
-    /// <summary>部分ベクトル開始行番号</summary>
+    /// <summary>Starting row index when the source is a matrix.</summary>
     private int rowStartIndex;
 
-    /// <summary>部分ベクトル開始列番号</summary>
+    /// <summary>Starting column index when the source is a matrix.</summary>
     private int columnStartIndex;
 
-    /// <summary>もとのデータは行列か否か</summary>
+    /// <summary>True if the underlying source is a matrix.</summary>
     private bool isOrginalMatrix;
 
-    /// <summary>行方向の部分ベクトルか否か</summary>
+    /// <summary>True if this view represents a row of the source matrix; false for a column.</summary>
     private bool isRowVector;
 
-    /// <summary>もとのベクトル</summary>
+    /// <summary>Underlying source vector (when backed by a vector).</summary>
     private IVector? vector;
 
-    /// <summary>もとの行列</summary>
+    /// <summary>Underlying source matrix (when backed by a matrix).</summary>
     private IMatrix? matrix;
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>ベクトル長を取得する</summary>
+    /// <summary>Gets the length (number of elements) of the view.</summary>
     public int Length { get; private set; }
 
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="index">要素番号</param>
-    /// <returns>要素の値</returns>
+    /// <summary>Gets or sets the element at the specified index.</summary>
+    /// <param name="index">Element index.</param>
+    /// <returns>Element value.</returns>
     public double this[int index]
     {
       get
@@ -105,10 +105,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region コンストラクタ
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="vector">もとのベクトル</param>
-    /// <param name="startIndex">部分ベクトル開始番号</param>
-    /// <param name="length">ベクトル長</param>
+    /// <summary>Initializes a view over a contiguous slice of a vector.</summary>
+    /// <param name="vector">Source vector.</param>
+    /// <param name="startIndex">Starting index of the slice.</param>
+    /// <param name="length">Length of the view.</param>
     public VectorView(IVector vector, int startIndex, int length)
     {
       isOrginalMatrix = false;
@@ -117,19 +117,19 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       this.Length = length;
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="vector">もとのベクトル</param>
-    /// <param name="startIndex">部分ベクトル開始番号</param>
+    /// <summary>Initializes a view that extends from <paramref name="startIndex"/> to the end of the vector.</summary>
+    /// <param name="vector">Source vector.</param>
+    /// <param name="startIndex">Starting index of the slice.</param>
     public VectorView(IVector vector, int startIndex)
       : this(vector, startIndex, vector.Length - startIndex)
     { }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="matrix">もとの行列</param>
-    /// <param name="isRowVector">行ベクトルか否か</param>
-    /// <param name="rowStartIndex">部分ベクトル開始行番号</param>
-    /// <param name="columnStartIndex">部分ベクトル開始列番号</param>
-    /// <param name="length">ベクトル長</param>
+    /// <summary>Initializes a view over a row or column of a matrix with an explicit length.</summary>
+    /// <param name="matrix">Source matrix.</param>
+    /// <param name="isRowVector">True to view a row; false to view a column.</param>
+    /// <param name="rowStartIndex">Starting row index.</param>
+    /// <param name="columnStartIndex">Starting column index.</param>
+    /// <param name="length">Length of the view.</param>
     public VectorView(IMatrix matrix, bool isRowVector,
       int rowStartIndex, int columnStartIndex, int length)
     {
@@ -141,11 +141,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       this.Length = length;
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="matrix">もとの行列</param>
-    /// <param name="isRowVector">行ベクトルか否か</param>
-    /// <param name="rowStartIndex">部分ベクトル開始行番号</param>
-    /// <param name="columnStartIndex">部分ベクトル開始列番号</param>
+    /// <summary>Initializes a view that extends from the starting index to the end of the row or column.</summary>
+    /// <param name="matrix">Source matrix.</param>
+    /// <param name="isRowVector">True to view a row; false to view a column.</param>
+    /// <param name="rowStartIndex">Starting row index.</param>
+    /// <param name="columnStartIndex">Starting column index.</param>
     public VectorView(IMatrix matrix, bool isRowVector,
       int rowStartIndex, int columnStartIndex) :
         this(matrix, isRowVector, rowStartIndex, columnStartIndex, isRowVector ?
@@ -156,8 +156,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region インスタンスメソッド
 
-    /// <summary>ユークリッドノルムを計算する</summary>
-    /// <returns>ユークリッドノルム</returns>
+    /// <summary>Computes the Euclidean norm of the view, using a numerically stable scaling.</summary>
+    /// <returns>Euclidean norm.</returns>
     public double ComputeEuclideanNorm()
     {
       double aGiant = DGIANT / Length;   //1要素あたりの最大値
@@ -209,8 +209,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements in the view to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     public void Initialize(double val)
     { for (int i = 0; i < Length; i++) this[i] = val; }
 

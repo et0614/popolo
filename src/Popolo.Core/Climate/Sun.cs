@@ -44,7 +44,7 @@ namespace Popolo.Core.Climate
     /// <summary>Luminous efficacy of solar radiation [lm/W].</summary>
     public const double SolarLuminousEfficacy = 93.9;
 
-    /// <summary>度からラジアンへの変換係数</summary>
+    /// <summary>Conversion factor from degrees to radians.</summary>
     private const double DegToRad = Math.PI / 180.0;
 
     #endregion
@@ -357,20 +357,20 @@ namespace Popolo.Core.Climate
 
     #region クラス変数
 
-    /// <summary>都市-位置対応リスト（緯度・経度・標準経度）</summary>
+    /// <summary>Lookup of city locations (latitude, longitude, standard-time longitude).</summary>
     private static readonly Dictionary<City, double[]> _cities = new Dictionary<City, double[]>();
 
     #endregion
 
     #region インスタンス変数
 
-    /// <summary>法線面直達日射量 [W/m²]</summary>
+    /// <summary>Direct normal irradiance [W/m²].</summary>
     private double _directNormalRadiation;
 
-    /// <summary>水平面天空日射量 [W/m²]</summary>
+    /// <summary>Diffuse horizontal irradiance [W/m²].</summary>
     private double _diffuseHorizontalRadiation;
 
-    /// <summary>水平面全天日射量 [W/m²]</summary>
+    /// <summary>Global horizontal irradiance [W/m²].</summary>
     private double _globalHorizontalRadiation;
 
     #endregion
@@ -432,7 +432,7 @@ namespace Popolo.Core.Climate
 
     #region 静的コンストラクタ・コンストラクタ
 
-    /// <summary>静的コンストラクタ：都市データの初期化</summary>
+    /// <summary>Static constructor that initializes the city location data.</summary>
     static Sun()
     {
       _cities.Add(City.Aberdeen, new double[] { 57.15, -2.15, 0 });
@@ -793,7 +793,7 @@ namespace Popolo.Core.Climate
         double latitude, double longitude, double standardLongitude, DateTime dTime)
         => GetSunRiseOrSetTime(latitude, longitude, standardLongitude, dTime, false);
 
-    /// <summary>日の出または日没時刻を計算する</summary>
+    /// <summary>Computes the sunrise or sunset time.</summary>
     private static DateTime GetSunRiseOrSetTime(
         double latitude, double longitude, double standardLongitude,
         DateTime dTime, bool isSunSet)
@@ -1021,7 +1021,7 @@ namespace Popolo.Core.Climate
           * Math.Pow(atmosphericTransmissivity, 1.0 / sinh);
     }
 
-    /// <summary>大気透過率から直達・天空日射量を計算する</summary>
+    /// <summary>Computes the direct and diffuse irradiance from the atmospheric transmissivity.</summary>
     private static void GetDirectAndDiffuseRadiation(
         double aTransmissivity, double sinAltitude, double exRadiation,
         SeparationMethod method,

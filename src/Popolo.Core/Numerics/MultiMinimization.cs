@@ -23,38 +23,38 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>多変数非線形関数の最小化処理クラス</summary>
+  /// <summary>Utility for minimizing a multivariate nonlinear function.</summary>
   public static class MultiMinimization
   {
 
     #region デリゲート
 
-    /// <summary>最小化する関数</summary>
-    /// <param name="vecX">入力ベクトル</param>
-    /// <param name="iter">反復回数</param>
-    /// <returns>評価値</returns>
+    /// <summary>Function to minimize.</summary>
+    /// <param name="vecX">Input vector.</param>
+    /// <param name="iter">Current iteration count.</param>
+    /// <returns>Objective value.</returns>
     public delegate double MinimizeFunction(IVector vecX, int iter);
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>数値微分のための差分評価係数</summary>
+    /// <summary>Relative step size used for numerical differentiation.</summary>
     public static double Delta { get; set; } = 1e-7;
 
     #endregion
 
     #region ニュートン法
 
-    /// <summary>ニュートン法で極小値を探索する</summary>
-    /// <param name="vecX">初期値ベクトル　出力：収束値</param>
-    /// <param name="mFnc">探索する関数</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <param name="rErrXVal">入力変化率の収束条件</param>
-    /// <param name="rErrFVal">関数評価値変化率の収束条件</param>
-    /// <param name="rErrDel">微分値の収束条件</param>
-    /// <param name="iteration">出力：反復回数</param>
-    /// <returns>探索成功の場合 true</returns>
+    /// <summary>Searches for a local minimum using Newton's method.</summary>
+    /// <param name="vecX">Initial guess. Output: converged solution.</param>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <param name="rErrXVal">Convergence tolerance on the relative change of the input.</param>
+    /// <param name="rErrFVal">Convergence tolerance on the relative change of the objective value.</param>
+    /// <param name="rErrDel">Convergence tolerance on the gradient.</param>
+    /// <param name="iteration">Output: number of iterations performed.</param>
+    /// <returns>True if the search converged successfully; otherwise false.</returns>
     public static bool Newton(
         ref IVector vecX, MinimizeFunction mFnc, int maxIteration,
         double rErrXVal, double rErrFVal, double rErrDel, out int iteration)
@@ -142,15 +142,15 @@ namespace Popolo.Core.Numerics
 
     #region 準ニュートン法
 
-    /// <summary>準ニュートン法（BFGS）で極小値を探索する</summary>
-    /// <param name="vecX">初期値ベクトル　出力：収束値</param>
-    /// <param name="mFnc">探索する関数</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <param name="rErrXVal">入力変化率の収束条件</param>
-    /// <param name="rErrFVal">関数評価値変化率の収束条件</param>
-    /// <param name="rErrDel">微分値の収束条件</param>
-    /// <param name="iteration">出力：反復回数</param>
-    /// <returns>探索成功の場合 true</returns>
+    /// <summary>Searches for a local minimum using the BFGS quasi-Newton method.</summary>
+    /// <param name="vecX">Initial guess. Output: converged solution.</param>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <param name="rErrXVal">Convergence tolerance on the relative change of the input.</param>
+    /// <param name="rErrFVal">Convergence tolerance on the relative change of the objective value.</param>
+    /// <param name="rErrDel">Convergence tolerance on the gradient.</param>
+    /// <param name="iteration">Output: number of iterations performed.</param>
+    /// <returns>True if the search converged successfully; otherwise false.</returns>
     public static bool QuasiNewton(
         ref IVector vecX, MinimizeFunction mFnc, int maxIteration,
         double rErrXVal, double rErrFVal, double rErrDel, out int iteration)
@@ -284,7 +284,7 @@ namespace Popolo.Core.Numerics
 
     #region 非公開メソッド
 
-    /// <summary>数値微分を計算する</summary>
+    /// <summary>Computes a numerical gradient.</summary>
     private static void GetDiff(
         double fx, ref IVector vecX, ref IVector dif,
         MinimizeFunction mFnc, int iter)
@@ -301,7 +301,7 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>直線探索を行う</summary>
+    /// <summary>Performs a line search.</summary>
     private static void LineSearch(
         IVector vecX, IVector dir, IVector dif, MinimizeFunction mFnc,
         int iteration, out double alpha, out double fvecX)
@@ -406,7 +406,7 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>直線探索用の評価関数</summary>
+    /// <summary>Evaluates the objective along the line search direction.</summary>
     private static double EvalAlpha(
         double alpha, IVector vecX, IVector dir, MinimizeFunction mFnc, int iter)
     {

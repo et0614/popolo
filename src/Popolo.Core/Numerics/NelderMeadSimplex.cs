@@ -22,7 +22,7 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>NelderとMeadによる滑降シンプレックス法</summary>
+  /// <summary>Downhill simplex method (Nelder-Mead) for multivariate optimization.</summary>
   public static class NelderMeadSimplex
   {
 
@@ -41,35 +41,35 @@ namespace Popolo.Core.Numerics
     private static double rho = 1.0;
     private static double pow = 2.0;
 
-    /// <summary>反射の係数αを設定・取得する（0より大きい値）</summary>
+    /// <summary>Gets or sets the reflection coefficient α (must be positive).</summary>
     public static double Alpha
     {
       get { return alpha; }
       set { if (0 < value) alpha = value; }
     }
 
-    /// <summary>膨張の係数βを設定・取得する（0より大きく1未満）</summary>
+    /// <summary>Gets or sets the contraction coefficient β (must be in (0, 1)).</summary>
     public static double Beta
     {
       get { return beta; }
       set { if (0 < value && value < 1) beta = value; }
     }
 
-    /// <summary>収縮の係数γを設定・取得する（1より大きい値）</summary>
+    /// <summary>Gets or sets the expansion coefficient γ (must be greater than 1).</summary>
     public static double Gamma
     {
       get { return gamma; }
       set { if (1 < value) gamma = value; }
     }
 
-    /// <summary>ペナルティパラメータを設定・取得する（0より大きい値）</summary>
+    /// <summary>Gets or sets the penalty parameter ρ (must be positive).</summary>
     public static double Rho
     {
       get { return rho; }
       set { if (0 < value) rho = value; }
     }
 
-    /// <summary>ペナルティ乗数を設定・取得する（0より大きい値）</summary>
+    /// <summary>Gets or sets the penalty exponent (must be positive).</summary>
     public static double Pow
     {
       get { return pow; }
@@ -80,26 +80,26 @@ namespace Popolo.Core.Numerics
 
     #region デリゲート定義
 
-    /// <summary>最適化する関数</summary>
-    /// <param name="x">入力値</param>
-    /// <returns>出力値</returns>
+    /// <summary>Objective function to optimize.</summary>
+    /// <param name="x">Input vector.</param>
+    /// <returns>Objective value.</returns>
     public delegate double OptimizeFunction(double[] x);
 
-    /// <summary>内部用：反復回数付き最適化関数</summary>
+    /// <summary>Internal objective function that also receives the current iteration count.</summary>
     private delegate double InternalOptimizeFunction(double[] x, int iteration);
 
     #endregion
 
     #region 公開メソッド
 
-    /// <summary>関数を最小化する入力を探索する</summary>
-    /// <param name="mFnc">最小化関数</param>
-    /// <param name="minX">Xの最小値リスト</param>
-    /// <param name="maxX">Xの最大値リスト</param>
-    /// <param name="success">収束成功の真偽</param>
-    /// <returns>ユーザー関数が最小値をとる入力ベクトル</returns>
+    /// <summary>Finds the input vector that minimizes the given function.</summary>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <param name="minX">Lower bounds of the search range.</param>
+    /// <param name="maxX">Upper bounds of the search range.</param>
+    /// <param name="success">Output: whether the search converged successfully.</param>
+    /// <returns>Input vector at the minimum of the function.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// minX または maxX が null もしくは空の場合、あるいは長さが一致しない場合。
+    /// Thrown when <paramref name="minX"/> or <paramref name="maxX"/> is null or empty, or when their lengths differ.
     /// </exception>
     public static double[] GetSolution(
         OptimizeFunction mFnc, double[] minX, double[] maxX, out bool success)
@@ -111,15 +111,15 @@ namespace Popolo.Core.Numerics
       return Solve(fnc, points, false, out success);
     }
 
-    /// <summary>制約付きで関数を最小化する入力を探索する</summary>
-    /// <param name="mFnc">最小化関数</param>
-    /// <param name="cFnc">制約関数（f(x)=0とする）</param>
-    /// <param name="minX">Xの最小値リスト</param>
-    /// <param name="maxX">Xの最大値リスト</param>
-    /// <param name="success">収束成功の真偽</param>
-    /// <returns>ユーザー関数が最小値をとる入力ベクトル</returns>
+    /// <summary>Finds the input vector that minimizes the given function subject to an equality constraint.</summary>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <param name="cFnc">Constraint function, enforced as f(x) = 0.</param>
+    /// <param name="minX">Lower bounds of the search range.</param>
+    /// <param name="maxX">Upper bounds of the search range.</param>
+    /// <param name="success">Output: whether the search converged successfully.</param>
+    /// <returns>Input vector at the constrained minimum of the function.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// minX または maxX が null もしくは空の場合、あるいは長さが一致しない場合。
+    /// Thrown when <paramref name="minX"/> or <paramref name="maxX"/> is null or empty, or when their lengths differ.
     /// </exception>
     public static double[] GetSolution(
         OptimizeFunction mFnc, OptimizeFunction cFnc,
@@ -137,7 +137,7 @@ namespace Popolo.Core.Numerics
 
     #region 非公開メソッド
 
-    /// <summary>探索範囲の引数を検証する</summary>
+    /// <summary>Validates the search-range arguments.</summary>
     private static void ValidateSearchRange(double[] minX, double[] maxX)
     {
       if (minX == null || minX.Length == 0)
@@ -153,7 +153,7 @@ namespace Popolo.Core.Numerics
             nameof(maxX));
     }
 
-    /// <summary>滑降シンプレックス法で解を求める</summary>
+    /// <summary>Solves the minimization problem using the downhill simplex method.</summary>
     private static double[] Solve(
         InternalOptimizeFunction fnc, double[][] points,
         bool hasConstraint, out bool success)
@@ -252,7 +252,7 @@ namespace Popolo.Core.Numerics
       return points[iMin];
     }
 
-    /// <summary>初期探索点を乱数で生成する</summary>
+    /// <summary>Generates initial simplex vertices using random sampling within the search range.</summary>
     private static double[][] MakeInitialPoints(double[] minX, double[] maxX)
     {
       double[][] pnts = new double[minX.Length + 1][];
@@ -266,7 +266,7 @@ namespace Popolo.Core.Numerics
       return pnts;
     }
 
-    /// <summary>座標を入れ替える</summary>
+    /// <summary>Replaces one simplex vertex and updates the coordinate sum.</summary>
     private static void SwitchPoint(
         ref double[][] points, ref double[] sum, double[] newPt, int iMax)
     {
@@ -277,7 +277,7 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>新しい座標値を作成して関数を評価する</summary>
+    /// <summary>Evaluates the objective at a new candidate point generated from the current simplex.</summary>
     private static double TryPoint(
         InternalOptimizeFunction fnc, int iteration,
         double[] pt, double[] sum, double cf, ref double[] newPt)
@@ -288,7 +288,7 @@ namespace Popolo.Core.Numerics
       return fnc(newPt, iteration);
     }
 
-    /// <summary>各座標を合算する</summary>
+    /// <summary>Computes the component-wise sum of all simplex vertices.</summary>
     private static void SummatePoints(double[][] points, ref double[] sum)
     {
       int num = points[0].Length;

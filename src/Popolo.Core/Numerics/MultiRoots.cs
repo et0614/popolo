@@ -23,25 +23,25 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>多次元非線形関数の求根を行うクラス</summary>
+  /// <summary>Utility for finding the roots of a multivariate nonlinear function.</summary>
   public static class MultiRoots
   {
-    /// <summary>誤差関数</summary>
-    /// <param name="x">入力ベクトル</param>
-    /// <param name="fx">出力ベクトル</param>
+    /// <summary>Residual function.</summary>
+    /// <param name="x">Input vector.</param>
+    /// <param name="fx">Output vector (residuals).</param>
     public delegate void ErrorFunction(IVector x, ref IVector fx);
 
-    /// <summary>ニュートン法で求根する</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="x">入力：初期値　出力：収束値</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">入力変化率の収束条件</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <param name="iteration">出力：反復回数</param>
-    /// <param name="error">出力：最終誤差</param>
-    /// <returns>求根成功の場合 true</returns>
+    /// <summary>Finds a root by Newton's method.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="x">Input: initial guess. Output: converged solution.</param>
+    /// <param name="errorTolerance">Tolerance on the residual error.</param>
+    /// <param name="collectionTolerance">Tolerance on the relative change of the input.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <param name="iteration">Output: number of iterations performed.</param>
+    /// <param name="error">Output: final residual error.</param>
+    /// <returns>True if a root was successfully found; otherwise false.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// x が null または空の場合。
+    /// Thrown when <paramref name="x"/> is null or empty.
     /// </exception>
     public static bool Newton(
         ErrorFunction eFnc, ref IVector x,
@@ -84,18 +84,18 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>ニュートン法で求根する（振動防止係数付き）</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="x">入力：初期値　出力：収束値</param>
-    /// <param name="errorTolerance">誤差量許容値</param>
-    /// <param name="collectionTolerance">入力変化率の収束条件</param>
-    /// <param name="maxIteration">最大反復回数</param>
-    /// <param name="antiVibrationC">振動防止係数（0.0〜1.0）</param>
-    /// <param name="iteration">出力：反復回数</param>
-    /// <param name="error">出力：最終誤差</param>
-    /// <returns>求根成功の場合 true</returns>
+    /// <summary>Finds a root by Newton's method with an anti-oscillation damping factor.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="x">Input: initial guess. Output: converged solution.</param>
+    /// <param name="errorTolerance">Tolerance on the residual error.</param>
+    /// <param name="collectionTolerance">Tolerance on the relative change of the input.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <param name="antiVibrationC">Anti-oscillation damping factor in the range (0.0, 1.0].</param>
+    /// <param name="iteration">Output: number of iterations performed.</param>
+    /// <param name="error">Output: final residual error.</param>
+    /// <returns>True if a root was successfully found; otherwise false.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// x が null または空の場合、あるいは antiVibrationC が範囲外の場合。
+    /// Thrown when <paramref name="x"/> is null or empty, or when <paramref name="antiVibrationC"/> is outside (0.0, 1.0].
     /// </exception>
     public static bool Newton(
         ErrorFunction eFnc, ref IVector x,
@@ -143,7 +143,7 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>ヤコビアンを数値的に計算する</summary>
+    /// <summary>Computes the Jacobian matrix by finite differences.</summary>
     private static void ComputeJacobian(
         ErrorFunction eFnc, ref IVector x, IVector fx, ref IMatrix jac)
     {

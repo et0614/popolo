@@ -290,14 +290,14 @@ namespace Popolo.Core.Building.Envelope
     #region コンストラクタ
 
     /// <summary>Initializes a new instance.</summary>
-    /// <param name="area">面積[m2]</param>
-    /// <param name="layers">壁構成</param>
+    /// <param name="area">Surface area [m²].</param>
+    /// <param name="layers">Wall layer composition.</param>
     public Wall(double area, WallLayer[] layers) : this(area, layers, false) { }
 
     /// <summary>Initializes a new instance.</summary>
-    /// <param name="area">面積[m2]</param>
-    /// <param name="layers">壁構成</param>
-    /// <param name="computeMoistureTransfer">水分移動を計算するか否か</param>
+    /// <param name="area">Surface area [m²].</param>
+    /// <param name="layers">Wall layer composition.</param>
+    /// <param name="computeMoistureTransfer">Whether to compute moisture transfer.</param>
     public Wall(double area, WallLayer[] layers, bool computeMoistureTransfer)
     {
       Area = area;
@@ -479,7 +479,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Initializes the temperature distribution to the specified value.</summary>
-    /// <param name="temperature">温度[C]</param>
+    /// <param name="temperature">Temperature [°C].</param>
     public void Initialize(double temperature)
     {
       VectorView temp = new VectorView(tempAndHumid, 0, layers.Length + 1);
@@ -492,8 +492,8 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Initializes the temperature and humidity ratio distribution.</summary>
-    /// <param name="temperature">温度[C]</param>
-    /// <param name="humidityRatio">絶対湿度[kg/kg]</param>
+    /// <param name="temperature">Temperature [°C].</param>
+    /// <param name="humidityRatio">Humidity ratio [kg/kg].</param>
     public void Initialize(double temperature, double humidityRatio)
     {
       if (!ComputeMoistureTransfer) return;
@@ -509,7 +509,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the surface heat flux [W/m²]. Positive values indicate heat absorption.</summary>
-    /// <param name="isSideF">F側か否か</param>
+    /// <param name="isSideF">True for the F (front) side; false for the B (back) side.</param>
     /// <returns>Surface heat flux [W/m²].</returns>
     public double GetSurfaceHeatTransfer(bool isSideF)
     {
@@ -522,13 +522,13 @@ namespace Popolo.Core.Building.Envelope
     #region 埋設配管関連の処理
 
     /// <summary>Adds a buried pipe at the specified node.</summary>
-    /// <param name="node">追加する質点番号</param>
-    /// <param name="pitch">敷設ピッチ[m]</param>
-    /// <param name="length">配管総延長[m]</param>
-    /// <param name="branchCount">分岐の数[本]</param>
-    /// <param name="iDiameter">内径[m]</param>
-    /// <param name="oDiameter">外径[m]</param>
-    /// <param name="tubeConductivity">配管材の熱伝導率[W/(mK)]</param>
+    /// <param name="node">Node index at which to add the pipe.</param>
+    /// <param name="pitch">Installation pitch [m].</param>
+    /// <param name="length">Total pipe length [m].</param>
+    /// <param name="branchCount">Number of branches.</param>
+    /// <param name="iDiameter">Inner diameter [m].</param>
+    /// <param name="oDiameter">Outer diameter [m].</param>
+    /// <param name="tubeConductivity">Thermal conductivity of the pipe material [W/(m·K)].</param>
     public void AddPipe(int node, double pitch, double length, int branchCount,
       double iDiameter, double oDiameter, double tubeConductivity)
     {
@@ -561,14 +561,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the buried pipe at the specified node.</summary>
-    /// <param name="node">埋設されている質点番号</param>
+    /// <param name="node">Index of the node where the pipe is buried.</param>
     /// <returns>The buried pipe at the node.</returns>
     public IReadOnlyBuriedPipe GetPipe(int node) { return bPipes[node]; }
 
     /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
-    /// <param name="mIndex">質点番号</param>
-    /// <param name="flowRate">通水量[kg/s]</param>
-    /// <param name="temperature">水温[C]</param>
+    /// <param name="mIndex">Node index.</param>
+    /// <param name="flowRate">Water flow rate [kg/s].</param>
+    /// <param name="temperature">Water temperature [°C].</param>
     public void SetInletWater(int mIndex, double flowRate, double temperature)
     {
       BuriedPipe bp = bPipes[mIndex];
@@ -581,7 +581,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the heat transfer rate from the buried pipe at the specified node [W].</summary>
-    /// <param name="mIndex">質点番号</param>
+    /// <param name="mIndex">Node index.</param>
     /// <returns>Heat transfer rate from the pipe [W].</returns>
     public double GetHeatTransferFromPipe(int mIndex)
     {
@@ -598,7 +598,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the outlet water temperature of the buried pipe at the specified node [°C].</summary>
-    /// <param name="mIndex">質点番号</param>
+    /// <param name="mIndex">Node index.</param>
     /// <returns>Outlet water temperature [°C].</returns>
     public double GetOutletWaterTemperature(int mIndex)
     {

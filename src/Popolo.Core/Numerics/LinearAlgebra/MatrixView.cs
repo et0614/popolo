@@ -22,35 +22,35 @@ using System;
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>部分行列</summary>
+  /// <summary>A view over a rectangular block of an <see cref="IMatrix"/>.</summary>
   [Serializable]
   public class MatrixView : IMatrix
   {
     #region インスタンス変数
 
-    /// <summary>もとの行列</summary>
+    /// <summary>Underlying source matrix.</summary>
     private IMatrix matrix;
 
-    /// <summary>部分行列開始行番号</summary>
+    /// <summary>Starting row index of the submatrix.</summary>
     private int rowStartIndex;
 
-    /// <summary>部分行列開始列番号</summary>
+    /// <summary>Starting column index of the submatrix.</summary>
     private int columnStartIndex;
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>行数を取得する</summary>
+    /// <summary>Gets the number of rows in the view.</summary>
     public int Rows { get; private set; }
 
-    /// <summary>列数を取得する</summary>
+    /// <summary>Gets the number of columns in the view.</summary>
     public int Columns { get; private set; }
 
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="row">行番号</param>
-    /// <param name="column">列番号</param>
-    /// <returns>要素の値値</returns>
+    /// <summary>Gets or sets the element at the specified row and column.</summary>
+    /// <param name="row">Row index within the view.</param>
+    /// <param name="column">Column index within the view.</param>
+    /// <returns>Element value.</returns>
     public double this[int row, int column]
     {
       get
@@ -83,12 +83,12 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="matrix">もとの行列</param>
-    /// <param name="rowSize">行数</param>
-    /// <param name="columnSize">列数</param>
-    /// <param name="rowStartIndex">部分行列開始行番号</param>
-    /// <param name="columnStartIndex">部分行列開始列番号</param>
+    /// <summary>Initializes a view over a rectangular block of a matrix.</summary>
+    /// <param name="matrix">Source matrix.</param>
+    /// <param name="rowSize">Number of rows in the view.</param>
+    /// <param name="columnSize">Number of columns in the view.</param>
+    /// <param name="rowStartIndex">Starting row index within the source matrix.</param>
+    /// <param name="columnStartIndex">Starting column index within the source matrix.</param>
     public MatrixView(IMatrix matrix, int rowSize, int columnSize, int rowStartIndex, int columnStartIndex)
     {
       this.matrix = matrix;
@@ -98,8 +98,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       this.Columns = columnSize;
     }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements in the view to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     public void Initialize(double val)
     {
       for (int i = 0; i < Rows; i++)

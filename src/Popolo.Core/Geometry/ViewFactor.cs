@@ -22,9 +22,9 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>形態係数計算クラス</summary>
+  /// <summary>Utility class for computing view factors between rectangular surfaces.</summary>
   /// <remarks>
-  /// 座標系：
+  /// Coordinate system:
   /// Z
   /// ^    Y
   /// |   /
@@ -38,14 +38,14 @@ namespace Popolo.Core.Geometry
 
     #region 公開メソッド
 
-    /// <summary>対向する長方形面間の形態係数を計算する</summary>
-    /// <param name="width">面の幅（Y方向）</param>
-    /// <param name="height">面の高さ（Z方向）</param>
-    /// <param name="distance">面間距離（X方向、0以上）</param>
-    /// <returns>形態係数（0〜1）</returns>
+    /// <summary>Computes the view factor between two parallel facing rectangles.</summary>
+    /// <param name="width">Surface width (Y direction).</param>
+    /// <param name="height">Surface height (Z direction).</param>
+    /// <param name="distance">Distance between the surfaces (X direction, non-negative).</param>
+    /// <returns>View factor in the range [0, 1].</returns>
     /// <remarks>
-    /// 2枚の長方形面が完全に対向（平行）している場合の形態係数。
-    /// distance=0のとき1を返す。width, height, distanceのいずれかが0のとき0を返す。
+    /// View factor between two perfectly parallel (facing) rectangles.
+    /// Returns 1 when distance = 0, and 0 when any of width, height, or distance is 0.
     /// </remarks>
     public static double GetViewFactorParallelRectangles(
         double width, double height, double distance)
@@ -53,14 +53,14 @@ namespace Popolo.Core.Geometry
       return ViewParallelRectangle2FromRectangle1(width, height, distance);
     }
 
-    /// <summary>共有辺を持つ垂直な長方形面間の形態係数を計算する</summary>
-    /// <param name="width">面の幅（Y方向、共通）</param>
-    /// <param name="height">面1の高さ（Z方向）</param>
-    /// <param name="depth">面2の奥行き（X方向）</param>
-    /// <returns>形態係数（0〜1）</returns>
+    /// <summary>Computes the view factor between two perpendicular rectangles sharing a common edge.</summary>
+    /// <param name="width">Surface width (Y direction, shared).</param>
+    /// <param name="height">Height of surface 1 (Z direction).</param>
+    /// <param name="depth">Depth of surface 2 (X direction).</param>
+    /// <returns>View factor in the range [0, 1].</returns>
     /// <remarks>
-    /// 2枚の長方形面がY軸方向の共有辺で直交する場合の形態係数。
-    /// depth=∞のとき0.5を返す。
+    /// View factor when two rectangles meet at right angles along a shared edge in the Y direction.
+    /// Returns 0.5 when depth is infinite.
     /// </remarks>
     public static double GetViewFactorPerpendicularRectangles(
         double width, double height, double depth)
@@ -68,32 +68,32 @@ namespace Popolo.Core.Geometry
       return ViewVerticalRectangle2FromRectangle1(width, height, depth);
     }
 
-    /// <summary>Z方向にオフセットした垂直な長方形面間の形態係数を計算する</summary>
-    /// <param name="width">面の幅（Y方向、共通）</param>
-    /// <param name="height">面1の高さ（Z方向）</param>
-    /// <param name="depth">面2の奥行き（X方向）</param>
-    /// <param name="deltaZ">Z方向オフセット（0以上）</param>
-    /// <returns>形態係数（0〜1）</returns>
+    /// <summary>Computes the view factor between perpendicular rectangles with an offset in the Z direction.</summary>
+    /// <param name="width">Surface width (Y direction, shared).</param>
+    /// <param name="height">Height of surface 1 (Z direction).</param>
+    /// <param name="depth">Depth of surface 2 (X direction).</param>
+    /// <param name="deltaZ">Offset in the Z direction (non-negative).</param>
+    /// <returns>View factor in the range [0, 1].</returns>
     /// <remarks>
-    /// 面1の下端から deltaZ だけ離れた位置から始まる垂直面2への形態係数。
-    /// deltaZ=0のとき共有辺を持つ場合と同じ結果を返す。
+    /// View factor to a perpendicular surface 2 that begins <paramref name="deltaZ"/> above the bottom edge of surface 1.
+    /// Reduces to the shared-edge case when deltaZ = 0.
     /// </remarks>
-    /// <exception cref="PopoloArgumentException">deltaZ が負の場合。</exception>
+    /// <exception cref="PopoloArgumentException">Thrown when <paramref name="deltaZ"/> is negative.</exception>
     public static double GetViewFactorPerpendicularRectangles(
         double width, double height, double depth, double deltaZ)
     {
       return ViewVerticalRectangle2FromRectangle1(width, height, depth, deltaZ);
     }
 
-    /// <summary>Z・X方向にオフセットした垂直な長方形面間の形態係数を計算する</summary>
-    /// <param name="width">面の幅（Y方向、共通）</param>
-    /// <param name="height">面1の高さ（Z方向）</param>
-    /// <param name="depth">面2の奥行き（X方向）</param>
-    /// <param name="deltaZ">Z方向オフセット（0以上）</param>
-    /// <param name="deltaX">X方向オフセット（0以上）</param>
-    /// <returns>形態係数（0〜1）</returns>
+    /// <summary>Computes the view factor between perpendicular rectangles with offsets in both the Z and X directions.</summary>
+    /// <param name="width">Surface width (Y direction, shared).</param>
+    /// <param name="height">Height of surface 1 (Z direction).</param>
+    /// <param name="depth">Depth of surface 2 (X direction).</param>
+    /// <param name="deltaZ">Offset in the Z direction (non-negative).</param>
+    /// <param name="deltaX">Offset in the X direction (non-negative).</param>
+    /// <returns>View factor in the range [0, 1].</returns>
     /// <exception cref="PopoloArgumentException">
-    /// deltaZ または deltaX が負の場合。
+    /// Thrown when <paramref name="deltaZ"/> or <paramref name="deltaX"/> is negative.
     /// </exception>
     public static double GetViewFactorPerpendicularRectangles(
         double width, double height, double depth, double deltaZ, double deltaX)

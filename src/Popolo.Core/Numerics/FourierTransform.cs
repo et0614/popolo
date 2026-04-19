@@ -22,19 +22,18 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>フーリエ変換を行うクラス</summary>
+  /// <summary>Provides Fourier transform operations.</summary>
   public static class FourierTransform
   {
-    /// <summary>高速フーリエ変換（FFT）を行う</summary>
-    /// <param name="x">実部の入力配列。変換後の実部で上書きされる。</param>
-    /// <param name="xi">虚部の入力配列。変換後の虚部で上書きされる。</param>
+    /// <summary>Performs the fast Fourier transform (FFT) in place.</summary>
+    /// <param name="x">Real part input array; overwritten with the real part of the transform.</param>
+    /// <param name="xi">Imaginary part input array; overwritten with the imaginary part of the transform.</param>
     /// <remarks>
-    /// 入力長が2の冪でない場合は、2の冪に切り上げてゼロパディングして処理する。
-    /// 結果は x および xi に書き戻されないことに注意。
-    /// Danielson-Lanczos アルゴリズムを使用。
+    /// When the input length is not a power of two, it is rounded up to the next power of two and zero-padded.
+    /// Uses the Danielson-Lanczos algorithm.
     /// </remarks>
     /// <exception cref="PopoloArgumentException">
-    /// x または xi が null もしくは空の場合、あるいは長さが一致しない場合。
+    /// Thrown when x or xi is null or empty, or when their lengths differ.
     /// </exception>
     public static void FFT(double[] x, double[] xi)
     {
@@ -112,17 +111,17 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>逆高速フーリエ変換（IFFT）</summary>
-    /// <param name="h">変換対象の配列</param>
+    /// <summary>Inverse fast Fourier transform (IFFT).</summary>
+    /// <param name="h">Input array to transform.</param>
     /// <exception cref="PopoloNotImplementedException">
-    /// このメソッドは未実装です。
+    /// Thrown always; this method has not yet been implemented.
     /// </exception>
     public static void INV(double[] h)
     {
       throw new PopoloNotImplementedException("FourierTransform.INV");
     }
 
-    /// <summary>複素指数関数 exp(x + xi*i) を計算する</summary>
+    /// <summary>Computes the complex exponential exp(x + xi·i).</summary>
     private static void Exp(ref double x, ref double xi)
     {
       double ex = Math.Exp(x);
@@ -130,7 +129,7 @@ namespace Popolo.Core.Numerics
       xi = ex * Math.Sin(xi);
     }
 
-    /// <summary>複素数の乗算 (x + xi*i) * (y + yi*i) を計算する</summary>
+    /// <summary>Computes the complex product (x + xi·i) * (y + yi·i).</summary>
     private static void Multi(ref double x, ref double xi, double y, double yi)
     {
       // 元のコードは x を上書き後に yi との積を計算するバグがあった
@@ -140,7 +139,7 @@ namespace Popolo.Core.Numerics
       x = tmpX;
     }
 
-    /// <summary>配列の要素を入れ替える</summary>
+    /// <summary>Swaps two elements of the array.</summary>
     private static void Swap(ref double[] x, int a, int b)
     {
       double c = x[a];
