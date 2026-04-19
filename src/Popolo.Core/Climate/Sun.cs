@@ -24,14 +24,41 @@ using Popolo.Core.Physics;
 
 namespace Popolo.Core.Climate
 {
-  /// <summary>
-  /// Provides solar position and irradiance calculations.
-  /// </summary>
+  /// <inheritdoc cref="IReadOnlySun"/>
   /// <remarks>
+  /// <para>
+  /// This is the mutable implementation of <see cref="IReadOnlySun"/>.
+  /// Construct a <see cref="Sun"/> either with explicit latitude / longitude /
+  /// standard-meridian values, or with a <see cref="City"/> enum entry whose
+  /// coordinates are looked up from a built-in table of major world cities.
+  /// After construction, advance time with <c>Update</c>; the solar altitude,
+  /// azimuth, and equation-of-time correction are recomputed from the date,
+  /// time, and site coordinates.
+  /// </para>
+  /// <para>
+  /// Irradiance is typically supplied from weather data through the mutable
+  /// <c>DirectNormalRadiation</c> / <c>DiffuseHorizontalRadiation</c> /
+  /// <c>GlobalHorizontalRadiation</c> setters (the class does not enforce the
+  /// GHI ≈ DNI · sin(altitude) + DHI relationship — it is the caller's
+  /// responsibility to keep the three consistent). When irradiance is not
+  /// available directly, the <c>SeparationMethod</c> enum selects among
+  /// published atmospheric models (Berlage, Akasaka, Erbs, etc.) for
+  /// estimating the direct / diffuse split from global horizontal values
+  /// and atmospheric transmissivity.
+  /// </para>
+  /// <para>
+  /// Illuminance is optional and recomputed on each update only when
+  /// <see cref="IReadOnlySun.CalculateIlluminance"/> is true; the conversion
+  /// uses <see cref="SolarLuminousEfficacy"/> as a fixed luminous-efficacy
+  /// estimate.
+  /// </para>
+  /// <para>
   /// References:
-  /// - Shukuya, M., "Light and Heat in the Architectural Environment — Numerical Approaches,"
-  ///   Maruzen, 1993, pp.20.
-  /// - Udagawa, M., "Air Conditioning Calculations with Personal Computers," 1986.
+  /// <list type="bullet">
+  ///   <item><description>Shukuya, M., "Light and Heat in the Architectural Environment — Numerical Approaches," Maruzen, 1993, p. 20.</description></item>
+  ///   <item><description>Udagawa, M., "Air Conditioning Calculations with Personal Computers," 1986.</description></item>
+  /// </list>
+  /// </para>
   /// </remarks>
   public class Sun : IReadOnlySun
   {

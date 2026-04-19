@@ -20,8 +20,37 @@
 namespace Popolo.Core.Climate
 {
   /// <summary>
-  /// Represents a read-only view of a tilted surface orientation.
+  /// Represents a read-only view of a tilted surface orientation — the
+  /// outward-facing direction of a wall, window, roof, or photovoltaic panel
+  /// — and the solar-radiation queries associated with it.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// An incline carries two angles: a <b>horizontal angle</b> (azimuth) and a
+  /// <b>vertical angle</b> (tilt from horizontal), which together define a
+  /// surface normal in the local sky dome. The sign and zero conventions are:
+  /// <list type="bullet">
+  ///   <item><description>Horizontal angle [radian]: <b>south = 0</b>, east = negative, west = positive, north = ±π.</description></item>
+  ///   <item><description>Vertical angle [radian]: 0 = upward-facing horizontal surface (e.g., a flat roof), π/2 = vertical surface (e.g., a wall), π = downward-facing horizontal surface (e.g., an overhang soffit).</description></item>
+  /// </list>
+  /// From these two angles, the <see cref="ConfigurationFactorToSky"/> and
+  /// its complement <see cref="ConfigurationFactorToGround"/> are derived for
+  /// the diffuse-irradiance and long-wave-radiation balance.
+  /// </para>
+  /// <para>
+  /// In the building thermal model, every exterior envelope element that sees
+  /// the sun carries an <see cref="IReadOnlyIncline"/>:
+  /// <see cref="Building.Envelope.IReadOnlyWindow.OutsideIncline"/>,
+  /// outdoor-facing walls through
+  /// <see cref="Building.Envelope.OutsideWallReference"/>, photovoltaic panels,
+  /// and so on. The <c>GetDirectSolarIrradiance</c> /
+  /// <c>GetDiffuseSolarIrradiance</c> methods combine the surface orientation
+  /// with a <see cref="IReadOnlySun"/> to produce the tilted-surface
+  /// irradiance that drives sol-air temperatures on those surfaces. The
+  /// profile-angle methods compute the apparent solar altitude used by slat
+  /// / overhang shading calculations.
+  /// </para>
+  /// </remarks>
   public interface IReadOnlyIncline
   {
     /// <summary>

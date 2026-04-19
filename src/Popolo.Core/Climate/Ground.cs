@@ -22,8 +22,37 @@ using System;
 namespace Popolo.Core.Climate
 {
   /// <summary>
-  /// Provides ground temperature calculations based on annual outdoor temperature statistics.
+  /// Represents the soil body adjacent to a building and provides ground
+  /// temperature estimates at arbitrary depth and day of year.
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// The soil is modeled as a semi-infinite homogeneous medium excited at the
+  /// surface by the annual sinusoidal swing of the outdoor temperature. The
+  /// resulting temperature profile at depth is a damped, phase-lagged cosine:
+  /// the amplitude decays exponentially with depth, while the peak day shifts
+  /// later because heat needs time to propagate downward.
+  /// </para>
+  /// <para>
+  /// Three site parameters fully determine the model:
+  /// <list type="bullet">
+  ///   <item><description><see cref="PeakDayOfYear"/> — the day when the outdoor temperature is highest (typically mid-summer in the Northern Hemisphere).</description></item>
+  ///   <item><description><see cref="AnnualTemperatureRange"/> — the swing between the warmest and coldest daily means.</description></item>
+  ///   <item><description><see cref="AnnualAverageTemperature"/> — the yearly mean of the outdoor temperature.</description></item>
+  /// </list>
+  /// Soil thermal diffusivity is not an explicit parameter; a representative
+  /// value (approximately 8 × 10⁻⁷ m²/s, typical of damp soil) is baked into
+  /// the damping coefficient and the depth–phase-shift coefficient.
+  /// </para>
+  /// <para>
+  /// In the building thermal model, <see cref="Ground"/> supplies the driving
+  /// temperature for wall surfaces registered as ground-contact boundaries via
+  /// <see cref="Building.Envelope.GroundWallReference"/> — for example,
+  /// basement walls or slab-on-grade floors. Day-by-day, the wall's
+  /// ground-facing side sees a quasi-steady temperature computed from this
+  /// model rather than the outdoor air temperature.
+  /// </para>
+  /// </remarks>
   public class Ground
   {
 

@@ -22,8 +22,31 @@ using System;
 namespace Popolo.Core.Climate
 {
   /// <summary>
-  /// Represents a read-only view of solar position and radiation state.
+  /// Represents a read-only view of the instantaneous sun state at a specific
+  /// site and moment — solar position plus direct, diffuse, and global
+  /// irradiance (and optionally illuminance).
   /// </summary>
+  /// <remarks>
+  /// <para>
+  /// A <see cref="IReadOnlySun"/> bundles everything a building envelope needs
+  /// to know about the sun at <see cref="CurrentDateTime"/>:
+  /// <list type="bullet">
+  ///   <item><description><b>Position</b>: <see cref="Altitude"/> and <see cref="Azimuth"/>, evaluated from <see cref="Latitude"/>, <see cref="Longitude"/>, and <see cref="StandardLongitude"/> (standard-time meridian).</description></item>
+  ///   <item><description><b>Irradiance</b>: direct normal (DNI), diffuse horizontal (DHI), and global horizontal (GHI), which are linked by <c>GHI ≈ DNI · sin(altitude) + DHI</c>.</description></item>
+  ///   <item><description><b>Illuminance</b>: the same three components converted to [lx] via a luminous efficacy; populated only when <see cref="CalculateIlluminance"/> is enabled.</description></item>
+  /// </list>
+  /// </para>
+  /// <para>
+  /// A sun is a time-varying object: the concrete <see cref="Sun"/>
+  /// implementation exposes setters that advance <see cref="CurrentDateTime"/>
+  /// and recompute the position and irradiance. Consumers such as
+  /// <see cref="IReadOnlyIncline"/> and <see cref="Building.Envelope.IReadOnlyWindow"/>
+  /// read the state through this interface to compute tilted-surface
+  /// irradiance, incidence angles, and shading-device profile angles. The
+  /// site parameters (lat / lon / standard meridian) are fixed for the life
+  /// of the sun instance.
+  /// </para>
+  /// </remarks>
   public interface IReadOnlySun
   {
     /// <summary>Gets the solar altitude angle [radian].</summary>

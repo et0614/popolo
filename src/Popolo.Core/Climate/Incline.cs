@@ -21,10 +21,30 @@ using System;
 
 namespace Popolo.Core.Climate
 {
-  /// <summary>
-  /// Represents a tilted surface defined by its azimuth and tilt angles,
-  /// and provides solar irradiance and illuminance calculations.
-  /// </summary>
+  /// <inheritdoc cref="IReadOnlyIncline"/>
+  /// <remarks>
+  /// <para>
+  /// This is the mutable implementation of <see cref="IReadOnlyIncline"/>. An
+  /// <see cref="Incline"/> is immutable in its core angle state once constructed —
+  /// the angles are accepted in the constructor, normalized, and cached along
+  /// with their trigonometric values for fast repeated queries. The only
+  /// mutating operation is <see cref="Copy(IReadOnlyIncline)"/>, which
+  /// re-imports state from another incline.
+  /// </para>
+  /// <para>
+  /// Three constructor overloads are provided:
+  /// <list type="bullet">
+  ///   <item><description>(horizontal, vertical) — raw radians.</description></item>
+  ///   <item><description>(<see cref="Orientation"/>, vertical) — 16-point compass direction with a numeric tilt angle.</description></item>
+  ///   <item><description>(<see cref="IReadOnlyIncline"/>) — copy from an existing incline.</description></item>
+  /// </list>
+  /// Angles passed in are normalized so that <c>HorizontalAngle</c> lies in
+  /// (-π, π] and <c>VerticalAngle</c> lies in [0, π]; an out-of-range input
+  /// is not an error. The reversed-orientation helper
+  /// <see cref="MakeReverseIncline"/> produces the incline that faces the
+  /// opposite direction (useful for representing the B side of a wall).
+  /// </para>
+  /// </remarks>
   public class Incline : IReadOnlyIncline
   {
 
