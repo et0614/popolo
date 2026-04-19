@@ -21,13 +21,13 @@ using System;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>3次方程式ソルバ</summary>
+  /// <summary>Solver for real roots of cubic equations.</summary>
   public static class CubicEquation
   {
-    /// <summary>機械イプシロン</summary>
+    /// <summary>Machine epsilon.</summary>
     private static readonly double MECH_EPS;
 
-    /// <summary>コンストラクタ</summary>
+    /// <summary>Static constructor.</summary>
     static CubicEquation()
     {
       //機械イプシロン初期化
@@ -43,12 +43,12 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>3次方程式の実数根を求める</summary>
-    /// <param name="a">係数: a[0]*x^3+a[1]*x^2+a[2]*x+a[3]</param>
-    /// <param name="x0">出力: 実数根1</param>
-    /// <param name="x1">出力: 実数根2</param>
-    /// <param name="x2">出力: 実数根3</param>
-    /// <param name="hasMultiSolution">出力: 複数解があるか否か</param>
+    /// <summary>Finds the real roots of a cubic equation.</summary>
+    /// <param name="a">Coefficients: a[0]*x^3 + a[1]*x^2 + a[2]*x + a[3].</param>
+    /// <param name="x0">Output: first real root.</param>
+    /// <param name="x1">Output: second real root.</param>
+    /// <param name="x2">Output: third real root.</param>
+    /// <param name="hasMultiSolution">Output: true if there are three distinct real roots.</param>
     public static void Solve(double[] a, out double x0, out double x1, out double x2, out bool hasMultiSolution)
     {
       //p,qを計算

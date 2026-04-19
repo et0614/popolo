@@ -2,11 +2,11 @@
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>QR分解実行クラス</summary>
+  /// <summary>Performs QR decomposition with optional column pivoting.</summary>
   public class QRDecomposer
   {
 
-    /// <summary>機械イプシロン</summary>
+    /// <summary>Machine epsilon used as a stopping tolerance.</summary>
     private const double M_EPSILON = 1e-8;
 
     int[] iPivot;
@@ -17,9 +17,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     double[] wa;
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="rowCount">行数</param>
-    /// <param name="columnCount">列数</param>
+    /// <summary>Initializes a new instance for a matrix of the specified dimensions.</summary>
+    /// <param name="rowCount">Number of rows.</param>
+    /// <param name="columnCount">Number of columns.</param>
     public QRDecomposer(int rowCount, int columnCount)
     {
       iPivot = new int[columnCount];
@@ -28,9 +28,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       wa = new double[columnCount];
     }
 
-    /// <summary>QR分解を行う</summary>
-    /// <param name="matrix"></param>
-    /// <param name="pivot"></param>
+    /// <summary>Performs QR decomposition.</summary>
+    /// <param name="matrix">Matrix to decompose (modified in place).</param>
+    /// <param name="pivot">True to perform column pivoting.</param>
     public void Decompose(IMatrix matrix, bool pivot)
     {
       //各列のユークリッドノルムを計算

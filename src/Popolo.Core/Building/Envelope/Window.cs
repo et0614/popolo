@@ -56,8 +56,8 @@ namespace Popolo.Core.Building.Envelope
     private double[] glassRes = null!;
 
     /// <summary>Optical properties (transmittance, reflectance, absorptance) for each layer.
-    /// 0:透過,1:反射,2:吸収
-    /// F:正面,B:裏,Dir:直達,Dif:拡散</summary>
+    /// First index: 0=transmittance, 1=reflectance, 2=absorptance.
+    /// Suffixes: F=front side, B=back side, Dir=direct, Dif=diffuse.</summary>
     private double[,] opFDir = null!, opBDir = null!, opFDif = null!, opBDif = null!;
 
     /// <summary>Absorptance list for each layer.</summary>
@@ -224,12 +224,12 @@ namespace Popolo.Core.Building.Envelope
     #region コンストラクタ
 
     /// <summary>Initializes a new multi-layer glazing window assembly.</summary>
-    /// <param name="area">面積[m2]</param>
-    /// <param name="transmittanceF">正面側透過率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="reflectanceF">正面側反射率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="transmittanceB">裏側透過率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="reflectanceB">裏側反射率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="outsideIncline">外側傾斜面</param>
+    /// <param name="area">Surface area [m²].</param>
+    /// <param name="transmittanceF">Transmittance list for F-side incidence [-] (0 = F, N-1 = B).</param>
+    /// <param name="reflectanceF">Reflectance list for F-side incidence [-] (0 = F, N-1 = B).</param>
+    /// <param name="transmittanceB">Transmittance list for B-side incidence [-] (0 = F, N-1 = B).</param>
+    /// <param name="reflectanceB">Reflectance list for B-side incidence [-] (0 = F, N-1 = B).</param>
+    /// <param name="outsideIncline">Outside tilted surface.</param>
     public Window(double area, double[] transmittanceF, double[] reflectanceF,
       double[] transmittanceB, double[] reflectanceB, IReadOnlyIncline outsideIncline)
     {
@@ -293,10 +293,10 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Initializes a new multi-layer glazing window assembly.</summary>
-    /// <param name="area">面積[m2]</param>
-    /// <param name="transmittance">透過率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="reflectance">反射率リスト[-]（0=F, N-1=B）</param>
-    /// <param name="outsideIncline">外側傾斜面</param>
+    /// <param name="area">Surface area [m²].</param>
+    /// <param name="transmittance">Transmittance list [-] (0 = F, N-1 = B).</param>
+    /// <param name="reflectance">Reflectance list [-] (0 = F, N-1 = B).</param>
+    /// <param name="outsideIncline">Outside tilted surface.</param>
     public Window(double area, double[] transmittance, double[] reflectance, IReadOnlyIncline outsideIncline) :
       this(area, transmittance, reflectance, transmittance, reflectance, outsideIncline)
     { }
@@ -306,7 +306,7 @@ namespace Popolo.Core.Building.Envelope
     #region インスタンスメソッド
 
     /// <summary>Updates optical properties based on the current solar position and shading device states.</summary>
-    /// <param name="sun">太陽</param>
+    /// <param name="sun">Solar position and irradiance source.</param>
     public void UpdateOpticalProperties(IReadOnlySun sun)
     {
       //ガラス・日射遮蔽物単体の光学特性の更新処理//////////////////////////////
@@ -425,14 +425,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Computes the total optical properties from the individual layer properties.</summary>
-    /// <param name="opPropF">F側入射に対する光学特性</param>
-    /// <param name="opPropB">B側入射に対する光学特性</param>
-    /// <param name="ttlTF">出力:F側入射に対する総合透過率</param>
-    /// <param name="ttlRF">出力:F側入射に対する総合反射率</param>
-    /// <param name="ttlAF">出力:F側入射に対する総合吸収率</param>
-    /// <param name="ttlTB">出力:B側入射に対する総合透過率</param>
-    /// <param name="ttlRB">出力:B側入射に対する総合反射率</param>
-    /// <param name="ttlAB">出力:B側入射に対する総合吸収率</param>
+    /// <param name="opPropF">Layer optical properties for F-side incidence.</param>
+    /// <param name="opPropB">Layer optical properties for B-side incidence.</param>
+    /// <param name="ttlTF">Output: total transmittance for F-side incidence.</param>
+    /// <param name="ttlRF">Output: total reflectance for F-side incidence.</param>
+    /// <param name="ttlAF">Output: total absorptance for F-side incidence.</param>
+    /// <param name="ttlTB">Output: total transmittance for B-side incidence.</param>
+    /// <param name="ttlRB">Output: total reflectance for B-side incidence.</param>
+    /// <param name="ttlAB">Output: total absorptance for B-side incidence.</param>
     private static void ComputeTotalOProperties
       (double[,] opPropF, double[,] opPropB, out double ttlTF, out double ttlRF, ref double[] ttlAF,
       out double ttlTB, out double ttlRB, ref double[] ttlAB)
@@ -483,18 +483,18 @@ namespace Popolo.Core.Building.Envelope
     #region モデル設定関連の処理
 
     /// <summary>Sets the shading device at the specified layer position.</summary>
-    /// <param name="number">設定する層番号（屋外側:0,屋内側:N+1）</param>
-    /// <param name="sDevice">日射遮蔽物</param>
+    /// <param name="number">Layer index (0 = outdoor side, N+1 = indoor side).</param>
+    /// <param name="sDevice">Shading device.</param>
     public void SetShadingDevice(int number, IShadingDevice sDevice) { sDevices[number] = sDevice; }
 
     /// <summary>Gets the shading device at the specified layer position.</summary>
-    /// <param name="number">層番号（屋外側:0,屋内側:N+1）</param>
+    /// <param name="number">Layer index (0 = outdoor side, N+1 = indoor side).</param>
     /// <returns>The shading device.</returns>
     public IShadingDevice GetShadingDevice(int number) { return sDevices[number]; }
 
     /// <summary>Sets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingIndex">ガラスの層番号</param>
-    /// <param name="resistance">ガラスの熱抵抗[m2K/W]</param>
+    /// <param name="glazingIndex">Glazing layer index.</param>
+    /// <param name="resistance">Thermal resistance of the glazing [m²·K/W].</param>
     public void SetGlassResistance(int glazingIndex, double resistance)
     {
       glassRes[glazingIndex] = resistance;
@@ -502,14 +502,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
-    /// <param name="glazingIndex">ガラスの層番号</param>
+    /// <param name="glazingIndex">Glazing layer index.</param>
     /// <returns>Thermal resistance [m²·K/W].</returns>
     public double GetGlassResistance(int glazingIndex)
     { return glassRes[glazingIndex]; }
 
     /// <summary>Sets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
-    /// <param name="glazingIndex">ガラスの層番号（層の右側の中空層が設定対象）</param>
-    /// <param name="resistance">中空層の熱抵抗[m2K/W]</param>
+    /// <param name="glazingIndex">Glazing layer index (the air gap on the right side of this layer is targeted).</param>
+    /// <param name="resistance">Thermal resistance of the air gap [m²·K/W].</param>
     public void SetAirGapResistance(int glazingIndex, double resistance)
     {
       agapRes[2 * glazingIndex + 2] = agapRes[2 * glazingIndex + 3] = 0.5 * resistance;
@@ -517,7 +517,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
-    /// <param name="glazingIndex">ガラスの層番号（層の右側の中空層が取得対象）</param>
+    /// <param name="glazingIndex">Glazing layer index (the air gap on the right side of this layer is returned).</param>
     /// <returns>Thermal resistance [m²·K/W].</returns>
     public double GetAirGapResistance(int glazingIndex)
     { return 2 * agapRes[2 * glazingIndex + 2]; }
@@ -544,11 +544,11 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Distributes the total absorptance between the F and B sides.</summary>
-    /// <param name="ttlA">総合吸収率リスト</param>
-    /// <param name="agapResist">中空層の熱抵抗リスト</param>
-    /// <param name="glassResistance">ガラスの熱抵抗リスト</param>
-    /// <param name="ttlAF">F側按分量</param>
-    /// <param name="ttlAB">B側按分量</param>
+    /// <param name="ttlA">List of total absorptance values.</param>
+    /// <param name="agapResist">List of air-gap thermal resistances.</param>
+    /// <param name="glassResistance">List of glazing thermal resistances.</param>
+    /// <param name="ttlAF">Apportioned amount on the F side.</param>
+    /// <param name="ttlAB">Apportioned amount on the B side.</param>
     private static void IntegrateAbsorption
       (double[] ttlA, double[] agapResist, double[] glassResistance, out double ttlAF, out double ttlAB)
     {
@@ -568,8 +568,8 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the transmittance of the specified glazing layer [-].</summary>
-    /// <param name="glazingIndex">ガラスの番号(0,1,2...)</param>
-    /// <param name="isSideF">F側か否か</param>
+    /// <param name="glazingIndex">Glazing index (0, 1, 2, ...).</param>
+    /// <param name="isSideF">True for the F (front) side; false for the B (back) side.</param>
     /// <returns>Transmittance [-].</returns>
     public double GetGlazingTransmittance(int glazingIndex, bool isSideF)
     {
@@ -578,8 +578,8 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the reflectance of the specified glazing layer [-].</summary>
-    /// <param name="glazingIndex">ガラスの番号(0,1,2...)</param>
-    /// <param name="isSideF">F側か否か</param>
+    /// <param name="glazingIndex">Glazing index (0, 1, 2, ...).</param>
+    /// <param name="isSideF">True for the F (front) side; false for the B (back) side.</param>
     /// <returns>Reflectance [-].</returns>
     public double GetGlazingReflectance(int glazingIndex, bool isSideF)
     {
@@ -592,11 +592,11 @@ namespace Popolo.Core.Building.Envelope
     #region 入射角特性関連の処理
 
     /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerIndex">層番号</param>
-    /// <param name="coefTF">F側透過特性の近似係数</param>
-    /// <param name="coefTB">B側透過特性の近似係数</param>
-    /// <param name="coefRF">F側反射特性の近似係数</param>
-    /// <param name="coefRB">B側反射特性の近似係数</param>
+    /// <param name="layerIndex">Layer index.</param>
+    /// <param name="coefTF">Approximation coefficients for the F-side transmittance.</param>
+    /// <param name="coefTB">Approximation coefficients for the B-side transmittance.</param>
+    /// <param name="coefRF">Approximation coefficients for the F-side reflectance.</param>
+    /// <param name="coefRB">Approximation coefficients for the B-side reflectance.</param>
     public void SetAngleDependence
       (int layerIndex, double[] coefTF, double[] coefTB, double[] coefRF, double[] coefRB)
     {
@@ -636,8 +636,8 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerIndex">層番号</param>
-    /// <param name="type">ガラス種類</param>
+    /// <param name="layerIndex">Layer index.</param>
+    /// <param name="type">Glass type.</param>
     public void SetAngleDependence(int layerIndex, GlassType type)
     {
       switch (type)

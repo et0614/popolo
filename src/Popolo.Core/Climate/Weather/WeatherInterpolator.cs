@@ -62,8 +62,9 @@ namespace Popolo.Core.Climate.Weather
     private readonly IReadOnlyWeatherData _data;
 
     /// <summary>
-    /// サポートする各フィールドの内部表現。
-    /// 欠測を除いた観測点と、その時刻配列、補間戦略を保持する。
+    /// Internal representations for each supported field.
+    /// Each channel holds the observation samples (with missing values removed),
+    /// their date-time array, and the interpolation strategy.
     /// </summary>
     private readonly FieldChannel _dryBulbTemperature;
     private readonly FieldChannel _humidityRatio;
@@ -144,7 +145,7 @@ namespace Popolo.Core.Climate.Weather
       _atmosphericRadiation       = BuildChannel(data, WeatherField.AtmosphericRadiation,       strategies);
     }
 
-    /// <summary>既定の補間戦略マップ。</summary>
+    /// <summary>Builds the default interpolation strategy map.</summary>
     private static Dictionary<WeatherField, InterpolationStrategy> BuildDefaultStrategies()
     {
       return new Dictionary<WeatherField, InterpolationStrategy>
@@ -275,8 +276,8 @@ namespace Popolo.Core.Climate.Weather
     #region 内部補助クラス
 
     /// <summary>
-    /// 単一フィールドに対する時刻配列・値配列・補間戦略のバンドル。
-    /// PCHIP の場合は BoundaryInterpolator を内部で遅延生成する。
+    /// Bundle of the date-time array, value array, and interpolation strategy for a single field.
+    /// For PCHIP, a <see cref="BoundaryInterpolator"/> is lazily created internally.
     /// </summary>
     private sealed class FieldChannel
     {

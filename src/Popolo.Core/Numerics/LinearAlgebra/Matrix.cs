@@ -21,33 +21,33 @@ using System;
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>行列</summary>
+  /// <summary>Dense matrix backed by a jagged array.</summary>
   [Serializable]
   public class Matrix : IMatrix
   {
 
-    /// <summary>行列</summary>
+    /// <summary>Underlying element storage.</summary>
     private double[][] matrix;
 
-    /// <summary>行数を取得する</summary>
+    /// <summary>Gets the number of rows.</summary>
     public int Rows { get; private set; }
 
-    /// <summary>列数を取得する</summary>
+    /// <summary>Gets the number of columns.</summary>
     public int Columns { get; private set; }
 
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="row">行番号</param>
-    /// <param name="column">列番号</param>
-    /// <returns>要素の値値</returns>
+    /// <summary>Gets or sets the element at the specified row and column.</summary>
+    /// <param name="row">Row index.</param>
+    /// <param name="column">Column index.</param>
+    /// <returns>Element value.</returns>
     public double this[int row, int column]
     {
       get { return matrix[row][column]; }
       set { matrix[row][column] = value; }
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="rowSize">行数</param>
-    /// <param name="columnSize">列数</param>
+    /// <summary>Initializes a new instance with the specified dimensions.</summary>
+    /// <param name="rowSize">Number of rows.</param>
+    /// <param name="columnSize">Number of columns.</param>
     public Matrix(int rowSize, int columnSize)
     {
       Rows = rowSize;
@@ -56,8 +56,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       for (int i = 0; i < Rows; i++) matrix[i] = new double[Columns];
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="matrix">行列データ</param>
+    /// <summary>Initializes a new instance from the given jagged array (copied).</summary>
+    /// <param name="matrix">Source matrix data.</param>
     public Matrix(double[][] matrix)
     {
       Rows = matrix.Length;
@@ -70,8 +70,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     public void Initialize(double val)
     {
       for (int i = 0; i < Rows; i++)
@@ -79,8 +79,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           matrix[i][j] = val;
     }
 
-    /// <summary>行列の中身をmatにコピーする</summary>
-    /// <param name="mat">コピー対象の行列</param>
+    /// <summary>Copies the contents of this matrix to <paramref name="mat"/>.</summary>
+    /// <param name="mat">Destination matrix.</param>
     public void CopyTo(IMatrix mat)
     {
       for (int i = 0; i < Rows; i++)
@@ -88,8 +88,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           mat[i, j] = this[i, j];
     }
 
-    /// <summary>転置行列を作る</summary>
-    /// <returns>転置行列</returns>
+    /// <summary>Returns the transpose of this matrix.</summary>
+    /// <returns>Transposed matrix.</returns>
     public Matrix MakeTranspose()
     {
       Matrix transposed = new Matrix(Columns, Rows);
@@ -99,7 +99,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       return transposed;
     }
 
-    /// <summary>行列を2次元配列に変換する</summary>
+    /// <summary>Returns the matrix contents as a two-dimensional jagged array.</summary>
     public double[][] ToArray()
     {
       double[][] array = new double[Rows][];

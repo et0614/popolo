@@ -105,37 +105,37 @@ namespace Popolo.Core.Physics
 
     #region 近似係数（プライベートフィールド）
 
-    /// <summary>近似係数 m の数</summary>
+    /// <summary>Number of m-direction approximation coefficients.</summary>
     private readonly int _mCount;
 
-    /// <summary>近似係数 n の数</summary>
+    /// <summary>Number of n-direction approximation coefficients.</summary>
     private readonly int _nCount;
 
-    /// <summary>ガス定数 [kJ/(kg·K)]</summary>
+    /// <summary>Specific gas constant [kJ/(kg·K)].</summary>
     private readonly double _gasConstant;
 
-    /// <summary>基準状態の温度 [K]</summary>
+    /// <summary>Reference-state temperature [K].</summary>
     private readonly double _refTemperature;
 
-    /// <summary>基準状態の密度 [kg/m³]</summary>
+    /// <summary>Reference-state density [kg/m³].</summary>
     private readonly double _refDensity;
 
-    /// <summary>基準状態のエンタルピー [kJ/kg]</summary>
+    /// <summary>Reference-state enthalpy [kJ/kg].</summary>
     private readonly double _refEnthalpy;
 
-    /// <summary>基準状態のエントロピー [kJ/(kg·K)]</summary>
+    /// <summary>Reference-state entropy [kJ/(kg·K)].</summary>
     private readonly double _refEntropy;
 
-    /// <summary>PVT近似係数 α[m,n]</summary>
+    /// <summary>PVT approximation coefficients α[m,n].</summary>
     private readonly double[,] _alpha;
 
-    /// <summary>理想気体定圧比熱の近似係数</summary>
+    /// <summary>Approximation coefficients for the ideal-gas isobaric specific heat.</summary>
     private readonly double[] _ccp;
 
-    /// <summary>飽和圧力初期値推定用の近似係数</summary>
+    /// <summary>Approximation coefficients used to estimate the initial value of saturation pressure.</summary>
     private readonly double[] _cps;
 
-    /// <summary>飽和温度初期値推定用の近似係数</summary>
+    /// <summary>Approximation coefficients used to estimate the initial value of saturation temperature.</summary>
     private readonly double[] _cts;
 
     #endregion
@@ -924,7 +924,7 @@ namespace Popolo.Core.Physics
 
     #region 入力検証
 
-    /// <summary>圧力が適用範囲内かチェックする</summary>
+    /// <summary>Checks whether the pressure is within the applicable range.</summary>
     private void ValidatePressure(double pressure)
     {
       if (pressure < MinPressure || pressure > MaxPressure)
@@ -933,7 +933,7 @@ namespace Popolo.Core.Physics
             $"Pressure is outside the valid range for {FluidType}.");
     }
 
-    /// <summary>温度が絶対零度以上かチェックする</summary>
+    /// <summary>Checks whether the temperature is above absolute zero.</summary>
     private void ValidateTemperature(double temperature)
     {
       if (temperature <= 0)

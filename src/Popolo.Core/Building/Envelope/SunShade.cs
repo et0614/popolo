@@ -374,13 +374,13 @@ namespace Popolo.Core.Building.Envelope
     #region private staticメソッド
 
     /// <summary>Computes the shadow area [m²] cast by a finite horizontal overhang.</summary>
-    /// <param name="dpW">庇端部から影端部までの水平距離[m]</param>
-    /// <param name="dpH">庇端部から影端部までの垂直距離[m]</param>
-    /// <param name="dwW">窓幅[m]</param>
-    /// <param name="dwH">窓高さ[m]</param>
-    /// <param name="dmWA">庇と窓の左端距離[m]</param>
-    /// <param name="dmH">庇と窓の上端距離[m]</param>
-    /// <param name="dmWB">庇と窓の右端距離[m]</param>
+    /// <param name="dpW">Horizontal distance from the overhang edge to the shadow edge [m].</param>
+    /// <param name="dpH">Vertical distance from the overhang edge to the shadow edge [m].</param>
+    /// <param name="dwW">Window width [m].</param>
+    /// <param name="dwH">Window height [m].</param>
+    /// <param name="dmWA">Distance from the overhang to the left edge of the window [m].</param>
+    /// <param name="dmH">Distance from the overhang to the top edge of the window [m].</param>
+    /// <param name="dmWB">Distance from the overhang to the right edge of the window [m].</param>
     /// <returns>Shadow area [m²].</returns>
     private static double ComputeShadowArea_H
       (double dpW, double dpH, double dwW, double dwH, double dmWA, double dmH, double dmWB)
@@ -410,10 +410,10 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Computes the shadow area [m²] cast by an infinite-length horizontal overhang.</summary>
-    /// <param name="dpH">庇端部から影端部までの垂直距離[m]</param>
-    /// <param name="dwW">窓幅[m]</param>
-    /// <param name="dwH">窓高さ[m]</param>
-    /// <param name="dmH">庇と窓の上端距離[m]</param>
+    /// <param name="dpH">Vertical distance from the overhang edge to the shadow edge [m].</param>
+    /// <param name="dwW">Window width [m].</param>
+    /// <param name="dwH">Window height [m].</param>
+    /// <param name="dmH">Distance from the overhang to the top edge of the window [m].</param>
     /// <returns>Shadow area [m²].</returns>
     private static double ComputeShadowArea_LH(double dpH, double dwW, double dwH, double dmH)
     {
@@ -422,14 +422,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Computes the shadow area [m²] cast by a grid (egg-crate) louver.</summary>
-    /// <param name="dpW">庇端部から影端部までの水平距離[m]</param>
-    /// <param name="dpH">庇端部から影端部までの垂直距離[m]</param>
-    /// <param name="dwW">窓幅[m]</param>
-    /// <param name="dwH">窓高さ[m]</param>
-    /// <param name="dmWA">庇と窓の左端距離[m]</param>
-    /// <param name="dmHA">庇と窓の上端距離[m]</param>
-    /// <param name="dmWB">庇と窓の右端距離[m]</param>
-    /// <param name="dmHB">庇と窓の下端距離[m]</param>
+    /// <param name="dpW">Horizontal distance from the overhang edge to the shadow edge [m].</param>
+    /// <param name="dpH">Vertical distance from the overhang edge to the shadow edge [m].</param>
+    /// <param name="dwW">Window width [m].</param>
+    /// <param name="dwH">Window height [m].</param>
+    /// <param name="dmWA">Distance from the overhang to the left edge of the window [m].</param>
+    /// <param name="dmHA">Distance from the overhang to the top edge of the window [m].</param>
+    /// <param name="dmWB">Distance from the overhang to the right edge of the window [m].</param>
+    /// <param name="dmHB">Distance from the overhang to the bottom edge of the window [m].</param>
     /// <returns>Shadow area [m²].</returns>
     private static double ComputeShadowArea_Grid
       (double dpW, double dpH, double dwW, double dwH, double dmWA, double dmHA, double dmWB, double dmHB)

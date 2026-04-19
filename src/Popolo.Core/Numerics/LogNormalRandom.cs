@@ -22,41 +22,41 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>対数正規分布に従う乱数系列を生成するクラス</summary>
+  /// <summary>Generates random samples from a log-normal distribution.</summary>
   public class LogNormalRandom
   {
 
     #region インスタンス変数・プロパティ
 
-    /// <summary>正規乱数生成器</summary>
+    /// <summary>Underlying normal random number generator.</summary>
     private readonly NormalRandom nRnd;
 
-    /// <summary>平均μを取得する</summary>
+    /// <summary>Gets the mean μ.</summary>
     public double Mean { get; private set; }
 
-    /// <summary>標準偏差σを取得する</summary>
+    /// <summary>Gets the standard deviation σ.</summary>
     public double StandardDeviation { get; private set; }
 
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="seed">乱数シード</param>
-    /// <param name="mean">平均（0より大きい値）</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
+    /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
+    /// <param name="seed">Random seed.</param>
+    /// <param name="mean">Mean (must be positive).</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// mean または standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="mean"/> or <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public LogNormalRandom(uint seed, double mean = 1, double standardDeviation = 1)
         : this(new MersenneTwister(seed), mean, standardDeviation) { }
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="rnd">一様乱数生成器</param>
-    /// <param name="mean">平均（0より大きい値）</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
+    /// <summary>Initializes a new instance using the specified uniform RNG.</summary>
+    /// <param name="rnd">Uniform random number generator.</param>
+    /// <param name="mean">Mean (must be positive).</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// mean または standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="mean"/> or <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public LogNormalRandom(MersenneTwister rnd, double mean = 1, double standardDeviation = 1)
     {
@@ -80,8 +80,8 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    /// <summary>対数正規分布に従う乱数を返す</summary>
-    /// <returns>対数正規分布に従う乱数（常に正の値）</returns>
+    /// <summary>Returns a sample drawn from the log-normal distribution.</summary>
+    /// <returns>A random sample from the configured log-normal distribution (always positive).</returns>
     public double NextDouble()
     {
       return Math.Exp(nRnd.NextDouble());

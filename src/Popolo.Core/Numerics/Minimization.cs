@@ -22,21 +22,21 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>1変数非線形関数の最小化処理クラス</summary>
+  /// <summary>Utility for minimizing a univariate nonlinear function.</summary>
   public static class Minimization
   {
-    /// <summary>最小化する関数</summary>
-    /// <param name="x">入力値</param>
-    /// <returns>出力値</returns>
+    /// <summary>Function to minimize.</summary>
+    /// <param name="x">Input value.</param>
+    /// <returns>Output value.</returns>
     public delegate double MinimizeFunction(double x);
 
-    /// <summary>黄金分割法で極小値を探索する</summary>
-    /// <param name="xMin">入力：xの最小値　出力：極小値をとるx</param>
-    /// <param name="xMax">xの最大値</param>
-    /// <param name="mFnc">最小化する関数</param>
-    /// <returns>極小値</returns>
+    /// <summary>Searches for a local minimum by the golden-section method.</summary>
+    /// <param name="xMin">Input: lower bound of x. Output: x at the local minimum.</param>
+    /// <param name="xMax">Upper bound of x.</param>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <returns>Value of the local minimum.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double GoldenSection(ref double xMin, double xMax, MinimizeFunction mFnc)
     {
@@ -101,14 +101,14 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>黄金分割法で極小値を探索する（範囲外探索オプション付き）</summary>
-    /// <param name="x1">入力：探索境界1　出力：極小値をとるx</param>
-    /// <param name="x2">探索境界2</param>
-    /// <param name="mFnc">最小化する関数</param>
-    /// <param name="searchOutside">境界範囲外に探索範囲を広げるか否か</param>
-    /// <returns>極小値</returns>
+    /// <summary>Searches for a local minimum by the golden-section method, optionally extending the search beyond the initial interval.</summary>
+    /// <param name="x1">Input: first bound. Output: x at the local minimum.</param>
+    /// <param name="x2">Second bound.</param>
+    /// <param name="mFnc">Function to minimize.</param>
+    /// <param name="searchOutside">Whether to extend the search interval beyond the given bounds.</param>
+    /// <returns>Value of the local minimum.</returns>
     /// <exception cref="PopoloNumericalException">
-    /// 最大反復回数内に収束しない場合。
+    /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double GoldenSection(
         ref double x1, double x2, MinimizeFunction mFnc, bool searchOutside)

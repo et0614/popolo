@@ -60,7 +60,7 @@ namespace Popolo.Core.Physics
 
         #region 非公開メソッド
 
-        /// <summary>臨界温度からの無次元離れ（reduced temperature）を計算する</summary>
+        /// <summary>Computes the reduced temperature (dimensionless distance from the critical temperature).</summary>
         private static double GetReducedTemperature(double saturationTemperature)
         {
             return (CriticalTemperature - PhysicsConstants.ToKelvin(saturationTemperature))

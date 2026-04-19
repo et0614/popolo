@@ -23,15 +23,15 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>3次スプライン補間処理クラス</summary>
+  /// <summary>Cubic spline interpolation utilities.</summary>
   public static class CubicSpline
   {
-    /// <summary>3次スプライン補間のための係数を計算する</summary>
-    /// <param name="x">X座標の配列（昇順）</param>
-    /// <param name="y">Y座標の配列</param>
-    /// <returns>3次スプライン補間のための係数配列</returns>
+    /// <summary>Computes the spline coefficients for cubic spline interpolation.</summary>
+    /// <param name="x">Array of X coordinates (ascending order).</param>
+    /// <param name="y">Array of Y coordinates.</param>
+    /// <returns>Array of cubic spline coefficients.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// x または y が null もしくは2要素未満の場合、あるいは長さが一致しない場合。
+    /// Thrown when x or y is null, contains fewer than two elements, or when their lengths differ.
     /// </exception>
     public static double[] GetParameters(double[] x, double[] y)
     {
@@ -64,14 +64,14 @@ namespace Popolo.Core.Numerics
       return c;
     }
 
-    /// <summary>複数点の補間処理を行う</summary>
-    /// <param name="x">X座標の配列（昇順）</param>
-    /// <param name="y">Y座標の配列</param>
-    /// <param name="c">係数配列（GetParameters の返り値）</param>
-    /// <param name="x2">補間処理を行う位置の配列（昇順を想定）</param>
-    /// <returns>補間値の配列</returns>
+    /// <summary>Interpolates at multiple evaluation points.</summary>
+    /// <param name="x">Array of X coordinates (ascending order).</param>
+    /// <param name="y">Array of Y coordinates.</param>
+    /// <param name="c">Coefficient array (return value of <see cref="GetParameters"/>).</param>
+    /// <param name="x2">Array of evaluation positions (expected in ascending order).</param>
+    /// <returns>Array of interpolated values.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// x2 の値が x の範囲外の場合。
+    /// Thrown when any value in <paramref name="x2"/> lies outside the range of <paramref name="x"/>.
     /// </exception>
     public static double[] Interpolate(double[] x, double[] y, double[] c, double[] x2)
     {
@@ -89,12 +89,12 @@ namespace Popolo.Core.Numerics
       return y2;
     }
 
-    /// <summary>1点の補間処理を行う</summary>
-    /// <param name="x">X座標の配列（昇順）</param>
-    /// <param name="y">Y座標の配列</param>
-    /// <param name="c">係数配列（GetParameters の返り値）</param>
-    /// <param name="x2">補間処理を行う位置</param>
-    /// <returns>補間値</returns>
+    /// <summary>Interpolates at a single evaluation point.</summary>
+    /// <param name="x">Array of X coordinates (ascending order).</param>
+    /// <param name="y">Array of Y coordinates.</param>
+    /// <param name="c">Coefficient array (return value of <see cref="GetParameters"/>).</param>
+    /// <param name="x2">Evaluation position.</param>
+    /// <returns>Interpolated value.</returns>
     public static double Interpolate(double[] x, double[] y, double[] c, double x2)
     {
       int low = 0;
@@ -108,7 +108,7 @@ namespace Popolo.Core.Numerics
       return InterPolate(x, y, c, x2, low);
     }
 
-    /// <summary>x2 の位置での補間値を計算する</summary>
+    /// <summary>Computes the interpolated value at position <paramref name="x2"/>.</summary>
     private static double InterPolate(
         double[] x, double[] y, double[] cf, double x2, int num)
     {

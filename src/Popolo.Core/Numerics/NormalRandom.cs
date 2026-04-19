@@ -22,48 +22,48 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>正規分布に従う乱数系列を生成するクラス</summary>
+  /// <summary>Generates random samples from a normal distribution.</summary>
   [Serializable]
   public class NormalRandom
   {
 
     #region インスタンス変数・プロパティ
 
-    /// <summary>一様乱数生成器</summary>
+    /// <summary>Uniform random number generator.</summary>
     private readonly MersenneTwister rnd;
 
-    /// <summary>乱数ストック</summary>
+    /// <summary>Cached second value from the Box-Muller method.</summary>
     private double rndStock;
 
-    /// <summary>乱数ストックを持つか否か</summary>
+    /// <summary>Whether a cached value is available.</summary>
     private bool hasStock = false;
 
-    /// <summary>平均μを取得する</summary>
+    /// <summary>Gets the mean μ.</summary>
     public double Mean { get; private set; }
 
-    /// <summary>標準偏差σを取得する</summary>
+    /// <summary>Gets the standard deviation σ.</summary>
     public double StandardDeviation { get; private set; }
 
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="seed">乱数シード</param>
-    /// <param name="mean">平均</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
+    /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
+    /// <param name="seed">Random seed.</param>
+    /// <param name="mean">Mean.</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public NormalRandom(uint seed, double mean = 0, double standardDeviation = 1)
         : this(new MersenneTwister(seed), mean, standardDeviation) { }
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="rnd">一様乱数生成器</param>
-    /// <param name="mean">平均</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
+    /// <summary>Initializes a new instance using the specified uniform RNG.</summary>
+    /// <param name="rnd">Uniform random number generator.</param>
+    /// <param name="mean">Mean.</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
     /// <exception cref="PopoloArgumentException">
-    /// standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public NormalRandom(MersenneTwister rnd, double mean = 0, double standardDeviation = 1)
     {
@@ -81,8 +81,8 @@ namespace Popolo.Core.Numerics
 
     #region インスタンスメソッド
 
-    /// <summary>平均μ標準偏差σに従う正規乱数を返す</summary>
-    /// <returns>正規乱数</returns>
+    /// <summary>Returns a sample drawn from the configured normal distribution.</summary>
+    /// <returns>A random sample from N(μ, σ).</returns>
     public double NextDouble()
     {
       if (hasStock)
@@ -98,8 +98,8 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>標準正規分布（平均0・標準偏差1）に従う乱数を返す</summary>
-    /// <returns>標準正規乱数</returns>
+    /// <summary>Returns a sample drawn from the standard normal distribution (mean 0, standard deviation 1).</summary>
+    /// <returns>A random sample from N(0, 1).</returns>
     public double NextDouble_Standard()
     {
       if (hasStock)
@@ -115,10 +115,10 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>Box-Muller法で標準正規乱数を2つ生成する</summary>
-    /// <param name="rnd">一様乱数生成器</param>
-    /// <param name="nrnd1">標準正規乱数1</param>
-    /// <param name="nrnd2">標準正規乱数2</param>
+    /// <summary>Generates two standard normal samples using the Box-Muller transform.</summary>
+    /// <param name="rnd">Uniform random number generator.</param>
+    /// <param name="nrnd1">First standard normal sample.</param>
+    /// <param name="nrnd2">Second standard normal sample.</param>
     private static void MakeNormalRandomNumbers(
         MersenneTwister rnd, out double nrnd1, out double nrnd2)
     {
@@ -139,13 +139,13 @@ namespace Popolo.Core.Numerics
 
     #region 静的メソッド
 
-    /// <summary>正規分布の累積分布関数の値を計算する</summary>
-    /// <param name="x">確率変数の値</param>
-    /// <param name="mean">平均</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
-    /// <returns>累積確率（0以上1以下）</returns>
+    /// <summary>Evaluates the cumulative distribution function (CDF) of the normal distribution.</summary>
+    /// <param name="x">Value of the random variable.</param>
+    /// <param name="mean">Mean.</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
+    /// <returns>Cumulative probability in [0, 1].</returns>
     /// <exception cref="PopoloArgumentException">
-    /// standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public static double CumulativeDistribution(
         double x, double mean = 0, double standardDeviation = 1)
@@ -159,17 +159,17 @@ namespace Popolo.Core.Numerics
           -((x - mean) / standardDeviation) / Math.Sqrt(2));
     }
 
-    /// <summary>正規分布の累積分布関数の逆関数を計算する</summary>
-    /// <param name="p">累積確率（0より大きく1より小さい値）</param>
-    /// <param name="mean">平均</param>
-    /// <param name="standardDeviation">標準偏差（0より大きい値）</param>
-    /// <returns>確率変数の値</returns>
+    /// <summary>Evaluates the inverse CDF (quantile function) of the normal distribution.</summary>
+    /// <param name="p">Cumulative probability in (0, 1).</param>
+    /// <param name="mean">Mean.</param>
+    /// <param name="standardDeviation">Standard deviation (must be positive).</param>
+    /// <returns>Value of the random variable.</returns>
     /// <remarks>
-    /// Acklam's Algorithm による近似。
-    /// http://home.online.no/~pjacklam/notes/invnorm
+    /// Approximation based on Acklam's algorithm
+    /// (http://home.online.no/~pjacklam/notes/invnorm).
     /// </remarks>
     /// <exception cref="PopoloArgumentException">
-    /// standardDeviation が0以下の場合。
+    /// Thrown when <paramref name="standardDeviation"/> is not positive.
     /// </exception>
     public static double CumulativeDistributionInverse(
         double p, double mean = 0, double standardDeviation = 1)

@@ -21,12 +21,11 @@ using System;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>メルセンヌ・ツイスターによる擬似乱数生成クラス</summary>
+  /// <summary>Mersenne Twister pseudo-random number generator.</summary>
   /// <remarks>
-  /// Makoto Matsumoto氏のC言語版をC#に移植。
-  /// http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
-  /// このクラスはスレッドセーフではない。マルチスレッド環境では
-  /// スレッドごとに個別のインスタンスを使用すること。
+  /// C# port of Makoto Matsumoto's C reference implementation
+  /// (http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c).
+  /// This class is not thread-safe; use a separate instance per thread.
   /// </remarks>
   [Serializable]
   public class MersenneTwister
@@ -44,7 +43,7 @@ namespace Popolo.Core.Numerics
 
     #region インスタンス変数
 
-    /// <summary>乱数シードを取得する</summary>
+    /// <summary>Gets the random seed.</summary>
     public uint Seed { get; private set; }
 
     private readonly uint[] mt = new uint[N];
@@ -55,8 +54,8 @@ namespace Popolo.Core.Numerics
 
     #region コンストラクタ
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="seed">乱数シード</param>
+    /// <summary>Initializes a new instance with the specified seed.</summary>
+    /// <param name="seed">Random seed.</param>
     public MersenneTwister(uint seed)
     {
       Seed = seed;
@@ -72,8 +71,8 @@ namespace Popolo.Core.Numerics
 
     #region 乱数生成
 
-    /// <summary>符号なし32bitの擬似乱数を生成する</summary>
-    /// <returns>符号なし32bitの擬似乱数</returns>
+    /// <summary>Generates the next 32-bit unsigned pseudo-random number.</summary>
+    /// <returns>A 32-bit unsigned pseudo-random number.</returns>
     private uint NextUInt32()
     {
       uint y;
@@ -107,36 +106,36 @@ namespace Popolo.Core.Numerics
       return y;
     }
 
-    /// <summary>0.0以上1.0以下のランダムな浮動小数点数を返す</summary>
-    /// <returns>0.0以上1.0以下のランダムな浮動小数点数</returns>
+    /// <summary>Returns a random double in the closed interval [0.0, 1.0].</summary>
+    /// <returns>A random double in [0.0, 1.0].</returns>
     public double NextDouble()
     {
       return NextUInt32() * (1.0 / 4294967295.0);
     }
 
-    /// <summary>0.0以上1.0未満のランダムな浮動小数点数を返す</summary>
-    /// <returns>0.0以上1.0未満のランダムな浮動小数点数</returns>
+    /// <summary>Returns a random double in the half-open interval [0.0, 1.0).</summary>
+    /// <returns>A random double in [0.0, 1.0).</returns>
     public double NextDouble2()
     {
       return NextUInt32() * (1.0 / 4294967296.0);
     }
 
-    /// <summary>0.0よりも大きく1.0未満のランダムな浮動小数点数を返す</summary>
-    /// <returns>0.0よりも大きく1.0未満のランダムな浮動小数点数</returns>
+    /// <summary>Returns a random double in the open interval (0.0, 1.0).</summary>
+    /// <returns>A random double in (0.0, 1.0).</returns>
     public double NextDouble3()
     {
       return (NextUInt32() + 0.5) * (1.0 / 4294967296.0);
     }
 
-    /// <summary>0以上のランダムな符号なし整数を返す</summary>
-    /// <returns>0以上のランダムな符号なし整数</returns>
+    /// <summary>Returns a random non-negative unsigned integer.</summary>
+    /// <returns>A random unsigned 32-bit integer.</returns>
     public uint Next()
     {
       return NextUInt32();
     }
 
-    /// <summary>ランダムな符号付き整数を返す</summary>
-    /// <returns>ランダムな符号付き整数</returns>
+    /// <summary>Returns a random signed integer.</summary>
+    /// <returns>A random signed 32-bit integer.</returns>
     public int NextInt()
     {
       return (int)(NextUInt32() - 2147483648U);

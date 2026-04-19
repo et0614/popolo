@@ -19,18 +19,18 @@
 
 namespace Popolo.Core.Geometry
 {
-  /// <summary>3次元空間の直線を表すクラス</summary>
+  /// <summary>Represents a line in three-dimensional space.</summary>
   public class Line
   {
-    /// <summary>直線上の点を取得する</summary>
+    /// <summary>Gets a point on the line.</summary>
     public Point Point { get; }
 
-    /// <summary>直線の方向を表すベクトルを取得する</summary>
+    /// <summary>Gets the direction vector of the line.</summary>
     public Vector3D Vector { get; }
 
-    /// <summary>インスタンスを初期化する</summary>
-    /// <param name="point">直線上の点</param>
-    /// <param name="vector">直線の方向を表すベクトル</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="point">A point on the line.</param>
+    /// <param name="vector">Direction vector of the line.</param>
     public Line(Point point, Vector3D vector)
     {
       Point = new Point(point);

@@ -91,7 +91,7 @@ namespace Popolo.Core.Climate
     public static double GetSkyEmissivity(double waterVaporPartialPressure)
         => 0.526 + 0.209 * Math.Sqrt(waterVaporPartialPressure);
 
-    /// <summary>黒体放射量 σT⁴ [W/m²] を計算する</summary>
+    /// <summary>Computes the black-body radiation σT⁴ [W/m²].</summary>
     private static double BlackBodyRadiation(double temperature)
         => PhysicsConstants.StefanBoltzmannConstant
            * Math.Pow(PhysicsConstants.ToKelvin(temperature), 4);

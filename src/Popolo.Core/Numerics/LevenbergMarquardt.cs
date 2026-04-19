@@ -9,11 +9,11 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>LevenbergMarquardt法による最小二乗法クラス</summary>
+  /// <summary>Least-squares solver based on the Levenberg-Marquardt algorithm.</summary>
   /// <remarks>
-  /// J.J. More, The Levenberg-Marquardt algorithm: implementation and theory
-  /// Conference on Numerical Analysis University of Dundee Scotland
-  /// June 28 - July 1, 1977
+  /// J. J. More, "The Levenberg-Marquardt Algorithm: Implementation and Theory,"
+  /// Conference on Numerical Analysis, University of Dundee, Scotland,
+  /// June 28 - July 1, 1977.
   /// </remarks>
   [Serializable]
   public class LevenbergMarquardt
@@ -21,79 +21,79 @@ namespace Popolo.Core.Numerics
 
     #region delegate
 
-    /// <summary>誤差関数</summary>
-    /// <param name="inputs">入力ベクトル</param>
-    /// <param name="outputs">出力ベクトル</param>
+    /// <summary>Residual function.</summary>
+    /// <param name="inputs">Input vector.</param>
+    /// <param name="outputs">Output vector (residuals).</param>
     public delegate void ErrorFunction(IVector inputs, ref IVector outputs);
 
     #endregion
 
     #region インスタンス変数
 
-    /// <summary>機械イプシロン</summary>
+    /// <summary>Machine epsilon.</summary>
     private static readonly double MECH_EPS;
 
-    /// <summary>誤差関数</summary>
+    /// <summary>Residual function.</summary>
     private ErrorFunction eFnc;
 
-    /// <summary>許容誤差</summary>
+    /// <summary>Convergence tolerances.</summary>
     private double gtol, ftol, xtol;
 
-    /// <summary>計算領域</summary>
+    /// <summary>Working storage.</summary>
     private IVector wa1, wa2, wa3, wa4, diag, qtf;
 
-    /// <summary>入力ベクトル</summary>
+    /// <summary>Current input vector.</summary>
     private IVector? inputs;
 
-    /// <summary>出力ベクトル</summary>
+    /// <summary>Current output vector (residuals).</summary>
     private IVector outputs;
 
-    /// <summary>誤差関数評価回数上限</summary>
+    /// <summary>Maximum number of residual function evaluations.</summary>
     private int maxfev;
 
-    /// <summary>ヤコビアン</summary>
+    /// <summary>Jacobian matrix.</summary>
     private IMatrix fjac;
 
-    /// <summary>ピボット配列</summary>
+    /// <summary>Pivot array.</summary>
     private int[] ipvt;
 
-    /// <summary>計算状態</summary>
+    /// <summary>Termination state code.</summary>
     private int info = 0;
 
-    /// <summary>数値微分用微小値</summary>
+    /// <summary>Step size used for numerical differentiation.</summary>
     private double epsfcn;
 
     #endregion
 
     #region プロパティ
 
-    /// <summary>関数の数を取得する</summary>
+    /// <summary>Gets the number of residual functions.</summary>
     public int FunctionCount { get; private set; }
 
-    /// <summary>状態の数を取得する</summary>
+    /// <summary>Gets the number of optimization variables.</summary>
     public int VariableCount { get; private set; }
 
-    /// <summary>誤差関数評価回数を取得する</summary>
+    /// <summary>Gets the number of residual function evaluations performed.</summary>
     public int FunctionEvaluateCount { get; private set; }
 
-    /// <summary>誤差関数評価回数上限を設定・取得する</summary>
+    /// <summary>Gets or sets the maximum number of residual function evaluations.</summary>
     public int MaxFunctionEvaluateCount
     {
       get { return maxfev; }
       set { if (0 < value) maxfev = value; }
     }
 
-    /// <summary>収束計算成功の真偽を取得する</summary>
+    /// <summary>Gets a value indicating whether the optimization converged successfully.</summary>
     public bool SuccessfullyConverged { get { return (1 <= info && info <= 3); } }
 
-    /// <summary>数値微分用微小値を設定・取得する</summary>
+    /// <summary>Gets or sets the step size used for numerical differentiation.</summary>
     public double Epsilon
     {
       get { return epsfcn; }
       set { if (0 < value) epsfcn = value; }
     }
 
-    /// <summary>計算状況を取得する</summary>
+    /// <summary>Gets a human-readable description of the termination state.</summary>
     public string Status
     {
       get
@@ -128,34 +128,34 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>ヤコビアン勾配に関する許容誤差を設定・取得する</summary>
+    /// <summary>Gets or sets the tolerance on the Jacobian gradient.</summary>
     public double GradientTolerance
     {
       get { return gtol; }
       set { if (0 < value) gtol = value; }
     }
 
-    /// <summary>出力変化に関する許容誤差を設定・取得する</summary>
+    /// <summary>Gets or sets the tolerance on the change in the residual vector.</summary>
     public double OutputErrorTolerance
     {
       get { return ftol; }
       set { if (0 < value) ftol = value; }
     }
 
-    /// <summary>入力変化に関する許容誤差を設定・取得する</summary>
+    /// <summary>Gets or sets the tolerance on the change in the input vector.</summary>
     public double InputErrorTolerance
     {
       get { return xtol; }
       set { if (0 < value) xtol = value; }
     }
 
-    /// <summary>出力ベクトルを取得する</summary>
+    /// <summary>Gets the current output (residual) vector.</summary>
     public IReadOnlyVector Outputs { get { return outputs; } }
 
-    /// <summary>入力ベクトルを取得する</summary>
+    /// <summary>Gets the current input vector.</summary>
     public IReadOnlyVector? Inputs { get { return inputs; } }
 
-    /// <summary>最大反復回数を設定・取得する</summary>
+    /// <summary>Gets or sets the maximum number of iterations.</summary>
     public uint MaxIteration { get; set; }
 
     #endregion
@@ -177,10 +177,10 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="eFnc">誤差関数</param>
-    /// <param name="functionCount">誤差関数の式の数</param>
-    /// <param name="variableCount">変数の数</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="functionCount">Number of residual equations.</param>
+    /// <param name="variableCount">Number of optimization variables.</param>
     public LevenbergMarquardt
       (ErrorFunction eFnc, int functionCount, int variableCount)
     {
@@ -208,8 +208,8 @@ namespace Popolo.Core.Numerics
       fjac = new Matrix(functionCount, variableCount);
     }
 
-    /// <summary>評価関数最小二乗和を最小化する入力ベクトルを求める</summary>
-    /// <param name="inputs">入力ベクトル初期値</param>
+    /// <summary>Finds the input vector that minimizes the sum of squared residuals.</summary>
+    /// <param name="inputs">Initial input vector; overwritten with the solution.</param>
     public void Minimize(ref IVector inputs)
     {
       info = 0;

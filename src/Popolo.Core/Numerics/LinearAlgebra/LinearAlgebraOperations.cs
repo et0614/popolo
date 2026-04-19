@@ -23,20 +23,20 @@ using System;
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>
-  /// 線形代数処理に関する静的メソッドを提供する
-  /// 参考文献:
-  /// 小国力　新数値計算法
-  /// 北川源四郎　時系列解析入門
-  /// ニューメリカルレシピ in C
+  /// Provides static methods for linear algebra operations.
+  /// References:
+  /// Oguni, T. "New Numerical Analysis";
+  /// Kitagawa, G. "Introduction to Time Series Analysis";
+  /// "Numerical Recipes in C".
   /// </summary>
   public static class LinearAlgebraOperations
   {
 
     #region LU分解
 
-    /// <summary>連立一次方程式[A][x]=[b]を解く</summary>
-    /// <param name="aMatrix">係数行列[A]</param>
-    /// <param name="bVector">入力：ベクトル[b]、出力：ベクトル[x]</param>
+    /// <summary>Solves the linear system [A][x] = [b] for x.</summary>
+    /// <param name="aMatrix">Coefficient matrix [A].</param>
+    /// <param name="bVector">Input: vector [b]. Output: solution vector [x].</param>
     public static void SolveLinearEquations(IMatrix aMatrix, IVector bVector)
     {
       int[] perm = new int[aMatrix.Rows];     //置換ベクトル
@@ -45,13 +45,14 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       FAndBSubstitute(aMatrix, perm, bVector);
     }
 
-    /// <summary>Crout法によりLU分解（A=LU）を行う</summary>
+    /// <summary>Performs LU decomposition (A = LU) using Crout's method.</summary>
     /// <param name="matrix">
-    /// 入力：LU分解を行う正方行列
-    /// 出力：上三角+対角成分-U行列、下三角成分-L行列</param>
-    /// <param name="perm">pivot選択による行置換ベクトル</param>
-    /// <param name="wArray">作業用記憶領域（行数）</param>
-    /// <remarks>Newmerical Recipiesより移植</remarks>
+    /// Input: square matrix to decompose.
+    /// Output: the upper triangle and diagonal contain U; the lower triangle contains L.
+    /// </param>
+    /// <param name="perm">Row permutation vector produced by partial pivoting.</param>
+    /// <param name="wArray">Working storage (length equal to the number of rows).</param>
+    /// <remarks>Adapted from "Numerical Recipes".</remarks>
     public static void LUDecompose(IMatrix matrix, int[] perm, IVector wArray)
     {
       //行列の行数・列数を取得
@@ -124,10 +125,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>LU行列にもとづき前進・後退代入処理を行う</summary>
-    /// <param name="luMatrix">LU分解済の行列</param>
-    /// <param name="perm">置換ベクトル</param>
-    /// <param name="b">bベクトル：解が上書きされる</param>
+    /// <summary>Performs forward and back substitution using an LU-decomposed matrix.</summary>
+    /// <param name="luMatrix">Matrix produced by LU decomposition.</param>
+    /// <param name="perm">Row permutation vector from the LU decomposition.</param>
+    /// <param name="b">Right-hand side vector; overwritten with the solution.</param>
     public static void FAndBSubstitute(IMatrix luMatrix, int[] perm, IVector b)
     {
       //行列の行数・列数を取得
@@ -159,9 +160,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>mAの逆行列を計算する</summary>
-    /// <param name="mA">逆行列を求める行列</param>
-    /// <param name="mB">出力:逆行列</param>
+    /// <summary>Computes the inverse of <paramref name="mA"/>.</summary>
+    /// <param name="mA">Matrix to invert.</param>
+    /// <param name="mB">Output matrix that receives the inverse.</param>
     public static void GetInverse(IMatrix mA, IMatrix mB)
     {      
       if (mA.Columns == 1)
@@ -187,11 +188,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     #region 帯行列関連
 
     /// <summary>
-    /// Thomas algorithmで三重対角行列連立一次方程式を解く
-    /// abc(0,i)*nx(i-1)+abc(1,i)*nx(i)+abc(2,i)*nx(i+1)=x(i)
+    /// Solves a tridiagonal linear system using the Thomas algorithm:
+    /// abc(0,i)*nx(i-1) + abc(1,i)*nx(i) + abc(2,i)*nx(i+1) = x(i).
     /// </summary>
-    /// <param name="abc">係数行列</param>
-    /// <param name="x">解で上書きされる</param>
+    /// <param name="abc">Coefficient matrix (sub-, main-, and super-diagonals).</param>
+    /// <param name="x">Right-hand side vector; overwritten with the solution.</param>
     public static void SolveTridiagonalMatrix(IMatrix abc, IVector x)
     {
       int num = abc.Columns - 1;
@@ -212,24 +213,24 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region 最小二乗法
 
-    /// <summary>最小二乗法で回帰係数を計算する</summary>
-    /// <param name="y">目的変数ベクトル</param>
-    /// <param name="x">説明変数行列（1行1サンプル）</param>
-    /// <returns>回帰係数ベクトル</returns>
-    /// <remarks>北川源四郎　時系列解析入門</remarks>
+    /// <summary>Computes regression coefficients by the least-squares method.</summary>
+    /// <param name="y">Response variable vector.</param>
+    /// <param name="x">Predictor matrix (one sample per row).</param>
+    /// <returns>Vector of regression coefficients.</returns>
+    /// <remarks>Kitagawa, G., "Introduction to Time Series Analysis".</remarks>
     public static double[] LeastSquareFit(double[] y, double[,] x)
     {
       double sig, aic;
       return LeastSquareFit(y, x, out sig, out aic);
     }
 
-    /// <summary>最小二乗法で回帰係数を計算する</summary>
-    /// <param name="y">目的変数ベクトル</param>
-    /// <param name="x">説明変数行列（1行1サンプル）</param>
-    /// <param name="sigma2">出力：残差分散σ^2</param>
-    /// <param name="aic">出力：赤池情報量</param>
-    /// <returns>回帰係数ベクトル</returns>
-    /// <remarks>北川源四郎　時系列解析入門</remarks>
+    /// <summary>Computes regression coefficients by the least-squares method.</summary>
+    /// <param name="y">Response variable vector.</param>
+    /// <param name="x">Predictor matrix (one sample per row).</param>
+    /// <param name="sigma2">Output: residual variance σ².</param>
+    /// <param name="aic">Output: Akaike information criterion.</param>
+    /// <returns>Vector of regression coefficients.</returns>
+    /// <remarks>Kitagawa, G., "Introduction to Time Series Analysis".</remarks>
     public static double[] LeastSquareFit
       (double[] y, double[,] x, out double sigma2, out double aic)
     {
@@ -262,9 +263,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       return a;
     }
 
-    /// <summary>ハウスホルダ変換により上三角行列を作成する</summary>
-    /// <param name="mA">変換対象行列(上書きされる)</param>
-    /// <remarks>小国力　新数値計算法</remarks>
+    /// <summary>Converts the matrix to upper-triangular form by Householder transformations.</summary>
+    /// <param name="mA">Matrix to transform (modified in place).</param>
+    /// <remarks>Oguni, T., "New Numerical Analysis".</remarks>
     public static void MakeUpperTriangularMatrix(ref IMatrix mA)
     {
       int n = mA.Rows;
@@ -307,12 +308,12 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           mA[i, j] = 0;
     }
 
-    /// <summary>Y=aX+bの単回帰係数を求める</summary>
-    /// <param name="x">説明変数配列</param>
-    /// <param name="y">目的変数配列</param>
-    /// <param name="coefA">出力：係数a</param>
-    /// <param name="coefB">出力：係数b</param>
-    /// <remarks>ニューメリカルレシピより</remarks>
+    /// <summary>Fits the simple linear regression Y = aX + b.</summary>
+    /// <param name="x">Predictor values.</param>
+    /// <param name="y">Response values.</param>
+    /// <param name="coefA">Output: slope coefficient a.</param>
+    /// <param name="coefB">Output: intercept coefficient b.</param>
+    /// <remarks>Adapted from "Numerical Recipes".</remarks>
     public static void FitAxPlusB
       (double[] x, double[] y, out double coefA, out double coefB)
     {
@@ -337,21 +338,21 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       coefB = (sy - sx * coefA) / num;
     }
 
-    /// <summary>重回帰係数を求める</summary>
-    /// <param name="y">目的変数ベクトル</param>
-    /// <param name="x">説明変数ベクトル（1行1サンプル）</param>
-    /// <returns>重回帰係数</returns>
+    /// <summary>Estimates multiple regression coefficients.</summary>
+    /// <param name="y">Response variable vector.</param>
+    /// <param name="x">Predictor matrix (one sample per row).</param>
+    /// <returns>Vector of multiple regression coefficients.</returns>
     public static double[] EstimateMultipleRegressionCoefficients(double[] y, double[][] x)
     {
       return EstimateMultipleRegressionCoefficients(y, x, out _, out _);
     }
 
-    /// <summary>重回帰係数を求める</summary>
-    /// <param name="y">目的変数ベクトル</param>
-    /// <param name="x">説明変数ベクトル（1行1サンプル）</param>
-    /// <param name="sigma2">出力：残差分散σ^2</param>
-    /// <param name="aic">出力：赤池情報量</param>
-    /// <returns>重回帰係数</returns>
+    /// <summary>Estimates multiple regression coefficients with diagnostics.</summary>
+    /// <param name="y">Response variable vector.</param>
+    /// <param name="x">Predictor matrix (one sample per row).</param>
+    /// <param name="sigma2">Output: residual variance σ².</param>
+    /// <param name="aic">Output: Akaike information criterion.</param>
+    /// <returns>Vector of multiple regression coefficients.</returns>
     public static double[] EstimateMultipleRegressionCoefficients(double[] y, double[][] x, out double sigma2, out double aic)
     {
       int sampleNum = y.Length;
@@ -375,13 +376,13 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       return LeastSquareFit(y, xn, out sigma2, out aic);
     }
 
-    /// <summary>重回帰係数を求める</summary>
-    /// <param name="y">目的変数ベクトル</param>
-    /// <param name="x">説明変数ベクトル（1行1サンプル）</param>
-    /// <param name="sigma2">出力：残差分散σ^2</param>
-    /// <param name="aic">出力：赤池情報量</param>
-    /// <param name="rss">出力:残差平方和（RSS: Residual Sum of Squares）</param>
-    /// <returns>重回帰係数</returns>
+    /// <summary>Estimates multiple regression coefficients with residual sum-of-squares diagnostics.</summary>
+    /// <param name="y">Response variable vector.</param>
+    /// <param name="x">Predictor matrix (one sample per row).</param>
+    /// <param name="sigma2">Output: residual variance σ².</param>
+    /// <param name="aic">Output: Akaike information criterion.</param>
+    /// <param name="rss">Output: residual sum of squares (RSS).</param>
+    /// <returns>Vector of multiple regression coefficients.</returns>
     public static double[] EstimateMultipleRegressionCoefficients(double[] y, double[][] x, out double sigma2, out double aic, out double rss) {
       double[] weight = EstimateMultipleRegressionCoefficients(y, x, out sigma2, out aic);
 
@@ -401,10 +402,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #region 行列・ベクトル演算
 
-    /// <summary>行列の積(C=AB)を計算する</summary>
-    /// <param name="mA">A行列</param>
-    /// <param name="mB">B行列</param>
-    /// <param name="mC">C行列</param>
+    /// <summary>Computes the matrix product C = A * B.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="mB">Matrix B.</param>
+    /// <param name="mC">Output matrix C.</param>
     public static void Multiply(IMatrix mA, IMatrix mB, IMatrix mC)
     {
       mC.Initialize(0);
@@ -420,12 +421,12 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>行列とベクトルの積和を計算する（vC = α mA vB + β vC）</summary>
-    /// <param name="mA">行列A</param>
-    /// <param name="vB">ベクトルB</param>
-    /// <param name="vC">ベクトルC（解が上書きされる）</param>
-    /// <param name="alpha">第一項の係数</param>
-    /// <param name="beta">第二項の係数</param>
+    /// <summary>Computes the matrix-vector combination vC = α * mA * vB + β * vC.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="vB">Vector B.</param>
+    /// <param name="vC">Vector C; overwritten with the result.</param>
+    /// <param name="alpha">Coefficient α of the first term.</param>
+    /// <param name="beta">Coefficient β of the second term.</param>
     public static void Multiply(IMatrix mA, IVector vB, IVector vC, double alpha, double beta)
     {
       for (int i = 0; i < mA.Rows; i++)
@@ -437,11 +438,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
     }
 
-    /// <summary>行列の和を計算する（mB = cA*mA + cB*mB）</summary>
-    /// <param name="mA">A行列</param>
-    /// <param name="mB">B行列（解が上書きされる）</param>
-    /// <param name="cA">第一項の係数</param>
-    /// <param name="cB">第二項の係数</param>
+    /// <summary>Computes the matrix combination mB = cA * mA + cB * mB.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="mB">Matrix B; overwritten with the result.</param>
+    /// <param name="cA">Coefficient of the first term.</param>
+    /// <param name="cB">Coefficient of the second term.</param>
     public static void Add(IMatrix mA, IMatrix mB, double cA, double cB)
     {
       for (int i = 0; i < mA.Rows; i++)
@@ -449,9 +450,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           mB[i, j] = mA[i, j] * cA + mB[i, j] * cB;
     }
 
-    /// <summary>行列の和を計算する（mB = mA + mB）</summary>
-    /// <param name="mA">A行列</param>
-    /// <param name="mB">B行列（解が上書きされる）</param>
+    /// <summary>Computes the matrix sum mB = mA + mB.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="mB">Matrix B; overwritten with the result.</param>
     public static void Add(IMatrix mA, IMatrix mB)
     {
       for (int i = 0; i < mA.Rows; i++)
@@ -459,9 +460,9 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           mB[i, j] = mA[i, j] + mB[i, j];
     }
 
-    /// <summary>行列の差を計算する（mB = mA - mB）</summary>
-    /// <param name="mA">A行列</param>
-    /// <param name="mB">B行列（解が上書きされる）</param>
+    /// <summary>Computes the matrix difference mB = mA - mB.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="mB">Matrix B; overwritten with the result.</param>
     public static void Subtract(IMatrix mA, IMatrix mB)
     {
       for (int i = 0; i < mA.Rows; i++)

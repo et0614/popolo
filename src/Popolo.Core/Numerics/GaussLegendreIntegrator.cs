@@ -22,30 +22,30 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>ガウス・ルジャンドル積分クラス</summary>
-  /// <remarks>ニューメリカルレシピより</remarks>
+  /// <summary>Gauss-Legendre numerical integrator.</summary>
+  /// <remarks>Adapted from "Numerical Recipes".</remarks>
   [Serializable]
   public class GaussLegendreIntegrator
   {
-    /// <summary>積分する関数</summary>
-    /// <param name="x">入力値</param>
-    /// <returns>出力値</returns>
+    /// <summary>Integrand function.</summary>
+    /// <param name="x">Input value.</param>
+    /// <returns>Output value.</returns>
     public delegate double IntegrateFunction(double x);
 
-    /// <summary>分点</summary>
+    /// <summary>Quadrature nodes.</summary>
     private double[] x;
 
-    /// <summary>重み</summary>
+    /// <summary>Quadrature weights.</summary>
     private double[] w;
 
-    /// <summary>被積分関数</summary>
+    /// <summary>Integrand function.</summary>
     private readonly IntegrateFunction iFnc;
 
-    /// <summary>コンストラクタ</summary>
-    /// <param name="iFnc">被積分関数</param>
-    /// <param name="nodeCount">分点の数（1以上）</param>
+    /// <summary>Initializes a new instance.</summary>
+    /// <param name="iFnc">Integrand function.</param>
+    /// <param name="nodeCount">Number of quadrature nodes (1 or more).</param>
     /// <exception cref="PopoloArgumentException">
-    /// nodeCount が1未満の場合。
+    /// Thrown when <paramref name="nodeCount"/> is less than 1.
     /// </exception>
     public GaussLegendreIntegrator(IntegrateFunction iFnc, int nodeCount)
     {
@@ -58,19 +58,19 @@ namespace Popolo.Core.Numerics
       ComputeNodesAndWeights(nodeCount, out x, out w);
     }
 
-    /// <summary>区間abで定積分する</summary>
-    /// <param name="a">下限値</param>
-    /// <param name="b">上限値</param>
-    /// <returns>積分値</returns>
+    /// <summary>Evaluates the definite integral over the interval [a, b].</summary>
+    /// <param name="a">Lower bound.</param>
+    /// <param name="b">Upper bound.</param>
+    /// <returns>Value of the integral.</returns>
     public double Integrate(double a, double b)
     {
       return Integrate(iFnc, a, b, x, w);
     }
 
-    /// <summary>分点の数を更新する</summary>
-    /// <param name="nodeCount">分点の数（1以上）</param>
+    /// <summary>Updates the number of quadrature nodes.</summary>
+    /// <param name="nodeCount">Number of quadrature nodes (1 or more).</param>
     /// <exception cref="PopoloArgumentException">
-    /// nodeCount が1未満の場合。
+    /// Thrown when <paramref name="nodeCount"/> is less than 1.
     /// </exception>
     public void UpdateNodeCount(int nodeCount)
     {
@@ -82,12 +82,12 @@ namespace Popolo.Core.Numerics
       ComputeNodesAndWeights(nodeCount, out x, out w);
     }
 
-    /// <summary>分点と重みを計算する</summary>
-    /// <param name="number">分点の数（1以上）</param>
-    /// <param name="x">出力：分点</param>
-    /// <param name="w">出力：重み</param>
+    /// <summary>Computes the nodes and weights for Gauss-Legendre quadrature.</summary>
+    /// <param name="number">Number of quadrature nodes (1 or more).</param>
+    /// <param name="x">Output: quadrature nodes.</param>
+    /// <param name="w">Output: quadrature weights.</param>
     /// <exception cref="PopoloArgumentException">
-    /// number が1未満の場合。
+    /// Thrown when <paramref name="number"/> is less than 1.
     /// </exception>
     public static void ComputeNodesAndWeights(
         int number, out double[] x, out double[] w)
@@ -125,13 +125,13 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>区間abで定積分する</summary>
-    /// <param name="iFnc">被積分関数</param>
-    /// <param name="a">下限</param>
-    /// <param name="b">上限</param>
-    /// <param name="x">分点</param>
-    /// <param name="w">重み</param>
-    /// <returns>積分値</returns>
+    /// <summary>Evaluates the definite integral over [a, b] using the given nodes and weights.</summary>
+    /// <param name="iFnc">Integrand function.</param>
+    /// <param name="a">Lower bound.</param>
+    /// <param name="b">Upper bound.</param>
+    /// <param name="x">Quadrature nodes.</param>
+    /// <param name="w">Quadrature weights.</param>
+    /// <returns>Value of the integral.</returns>
     public static double Integrate(
         IntegrateFunction iFnc, double a, double b, double[] x, double[] w)
     {

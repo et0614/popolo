@@ -22,38 +22,38 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>常微分方程式ソルバ</summary>
+  /// <summary>Ordinary differential equation (ODE) solvers.</summary>
   public static class ODESolver
   {
 
     #region デリゲート定義
 
-    /// <summary>1変数の微分方程式</summary>
-    /// <param name="t">時点</param>
-    /// <param name="yt">現在値</param>
-    /// <returns>微分値</returns>
+    /// <summary>Scalar differential equation dy/dt = f(t, y).</summary>
+    /// <param name="t">Current time.</param>
+    /// <param name="yt">Current value of y.</param>
+    /// <returns>Derivative dy/dt.</returns>
     public delegate double DifferentialEquation(double t, double yt);
 
-    /// <summary>連立微分方程式</summary>
-    /// <param name="t">時点</param>
-    /// <param name="yt">現在値の配列</param>
-    /// <param name="dyt">出力：微分値の配列</param>
+    /// <summary>System of coupled differential equations.</summary>
+    /// <param name="t">Current time.</param>
+    /// <param name="yt">Current state vector.</param>
+    /// <param name="dyt">Output derivative vector.</param>
     public delegate void DifferentialEquations(double t, double[] yt, ref double[] dyt);
 
-    /// <summary>強制終了判定関数</summary>
-    /// <param name="t">時点</param>
-    /// <param name="yt">現在値</param>
-    /// <returns>強制終了する場合は true</returns>
+    /// <summary>Early-termination predicate.</summary>
+    /// <param name="t">Current time.</param>
+    /// <param name="yt">Current value of y.</param>
+    /// <returns>True to terminate integration early.</returns>
     public delegate bool TerminateProcess(double t, double yt);
 
     #endregion
 
     #region 静的フィールドとコンストラクタ
 
-    /// <summary>Runge-Kutta-Fehlberg法の係数</summary>
+    /// <summary>Coefficients for the Runge-Kutta-Fehlberg (RKF45) method.</summary>
     private static readonly double[][] RKF45;
 
-    /// <summary>静的コンストラクタ</summary>
+    /// <summary>Static constructor.</summary>
     static ODESolver()
     {
       RKF45 = new double[6][];
@@ -69,12 +69,12 @@ namespace Popolo.Core.Numerics
 
     #region Runge-Kutta法
 
-    /// <summary>4次のRunge-Kutta法で dt 秒後の y(t) を求める</summary>
-    /// <param name="dEqn">微分方程式</param>
-    /// <param name="dt">タイムステップ</param>
-    /// <param name="t">時点</param>
-    /// <param name="yt">現在値</param>
-    /// <returns>タイムステップ経過後の y(t+dt)</returns>
+    /// <summary>Advances the scalar ODE by one step using the classical fourth-order Runge-Kutta method.</summary>
+    /// <param name="dEqn">Differential equation.</param>
+    /// <param name="dt">Time step.</param>
+    /// <param name="t">Current time.</param>
+    /// <param name="yt">Current value of y.</param>
+    /// <returns>Value of y at time t + dt.</returns>
     public static double SolveRK4(
         DifferentialEquation dEqn, double dt, double t, double yt)
     {
@@ -86,14 +86,14 @@ namespace Popolo.Core.Numerics
       return yt + (k1 + 2 * (k2 + k3) + k4) / 6.0;
     }
 
-    /// <summary>Runge-Kutta-Gill法で dt 秒後の y(t) を求める</summary>
-    /// <param name="dEqn">連立微分方程式</param>
-    /// <param name="dt">タイムステップ</param>
-    /// <param name="t">時点</param>
-    /// <param name="yt0">現在値の配列</param>
-    /// <param name="yt1">出力：タイムステップ経過後の y(t+dt)</param>
+    /// <summary>Advances the ODE system by one step using the Runge-Kutta-Gill method.</summary>
+    /// <param name="dEqn">Differential equation system.</param>
+    /// <param name="dt">Time step.</param>
+    /// <param name="t">Current time.</param>
+    /// <param name="yt0">Current state vector.</param>
+    /// <param name="yt1">Output: state vector at time t + dt.</param>
     /// <exception cref="PopoloArgumentException">
-    /// yt0 または yt1 が null もしくは空の場合、あるいは長さが一致しない場合。
+    /// Thrown when <paramref name="yt0"/> or <paramref name="yt1"/> is null or empty, or when their lengths differ.
     /// </exception>
     public static void SolveRKGill(
         DifferentialEquations dEqn, double dt, double t,
@@ -148,17 +148,17 @@ namespace Popolo.Core.Numerics
       }
     }
 
-    /// <summary>Runge-Kutta-Fehlberg法（RKF45）で解を求める</summary>
-    /// <param name="dEqn">微分方程式</param>
-    /// <param name="tFnc">強制終了判定関数</param>
-    /// <param name="dtMax">最大タイムステップ</param>
-    /// <param name="t">開始時点</param>
-    /// <param name="tend">終了時点</param>
-    /// <param name="yt">初期値</param>
-    /// <param name="errTol">許容誤差</param>
-    /// <returns>終了時点での y(tend)</returns>
+    /// <summary>Integrates the ODE using the adaptive Runge-Kutta-Fehlberg (RKF45) method.</summary>
+    /// <param name="dEqn">Differential equation.</param>
+    /// <param name="tFnc">Early-termination predicate.</param>
+    /// <param name="dtMax">Maximum time step.</param>
+    /// <param name="t">Start time.</param>
+    /// <param name="tend">End time.</param>
+    /// <param name="yt">Initial value.</param>
+    /// <param name="errTol">Error tolerance.</param>
+    /// <returns>Value of y at time <paramref name="tend"/>.</returns>
     /// <remarks>
-    /// http://slpr.sakura.ne.jp/qp/runge-kutta-ex
+    /// Reference: http://slpr.sakura.ne.jp/qp/runge-kutta-ex
     /// </remarks>
     public static double SolveRKF45(
         DifferentialEquation dEqn, TerminateProcess tFnc,

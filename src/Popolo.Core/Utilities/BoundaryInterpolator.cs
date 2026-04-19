@@ -33,10 +33,10 @@ namespace Popolo.Core.Utilities
 
     #region インスタンス変数・プロパティ
 
-    /// <summary>補間に使う日時リスト</summary>
+    /// <summary>Array of date-time values used for interpolation.</summary>
     private readonly DateTime[] _dTimes;
 
-    /// <summary>各シリーズの状態値リスト</summary>
+    /// <summary>Per-series arrays of state values.</summary>
     private readonly List<double[]> _seriesValues;
 
     /// <summary>Gets the number of data nodes.</summary>
@@ -166,7 +166,7 @@ namespace Popolo.Core.Utilities
       return insertIndex - 1;
     }
 
-    /// <summary>PCHIP補間のための区間両端の勾配を計算する</summary>
+    /// <summary>Computes the slopes at both ends of an interval for PCHIP interpolation.</summary>
     private double[] ComputeSlopes(int intervalIndex, int seriesIndex)
     {
       bool isLeftEnd = intervalIndex == 0;

@@ -23,19 +23,19 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Numerics
 {
-  /// <summary>データ変換に関わるメソッドを提供するクラス</summary>
+  /// <summary>Provides data transformation utilities.</summary>
   public static class Transform
   {
 
     #region Box-Cox変換
 
-    /// <summary>Box-Cox変換の最適なラムダを求める</summary>
-    /// <param name="data">原データ：呼び出し後は最適値で変換される</param>
-    /// <param name="minLambda">ラムダの探索最小値</param>
-    /// <param name="maxLambda">ラムダの探索最大値</param>
-    /// <returns>Box-Cox変換の最適なラムダ</returns>
+    /// <summary>Finds the optimal Box-Cox transformation parameter λ.</summary>
+    /// <param name="data">Original data; on return, transformed with the optimal λ.</param>
+    /// <param name="minLambda">Lower bound of the λ search range.</param>
+    /// <param name="maxLambda">Upper bound of the λ search range.</param>
+    /// <returns>Optimal λ for the Box-Cox transformation.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// data が null または空の場合。
+    /// Thrown when <paramref name="data"/> is null or empty.
     /// </exception>
     public static double GetOptimumBoxCoxLambda(
         ref double[] data, double minLambda = -2.0, double maxLambda = 2.0)
@@ -87,12 +87,12 @@ namespace Popolo.Core.Numerics
       return minLambda;
     }
 
-    /// <summary>Box-Cox変換する</summary>
-    /// <param name="data">原データ（全要素が正の値であること）</param>
-    /// <param name="lamda">ラムダ</param>
-    /// <returns>Box-Cox変換したデータ</returns>
+    /// <summary>Applies the Box-Cox transformation to the data.</summary>
+    /// <param name="data">Original data (all elements must be positive).</param>
+    /// <param name="lamda">Box-Cox transformation parameter λ.</param>
+    /// <returns>Box-Cox-transformed data.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// data が null または空の場合。
+    /// Thrown when <paramref name="data"/> is null or empty.
     /// </exception>
     public static double[] BoxCoxTransform(double[] data, double lamda)
     {

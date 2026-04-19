@@ -19,32 +19,32 @@
 
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
-  /// <summary>ベクトルインターフェース</summary>
+  /// <summary>Mutable vector interface.</summary>
   public interface IVector : IReadOnlyVector
   {
-    /// <summary>要素の値を設定・取得する</summary>
-    /// <param name="index">要素番号</param>
-    /// <returns>要素の値</returns>
+    /// <summary>Gets or sets the element at the specified index.</summary>
+    /// <param name="index">Element index.</param>
+    /// <returns>Element value.</returns>
     new double this[int index] { get; set; }
 
-    /// <summary>初期化する</summary>
-    /// <param name="val">初期化する値</param>
+    /// <summary>Initializes all elements to the specified value.</summary>
+    /// <param name="val">Value to assign to every element.</param>
     void Initialize(double val);
   }
 
-  /// <summary>読み取り専用ベクトルインターフェース</summary>
+  /// <summary>Read-only vector interface.</summary>
   public interface IReadOnlyVector
   {
-    /// <summary>ベクトル長を取得する</summary>
+    /// <summary>Gets the length (number of elements) of the vector.</summary>
     int Length { get; }
 
-    /// <summary>要素の値を取得する</summary>
-    /// <param name="index">要素番号</param>
-    /// <returns>要素の値</returns>
+    /// <summary>Gets the element at the specified index.</summary>
+    /// <param name="index">Element index.</param>
+    /// <returns>Element value.</returns>
     double this[int index] { get; }
 
-    /// <summary>ユークリッドノルムを計算する</summary>
-    /// <returns>ユークリッドノルム</returns>
+    /// <summary>Computes the Euclidean norm of the vector.</summary>
+    /// <returns>Euclidean norm.</returns>
     double ComputeEuclideanNorm();
   }
 

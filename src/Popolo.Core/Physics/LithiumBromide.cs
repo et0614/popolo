@@ -50,15 +50,15 @@ namespace Popolo.Core.Physics
 
     #region 近似係数（静的フィールド）
 
-    /// <summary>比エンタルピー近似係数 C</summary>
+    /// <summary>Specific-enthalpy approximation coefficients C.</summary>
     private static readonly double[] C_LBN =
         { -2024.33, 16330.9, -48816.1, 6.302948e4, -2.913705e4 };
 
-    /// <summary>比エンタルピー近似係数 D（比熱の一次項）</summary>
+    /// <summary>Specific-enthalpy approximation coefficients D (linear term of specific heat).</summary>
     private static readonly double[] D_LBN =
         { 18.2829, -116.91757, 3.248041e2, -4.034184e2, 1.8520569e2 };
 
-    /// <summary>比エンタルピー近似係数 E（比熱の二次項）</summary>
+    /// <summary>Specific-enthalpy approximation coefficients E (quadratic term of specific heat).</summary>
     private static readonly double[] E_LBN =
         { -3.7008214e-2, 2.8877666e-1, -8.1313015e-1, 9.9116628e-1, -4.4441207e-1 };
 
@@ -326,7 +326,7 @@ namespace Popolo.Core.Physics
 
     #region 非公開メソッド
 
-    /// <summary>飽和温度計算用の係数 a, b を求める</summary>
+    /// <summary>Computes the coefficients a and b used for the saturation temperature calculation.</summary>
     private static void GetCoefficientAB(
         double massFraction, out double ca, out double cb)
     {
@@ -340,7 +340,7 @@ namespace Popolo.Core.Physics
       cb = b0 + mf * b1;
     }
 
-    /// <summary>エンタルピー・比熱計算用の係数 c, d, e を求める</summary>
+    /// <summary>Computes the coefficients c, d, and e used for enthalpy and specific-heat calculations.</summary>
     private static void GetCoefficientCDE(
         double massFraction, out double cc, out double cd, out double ce)
     {
@@ -354,7 +354,7 @@ namespace Popolo.Core.Physics
       }
     }
 
-    /// <summary>温度 [K] の下限チェック（絶対零度以上）</summary>
+    /// <summary>Validates that the temperature [K] is non-negative (above absolute zero).</summary>
     private static void ValidateTemperatureK(double temperatureK, string paramName)
     {
       if (temperatureK < 0)
@@ -362,14 +362,14 @@ namespace Popolo.Core.Physics
             "Temperature in Kelvin must be non-negative.");
     }
 
-    /// <summary>質量分率の範囲チェック（0〜1）</summary>
+    /// <summary>Validates that the mass fraction is within the range [0, 1].</summary>
     private static void ValidateMassFraction(double massFraction, string paramName)
     {
       if (massFraction < 0.0 || massFraction > 1.0)
         throw new PopoloOutOfRangeException(paramName, massFraction, 0.0, 1.0);
     }
 
-    /// <summary>コンストラクタ（外部からのインスタンス生成を禁止）</summary>
+    /// <summary>Private constructor to prevent external instantiation.</summary>
     private LithiumBromide() { }
 
     #endregion
