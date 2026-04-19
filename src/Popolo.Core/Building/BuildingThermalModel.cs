@@ -783,9 +783,9 @@ namespace Popolo.Core.Building
     /// <remarks>
     /// A well-formed model attaches each wall's F and B sides to exactly
     /// one of: a zone (via <see cref="MultiRoom.AddWall(int,int,bool)"/>),
-    /// an outdoor boundary (<see cref="MultiRoom.SetOutsideWall"/>),
-    /// a ground boundary (<see cref="MultiRoom.SetGroundWall"/>), or an
-    /// adjacent-space boundary (<see cref="MultiRoom.UseAdjacentSpaceFactor"/>).
+    /// an outdoor boundary (<see cref="MultiRoom.SetOutsideWall(int, bool, IReadOnlyIncline)"/>),
+    /// a ground boundary (<see cref="MultiRoom.SetGroundWall(int, bool, double)"/>), or an
+    /// adjacent-space boundary (<see cref="MultiRoom.UseAdjacentSpaceFactor(int, bool, double)"/>).
     /// Unconnected sides cause undefined behavior in the solver. Call this
     /// method after finishing model construction and before the first solver
     /// step as a configuration sanity check.
