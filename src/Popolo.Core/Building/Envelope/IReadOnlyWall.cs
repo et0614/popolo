@@ -21,10 +21,40 @@ using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a read-only view of a wall or floor assembly.</summary>
+  /// <summary>
+  /// Represents a read-only view of a multi-layer wall or floor assembly that
+  /// models one-dimensional heat (and optionally moisture) transfer.
+  /// </summary>
   /// <remarks>
-  /// F and B denote the two opposing sides of the wall.
-  /// For external walls, F is conventionally the outdoor-facing side.
+  /// <para>
+  /// A wall is composed of an ordered stack of <see cref="IReadOnlyWallLayer"/>
+  /// instances, discretized into finite-difference nodes (one node per layer
+  /// boundary). The resulting linear system is solved using a <b>response
+  /// factor formulation</b>: surface temperatures and fluxes are expressed as
+  /// linear combinations of current and past sol-air temperatures on each
+  /// side, so that the zone solver can couple multiple walls without
+  /// re-running an internal PDE each step.
+  /// </para>
+  /// <para>
+  /// F and B denote the two opposing sides of the wall. The wall itself does
+  /// not encode indoor vs outdoor direction — that is determined by how the
+  /// wall is placed within a <see cref="MultiRoom"/>. By convention, for
+  /// external walls, F is the outdoor-facing side. Each side carries its own
+  /// combined film coefficient (<see cref="FilmCoefficientF"/> /
+  /// <see cref="FilmCoefficientB"/>), split into convective and radiative
+  /// components, as well as short-wave absorptance, long-wave emissivity,
+  /// sol-air temperature, and humidity ratio.
+  /// </para>
+  /// <para>
+  /// When <see cref="ComputeMoistureTransfer"/> is true, the solution includes
+  /// coupled moisture transport through the layer stack. In that case the
+  /// <see cref="Humidities"/> vector is non-trivial and the number of unknowns
+  /// per node doubles.
+  /// </para>
+  /// <para>
+  /// Buried radiant pipes may be embedded at specific nodes inside the layer
+  /// stack; see <see cref="GetPipe"/> and <see cref="IReadOnlyBuriedPipe"/>.
+  /// </para>
   /// </remarks>
   public interface IReadOnlyWall
   {
