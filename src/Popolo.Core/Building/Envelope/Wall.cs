@@ -318,10 +318,24 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="layers">Wall layer composition.</param>
     public Wall(double area, WallLayer[] layers) : this(area, layers, false) { }
 
-    /// <summary>Initializes a new instance.</summary>
+    /// <summary>Initializes a new instance, optionally enabling coupled moisture transfer.</summary>
     /// <param name="area">Surface area [m²].</param>
-    /// <param name="layers">Wall layer composition.</param>
-    /// <param name="computeMoistureTransfer">Whether to compute moisture transfer.</param>
+    /// <param name="layers">Wall layer composition (ordered from F side to B side). Each layer is cloned.</param>
+    /// <param name="computeMoistureTransfer">
+    /// True to solve coupled heat and moisture transport through the layer stack;
+    /// false (default) to solve heat only.
+    /// </param>
+    /// <remarks>
+    /// Enabling moisture transfer roughly doubles the per-step cost: the
+    /// number of unknowns per node becomes two (temperature + humidity ratio),
+    /// and a second set of response-factor coefficients is maintained. Each
+    /// layer's <see cref="IReadOnlyWallLayer.MoistureConductivity"/>,
+    /// <see cref="IReadOnlyWallLayer.WaterCapacity"/>, <see cref="IReadOnlyWallLayer.KappaC"/>,
+    /// and <see cref="IReadOnlyWallLayer.NuC"/> must be populated for the
+    /// moisture balance to be meaningful; otherwise the extra cost buys
+    /// nothing. Enable only when hygric behavior (e.g., condensation risk
+    /// inside an envelope) is of interest.
+    /// </remarks>
     public Wall(double area, WallLayer[] layers, bool computeMoistureTransfer)
     {
       Area = area;
@@ -381,7 +395,19 @@ namespace Popolo.Core.Building.Envelope
 
     #region 温湿度計算関連の処理
 
-    /// <summary>Updates the internal temperature and humidity ratio distribution.</summary>
+    /// <summary>Advances the wall's internal state by one time step using the current sol-air conditions.</summary>
+    /// <remarks>
+    /// Per call, <see cref="Update"/>:
+    /// <list type="bullet">
+    ///   <item><description>rebuilds the inverse response-factor matrix if an input has changed (layer properties, pipe flow, film coefficients, time step);</description></item>
+    ///   <item><description>applies <see cref="SolAirTemperatureF"/> / <see cref="SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
+    ///   <item><description>calls <c>UpdateState</c> on variable-property layers (e.g., <see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/>) and, if any property changed, schedules a matrix rebuild for the next call;</description></item>
+    ///   <item><description>refreshes the surface-delay response factors (IF2 / IF3) used by the zone solver.</description></item>
+    /// </list>
+    /// Called internally by <see cref="MultiRoom"/> during each forecast /
+    /// fix cycle; external code normally does not call <see cref="Update"/>
+    /// directly.
+    /// </remarks>
     public void Update()
     {
       //逆行列を更新
@@ -502,8 +528,17 @@ namespace Popolo.Core.Building.Envelope
       }
     }
 
-    /// <summary>Initializes the temperature distribution to the specified value.</summary>
+    /// <summary>Resets the temperature distribution to a uniform value.</summary>
     /// <param name="temperature">Temperature [°C].</param>
+    /// <remarks>
+    /// Sets every node temperature and both sol-air temperatures to the
+    /// given value, re-evaluates variable-property layers at that
+    /// temperature, marks the coefficient matrix for rebuild, and runs one
+    /// <see cref="Update"/> to establish a consistent initial state. Leaves
+    /// humidity untouched; use
+    /// <see cref="Initialize(double,double)"/> to reset both at once when
+    /// moisture transfer is enabled.
+    /// </remarks>
     public void Initialize(double temperature)
     {
       VectorView temp = new VectorView(tempAndHumid, 0, layers.Length + 1);
@@ -515,9 +550,14 @@ namespace Popolo.Core.Building.Envelope
       Update();
     }
 
-    /// <summary>Initializes the temperature and humidity ratio distribution.</summary>
+    /// <summary>Resets both the temperature and humidity ratio distributions to uniform values.</summary>
     /// <param name="temperature">Temperature [°C].</param>
     /// <param name="humidityRatio">Humidity ratio [kg/kg].</param>
+    /// <remarks>
+    /// No-op when <see cref="ComputeMoistureTransfer"/> is false (moisture
+    /// state is not tracked in that mode); use
+    /// <see cref="Initialize(double)"/> instead for a heat-only wall.
+    /// </remarks>
     public void Initialize(double temperature, double humidityRatio)
     {
       if (!ComputeMoistureTransfer) return;
@@ -537,6 +577,7 @@ namespace Popolo.Core.Building.Envelope
     /// <returns>Surface heat flux [W/m²].</returns>
     public double GetSurfaceHeatTransfer(bool isSideF)
     {
+      // (sol-air − surface) × h: positive when the surface absorbs heat from the sol-air.
       if (isSideF) return (SolAirTemperatureF - SurfaceF.SurfaceTemperature) * FilmCoefficientF;
       else return (SolAirTemperatureB - SurfaceB.SurfaceTemperature) * FilmCoefficientB;
     }
@@ -545,14 +586,28 @@ namespace Popolo.Core.Building.Envelope
 
     #region 埋設配管関連の処理
 
-    /// <summary>Adds a buried pipe at the specified node.</summary>
-    /// <param name="node">Node index at which to add the pipe.</param>
-    /// <param name="pitch">Installation pitch [m].</param>
-    /// <param name="length">Total pipe length [m].</param>
-    /// <param name="branchCount">Number of branches.</param>
-    /// <param name="iDiameter">Inner diameter [m].</param>
-    /// <param name="oDiameter">Outer diameter [m].</param>
+    /// <summary>Embeds a buried radiant pipe at the specified node.</summary>
+    /// <param name="node">
+    /// Node index where the pipe is embedded. Valid range is [0, NodeCount-1];
+    /// 0 is the F-side surface node and <c>NodeCount-1</c> is the B-side surface
+    /// node. Interior nodes correspond to boundaries between consecutive layers.
+    /// </param>
+    /// <param name="pitch">Spacing between parallel pipe runs [m].</param>
+    /// <param name="length">Total length of pipe installed [m].</param>
+    /// <param name="branchCount">Number of parallel branches.</param>
+    /// <param name="iDiameter">Pipe inner diameter [m].</param>
+    /// <param name="oDiameter">Pipe outer diameter [m].</param>
     /// <param name="tubeConductivity">Thermal conductivity of the pipe material [W/(m·K)].</param>
+    /// <remarks>
+    /// Fin thicknesses and conductivities are derived automatically from the
+    /// two adjacent layers in the stack (clamped by the pipe outer diameter).
+    /// At most one pipe can occupy a given node; calling this again at the
+    /// same node replaces the previous pipe. The wall's response-factor
+    /// matrix is invalidated and rebuilt on the next <see cref="Update"/>
+    /// call. Water flow is off by default; set it with
+    /// <see cref="SetInletWater(int,double,double)"/> before expecting any
+    /// heat transfer.
+    /// </remarks>
     public void AddPipe(int node, double pitch, double length, int branchCount,
       double iDiameter, double oDiameter, double tubeConductivity)
     {
@@ -589,10 +644,17 @@ namespace Popolo.Core.Building.Envelope
     /// <returns>The buried pipe at the node.</returns>
     public IReadOnlyBuriedPipe GetPipe(int node) { return bPipes[node]; }
 
-    /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
-    /// <param name="mIndex">Node index.</param>
-    /// <param name="flowRate">Water flow rate [kg/s].</param>
-    /// <param name="temperature">Water temperature [°C].</param>
+    /// <summary>Sets the water flow rate and inlet temperature for a buried pipe.</summary>
+    /// <param name="mIndex">Node index of the pipe (must match one previously passed to <see cref="AddPipe"/>).</param>
+    /// <param name="flowRate">Water mass flow rate [kg/s]. Set to 0 to turn the pipe off (heat transfer becomes 0).</param>
+    /// <param name="temperature">Inlet water temperature [°C].</param>
+    /// <remarks>
+    /// Re-computes the pipe's ε-NTU effectiveness and invalidates the
+    /// inverse response-factor matrix so the next <see cref="Update"/> picks
+    /// up the change. If both arguments match the current state, the call is
+    /// a no-op (no matrix rebuild is triggered), so it is safe to call every
+    /// step from an HVAC loop.
+    /// </remarks>
     public void SetInletWater(int mIndex, double flowRate, double temperature)
     {
       BuriedPipe bp = bPipes[mIndex];
@@ -606,7 +668,16 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the heat transfer rate from the buried pipe at the specified node [W].</summary>
     /// <param name="mIndex">Node index.</param>
-    /// <returns>Heat transfer rate from the pipe [W].</returns>
+    /// <returns>
+    /// Heat released from the water into the surrounding wall mass [W].
+    /// Positive = the pipe is heating the slab (water warmer than the node);
+    /// negative = the pipe is cooling it. Returns 0 when the flow rate is 0.
+    /// </returns>
+    /// <remarks>
+    /// Derived from the current node temperatures obtained in the last
+    /// <see cref="Update"/> call, so the value reflects the most recent
+    /// solver step.
+    /// </remarks>
     public double GetHeatTransferFromPipe(int mIndex)
     {
       BuriedPipe bp = bPipes[mIndex];
@@ -623,7 +694,11 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the outlet water temperature of the buried pipe at the specified node [°C].</summary>
     /// <param name="mIndex">Node index.</param>
-    /// <returns>Outlet water temperature [°C].</returns>
+    /// <returns>
+    /// Outlet water temperature [°C], computed from the inlet temperature
+    /// and the heat rejected to (or absorbed from) the wall mass. When the
+    /// flow rate is 0 the inlet temperature is returned unchanged.
+    /// </returns>
     public double GetOutletWaterTemperature(int mIndex)
     {
       BuriedPipe bp = bPipes[mIndex];
