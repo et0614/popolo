@@ -23,7 +23,38 @@ using Popolo.Core.Climate;
 
 namespace Popolo.Core.Building
 {
-    /// <summary>Represents a read-only view of a building thermal load calculation model.</summary>
+    /// <summary>
+    /// Represents a read-only view of an entire building, composed of one or
+    /// more loosely-coupled <see cref="IReadOnlyMultiRoom"/> instances.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An <see cref="IReadOnlyBuildingThermalModel"/> is the top-level object
+    /// that carries outdoor boundary conditions (sun state, outdoor temperature
+    /// and humidity, nocturnal radiation) and orchestrates the simulation of
+    /// multiple <see cref="IReadOnlyMultiRoom"/> instances that together make
+    /// up the building.
+    /// </para>
+    /// <para>
+    /// The multi-rooms are <b>loosely coupled</b>: boundary conditions at walls
+    /// shared between them (e.g., an inter-tenant partition) are exchanged with
+    /// a <b>one-time-step lag</b>. Each multi-room can therefore be solved
+    /// independently — and in parallel — at the cost of a small numerical
+    /// delay in inter-block heat transfer. For regions that must be solved
+    /// simultaneously, place them in the same
+    /// <see cref="IReadOnlyMultiRoom"/> (see the remarks on that interface for
+    /// the tight-coupling contract).
+    /// </para>
+    /// <para>
+    /// The zone- and wall-level aggregations exposed here
+    /// (<see cref="GetZones"/>, <see cref="GetWalls"/>) flatten the
+    /// multi-room hierarchy for convenient iteration over every zone or wall
+    /// in the building. The breakdown methods report the sensible and latent
+    /// heat flows into a specific zone grouped by source (surfaces, ventilation,
+    /// outdoor air, supply air, internal gains, HVAC supply), making it easy
+    /// to produce per-zone load reports.
+    /// </para>
+    /// </remarks>
     public interface IReadOnlyBuildingThermalModel
     {
         /// <summary>Gets the array of multi-room systems.</summary>
