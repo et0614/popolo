@@ -333,8 +333,22 @@ namespace Popolo.Core.Building.Envelope
 
     #region インスタンスメソッド
 
-    /// <summary>Updates optical properties based on the current solar position and shading device states.</summary>
-    /// <param name="sun">Solar position and irradiance source.</param>
+    /// <summary>Recomputes the window's direct-solar optical properties for the current sun position.</summary>
+    /// <param name="sun">Solar state (position is read; irradiance values are not used by this method).</param>
+    /// <remarks>
+    /// Per call, <see cref="UpdateOpticalProperties"/>:
+    /// <list type="bullet">
+    ///   <item><description>zeros the direct-solar transmittance / reflectance / absorptance when the sun is below the horizon (<c>Altitude ≤ 0</c>) and returns early;</description></item>
+    ///   <item><description>caches the last evaluated solar altitude and azimuth, so a call with an unchanged sun and unchanged shading-device states skips the full recomputation and short-circuits to the cached result;</description></item>
+    ///   <item><description>updates each interior <see cref="IShadingDevice"/> with the current profile angle, which lets slat-angle-dependent devices (<see cref="VenetianBlind"/>) refresh their own optics;</description></item>
+    ///   <item><description>rebuilds the layer-by-layer direct optical matrix through the glazing/shading stack using the angle-dependence coefficients set by <see cref="SetAngleDependence(int, GlassType)"/>.</description></item>
+    /// </list>
+    /// The diffuse properties are independent of sun position and are set once
+    /// by <see cref="SetAngleDependence(int, double[], double[], double[], double[])"/>;
+    /// they are not recomputed here. Called internally by
+    /// <see cref="MultiRoom"/> during each solver step; external callers
+    /// usually do not need to invoke it directly.
+    /// </remarks>
     public void UpdateOpticalProperties(IReadOnlySun sun)
     {
       //ガラス・日射遮蔽物単体の光学特性の更新処理//////////////////////////////
@@ -442,8 +456,14 @@ namespace Popolo.Core.Building.Envelope
       DiffuseSolarLostAbsorptance = adB;
     }
 
-    /// <summary>Gets the total thermal resistance of the window assembly [m²·K/W].</summary>
+    /// <summary>Gets the total thermal resistance of the window assembly, including surface films [m²·K/W].</summary>
     /// <returns>Total thermal resistance [m²·K/W].</returns>
+    /// <remarks>
+    /// Sum of all glazing-layer resistances plus all air-gap resistances
+    /// <i>including</i> the two outer "gap" entries that encode the indoor
+    /// and outdoor film resistances (1 / film_coefficient). The reciprocal is
+    /// therefore the window's overall U-value.
+    /// </remarks>
     public double GetResistance()
     {
       double rg = 0;
@@ -510,9 +530,15 @@ namespace Popolo.Core.Building.Envelope
 
     #region モデル設定関連の処理
 
-    /// <summary>Sets the shading device at the specified layer position.</summary>
-    /// <param name="number">Layer index (0 = outdoor side, N+1 = indoor side).</param>
-    /// <param name="sDevice">Shading device.</param>
+    /// <summary>Installs an interior shading device at a specific slot in the glazing stack.</summary>
+    /// <param name="number">Slot index: 0 = outdoor air gap, <c>GlazingCount</c> = indoor air gap; intermediate values are gaps between glazing layers.</param>
+    /// <param name="sDevice">Shading device to install. Pass a new <see cref="NoShadingDevice"/> to clear the slot.</param>
+    /// <remarks>
+    /// Every slot starts out holding a <see cref="NoShadingDevice"/>
+    /// (transmittance = 1, reflectance = 0), so only slots you explicitly
+    /// populate contribute to attenuation. For exterior shading (overhangs,
+    /// fins) use the window's <see cref="SunShade"/> property instead.
+    /// </remarks>
     public void SetShadingDevice(int number, IShadingDevice sDevice) { sDevices[number] = sDevice; }
 
     /// <summary>Gets the shading device at the specified layer position.</summary>
@@ -523,6 +549,13 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Sets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
     /// <param name="glazingIndex">Glazing layer index.</param>
     /// <param name="resistance">Thermal resistance of the glazing [m²·K/W].</param>
+    /// <remarks>
+    /// Triggers a re-integration of the absorbed-solar-heat-gain coefficients:
+    /// the fraction of absorbed solar energy that is redirected inward vs
+    /// outward depends on the relative thermal resistances of the layers
+    /// around the absorption point, so changing one glass resistance
+    /// propagates to the whole assembly's SHGC.
+    /// </remarks>
     public void SetGlassResistance(int glazingIndex, double resistance)
     {
       glassRes[glazingIndex] = resistance;
@@ -535,9 +568,16 @@ namespace Popolo.Core.Building.Envelope
     public double GetGlassResistance(int glazingIndex)
     { return glassRes[glazingIndex]; }
 
-    /// <summary>Sets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
-    /// <param name="glazingIndex">Glazing layer index (the air gap on the right side of this layer is targeted).</param>
+    /// <summary>Sets the thermal resistance of the air gap to the indoor side of the specified glazing layer [m²·K/W].</summary>
+    /// <param name="glazingIndex">Glazing layer index; the air gap <b>between this layer and the next glazing toward the indoor side</b> is targeted.</param>
     /// <param name="resistance">Thermal resistance of the air gap [m²·K/W].</param>
+    /// <remarks>
+    /// Internally the gap is split evenly between two virtual nodes (to let
+    /// absorbed heat in the two adjacent surfaces be redirected separately);
+    /// callers pass the total gap resistance and the split is handled
+    /// transparently. Like <see cref="SetGlassResistance"/>, this triggers a
+    /// full re-integration of the absorbed-solar-heat-gain coefficients.
+    /// </remarks>
     public void SetAirGapResistance(int glazingIndex, double resistance)
     {
       agapRes[2 * glazingIndex + 2] = agapRes[2 * glazingIndex + 3] = 0.5 * resistance;
@@ -619,12 +659,22 @@ namespace Popolo.Core.Building.Envelope
 
     #region 入射角特性関連の処理
 
-    /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerIndex">Layer index.</param>
-    /// <param name="coefTF">Approximation coefficients for the F-side transmittance.</param>
-    /// <param name="coefTB">Approximation coefficients for the B-side transmittance.</param>
-    /// <param name="coefRF">Approximation coefficients for the F-side reflectance.</param>
-    /// <param name="coefRB">Approximation coefficients for the B-side reflectance.</param>
+    /// <summary>Supplies custom angle-of-incidence polynomial coefficients for a glazing layer.</summary>
+    /// <param name="layerIndex">Glazing layer index.</param>
+    /// <param name="coefTF">Polynomial coefficients for F-side transmittance vs cos(θ).</param>
+    /// <param name="coefTB">Polynomial coefficients for B-side transmittance vs cos(θ).</param>
+    /// <param name="coefRF">Polynomial coefficients for F-side reflectance vs cos(θ).</param>
+    /// <param name="coefRB">Polynomial coefficients for B-side reflectance vs cos(θ).</param>
+    /// <remarks>
+    /// The direct-beam transmittance/reflectance at a given incidence angle
+    /// is modeled as a polynomial in cos(θ); this method sets those
+    /// coefficients for one layer. Diffuse transmittance and reflectance
+    /// are <b>re-derived from the same coefficients</b> (analytically
+    /// integrated over the hemisphere), so calling this method refreshes
+    /// both the direct and diffuse optics in one step. For standard glass
+    /// types, prefer the preset overload
+    /// <see cref="SetAngleDependence(int, GlassType)"/>.
+    /// </remarks>
     public void SetAngleDependence
       (int layerIndex, double[] coefTF, double[] coefTB, double[] coefRF, double[] coefRB)
     {
@@ -663,9 +713,17 @@ namespace Popolo.Core.Building.Envelope
       UpdateDiffuseTotalProperties();
     }
 
-    /// <summary>Sets the angle-of-incidence correction coefficients for the specified glazing layer.</summary>
-    /// <param name="layerIndex">Layer index.</param>
-    /// <param name="type">Glass type.</param>
+    /// <summary>Applies preset angle-of-incidence coefficients for a standard glass type.</summary>
+    /// <param name="layerIndex">Glazing layer index.</param>
+    /// <param name="type">Standard glass category (transparent, heat-absorbing, heat-reflecting, low-E).</param>
+    /// <remarks>
+    /// Convenience over
+    /// <see cref="SetAngleDependence(int, double[], double[], double[], double[])"/>:
+    /// looks up representative polynomial coefficients for the selected
+    /// <see cref="GlassType"/> and delegates to the general overload.
+    /// For <see cref="GlassType.LowEmissivity"/>, the F-side and B-side
+    /// coefficients differ — Low-E coatings are asymmetric by design.
+    /// </remarks>
     public void SetAngleDependence(int layerIndex, GlassType type)
     {
       switch (type)
