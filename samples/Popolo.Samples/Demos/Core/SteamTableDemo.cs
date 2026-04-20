@@ -52,7 +52,7 @@ namespace Popolo.Samples.Demos.Core
         double hf = Water.GetSaturatedLiquidEnthalpy(T);
         double hg = Water.GetSaturatedVaporEnthalpy(T);
         double hfg = Water.GetVaporizationLatentHeat(T);
-        double vg = Water.GetSaturatedVaporSpecificVolume(T);
+        double vg = Water.GetSaturatedVaporSpecificVolume(T, p);
         Console.WriteLine(
           $"   {T,5:F2}   {p,11:F3}   {hf,11:F2}   {hg,11:F2}   {hfg,12:F2}   {vg,11:F5}");
       }
