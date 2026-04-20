@@ -28,15 +28,20 @@ input files required.
 | `climate-incline` | Tilted-surface irradiance (direct, diffuse, total) for several orientations under a prescribed solar state. |
 | `numerics-ode` | Fixed-step RK4 integration of Newton's law of cooling, compared against the analytical solution. |
 | `numerics-regression` | Simple linear fit and a two-feature least-squares fit on synthetic noisy data. |
+| `building-wall` | Multi-layer wall response to a 24-hour sinusoidal sol-air temperature. |
+| `hvac-chiller` | Centrifugal chiller (constant-speed vs. inverter) COP at several part-load / ambient points. |
+| `comfort-pmv` | Fanger PMV / PPD at a few typical office indoor conditions; plus inverse lookup for thermal neutrality. |
+| `comfort-tanabe` | Tanabe 65-node body model skin/core response to a warm→cool environmental step. |
 | `vrf-nedo-test` | VRF system annual energy test against the NEDO catalogue (Daikin VRV-X). *Longer; consider running once.* |
 
 ### IO
 
-Demos that load or save file data. See `SampleData/` for bundled input files.
+Demos that exercise file I/O. See `SampleData/` for bundled input files.
 
 | Name | Description |
 |------|-------------|
-| `weather-to-csv` | Read an EPW / HASP / TMY1 weather file and convert to Popolo CSV. Prints a summary of the input. |
+| `io-weather-summary` | Read a weather file (EPW / HASP / TMY1) and print monthly averages of dry-bulb, humidity ratio, and GHI. Defaults to the bundled Tokyo EPW. |
+| `io-json-roundtrip` | Build a minimal `BuildingThermalModel`, serialize it to JSON, deserialize it back, and compare. |
 
 ### Webpro
 
@@ -54,8 +59,8 @@ dotnet run --project samples/Popolo.Samples -- physics-moist-air
 dotnet run --project samples/Popolo.Samples -- climate-sun
 
 # IO
-dotnet run --project samples/Popolo.Samples -- weather-to-csv \
-  samples/Popolo.Samples/SampleData/tokyo.epw
+dotnet run --project samples/Popolo.Samples -- io-weather-summary
+dotnet run --project samples/Popolo.Samples -- io-json-roundtrip
 
 # Webpro
 dotnet run --project samples/Popolo.Samples -- webpro-annual \

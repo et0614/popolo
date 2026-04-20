@@ -59,10 +59,17 @@ namespace Popolo.Samples
       new InclineIrradianceDemo(),
       new OdeSolverDemo(),
       new RegressionDemo(),
+
+      // Core — envelope / HVAC / comfort
+      new WallResponseDemo(),
+      new ChillerDemo(),
+      new PmvDemo(),
+      new TanabeDemo(),
       new VRFNEDOTestDemo(),
 
       // IO
-      new WeatherToCsvDemo(),
+      new WeatherSummaryDemo(),
+      new JsonRoundTripDemo(),
 
       // Webpro
       new AnnualSimulationDemo(),
