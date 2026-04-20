@@ -28,6 +28,10 @@ input files required.
 | `climate-incline` | Tilted-surface irradiance (direct, diffuse, total) for several orientations under a prescribed solar state. |
 | `numerics-ode` | Fixed-step RK4 integration of Newton's law of cooling, compared against the analytical solution. |
 | `numerics-regression` | Simple linear fit and a two-feature least-squares fit on synthetic noisy data. |
+| `building-wall` | Multi-layer wall response to a 24-hour sinusoidal sol-air temperature. |
+| `hvac-chiller` | Centrifugal chiller (constant-speed vs. inverter) COP at several part-load / ambient points. |
+| `comfort-pmv` | Fanger PMV / PPD at a few typical office indoor conditions; plus inverse lookup for thermal neutrality. |
+| `comfort-tanabe` | Tanabe 65-node body model skin/core response to a warm→cool environmental step. |
 | `vrf-nedo-test` | VRF system annual energy test against the NEDO catalogue (Daikin VRV-X). *Longer; consider running once.* |
 
 ### IO
