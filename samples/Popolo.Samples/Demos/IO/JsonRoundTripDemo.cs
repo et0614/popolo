@@ -96,7 +96,7 @@ namespace Popolo.Samples.Demos.IO
       model.UpdateOutdoorCondition(
         dTime: new DateTime(2026, 4, 20, 12, 0, 0),
         sun:   new Sun(latitude: 35.68, longitude: 139.77, standardLongitude: 135.0),
-        dryBulbTemperature: 18.0, humidityRatio: 0.009, nocRadiation: 0.0);
+        temperature: 18.0, humidityRatio: 0.009, nocRadiation: 0.0);
       return model;
     }
 
