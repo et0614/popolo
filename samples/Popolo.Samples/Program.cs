@@ -52,9 +52,20 @@ namespace Popolo.Samples
     /// <summary>Registry of all available demos. Add new demos here.</summary>
     private static readonly IDemo[] Demos =
     {
+      // Core — physics / climate / numerics
+      new MoistAirDemo(),
+      new SteamTableDemo(),
+      new SunPositionDemo(),
+      new InclineIrradianceDemo(),
+      new OdeSolverDemo(),
+      new RegressionDemo(),
       new VRFNEDOTestDemo(),
-      new AnnualSimulationDemo(),
+
+      // IO
       new WeatherToCsvDemo(),
+
+      // Webpro
+      new AnnualSimulationDemo(),
     };
 
     #endregion
