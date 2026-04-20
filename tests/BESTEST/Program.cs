@@ -132,15 +132,12 @@ namespace Popolo.Core.Validation.BESTEST
       Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
       // TMYデータからBESTEST用CSVを生成
-      string tmyPath = FindFile("DRYCOLD.TMY", "WeatherData");
+      //string tmyPath = FindFile("DRYCOLD.TMY", "WeatherData");
+      //Tmy1WeatherReader reader = new Tmy1WeatherReader();
+      //WeatherData data = reader.Read("DRYCOLD.TMY");
+      //var writer = new CsvWeatherWriter { AlwaysEmitSourceTime = data.IsTypicalYear };
+      //writer.Write(data, "BESTestWeather.csv");
       string templatePath = FindFile("Result.xlsx", "ResultTemplate");
-      string str;
-      using (StreamReader sr = new StreamReader(tmyPath))
-        str = sr.ReadToEnd();
-      //string csv = WeatherConverter.TMY1toCSV(str);
-      //using (StreamWriter sw = new StreamWriter("DRYCOLD.csv", false, Encoding.GetEncoding("Shift_JIS")))
-      //  sw.WriteLine(csv);
-      //MakeBESTestWeatherFile("DRYCOLD.csv", "BESTestWeather.csv");
 
       // テスト実行
       Directory.CreateDirectory("Result");

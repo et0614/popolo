@@ -14,6 +14,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Popolo.Core\Popolo.Core.csproj" />
+    <ProjectReference Include="..\..\src\Popolo.IO\Popolo.IO.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="BESTestWeather.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Result.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
