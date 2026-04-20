@@ -36,11 +36,12 @@ input files required.
 
 ### IO
 
-Demos that load or save file data. See `SampleData/` for bundled input files.
+Demos that exercise file I/O. See `SampleData/` for bundled input files.
 
 | Name | Description |
 |------|-------------|
-| `weather-to-csv` | Read an EPW / HASP / TMY1 weather file and convert to Popolo CSV. Prints a summary of the input. |
+| `io-weather-summary` | Read a weather file (EPW / HASP / TMY1) and print monthly averages of dry-bulb, humidity ratio, and GHI. Defaults to the bundled Tokyo EPW. |
+| `io-json-roundtrip` | Build a minimal `BuildingThermalModel`, serialize it to JSON, deserialize it back, and compare. |
 
 ### Webpro
 
@@ -58,8 +59,8 @@ dotnet run --project samples/Popolo.Samples -- physics-moist-air
 dotnet run --project samples/Popolo.Samples -- climate-sun
 
 # IO
-dotnet run --project samples/Popolo.Samples -- weather-to-csv \
-  samples/Popolo.Samples/SampleData/tokyo.epw
+dotnet run --project samples/Popolo.Samples -- io-weather-summary
+dotnet run --project samples/Popolo.Samples -- io-json-roundtrip
 
 # Webpro
 dotnet run --project samples/Popolo.Samples -- webpro-annual \

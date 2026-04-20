@@ -68,7 +68,8 @@ namespace Popolo.Samples
       new VRFNEDOTestDemo(),
 
       // IO
-      new WeatherToCsvDemo(),
+      new WeatherSummaryDemo(),
+      new JsonRoundTripDemo(),
 
       // Webpro
       new AnnualSimulationDemo(),
