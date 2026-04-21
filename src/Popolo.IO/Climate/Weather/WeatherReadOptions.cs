@@ -67,8 +67,9 @@ namespace Popolo.IO.Climate.Weather
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Defaults to <see cref="Popolo.IO.Climate.Weather.TimestampConvention.EndOfInterval"/>,
-    /// matching EPW, TMY1, HASP, and WEA2.
+    /// Defaults to <see cref="Popolo.IO.Climate.Weather.TimestampConvention.StartOfInterval"/>,
+    /// matching the DateTime normalisation performed by every built-in
+    /// reader.
     /// </para>
     /// <para>
     /// Only the solar-dependent derivations
@@ -78,7 +79,7 @@ namespace Popolo.IO.Climate.Weather
     /// time-local and unaffected.
     /// </para>
     /// </remarks>
-    public TimestampConvention TimestampConvention { get; set; } = TimestampConvention.EndOfInterval;
+    public TimestampConvention TimestampConvention { get; set; } = TimestampConvention.StartOfInterval;
 
     /// <summary>
     /// If <c>true</c> and atmospheric pressure is not recorded in the source
