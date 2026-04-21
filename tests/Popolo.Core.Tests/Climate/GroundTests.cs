@@ -20,23 +20,25 @@
 using System;
 using Xunit;
 using Popolo.Core.Climate;
-using Popolo.Core.Exceptions;
-using Popolo.Core.Utilities;
 
 namespace Popolo.Core.Tests.Climate
 {
   /// <summary>Ground のテスト</summary>
   /// <remarks>
   /// 東京の年間気温統計を基準値として使用：
-  /// - 年平均気温：15.4°C
-  /// - 年較差：25.0°C（最高月平均〜最低月平均）
-  /// - 最高温度日：208日（7月下旬）
+  /// - 年平均気温：15.4 °C
+  /// - 最暖月 (8月) 平均：27.9 °C
+  /// - 最冷月 (1月) 平均：2.9 °C
+  /// - 年較差 (最暖 − 最冷)：25.0 °C
+  /// - 最高温度日：208 日 (7月下旬)
   /// </remarks>
   public class GroundTests
   {
     //東京の代表的な気象値
     private const int PeakDay = 208;
-    private const double TempRange = 25.0;
+    private const double MaxMonthly = 27.9;
+    private const double MinMonthly = 2.9;
+    private const double TempRange = MaxMonthly - MinMonthly;    // = 25.0
     private const double MeanTemp = 15.4;
 
     #region コンストラクタのテスト
@@ -45,24 +47,26 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void Constructor_SetsProperties()
     {
-      var ground = new Ground(PeakDay, TempRange, MeanTemp);
+      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
       Assert.Equal(PeakDay, ground.PeakDayOfYear);
-      Assert.Equal(TempRange, ground.AnnualTemperatureRange);
+      Assert.Equal(MaxMonthly, ground.MaxMonthlyMeanTemperature);
+      Assert.Equal(MinMonthly, ground.MinMonthlyMeanTemperature);
       Assert.Equal(MeanTemp, ground.AnnualAverageTemperature);
+      Assert.Equal(TempRange, ground.AnnualMonthlyMeanRange);
     }
 
     #endregion
 
     #region 地中温度の物理的妥当性テスト
 
-    /// <summary>年平均気温より振幅は小さい（地中は外気より変動が小さい）</summary>
+    /// <summary>年平均気温より振幅は小さい (地中は外気より変動が小さい)</summary>
     [Theory]
     [InlineData(1.0)]
     [InlineData(3.0)]
     [InlineData(5.0)]
     public void GetTemperature_DeepGround_CloserToMean(double depth)
     {
-      var ground = new Ground(PeakDay, TempRange, MeanTemp);
+      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
       //1年分の最大・最小を取得
       double max = double.MinValue;
       double min = double.MaxValue;
@@ -73,7 +77,7 @@ namespace Popolo.Core.Tests.Climate
         if (t < min) min = t;
       }
       double amplitude = (max - min) / 2.0;
-      //地中の振幅は外気の振幅（TempRange/2）より小さい
+      //地中の振幅は外気の振幅 (TempRange/2) より小さい
       Assert.True(amplitude < TempRange / 2.0);
     }
 
@@ -81,7 +85,7 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void GetTemperature_DeeperDepth_SmallerAmplitude()
     {
-      var ground = new Ground(PeakDay, TempRange, MeanTemp);
+      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
 
       double GetAmplitude(double depth)
       {
@@ -99,11 +103,11 @@ namespace Popolo.Core.Tests.Climate
       Assert.True(GetAmplitude(3.0) > GetAmplitude(5.0));
     }
 
-    /// <summary>地表面（depth=0）の年平均は外気年平均と等しい</summary>
+    /// <summary>地表面 (depth=0) の年平均は外気年平均と等しい</summary>
     [Fact]
     public void GetTemperature_SurfaceDepth_AnnualMeanEqualsAirMean()
     {
-      var ground = new Ground(PeakDay, TempRange, MeanTemp);
+      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
       double sum = 0;
       for (int d = 1; d <= 365; d++)
         sum += ground.GetTemperature(d, 0);
@@ -117,10 +121,10 @@ namespace Popolo.Core.Tests.Climate
     [InlineData(208, 0.5)]
     public void GetTemperature_InstanceAndStaticMatch(int dayOfYear, double depth)
     {
-      var ground = new Ground(PeakDay, TempRange, MeanTemp);
+      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
       double fromInstance = ground.GetTemperature(dayOfYear, depth);
       double fromStatic = Ground.GetTemperature(
-          PeakDay, TempRange, MeanTemp, dayOfYear, depth);
+          PeakDay, MaxMonthly, MinMonthly, MeanTemp, dayOfYear, depth);
       Assert.Equal(fromInstance, fromStatic, precision: 10);
     }
 
