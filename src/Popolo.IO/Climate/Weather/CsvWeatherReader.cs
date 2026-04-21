@@ -41,8 +41,10 @@ namespace Popolo.IO.Climate.Weather
   /// ISO 8601 round-trip format produced by the writer.
   /// </para>
   /// <para>
-  /// This reader does not act on any <see cref="WeatherReadOptions"/>; all
-  /// data is taken verbatim from the file.
+  /// When called with a <see cref="WeatherReadOptions"/>, fields missing from
+  /// the CSV can be derived after parsing through the usual
+  /// <see cref="WeatherReadOptions"/> flags (pressure, geometry, Erbs,
+  /// atmospheric radiation).
   /// </para>
   /// </remarks>
   public class CsvWeatherReader : IWeatherDataReader

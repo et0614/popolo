@@ -72,7 +72,12 @@ namespace Popolo.IO.Climate.Weather
   /// left blank.
   /// </para>
   /// <para>
-  /// This reader does not act on any <see cref="WeatherReadOptions"/>.
+  /// Station information (name, latitude, longitude, elevation) is read from
+  /// the first record of the selected location dataset, so the
+  /// <see cref="WeatherReadOptions.Station"/> fallback is normally
+  /// unnecessary. The remaining derivation flags
+  /// (pressure, geometry, Erbs, atmospheric radiation) are honoured when
+  /// corresponding source fields are missing.
   /// </para>
   /// </remarks>
   public class Wea2WeatherReader : IWeatherDataReader
