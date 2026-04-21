@@ -37,12 +37,29 @@ namespace Popolo.Core.Climate
   /// later because heat needs time to propagate downward.
   /// </para>
   /// <para>
-  /// Three site parameters fully determine the model:
+  /// Four site parameters fully determine the model:
+  /// </para>
   /// <list type="bullet">
-  ///   <item><description><see cref="PeakDayOfYear"/> — the day when the outdoor temperature is highest (typically mid-summer in the Northern Hemisphere).</description></item>
-  ///   <item><description><see cref="AnnualTemperatureRange"/> — the swing between the warmest and coldest daily means.</description></item>
-  ///   <item><description><see cref="AnnualAverageTemperature"/> — the yearly mean of the outdoor temperature.</description></item>
+  ///   <item><description><see cref="PeakDayOfYear"/> — day when the surface
+  ///     temperature is warmest; conventionally the middle day of the warmest
+  ///     calendar month.</description></item>
+  ///   <item><description><see cref="MaxMonthlyMeanTemperature"/> — mean
+  ///     outdoor temperature of the warmest calendar month.</description></item>
+  ///   <item><description><see cref="MinMonthlyMeanTemperature"/> — mean
+  ///     outdoor temperature of the coldest calendar month.</description></item>
+  ///   <item><description><see cref="AnnualAverageTemperature"/> — yearly
+  ///     mean outdoor temperature.</description></item>
   /// </list>
+  /// <para>
+  /// Building physics literature (Kusuda, ASHRAE Handbook) parameterises the
+  /// driving sinusoid by the range between the warmest and coldest
+  /// <em>monthly</em> means — not by instantaneous extremes, and not by a
+  /// statistical fit of a single sinusoid. Exposing the two monthly-mean
+  /// extremes directly (instead of their difference) removes the long-standing
+  /// ambiguity of "annual temperature range" and makes
+  /// <see cref="FromWeatherData"/> straightforward to implement.
+  /// </para>
+  /// <para>
   /// Soil thermal diffusivity is not an explicit parameter; a representative
   /// value (approximately 8 × 10⁻⁷ m²/s, typical of damp soil) is baked into
   /// the damping coefficient and the depth–phase-shift coefficient.
@@ -64,29 +81,46 @@ namespace Popolo.Core.Climate
     /// <summary>Gets the day of year on which the outdoor temperature peaks.</summary>
     public int PeakDayOfYear { get; private set; }
 
-    /// <summary>Gets the annual temperature range (max - min) [°C].</summary>
-    public double AnnualTemperatureRange { get; private set; }
+    /// <summary>
+    /// Gets the mean outdoor temperature [°C] of the warmest calendar month.
+    /// </summary>
+    public double MaxMonthlyMeanTemperature { get; private set; }
+
+    /// <summary>
+    /// Gets the mean outdoor temperature [°C] of the coldest calendar month.
+    /// </summary>
+    public double MinMonthlyMeanTemperature { get; private set; }
 
     /// <summary>Gets the annual mean outdoor temperature [°C].</summary>
     public double AnnualAverageTemperature { get; private set; }
+
+    /// <summary>
+    /// Gets the annual amplitude [°C] used by the Kusuda formula, defined as
+    /// <see cref="MaxMonthlyMeanTemperature"/> − <see cref="MinMonthlyMeanTemperature"/>.
+    /// </summary>
+    public double AnnualMonthlyMeanRange
+        => MaxMonthlyMeanTemperature - MinMonthlyMeanTemperature;
 
     #endregion
 
     #region コンストラクタ
 
     /// <summary>
-    /// Initializes a new instance with the specified annual temperature statistics.
+    /// Initializes a new instance with the specified site temperature statistics.
     /// </summary>
-    /// <param name="peakDayOfYear">Day of year on which the outdoor temperature peaks.</param>
-    /// <param name="annualTemperatureRange">Annual temperature range (max - min) [°C].</param>
+    /// <param name="peakDayOfYear">Day of year when the surface temperature peaks.</param>
+    /// <param name="maxMonthlyMeanTemperature">Mean outdoor temperature of the warmest month [°C].</param>
+    /// <param name="minMonthlyMeanTemperature">Mean outdoor temperature of the coldest month [°C].</param>
     /// <param name="annualAverageTemperature">Annual mean outdoor temperature [°C].</param>
     public Ground(
         int peakDayOfYear,
-        double annualTemperatureRange,
+        double maxMonthlyMeanTemperature,
+        double minMonthlyMeanTemperature,
         double annualAverageTemperature)
     {
       PeakDayOfYear = peakDayOfYear;
-      AnnualTemperatureRange = annualTemperatureRange;
+      MaxMonthlyMeanTemperature = maxMonthlyMeanTemperature;
+      MinMonthlyMeanTemperature = minMonthlyMeanTemperature;
       AnnualAverageTemperature = annualAverageTemperature;
     }
 
@@ -103,8 +137,8 @@ namespace Popolo.Core.Climate
     public double GetTemperature(int dayOfYear, double depth)
     {
       return GetTemperature(
-          PeakDayOfYear, AnnualTemperatureRange, AnnualAverageTemperature,
-          dayOfYear, depth);
+          PeakDayOfYear, MaxMonthlyMeanTemperature, MinMonthlyMeanTemperature,
+          AnnualAverageTemperature, dayOfYear, depth);
     }
 
     #endregion
@@ -114,71 +148,71 @@ namespace Popolo.Core.Climate
     /// <summary>
     /// Gets the ground temperature [°C] at the specified depth and day of year.
     /// </summary>
-    /// <param name="peakDayOfYear">Day of year on which the outdoor temperature peaks.</param>
-    /// <param name="annualTemperatureRange">Annual temperature range (max - min) [°C].</param>
+    /// <param name="peakDayOfYear">Day of year when the surface temperature peaks.</param>
+    /// <param name="maxMonthlyMeanTemperature">Mean outdoor temperature of the warmest month [°C].</param>
+    /// <param name="minMonthlyMeanTemperature">Mean outdoor temperature of the coldest month [°C].</param>
     /// <param name="annualAverageTemperature">Annual mean outdoor temperature [°C].</param>
     /// <param name="dayOfYear">Day of year for the calculation.</param>
     /// <param name="depth">Depth below the ground surface [m].</param>
     /// <returns>Ground temperature [°C]</returns>
     public static double GetTemperature(
         int peakDayOfYear,
-        double annualTemperatureRange,
+        double maxMonthlyMeanTemperature,
+        double minMonthlyMeanTemperature,
         double annualAverageTemperature,
         int dayOfYear,
         double depth)
     {
+      double range = maxMonthlyMeanTemperature - minMonthlyMeanTemperature;
       return annualAverageTemperature
-          + 0.5 * annualTemperatureRange
+          + 0.5 * range
           * Math.Exp(-0.526 * depth)
           * Math.Cos((dayOfYear - peakDayOfYear - 30.556 * depth)
               / 365.0 * 2.0 * Math.PI);
     }
 
     /// <summary>
-    /// Constructs a <see cref="Ground"/> by estimating the annual-mean
-    /// temperature, annual range, and peak day from the first year of
-    /// dry-bulb temperature records in <paramref name="data"/>.
+    /// Constructs a <see cref="Ground"/> by computing monthly-mean dry-bulb
+    /// temperatures from the first year of records in <paramref name="data"/>
+    /// and extracting the warmest- and coldest-month statistics.
     /// </summary>
     /// <param name="data">Weather data spanning at least one year.</param>
     /// <returns>A <see cref="Ground"/> parameterised for the site described by
     /// <paramref name="data"/>.</returns>
     /// <exception cref="PopoloArgumentException">
     /// Thrown when <paramref name="data"/> is <c>null</c>, contains no records,
-    /// spans less than one year, or contains no record with a recorded
-    /// dry-bulb temperature.
+    /// spans less than one year, or has at least one calendar month with no
+    /// dry-bulb records in the first-year window.
     /// </exception>
     /// <remarks>
     /// <para>
     /// Uses only the records in the first 365-day window starting at
-    /// <c>data.Records[0].Time</c>. Any records beyond that window are
-    /// ignored, and records older than the window never appear anyway. This
-    /// means multi-year data contributes only the first year; averaging
-    /// across years is not performed.
+    /// <c>data.Records[0].Time</c>. Records beyond the window are ignored, so
+    /// multi-year data contributes only its first year and no cross-year
+    /// averaging is performed. Any 365-day window, regardless of its starting
+    /// date, collects 28–31 days for each of the twelve calendar months.
     /// </para>
     /// <para>
-    /// For every day of year that has at least one record, the dry-bulb
-    /// readings for that day are averaged to give a daily mean. The three
-    /// Kusuda parameters are then extracted by projecting the daily-mean
-    /// series onto the first annual harmonic:
+    /// For each calendar month that has at least one record in the window,
+    /// the mean of the dry-bulb readings is taken. The four site parameters
+    /// are then:
     /// </para>
-    /// <code>
-    /// T_avg = mean(T_daily)
-    /// α     = (2/N) · Σ T_daily(n)·cos(2π·n/365)
-    /// β     = (2/N) · Σ T_daily(n)·sin(2π·n/365)
-    /// A     = 2·√(α² + β²)            ← annual temperature range
-    /// n_peak = atan2(β, α)·365/(2π)     ← day-of-year of the peak
-    /// </code>
+    /// <list type="bullet">
+    ///   <item><description><see cref="MaxMonthlyMeanTemperature"/> = maximum
+    ///     of the twelve monthly means.</description></item>
+    ///   <item><description><see cref="MinMonthlyMeanTemperature"/> = minimum
+    ///     of the twelve monthly means.</description></item>
+    ///   <item><description><see cref="AnnualAverageTemperature"/> = mean of
+    ///     the twelve monthly means.</description></item>
+    ///   <item><description><see cref="PeakDayOfYear"/> = day-of-year of the
+    ///     15th of the warmest month (e.g., Aug 15 → DOY 227 in a non-leap
+    ///     year).</description></item>
+    /// </list>
     /// <para>
-    /// No iterative solver is used; the projection is the closed-form
-    /// optimal fit to a single sinusoid. Higher-frequency weather variation
-    /// is discarded, matching the assumption of the Kusuda model (soil acts
-    /// as a low-pass filter that only sees the annual period).
-    /// </para>
-    /// <para>
-    /// <b>Accuracy:</b> for typical hourly EPW / TMY data, the annual mean
-    /// recovers to within a few hundredths of a degree, the annual range to
-    /// within ≈ 0.5 °C, and the peak day to within 1–2 days of the
-    /// seasonal maximum of the smoothed series.
+    /// This is the standard parameterisation used by Kusuda's original work
+    /// and by the ASHRAE Handbook. The monthly mean averages out daily
+    /// weather variability while preserving the seasonal envelope; no
+    /// harmonic fit or iterative solver is used.
     /// </para>
     /// </remarks>
     public static Ground FromWeatherData(IReadOnlyWeatherData data)
@@ -202,54 +236,51 @@ namespace Popolo.Core.Climate
 
       DateTime windowEnd = records[0].Time + TimeSpan.FromDays(365);
 
-      // DOY ごとに乾球温度の合計・度数を累積する。
-      double[] doySum = new double[367];
-      int[] doyCount = new int[367];
+      // 各月 (1..12) の乾球温度合計と度数を累積。
+      double[] monthSum = new double[13];
+      int[] monthCount = new int[13];
 
       for (int i = 0; i < records.Count; i++)
       {
         var r = records[i];
         if (r.Time >= windowEnd) break;
         if (!r.Has(WeatherField.DryBulbTemperature)) continue;
-        int doy = r.Time.DayOfYear;                     // [1, 366]
-        doySum[doy] += r.DryBulbTemperature;
-        doyCount[doy]++;
+        int month = r.Time.Month;                       // [1, 12]
+        monthSum[month] += r.DryBulbTemperature;
+        monthCount[month]++;
       }
 
-      // DOY ごとの日平均から第 1 高調波を直接射影する。
-      double sumT = 0.0;
-      double alphaSum = 0.0;
-      double betaSum = 0.0;
-      int validDays = 0;
-
-      for (int n = 1; n <= 366; n++)
+      // 12 ヶ月すべてが揃っていないと月平均ベースの推定が意味を持たない。
+      for (int m = 1; m <= 12; m++)
       {
-        if (doyCount[n] == 0) continue;
-        double meanT = doySum[n] / doyCount[n];
-        double angle = 2.0 * Math.PI * n / 365.0;
-        sumT += meanT;
-        alphaSum += meanT * Math.Cos(angle);
-        betaSum += meanT * Math.Sin(angle);
-        validDays++;
+        if (monthCount[m] == 0)
+          throw new PopoloArgumentException(
+              $"no dry-bulb records for month {m} in the first-year window.",
+              nameof(data));
       }
 
-      if (validDays == 0)
-        throw new PopoloArgumentException(
-            "data has no records with dry-bulb temperature.", nameof(data));
+      double[] monthlyMean = new double[13];
+      for (int m = 1; m <= 12; m++)
+        monthlyMean[m] = monthSum[m] / monthCount[m];
 
-      double tAvg = sumT / validDays;
-      double alpha = 2.0 * alphaSum / validDays;
-      double beta = 2.0 * betaSum / validDays;
-      double amplitude = 2.0 * Math.Sqrt(alpha * alpha + beta * beta);
+      int warmestMonth = 1;
+      int coldestMonth = 1;
+      double sum = 0.0;
+      for (int m = 1; m <= 12; m++)
+      {
+        sum += monthlyMean[m];
+        if (monthlyMean[m] > monthlyMean[warmestMonth]) warmestMonth = m;
+        if (monthlyMean[m] < monthlyMean[coldestMonth]) coldestMonth = m;
+      }
 
-      double peakDoyReal = Math.Atan2(beta, alpha) * 365.0 / (2.0 * Math.PI);
-      if (peakDoyReal <= 0.0) peakDoyReal += 365.0;
+      double avg = sum / 12.0;
+      double maxMonthly = monthlyMean[warmestMonth];
+      double minMonthly = monthlyMean[coldestMonth];
 
-      int peakDoy = (int)Math.Round(peakDoyReal);
-      if (peakDoy < 1) peakDoy = 1;
-      if (peakDoy > 365) peakDoy = 365;
+      // 最暖月の 15 日の DOY を peak day として採用 (基準年は非うるう年で固定)。
+      int peakDoy = new DateTime(2001, warmestMonth, 15).DayOfYear;
 
-      return new Ground(peakDoy, amplitude, tAvg);
+      return new Ground(peakDoy, maxMonthly, minMonthly, avg);
     }
 
     #endregion
