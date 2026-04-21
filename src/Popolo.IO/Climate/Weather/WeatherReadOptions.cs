@@ -27,9 +27,12 @@ namespace Popolo.IO.Climate.Weather
   /// <para>
   /// All options default to <c>false</c>, in which case the reader reports only
   /// fields that are explicitly recorded by the source format. Enabling an
-  /// option instructs the reader to estimate that field from other recorded
-  /// quantities; when the estimation is performed, the resulting value is
-  /// marked as recorded in the output <c>WeatherRecord</c>.
+  /// option instructs the reader to derive that field from other recorded
+  /// quantities. When a value is derived, the resulting field appears in
+  /// <see cref="Popolo.Core.Climate.Weather.WeatherRecord.EstimatedFields"/>
+  /// (not <see cref="Popolo.Core.Climate.Weather.WeatherRecord.RecordedFields"/>)
+  /// so that downstream consumers can distinguish observed values from derived
+  /// ones.
   /// </para>
   /// <para>
   /// Individual readers declare in their XML documentation which of these
@@ -47,11 +50,41 @@ namespace Popolo.IO.Climate.Weather
     public bool EstimateAtmosphericPressureFromElevation { get; set; }
 
     /// <summary>
-    /// If <c>true</c> and direct / diffuse horizontal radiation are not
-    /// recorded, the reader estimates them from the global horizontal
-    /// radiation using solar geometry and a clearness-based split (e.g.
-    /// Bouguer). Default is <c>false</c>.
+    /// If <c>true</c> and exactly one of the three solar-radiation components
+    /// {global horizontal, direct normal, diffuse horizontal} is missing while
+    /// the other two are recorded, the reader derives the missing component
+    /// from the geometric identity
+    /// <c>GHI = DNI · cos(θ_z) + DHI</c> where <c>θ_z</c> is the solar zenith
+    /// angle. This completion is model-free and deterministic.
+    /// Default is <c>false</c>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// At times when <c>cos(θ_z)</c> is near zero (sun at or below the
+    /// horizon), the identity is singular and the reader leaves the missing
+    /// component unset.
+    /// </para>
+    /// <para>
+    /// This completion is applied before
+    /// <see cref="SplitGlobalRadiationIntoDirectAndDiffuse"/> so that the
+    /// cheaper model-free path is preferred when two components are already
+    /// available.
+    /// </para>
+    /// </remarks>
+    public bool CompleteRadiationComponentsByGeometry { get; set; }
+
+    /// <summary>
+    /// If <c>true</c> and only the global horizontal radiation is recorded,
+    /// the reader estimates the direct normal and diffuse horizontal
+    /// components using a statistical split model (e.g. Erbs / Reindl).
+    /// Default is <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="CompleteRadiationComponentsByGeometry"/>, this option
+    /// relies on an empirical correlation and therefore introduces an extra
+    /// source of uncertainty. Use it only when a single-component source (GHI
+    /// only) is the best available data.
+    /// </remarks>
     public bool SplitGlobalRadiationIntoDirectAndDiffuse { get; set; }
 
     /// <summary>

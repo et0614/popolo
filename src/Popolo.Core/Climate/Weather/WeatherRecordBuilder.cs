@@ -30,6 +30,14 @@ namespace Popolo.Core.Climate.Weather
   /// flag is not set in <see cref="WeatherRecord.AvailableFields"/>.
   /// </para>
   /// <para>
+  /// Each <c>Set...</c> method marks its field as <b>recorded</b>. Values
+  /// that the caller derives (rather than reads verbatim from a source
+  /// format) should additionally be passed through
+  /// <see cref="MarkEstimated(WeatherField)"/> to reclassify them, so that
+  /// downstream consumers can distinguish observed from derived values via
+  /// <see cref="WeatherRecord.IsEstimated(WeatherField)"/>.
+  /// </para>
+  /// <para>
   /// <see cref="SetSourceTime(DateTime)"/> is optional; when it is not called,
   /// <see cref="WeatherRecord.SourceTime"/> is set equal to
   /// <see cref="WeatherRecord.Time"/>.
@@ -56,7 +64,8 @@ namespace Popolo.Core.Climate.Weather
     private double _windDirection;
     private double _precipitation;
     private double _cloudCover;
-    private WeatherField _mask;
+    private WeatherField _recordedMask;
+    private WeatherField _estimatedMask;
 
     /// <summary>Sets the logical time.</summary>
     public WeatherRecordBuilder SetTime(DateTime time)
@@ -80,7 +89,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetDryBulbTemperature(double value)
     {
       _dryBulbTemperature = value;
-      _mask |= WeatherField.DryBulbTemperature;
+      _recordedMask |= WeatherField.DryBulbTemperature;
       return this;
     }
 
@@ -88,7 +97,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetHumidityRatio(double value)
     {
       _humidityRatio = value;
-      _mask |= WeatherField.HumidityRatio;
+      _recordedMask |= WeatherField.HumidityRatio;
       return this;
     }
 
@@ -96,7 +105,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetAtmosphericPressure(double value)
     {
       _atmosphericPressure = value;
-      _mask |= WeatherField.AtmosphericPressure;
+      _recordedMask |= WeatherField.AtmosphericPressure;
       return this;
     }
 
@@ -104,7 +113,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetGlobalHorizontalRadiation(double value)
     {
       _globalHorizontalRadiation = value;
-      _mask |= WeatherField.GlobalHorizontalRadiation;
+      _recordedMask |= WeatherField.GlobalHorizontalRadiation;
       return this;
     }
 
@@ -112,7 +121,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetDirectNormalRadiation(double value)
     {
       _directNormalRadiation = value;
-      _mask |= WeatherField.DirectNormalRadiation;
+      _recordedMask |= WeatherField.DirectNormalRadiation;
       return this;
     }
 
@@ -120,7 +129,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetDiffuseHorizontalRadiation(double value)
     {
       _diffuseHorizontalRadiation = value;
-      _mask |= WeatherField.DiffuseHorizontalRadiation;
+      _recordedMask |= WeatherField.DiffuseHorizontalRadiation;
       return this;
     }
 
@@ -128,7 +137,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetAtmosphericRadiation(double value)
     {
       _atmosphericRadiation = value;
-      _mask |= WeatherField.AtmosphericRadiation;
+      _recordedMask |= WeatherField.AtmosphericRadiation;
       return this;
     }
 
@@ -136,7 +145,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetWindSpeed(double value)
     {
       _windSpeed = value;
-      _mask |= WeatherField.WindSpeed;
+      _recordedMask |= WeatherField.WindSpeed;
       return this;
     }
 
@@ -148,7 +157,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetWindDirection(double value)
     {
       _windDirection = value;
-      _mask |= WeatherField.WindDirection;
+      _recordedMask |= WeatherField.WindDirection;
       return this;
     }
 
@@ -156,7 +165,7 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetPrecipitation(double value)
     {
       _precipitation = value;
-      _mask |= WeatherField.Precipitation;
+      _recordedMask |= WeatherField.Precipitation;
       return this;
     }
 
@@ -164,7 +173,32 @@ namespace Popolo.Core.Climate.Weather
     public WeatherRecordBuilder SetCloudCover(double value)
     {
       _cloudCover = value;
-      _mask |= WeatherField.CloudCover;
+      _recordedMask |= WeatherField.CloudCover;
+      return this;
+    }
+
+    /// <summary>
+    /// Reclassifies the given fields from recorded to estimated.
+    /// </summary>
+    /// <param name="fields">
+    /// One or more fields that were derived by the caller rather than read
+    /// verbatim from a source. The bits are cleared from the recorded mask
+    /// and set in the estimated mask, preserving the invariant that a field
+    /// is never simultaneously recorded and estimated.
+    /// </param>
+    /// <returns>This builder, for chaining.</returns>
+    /// <remarks>
+    /// Typical usage is to call a <c>Set...</c> method with a derived value
+    /// and then immediately call <see cref="MarkEstimated(WeatherField)"/>
+    /// with the corresponding flag. Calling <see cref="MarkEstimated(WeatherField)"/>
+    /// for a field that was never set results in the estimated bit being
+    /// claimed without a meaningful value; this is a caller error that the
+    /// builder does not diagnose.
+    /// </remarks>
+    public WeatherRecordBuilder MarkEstimated(WeatherField fields)
+    {
+      _recordedMask &= ~fields;
+      _estimatedMask |= fields;
       return this;
     }
 
@@ -179,7 +213,7 @@ namespace Popolo.Core.Climate.Weather
           _dryBulbTemperature, _humidityRatio, _atmosphericPressure,
           _globalHorizontalRadiation, _directNormalRadiation, _diffuseHorizontalRadiation,
           _atmosphericRadiation, _windSpeed, _windDirection,
-          _precipitation, _cloudCover, _mask);
+          _precipitation, _cloudCover, _recordedMask, _estimatedMask);
     }
 
     /// <summary>
@@ -188,7 +222,8 @@ namespace Popolo.Core.Climate.Weather
     /// </summary>
     public void Reset()
     {
-      _mask = WeatherField.None;
+      _recordedMask = WeatherField.None;
+      _estimatedMask = WeatherField.None;
       _sourceTimeSet = false;
     }
   }
