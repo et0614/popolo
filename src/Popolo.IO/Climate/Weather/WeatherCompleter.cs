@@ -120,6 +120,14 @@ namespace Popolo.IO.Climate.Weather
 
     #region 日射の補完 (geometry / Erbs)
 
+    /// <summary>
+    /// Below this effective sin(altitude), DNI back-transforms become
+    /// noise-dominated (dividing interval-integrated radiation by a small
+    /// number). Geometry's DNI reconstruction is skipped; Erbs is allowed
+    /// to run (it produces 0 for all three components and is self-consistent).
+    /// </summary>
+    private const double MinEffectiveSinH = 0.02;     // ≈ 1.15° 以上が太陽寄与
+
     private static void CompleteRadiation(WeatherData data, WeatherReadOptions options)
     {
       if (!HasStationLocation(data.Station)) return;
@@ -128,17 +136,28 @@ namespace Popolo.IO.Climate.Weather
       double longitude = data.Station.Longitude;
       double standardLongitude = 15.0 * Math.Round(longitude / 15.0);
 
+      // 区間長とラベル規約から、実効 sinH のサンプリング方法を決める
+      TimeSpan? interval = data.NominalInterval;
+      bool canIntegrate = interval.HasValue
+                          && options.TimestampConvention != TimestampConvention.Instant;
+
       for (int i = 0; i < data.Count; i++)
       {
         var r = data.Records[i];
-        double sinH = Math.Sin(Sun.GetSunAltitude(latitude, longitude, standardLongitude, r.Time));
+
+        double sinHeff = canIntegrate
+            ? EffectiveSinH(r.Time, interval!.Value, options.TimestampConvention,
+                            latitude, longitude, standardLongitude)
+            : Math.Max(0, Math.Sin(
+                Sun.GetSunAltitude(latitude, longitude, standardLongitude, r.Time)));
+
         var updated = r;
 
         if (options.CompleteRadiationComponentsByGeometry)
-          updated = TryCompleteByGeometry(updated, sinH);
+          updated = TryCompleteByGeometry(updated, sinHeff);
 
         if (options.SplitGlobalRadiationIntoDirectAndDiffuse)
-          updated = TrySplitByErbs(updated, latitude, longitude, standardLongitude);
+          updated = TrySplitByErbs(updated, sinHeff, r.Time.DayOfYear);
 
         if (!Equals(updated, r))
           data.SetRecord(i, updated);
@@ -146,10 +165,62 @@ namespace Popolo.IO.Climate.Weather
     }
 
     /// <summary>
-    /// If exactly one of {GHI, DNI, DHI} is missing and the other two are
-    /// present, derive the missing one from <c>GHI = DNI·sin(h) + DHI</c>.
+    /// Computes the interval-averaged <c>sin(altitude)</c> by sampling the
+    /// sun position at <c>N</c> equally-spaced points within the interval
+    /// derived from <paramref name="time"/>, <paramref name="interval"/> and
+    /// <paramref name="convention"/>. Samples below the horizon contribute
+    /// zero, so intervals that straddle sunrise or sunset yield a value
+    /// weighted only by the sunlit portion.
     /// </summary>
-    private static WeatherRecord TryCompleteByGeometry(WeatherRecord r, double sinH)
+    private static double EffectiveSinH(
+        DateTime time, TimeSpan interval, TimestampConvention convention,
+        double latitude, double longitude, double standardLongitude)
+    {
+      // 区間 (tStart, tEnd) を決める
+      DateTime tStart, tEnd;
+      switch (convention)
+      {
+        case TimestampConvention.EndOfInterval:
+          tStart = time - interval;
+          tEnd = time;
+          break;
+        case TimestampConvention.StartOfInterval:
+          tStart = time;
+          tEnd = time + interval;
+          break;
+        case TimestampConvention.Midpoint:
+          tStart = time - TimeSpan.FromTicks(interval.Ticks / 2);
+          tEnd = tStart + interval;
+          break;
+        default:
+          // Instant はこの関数に入らない前提
+          return Math.Max(0, Math.Sin(
+              Sun.GetSunAltitude(latitude, longitude, standardLongitude, time)));
+      }
+
+      // サンプル数: おおむね 10 分おき、最低 2 点
+      int n = Math.Max(2, (int)Math.Ceiling(interval.TotalMinutes / 10.0));
+
+      double sum = 0;
+      for (int k = 0; k < n; k++)
+      {
+        double frac = (k + 0.5) / n;
+        DateTime t = tStart + TimeSpan.FromTicks((long)(frac * interval.Ticks));
+        double alt = Sun.GetSunAltitude(latitude, longitude, standardLongitude, t);
+        if (alt > 0) sum += Math.Sin(alt);
+      }
+      return sum / n;
+    }
+
+    /// <summary>
+    /// If exactly one of {GHI, DNI, DHI} is missing and the other two are
+    /// present, derive the missing one from the interval-integrated identity
+    /// <c>⟨GHI⟩ = ⟨DNI⟩·⟨sin h⟩ + ⟨DHI⟩</c>. GHI and DHI are reconstructed
+    /// by a multiplication and thus remain numerically well-behaved even when
+    /// <paramref name="sinHeff"/> is zero; DNI requires a division and is
+    /// skipped below <see cref="MinEffectiveSinH"/>.
+    /// </summary>
+    private static WeatherRecord TryCompleteByGeometry(WeatherRecord r, double sinHeff)
     {
       bool hasGhi = r.Has(WeatherField.GlobalHorizontalRadiation);
       bool hasDni = r.Has(WeatherField.DirectNormalRadiation);
@@ -158,19 +229,9 @@ namespace Popolo.IO.Climate.Weather
       int present = (hasGhi ? 1 : 0) + (hasDni ? 1 : 0) + (hasDhi ? 1 : 0);
       if (present != 2) return r;
 
-      // 地平線付近は GHI = DNI·sinH + DHI が事実上 GHI ≈ DHI に退化するため、
-      // DNI を復元するには不適切。閾値未満は補完しない。
-      const double MinSinH = 0.05;          // ≈ 2.87°
-      if (sinH < MinSinH)
-      {
-        // DNI だけが未知で sin(h) が小さい場合は算出できないが、
-        // GHI または DHI が未知のケースは低太陽高度でも一意に決まるため許容する。
-        if (!hasDni) return r;
-      }
-
       if (!hasGhi)
       {
-        double ghi = Math.Max(0, r.DirectNormalRadiation * sinH + r.DiffuseHorizontalRadiation);
+        double ghi = Math.Max(0, r.DirectNormalRadiation * sinHeff + r.DiffuseHorizontalRadiation);
         return RebuildWith(r, b => b
             .SetGlobalHorizontalRadiation(ghi)
             .MarkEstimated(WeatherField.GlobalHorizontalRadiation));
@@ -178,14 +239,15 @@ namespace Popolo.IO.Climate.Weather
 
       if (!hasDhi)
       {
-        double dhi = Math.Max(0, r.GlobalHorizontalRadiation - r.DirectNormalRadiation * sinH);
+        double dhi = Math.Max(0, r.GlobalHorizontalRadiation - r.DirectNormalRadiation * sinHeff);
         return RebuildWith(r, b => b
             .SetDiffuseHorizontalRadiation(dhi)
             .MarkEstimated(WeatherField.DiffuseHorizontalRadiation));
       }
 
-      // !hasDni
-      double dni = Math.Max(0, (r.GlobalHorizontalRadiation - r.DiffuseHorizontalRadiation) / sinH);
+      // !hasDni — 実効 sinH が極小のときは (GHI − DHI) / sinH が発散するので skip
+      if (sinHeff < MinEffectiveSinH) return r;
+      double dni = Math.Max(0, (r.GlobalHorizontalRadiation - r.DiffuseHorizontalRadiation) / sinHeff);
       return RebuildWith(r, b => b
           .SetDirectNormalRadiation(dni)
           .MarkEstimated(WeatherField.DirectNormalRadiation));
@@ -193,12 +255,14 @@ namespace Popolo.IO.Climate.Weather
 
     /// <summary>
     /// If GHI is present but DNI and/or DHI are missing, apply the Erbs
-    /// split. The existing <see cref="Sun.SeparateGlobalHorizontalRadiation"/>
-    /// returns zeros when the sun is below the horizon or GHI is zero, which
-    /// we propagate faithfully.
+    /// split using the interval-averaged <c>sin(altitude)</c>. This is a
+    /// local reimplementation of the Erbs correlation so that we can feed
+    /// it the effective sinH rather than an instantaneous value — the
+    /// mathematically correct quantity for hourly (or sub-hourly)
+    /// integrated GHI.
     /// </summary>
     private static WeatherRecord TrySplitByErbs(
-        WeatherRecord r, double latitude, double longitude, double standardLongitude)
+        WeatherRecord r, double sinHeff, int dayOfYear)
     {
       if (!r.Has(WeatherField.GlobalHorizontalRadiation)) return r;
 
@@ -206,11 +270,44 @@ namespace Popolo.IO.Climate.Weather
       bool missingDhi = !r.Has(WeatherField.DiffuseHorizontalRadiation);
       if (!missingDni && !missingDhi) return r;
 
-      Sun.SeparateGlobalHorizontalRadiation(
-          r.GlobalHorizontalRadiation,
-          latitude, longitude, standardLongitude, r.Time,
-          Sun.SeparationMethod.Erbs,
-          out double dni, out double dhi);
+      double ghi = r.GlobalHorizontalRadiation;
+      double dni, dhi;
+
+      if (ghi <= 0 || sinHeff <= 0)
+      {
+        // 夜間、あるいは GHI=0 の区間: 直散ともゼロ
+        dni = 0;
+        dhi = 0;
+      }
+      else
+      {
+        double io = Sun.GetExtraterrestrialRadiation(dayOfYear);
+        double kt = ghi / (io * sinHeff);
+
+        // Erbs (1982) の区分多項式で拡散率 K_d = DHI/GHI を求める
+        double kd;
+        if (kt < 0.22)
+          kd = 1.0 - 0.09 * kt;
+        else if (kt < 0.80)
+          kd = 0.9511 + kt * (-0.1604 + kt * (4.388 + kt * (-16.638 + 12.336 * kt)));
+        else
+          kd = 0.1651;
+
+        kd = Math.Clamp(kd, 0.0, 1.0);
+        dhi = ghi * kd;
+
+        // 実効 sinH が小さすぎる場合は DNI 逆変換がノイズで発散するので、
+        // DNI は 0 に倒し、DHI = GHI とする (= 全量拡散とみなす)
+        if (sinHeff < MinEffectiveSinH)
+        {
+          dhi = ghi;
+          dni = 0;
+        }
+        else
+        {
+          dni = (ghi - dhi) / sinHeff;
+        }
+      }
 
       return RebuildWith(r, b =>
       {
