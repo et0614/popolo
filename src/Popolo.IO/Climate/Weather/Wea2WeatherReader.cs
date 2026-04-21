@@ -228,6 +228,7 @@ namespace Popolo.IO.Climate.Weather
         data.Add(builder.ToRecord());
       }
 
+      WeatherCompleter.Apply(data, options);
       return data;
     }
 

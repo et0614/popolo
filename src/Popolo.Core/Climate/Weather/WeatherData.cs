@@ -146,6 +146,38 @@ namespace Popolo.Core.Climate.Weather
     /// <summary>Removes all records. Station, source, and metadata are preserved.</summary>
     public void Clear() => _records.Clear();
 
+    /// <summary>
+    /// Replaces the record at <paramref name="index"/> with <paramref name="record"/>
+    /// in place. The new record must carry the same
+    /// <see cref="WeatherRecord.Time"/> as the existing record, so the dataset's
+    /// monotonic time invariant is preserved by construction.
+    /// </summary>
+    /// <param name="index">Zero-based position of the record to replace.</param>
+    /// <param name="record">Replacement record; must have the same logical time.</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="index"/> is out of range, or when
+    /// <paramref name="record"/>'s time does not match the existing entry.
+    /// </exception>
+    /// <remarks>
+    /// This is the low-level hook used by post-processing passes (for example,
+    /// reader-side field derivation) that need to rewrite a record's field
+    /// values without altering when the observation occurred. Ordinary code
+    /// should prefer <see cref="Add(WeatherRecord)"/> and treat records as
+    /// immutable once appended.
+    /// </remarks>
+    public void SetRecord(int index, WeatherRecord record)
+    {
+      if (index < 0 || index >= _records.Count)
+        throw new PopoloArgumentException(
+            $"index must be in [0, {_records.Count}); got {index}.", nameof(index));
+      if (_records[index].Time != record.Time)
+        throw new PopoloArgumentException(
+            "record.Time must match the existing record's Time. "
+            + $"existing = {_records[index].Time:O}, incoming = {record.Time:O}.",
+            nameof(record));
+      _records[index] = record;
+    }
+
     #endregion
 
   }
