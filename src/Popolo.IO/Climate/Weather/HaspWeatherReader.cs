@@ -67,8 +67,20 @@ namespace Popolo.IO.Climate.Weather
   ///   <item><description>Wind speed: raw × 0.1 [m/s]</description></item>
   /// </list>
   /// <para>
-  /// This reader does not act on any <see cref="WeatherReadOptions"/> fields;
-  /// HASP records all physical quantities directly.
+  /// HASP files do not carry station information. When reading a HASP file
+  /// with any solar-dependent completion enabled
+  /// (<see cref="WeatherReadOptions.CompleteRadiationComponentsByGeometry"/>,
+  /// <see cref="WeatherReadOptions.SplitGlobalRadiationIntoDirectAndDiffuse"/>,
+  /// or elevation-dependent
+  /// <see cref="WeatherReadOptions.EstimateAtmosphericPressureFromElevation"/>),
+  /// the caller must supply <see cref="WeatherReadOptions.Station"/>;
+  /// otherwise those phases silently skip.
+  /// </para>
+  /// <para>
+  /// HASP already records all three radiation components directly, so
+  /// <see cref="WeatherReadOptions.CompleteRadiationComponentsByGeometry"/>
+  /// and <see cref="WeatherReadOptions.SplitGlobalRadiationIntoDirectAndDiffuse"/>
+  /// are typically no-ops here.
   /// </para>
   /// </remarks>
   public class HaspWeatherReader : IWeatherDataReader

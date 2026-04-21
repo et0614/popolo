@@ -79,6 +79,11 @@ namespace Popolo.IO.Climate.Weather
       if (data == null || options == null) return;
       if (data.Count == 0) return;
 
+      // ファイルが station を持たず、options にフォールバックが設定されていれば
+      // 補完処理に先立って反映する (HASP / TMY1 で solar 補完を動かすため)
+      if (options.Station.HasValue && !HasStationLocation(data.Station))
+        data.Station = options.Station.Value;
+
       if (options.EstimateAtmosphericPressureFromElevation)
         CompletePressureFromElevation(data);
 

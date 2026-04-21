@@ -43,6 +43,24 @@ namespace Popolo.IO.Climate.Weather
   public class WeatherReadOptions
   {
     /// <summary>
+    /// Fallback station information used when the source format does not
+    /// record the station location (e.g. HASP, TMY1). When non-null and the
+    /// reader leaves <see cref="Popolo.Core.Climate.Weather.WeatherData.Station"/>
+    /// unset, this value is copied onto the dataset before any derivation
+    /// runs. Has no effect when the source format already records station
+    /// information (EPW, WEA2, CSV with station header).
+    /// </summary>
+    /// <remarks>
+    /// Solar-dependent derivations
+    /// (<see cref="CompleteRadiationComponentsByGeometry"/>,
+    /// <see cref="SplitGlobalRadiationIntoDirectAndDiffuse"/>) require a
+    /// station location to evaluate the solar altitude. For HASP / TMY1 the
+    /// caller must supply this fallback; otherwise those derivations silently
+    /// skip.
+    /// </remarks>
+    public Popolo.Core.Climate.Weather.WeatherStationInfo? Station { get; set; }
+
+    /// <summary>
     /// If <c>true</c> and atmospheric pressure is not recorded in the source
     /// format, the reader estimates pressure from the station elevation using
     /// the standard atmosphere model. Default is <c>false</c>.

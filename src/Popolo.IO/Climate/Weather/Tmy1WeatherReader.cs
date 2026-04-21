@@ -80,6 +80,18 @@ namespace Popolo.IO.Climate.Weather
   /// the same as the wind-direction offset. The corrected offset is used
   /// here.
   /// </para>
+  /// <para>
+  /// TMY1 files carry only the WBAN station number, not a geographic
+  /// location, so <see cref="WeatherData.Station"/> is left empty by this
+  /// reader. When reading a TMY1 file with any solar-dependent completion
+  /// (<see cref="WeatherReadOptions.CompleteRadiationComponentsByGeometry"/>,
+  /// <see cref="WeatherReadOptions.SplitGlobalRadiationIntoDirectAndDiffuse"/>,
+  /// or the elevation-based
+  /// <see cref="WeatherReadOptions.EstimateAtmosphericPressureFromElevation"/>),
+  /// the caller must supply <see cref="WeatherReadOptions.Station"/> so
+  /// that the solar-geometry routines have latitude/longitude/elevation
+  /// to work with; otherwise those phases silently skip.
+  /// </para>
   /// </remarks>
   public class Tmy1WeatherReader : IWeatherDataReader
   {
