@@ -418,6 +418,45 @@ namespace Popolo.IO.Tests.Climate.Weather
     #region 区間積分された sin(altitude) の使用
 
     /// <summary>
+    /// 規約を既定 (StartOfInterval) のままにして、13:00 の record が
+    /// [13:00, 14:00) を表す構成を組むと、区間平均 sin(h) は概ね 13:30
+    /// 時点のそれに近い。
+    /// </summary>
+    [Fact]
+    public void DefaultConvention_IsStartOfInterval_ForBuiltInReaders()
+    {
+      // DNI, DHI を既知で与え、区間 [13:00, 14:00) の中点 13:30 で
+      // sinH を評価した恒等式から GHI を組む。完了器は StartOfInterval 既定
+      // で区間 [13:00, 14:00) を見るので、復元される DHI は元の値に近い。
+      var t = new DateTime(2026, 6, 21, 13, 0, 0);
+      double sinAtMid = Math.Sin(Sun.GetSunAltitude(
+          TokyoStation.Latitude, TokyoStation.Longitude, 135.0,
+          t.AddMinutes(30)));
+      double dni = 800.0, dhiTrue = 100.0;
+      double ghi = dni * sinAtMid + dhiTrue;
+
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      data.Add(Build(t, b => b
+          .SetGlobalHorizontalRadiation(ghi)
+          .SetDirectNormalRadiation(dni)));
+
+      // TimestampConvention を指定しない (既定値を検証する)
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        CompleteRadiationComponentsByGeometry = true,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
+      // 13:30 中点を用いて構成したので、復元値と真値の差は N=6 のサンプリング
+      // 誤差程度に収まる。
+      Assert.Equal(dhiTrue, r.DiffuseHorizontalRadiation, precision: 0);
+    }
+
+    /// <summary>
     /// EndOfInterval 規約と 1 時間の NominalInterval を設定すると、r.Time の
     /// 瞬時値でなく区間中点相当の太陽位置に基づいて DHI が補完される。
     /// ghi = dni · sinH(13:00) + dhi は 13:00 時点の恒等式だが、区間
