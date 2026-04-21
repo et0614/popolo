@@ -23,22 +23,22 @@ using Popolo.Core.Climate;
 
 namespace Popolo.Core.Tests.Climate
 {
-  /// <summary>Ground のテスト</summary>
+  /// <summary>Ground のテスト (Watanabe 1964 モデル)</summary>
   /// <remarks>
-  /// 東京の年間気温統計を基準値として使用：
+  /// 東京の代表的な気象値を基準に使用 (BESTEST Case 990 流に、日最高の月平均と
+  /// 日最低の月平均から年較差を取る):
   /// - 年平均気温：15.4 °C
-  /// - 最暖月 (8月) 平均：27.9 °C
-  /// - 最冷月 (1月) 平均：2.9 °C
-  /// - 年較差 (最暖 − 最冷)：25.0 °C
-  /// - 最高温度日：208 日 (7月下旬)
+  /// - 最暖月の日最高の平均：約 32 °C
+  /// - 最冷月の日最低の平均：約 0 °C
+  /// - 年較差：約 32 °C
+  /// - 最高温度日：208 日 (7 月下旬)
   /// </remarks>
   public class GroundTests
   {
-    //東京の代表的な気象値
     private const int PeakDay = 208;
-    private const double MaxMonthly = 27.9;
-    private const double MinMonthly = 2.9;
-    private const double TempRange = MaxMonthly - MinMonthly;    // = 25.0
+    private const double WarmMax = 32.0;
+    private const double ColdMin = 0.0;
+    private const double TempRange = WarmMax - ColdMin;
     private const double MeanTemp = 15.4;
 
     #region コンストラクタのテスト
@@ -47,12 +47,12 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void Constructor_SetsProperties()
     {
-      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
+      var ground = new Ground(PeakDay, WarmMax, ColdMin, MeanTemp);
       Assert.Equal(PeakDay, ground.PeakDayOfYear);
-      Assert.Equal(MaxMonthly, ground.MaxMonthlyMeanTemperature);
-      Assert.Equal(MinMonthly, ground.MinMonthlyMeanTemperature);
+      Assert.Equal(WarmMax, ground.WarmestMonthlyMeanDailyMax);
+      Assert.Equal(ColdMin, ground.ColdestMonthlyMeanDailyMin);
       Assert.Equal(MeanTemp, ground.AnnualAverageTemperature);
-      Assert.Equal(TempRange, ground.AnnualMonthlyMeanRange);
+      Assert.Equal(TempRange, ground.AnnualTemperatureRange);
     }
 
     #endregion
@@ -66,8 +66,7 @@ namespace Popolo.Core.Tests.Climate
     [InlineData(5.0)]
     public void GetTemperature_DeepGround_CloserToMean(double depth)
     {
-      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
-      //1年分の最大・最小を取得
+      var ground = new Ground(PeakDay, WarmMax, ColdMin, MeanTemp);
       double max = double.MinValue;
       double min = double.MaxValue;
       for (int d = 1; d <= 365; d++)
@@ -85,7 +84,7 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void GetTemperature_DeeperDepth_SmallerAmplitude()
     {
-      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
+      var ground = new Ground(PeakDay, WarmMax, ColdMin, MeanTemp);
 
       double GetAmplitude(double depth)
       {
@@ -107,7 +106,7 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void GetTemperature_SurfaceDepth_AnnualMeanEqualsAirMean()
     {
-      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
+      var ground = new Ground(PeakDay, WarmMax, ColdMin, MeanTemp);
       double sum = 0;
       for (int d = 1; d <= 365; d++)
         sum += ground.GetTemperature(d, 0);
@@ -121,14 +120,13 @@ namespace Popolo.Core.Tests.Climate
     [InlineData(208, 0.5)]
     public void GetTemperature_InstanceAndStaticMatch(int dayOfYear, double depth)
     {
-      var ground = new Ground(PeakDay, MaxMonthly, MinMonthly, MeanTemp);
+      var ground = new Ground(PeakDay, WarmMax, ColdMin, MeanTemp);
       double fromInstance = ground.GetTemperature(dayOfYear, depth);
       double fromStatic = Ground.GetTemperature(
-          PeakDay, MaxMonthly, MinMonthly, MeanTemp, dayOfYear, depth);
+          PeakDay, WarmMax, ColdMin, MeanTemp, dayOfYear, depth);
       Assert.Equal(fromInstance, fromStatic, precision: 10);
     }
 
     #endregion
   }
-
 }

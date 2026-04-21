@@ -17,115 +17,136 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Tests.Climate
 {
-  /// <summary>Tests for <see cref="Ground.FromWeatherData"/>.</summary>
+  /// <summary>Tests for <see cref="Ground.FromWeatherData"/> (BESTEST procedure).</summary>
   public class GroundFromWeatherDataTests
   {
     /// <summary>
-    /// Builds a synthetic WeatherData with daily records whose dry-bulb
-    /// temperature follows T(n) = avg + (range/2)·cos((n - peak)·2π/365).
+    /// Builds a synthetic WeatherData with hourly records. Each day's
+    /// temperature follows daily_mean(doy) + diurnalAmplitude · cos((hour - 14)·2π/24),
+    /// so the daily max occurs at 14:00 and daily min at 02:00.
     /// </summary>
-    private static WeatherData BuildSyntheticYear(
-        double avg, double range, int peakDoy, int days, int year = 2026)
+    private static WeatherData BuildHourlySyntheticYear(
+        Func<int /*doy*/, double> dailyMean,
+        double diurnalAmplitude,
+        int year = 2026)
     {
       var data = new WeatherData
       {
         Source = WeatherDataSource.Csv,
-        NominalInterval = TimeSpan.FromDays(1),
+        NominalInterval = TimeSpan.FromHours(1),
       };
       var start = new DateTime(year, 1, 1);
-      for (int i = 0; i < days; i++)
+      int hours = DateTime.IsLeapYear(year) ? 366 * 24 : 365 * 24;
+      for (int i = 0; i < hours; i++)
       {
-        DateTime t = start.AddDays(i);
-        int doy = t.DayOfYear;
-        double tdb = avg + 0.5 * range * Math.Cos((doy - peakDoy) * 2.0 * Math.PI / 365.0);
+        DateTime t = start.AddHours(i);
+        double basin = dailyMean(t.DayOfYear);
+        double hourly = basin + diurnalAmplitude * Math.Cos((t.Hour - 14) * 2.0 * Math.PI / 24.0);
         data.Add(new WeatherRecordBuilder()
             .SetTime(t)
-            .SetDryBulbTemperature(tdb)
+            .SetDryBulbTemperature(hourly)
             .ToRecord());
       }
       return data;
     }
 
     [Fact]
-    public void RecoversMonthlyMeansFromPureSineYear()
+    public void RecoversBestestParametersFromPureSineDailyMean()
     {
-      // peak=208 は 7 月末、振幅 25 °C、年平均 15 °C の純正弦波。
-      // 月平均は 7 月と 8 月がほぼ同値で最暖、1 月と 2 月がほぼ同値で最冷。
-      var data = BuildSyntheticYear(avg: 15.0, range: 25.0, peakDoy: 208, days: 365);
+      // 日平均 15 + 0.5·20·cos(...), 日較差 ±5 °C (日最高 = 日平均+5, 日最低 = 日平均−5)
+      var data = BuildHourlySyntheticYear(
+          doy => 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0),
+          diurnalAmplitude: 5.0);
 
       var g = Ground.FromWeatherData(data);
 
-      // 年平均は月平均の平均で、正弦波の離散月平均からだと真値 15 °C をほぼそのまま回復。
+      // 年平均は 15 °C
       Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 1);
-      // 最暖月平均は真の瞬時 peak (27.5) より少し低い (月平均化でピークが鈍る)。
-      // 一方、最冷月平均も真の anti-peak (2.5) より少し高い。月較差は ≈ 23 °C 程度。
-      Assert.True(g.MaxMonthlyMeanTemperature > 25.0);     // ピーク付近の値を拾う
-      Assert.True(g.MinMonthlyMeanTemperature < 5.0);      // 反ピーク付近
-      Assert.InRange(g.AnnualMonthlyMeanRange, 22.0, 25.0);
-      // peak=208 は 7 月 27 日。最暖月は 7 月 (peakDoy=196) と 8 月 (peakDoy=227) が拮抗。
-      // いずれにせよその 2 つのどちらか。
-      Assert.True(g.PeakDayOfYear == 196 || g.PeakDayOfYear == 227);
+      // 最暖月の日最高平均は (月中の日平均 + 5) のその月平均 ≈ 日平均ピーク + 5。
+      // 日平均ピーク = 15 + 10 = 25 → 最暖月の日最高平均 ≈ 29 程度 (月中日で鈍る)
+      Assert.InRange(g.WarmestMonthlyMeanDailyMax, 28.0, 30.0);
+      // 同様に最冷月は (15 - 10) - 5 = 0 近傍
+      Assert.InRange(g.ColdestMonthlyMeanDailyMin, -1.0, 1.0);
+      // 年較差 ≈ 28-30 °C (BESTEST 方式なので日平均ベースより 10 °C 広い)
+      Assert.InRange(g.AnnualTemperatureRange, 28.0, 30.0);
+      // peak day は日平均が最大になる day = 208 (正弦のピーク日)
+      Assert.Equal(208, g.PeakDayOfYear);
     }
 
     [Fact]
-    public void RecoveredParametersReproduceInputMonthlyMeans()
+    public void RecoversExactMonthlyDailyExtremes_WhenDailyMaxMinAreConstantPerMonth()
     {
-      // 各月に「その月の真の平均値」をそのまま毎日の温度として与える。
-      // この場合、月平均は厳密にその値に戻り、FromWeatherData は完全な入力を回収する。
-      double[] monthlyMeans =
-      {
-        // Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec
-          5.0, 6.0, 9.0,14.0,19.0,23.0,26.0,28.0,24.0,18.0,12.0, 7.0
-      };
+      // 各月について、日中 (10-16 時) に maxPerMonth[m]、夜間 (22-04 時) に
+      // minPerMonth[m] を与え、他の時間帯は中間値を取るようなプロファイル。
+      // → 各日の daily max / daily min が厳密に (max[m], min[m]) に一致。
+      double[] maxPerMonth = { 10, 11, 15, 20, 25, 28, 30, 32, 28, 22, 16, 12 };
+      double[] minPerMonth = {  0,  1,  3,  8, 14, 18, 22, 24, 20, 12,  5,  1 };
+
       var data = new WeatherData
       {
         Source = WeatherDataSource.Csv,
-        NominalInterval = TimeSpan.FromDays(1),
+        NominalInterval = TimeSpan.FromHours(1),
       };
       var start = new DateTime(2026, 1, 1);
-      for (int i = 0; i < 365; i++)
+      for (int i = 0; i < 365 * 24; i++)
       {
-        DateTime t = start.AddDays(i);
-        double tdb = monthlyMeans[t.Month - 1];
+        DateTime t = start.AddHours(i);
+        int m = t.Month;
+        double mid = 0.5 * (maxPerMonth[m - 1] + minPerMonth[m - 1]);
+        double amp = 0.5 * (maxPerMonth[m - 1] - minPerMonth[m - 1]);
+        double hourly = mid + amp * Math.Cos((t.Hour - 14) * 2.0 * Math.PI / 24.0);
         data.Add(new WeatherRecordBuilder()
             .SetTime(t)
-            .SetDryBulbTemperature(tdb)
+            .SetDryBulbTemperature(hourly)
             .ToRecord());
       }
 
       var g = Ground.FromWeatherData(data);
 
-      Assert.Equal(28.0, g.MaxMonthlyMeanTemperature, precision: 6);   // Aug
-      Assert.Equal(5.0, g.MinMonthlyMeanTemperature, precision: 6);    // Jan
-      // 年平均は 12 ヶ月の単純平均 (日数重みなし)
-      double expectedAvg = 0.0;
-      foreach (var v in monthlyMeans) expectedAvg += v;
-      expectedAvg /= 12.0;
-      Assert.Equal(expectedAvg, g.AnnualAverageTemperature, precision: 6);
-      // 最暖月 = 8 月 (DOY=227 on non-leap)
-      Assert.Equal(227, g.PeakDayOfYear);
+      // 最暖月は 8 月 (32), 最冷月は 1 月 (0)
+      Assert.Equal(32.0, g.WarmestMonthlyMeanDailyMax, precision: 6);
+      Assert.Equal(0.0, g.ColdestMonthlyMeanDailyMin, precision: 6);
+      // 年平均は中点 mid の全時間平均 = (maxPerMonth + minPerMonth)/2 の時間加重平均
+      // (各月の日数が異なるため厳密には簡易平均と少し違うが、概ね中央)
+      Assert.InRange(g.AnnualAverageTemperature, 13.0, 16.0);
+      // peak day は 8 月 (max=32 が通年最大) の中のどこか。日平均は月内で一定 (mid) なので
+      // 8 月内の最初の日 (DOY 213) が同率勝ちで採用される。
+      Assert.InRange(g.PeakDayOfYear, 213, 243);
     }
 
     [Fact]
     public void UsesOnlyFirstYearOfMultiYearData()
     {
-      // 1 年目: avg=15, range=20, peak=208
-      // 2 年目: avg=25, range=5, peak=100 ← 混ざるなら結果が動く
-      var first = BuildSyntheticYear(15.0, 20.0, 208, 365, year: 2026);
-      var second = BuildSyntheticYear(25.0, 5.0, 100, 365, year: 2027);
+      // 1 年目: 日平均 15 °C 基調, 2 年目: 日平均 25 °C 基調
+      var first = BuildHourlySyntheticYear(
+          doy => 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0),
+          diurnalAmplitude: 5.0,
+          year: 2026);
+      var second = BuildHourlySyntheticYear(
+          doy => 25.0 + 0.5 * 10.0 * Math.Cos((doy - 100) * 2.0 * Math.PI / 365.0),
+          diurnalAmplitude: 3.0,
+          year: 2027);
       foreach (var r in second.Records) first.Add(r);
 
       var g = Ground.FromWeatherData(first);
 
-      // 1 年目のパラメータが返ること (年平均は 12 ヶ月平均に近い)
+      // 1 年目のパラメータが返ること
       Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 1);
-      Assert.True(g.PeakDayOfYear == 196 || g.PeakDayOfYear == 227);
+      Assert.Equal(208, g.PeakDayOfYear);
     }
 
     [Fact]
     public void ThrowsWhenDataSpansLessThanOneYear()
     {
-      var data = BuildSyntheticYear(15.0, 20.0, 208, days: 180);
+      var data = new WeatherData { NominalInterval = TimeSpan.FromDays(1) };
+      var start = new DateTime(2026, 1, 1);
+      for (int i = 0; i < 180; i++)
+      {
+        data.Add(new WeatherRecordBuilder()
+            .SetTime(start.AddDays(i))
+            .SetDryBulbTemperature(15.0)
+            .ToRecord());
+      }
 
       Assert.Throws<PopoloArgumentException>(() => Ground.FromWeatherData(data));
     }
@@ -146,8 +167,6 @@ namespace Popolo.Core.Tests.Climate
     [Fact]
     public void ThrowsWhenAnyMonthHasNoDryBulb()
     {
-      // 1 年間のレコードはあるが、すべて DryBulbTemperature を持たない。
-      // → 全ての月で monthCount が 0 → 最初の月 (1 月) で例外
       var data = new WeatherData { NominalInterval = TimeSpan.FromDays(1) };
       var start = new DateTime(2026, 1, 1);
       for (int i = 0; i < 365; i++)
@@ -162,66 +181,11 @@ namespace Popolo.Core.Tests.Climate
     }
 
     [Fact]
-    public void ToleratesNoisyDailySeries()
+    public void ToleratesHourlyNoise()
     {
-      // 日次ノイズ (±3 °C) が月平均で均されて、月平均ベースのパラメータは安定。
+      // 季節サイクル + 日変動 + 毎時ランダムノイズ (±2 °C) を与えても、
+      // 日最高 / 日最低 → 月平均の二段集計でノイズは大きく抑えられる。
       var rng = new Random(42);
-      var data = new WeatherData
-      {
-        Source = WeatherDataSource.Csv,
-        NominalInterval = TimeSpan.FromDays(1),
-      };
-      var start = new DateTime(2026, 1, 1);
-      for (int i = 0; i < 365; i++)
-      {
-        DateTime t = start.AddDays(i);
-        int doy = t.DayOfYear;
-        double baseT = 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0);
-        double noisy = baseT + (rng.NextDouble() - 0.5) * 6.0;   // ±3 °C
-        data.Add(new WeatherRecordBuilder()
-            .SetTime(t)
-            .SetDryBulbTemperature(noisy)
-            .ToRecord());
-      }
-
-      var g = Ground.FromWeatherData(data);
-
-      Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 0);  // ≈ 1 °C 以内
-      // 月平均の max/min は正弦波の月平均 ≈ ±9.6 °C 近辺 + 月 30 サンプル平均ノイズ
-      Assert.InRange(g.AnnualMonthlyMeanRange, 17.0, 22.0);
-    }
-
-    [Fact]
-    public void WorksForMidYearStartDate()
-    {
-      // 2025-07-15 から 365 日。月を跨ぐウィンドウでも 12 ヶ月分は揃う。
-      var data = new WeatherData
-      {
-        Source = WeatherDataSource.Csv,
-        NominalInterval = TimeSpan.FromDays(1),
-      };
-      var start = new DateTime(2025, 7, 15);
-      for (int i = 0; i < 365; i++)
-      {
-        DateTime t = start.AddDays(i);
-        int doy = t.DayOfYear;
-        double tdb = 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0);
-        data.Add(new WeatherRecordBuilder()
-            .SetTime(t)
-            .SetDryBulbTemperature(tdb)
-            .ToRecord());
-      }
-
-      var g = Ground.FromWeatherData(data);
-
-      Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 1);
-      Assert.True(g.PeakDayOfYear == 196 || g.PeakDayOfYear == 227);
-    }
-
-    [Fact]
-    public void AcceptsHourlyYearOfRecords()
-    {
-      // EPW 相当: 00:00 Jan 1 〜 23:00 Dec 31 の 8760 本。日変動を入れる。
       var data = new WeatherData
       {
         Source = WeatherDataSource.Csv,
@@ -233,18 +197,47 @@ namespace Popolo.Core.Tests.Climate
         DateTime t = start.AddHours(i);
         int doy = t.DayOfYear;
         double daily = 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0);
-        double hourly = daily + 3.0 * Math.Cos((t.Hour - 14) * 2.0 * Math.PI / 24.0);
+        double diurnal = 5.0 * Math.Cos((t.Hour - 14) * 2.0 * Math.PI / 24.0);
+        double noise = (rng.NextDouble() - 0.5) * 4.0;
         data.Add(new WeatherRecordBuilder()
             .SetTime(t)
-            .SetDryBulbTemperature(hourly)
+            .SetDryBulbTemperature(daily + diurnal + noise)
             .ToRecord());
       }
 
       var g = Ground.FromWeatherData(data);
 
-      // 日変動 (24 h 周期) は月平均化で完全に相殺され、季節成分のみ残る
+      Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 0);    // ≈ 1 °C 以内
+      Assert.InRange(g.AnnualTemperatureRange, 25.0, 32.0);            // ノイズ込みでも頑健
+      // ノイズで peak day が正規の 208 からずれる可能性があるが、±30 日以内に留まる
+      Assert.InRange(g.PeakDayOfYear, 178, 238);
+    }
+
+    [Fact]
+    public void WorksForMidYearStartDate()
+    {
+      var data = new WeatherData
+      {
+        Source = WeatherDataSource.Csv,
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      var start = new DateTime(2025, 7, 15);
+      for (int i = 0; i < 8760; i++)
+      {
+        DateTime t = start.AddHours(i);
+        int doy = t.DayOfYear;
+        double daily = 15.0 + 0.5 * 20.0 * Math.Cos((doy - 208) * 2.0 * Math.PI / 365.0);
+        double diurnal = 5.0 * Math.Cos((t.Hour - 14) * 2.0 * Math.PI / 24.0);
+        data.Add(new WeatherRecordBuilder()
+            .SetTime(t)
+            .SetDryBulbTemperature(daily + diurnal)
+            .ToRecord());
+      }
+
+      var g = Ground.FromWeatherData(data);
+
       Assert.Equal(15.0, g.AnnualAverageTemperature, precision: 1);
-      Assert.True(g.PeakDayOfYear == 196 || g.PeakDayOfYear == 227);
+      Assert.Equal(208, g.PeakDayOfYear);
     }
   }
 }
