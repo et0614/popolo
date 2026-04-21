@@ -45,6 +45,28 @@ namespace Popolo.Core.Climate.Weather
   /// read by downstream code.
   /// </para>
   /// <para>
+  /// For every field present in <see cref="AvailableFields"/>, the source of
+  /// the value is one of two mutually-exclusive provenances:
+  /// </para>
+  /// <list type="bullet">
+  ///   <item><description>
+  ///     <see cref="RecordedFields"/> — the value was read verbatim from the
+  ///     source format (an observation or a value already stored in the file).
+  ///   </description></item>
+  ///   <item><description>
+  ///     <see cref="EstimatedFields"/> — the value was derived by the reader
+  ///     from other recorded quantities in response to a
+  ///     <c>WeatherReadOptions</c> flag. Estimated values carry additional
+  ///     uncertainty and may indicate that a given field was not present in
+  ///     the source file.
+  ///   </description></item>
+  /// </list>
+  /// <para>
+  /// The invariant <c>RecordedFields &amp; EstimatedFields == 0</c> always
+  /// holds: no field can be both recorded and estimated in the same record.
+  /// <see cref="AvailableFields"/> is the union of the two.
+  /// </para>
+  /// <para>
   /// <see cref="Time"/> is the logical time used for simulation, and is required
   /// to be monotonically non-decreasing when records are held by
   /// <see cref="WeatherData"/>. <see cref="SourceTime"/> is the original
@@ -102,8 +124,24 @@ namespace Popolo.Core.Climate.Weather
     /// <summary>Cloud cover as a fraction in [0, 1].</summary>
     public double CloudCover { get; }
 
-    /// <summary>Bit mask of fields that hold recorded (non-missing) values.</summary>
-    public WeatherField AvailableFields { get; }
+    /// <summary>
+    /// Bit mask of fields that were read verbatim from the source format.
+    /// </summary>
+    public WeatherField RecordedFields { get; }
+
+    /// <summary>
+    /// Bit mask of fields that were derived by the reader from other recorded
+    /// quantities (e.g. diffuse horizontal radiation computed from GHI and
+    /// DNI via the geometric identity). Disjoint with
+    /// <see cref="RecordedFields"/>.
+    /// </summary>
+    public WeatherField EstimatedFields { get; }
+
+    /// <summary>
+    /// Bit mask of fields that hold a value, whether recorded or estimated.
+    /// Equivalent to <c>RecordedFields | EstimatedFields</c>.
+    /// </summary>
+    public WeatherField AvailableFields => RecordedFields | EstimatedFields;
 
     /// <summary>
     /// Initializes a new record with all fields specified.
@@ -111,6 +149,8 @@ namespace Popolo.Core.Climate.Weather
     /// <remarks>
     /// This constructor is intended for use by <see cref="WeatherRecordBuilder"/>
     /// and by readers. Application code should use the builder.
+    /// The caller is responsible for maintaining the invariant
+    /// <c>recordedFields &amp; estimatedFields == 0</c>.
     /// </remarks>
     internal WeatherRecord(
         DateTime time,
@@ -126,7 +166,8 @@ namespace Popolo.Core.Climate.Weather
         double windDirection,
         double precipitation,
         double cloudCover,
-        WeatherField availableFields)
+        WeatherField recordedFields,
+        WeatherField estimatedFields)
     {
       Time = time;
       SourceTime = sourceTime;
@@ -141,7 +182,8 @@ namespace Popolo.Core.Climate.Weather
       WindDirection = windDirection;
       Precipitation = precipitation;
       CloudCover = cloudCover;
-      AvailableFields = availableFields;
+      RecordedFields = recordedFields;
+      EstimatedFields = estimatedFields;
     }
 
     /// <summary>
@@ -149,7 +191,15 @@ namespace Popolo.Core.Climate.Weather
     /// <see cref="AvailableFields"/>.
     /// </summary>
     /// <param name="fields">One or more fields to test. Bits are ANDed together.</param>
-    /// <returns>True if all requested fields are recorded.</returns>
+    /// <returns>True if all requested fields hold a value (recorded or estimated).</returns>
     public bool Has(WeatherField fields) => (AvailableFields & fields) == fields;
+
+    /// <summary>
+    /// Returns true when every flag in <paramref name="fields"/> holds a value
+    /// that was derived by the reader (i.e. is in <see cref="EstimatedFields"/>).
+    /// </summary>
+    /// <param name="fields">One or more fields to test. Bits are ANDed together.</param>
+    /// <returns>True if every requested field is an estimated value.</returns>
+    public bool IsEstimated(WeatherField fields) => (EstimatedFields & fields) == fields;
   }
 }

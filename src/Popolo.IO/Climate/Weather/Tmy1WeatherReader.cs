@@ -90,19 +90,29 @@ namespace Popolo.IO.Climate.Weather
     public int SyntheticYear { get; set; } = 2001;
 
     /// <inheritdoc />
-    public WeatherData Read(string path, WeatherReadOptions? options = null)
+    public WeatherData Read(string path) => Read(path, WeatherReadOptions.Default);
+
+    /// <inheritdoc />
+    public WeatherData Read(Stream stream) => Read(stream, WeatherReadOptions.Default);
+
+    /// <inheritdoc />
+    public WeatherData Read(string path, WeatherReadOptions options)
     {
       if (string.IsNullOrEmpty(path))
         throw new PopoloArgumentException("path must not be null or empty.", nameof(path));
+      if (options == null)
+        throw new PopoloArgumentException("options must not be null.", nameof(options));
       using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
       return Read(stream, options);
     }
 
     /// <inheritdoc />
-    public WeatherData Read(Stream stream, WeatherReadOptions? options = null)
+    public WeatherData Read(Stream stream, WeatherReadOptions options)
     {
       if (stream == null)
         throw new PopoloArgumentException("stream must not be null.", nameof(stream));
+      if (options == null)
+        throw new PopoloArgumentException("options must not be null.", nameof(options));
       using var reader = new StreamReader(stream, leaveOpen: true);
       return ParseCore(reader);
     }

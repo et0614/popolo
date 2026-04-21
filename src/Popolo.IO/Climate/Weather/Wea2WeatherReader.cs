@@ -85,7 +85,7 @@ namespace Popolo.IO.Climate.Weather
 
     /// <summary>
     /// Station index to extract (1 ≤ index ≤ 842). Must be set before
-    /// calling <see cref="Read(Stream, WeatherReadOptions?)"/>.
+    /// calling <see cref="Read(Stream)"/>.
     /// </summary>
     public short LocationIndex { get; set; }
 
@@ -105,19 +105,29 @@ namespace Popolo.IO.Climate.Weather
     }
 
     /// <inheritdoc />
-    public WeatherData Read(string path, WeatherReadOptions? options = null)
+    public WeatherData Read(string path) => Read(path, WeatherReadOptions.Default);
+
+    /// <inheritdoc />
+    public WeatherData Read(Stream stream) => Read(stream, WeatherReadOptions.Default);
+
+    /// <inheritdoc />
+    public WeatherData Read(string path, WeatherReadOptions options)
     {
       if (string.IsNullOrEmpty(path))
         throw new PopoloArgumentException("path must not be null or empty.", nameof(path));
+      if (options == null)
+        throw new PopoloArgumentException("options must not be null.", nameof(options));
       using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
       return Read(stream, options);
     }
 
     /// <inheritdoc />
-    public WeatherData Read(Stream stream, WeatherReadOptions? options = null)
+    public WeatherData Read(Stream stream, WeatherReadOptions options)
     {
       if (stream == null)
         throw new PopoloArgumentException("stream must not be null.", nameof(stream));
+      if (options == null)
+        throw new PopoloArgumentException("options must not be null.", nameof(options));
       if (LocationIndex < 1 || LocationIndex > 842)
         throw new PopoloInvalidOperationException(
             "LocationIndex must be set in the range [1, 842] before calling Read.");
