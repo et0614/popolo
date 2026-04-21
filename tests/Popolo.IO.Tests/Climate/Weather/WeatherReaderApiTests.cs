@@ -85,5 +85,35 @@ namespace Popolo.IO.Tests.Climate.Weather
       Assert.Throws<PopoloArgumentException>(
           () => reader.Read("some.csv", null!));
     }
+
+    /// <summary>
+    /// CsvWeatherReader を介して、options 経由で WeatherCompleter が
+    /// 呼び出されること (大気圧補完) を検証する。
+    /// </summary>
+    [Fact]
+    public void Read_WithOptions_InvokesCompleter()
+    {
+      // 気圧なしの CSV を作り、elevation 補完を有効にして読み戻す
+      var original = new WeatherData(
+          new WeatherStationInfo("Tokyo", 35.68, 139.77, 40.0),
+          WeatherDataSource.Csv);
+      original.Add(new WeatherRecordBuilder()
+          .SetTime(new DateTime(2026, 6, 21, 12, 0, 0))
+          .SetDryBulbTemperature(25.0)
+          .ToRecord());
+
+      using var mem = new MemoryStream();
+      new CsvWeatherWriter().Write(original, mem);
+      mem.Position = 0;
+
+      var reader = new CsvWeatherReader();
+      var data = reader.Read(mem, new WeatherReadOptions
+      {
+        EstimateAtmosphericPressureFromElevation = true,
+      });
+
+      Assert.True(data.Records[0].Has(WeatherField.AtmosphericPressure));
+      Assert.True(data.Records[0].IsEstimated(WeatherField.AtmosphericPressure));
+    }
   }
 }

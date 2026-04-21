@@ -112,7 +112,9 @@ namespace Popolo.IO.Climate.Weather
 
       using var reader = new StreamReader(stream, leaveOpen: true);
       string content = reader.ReadToEnd();
-      return ParseCore(content);
+      var data = ParseCore(content);
+      WeatherCompleter.Apply(data, options);
+      return data;
     }
 
     private WeatherData ParseCore(string content)

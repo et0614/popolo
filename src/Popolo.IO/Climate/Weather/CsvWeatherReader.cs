@@ -73,7 +73,9 @@ namespace Popolo.IO.Climate.Weather
         throw new PopoloArgumentException("options must not be null.", nameof(options));
 
       using var reader = new StreamReader(stream, leaveOpen: true);
-      return ReadCore(reader);
+      var data = ReadCore(reader);
+      WeatherCompleter.Apply(data, options);
+      return data;
     }
 
     private WeatherData ReadCore(TextReader reader)
