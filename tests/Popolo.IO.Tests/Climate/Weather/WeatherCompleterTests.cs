@@ -336,7 +336,7 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
-    #region 駅情報未設定時
+    #region 駅情報未設定時 / フォールバック
 
     [Fact]
     public void NoStationLocation_SkipsSolarCompletions()
@@ -354,6 +354,44 @@ namespace Popolo.IO.Tests.Climate.Weather
       var r = data.Records[0];
       Assert.False(r.Has(WeatherField.DirectNormalRadiation));
       Assert.False(r.Has(WeatherField.DiffuseHorizontalRadiation));
+    }
+
+    [Fact]
+    public void FallbackStation_EnablesSolarCompletionsWhenFileHasNoStation()
+    {
+      // TMY1 / HASP 相当: station 情報がないデータセット
+      var data = new WeatherData();
+      data.Add(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetGlobalHorizontalRadiation(700)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        Station = TokyoStation,
+        SplitGlobalRadiationIntoDirectAndDiffuse = true,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.DirectNormalRadiation));
+      Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
+      // 補完に先立って Station が設定されていること
+      Assert.Equal("Tokyo", data.Station.Name);
+    }
+
+    [Fact]
+    public void FallbackStation_DoesNotOverrideFileProvidedStation()
+    {
+      // ファイル由来の Station が既にあれば options.Station は無視される
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetGlobalHorizontalRadiation(700)));
+
+      var other = new WeatherStationInfo("Osaka", 34.7, 135.5, 10);
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        Station = other,
+        SplitGlobalRadiationIntoDirectAndDiffuse = true,
+      });
+
+      Assert.Equal("Tokyo", data.Station.Name);   // 元の Tokyo のまま
     }
 
     #endregion
