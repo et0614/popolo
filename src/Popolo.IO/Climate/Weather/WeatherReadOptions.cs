@@ -61,6 +61,26 @@ namespace Popolo.IO.Climate.Weather
     public Popolo.Core.Climate.Weather.WeatherStationInfo? Station { get; set; }
 
     /// <summary>
+    /// How the timestamp of each record relates to its observation interval;
+    /// governs how <see cref="WeatherCompleter"/> averages solar geometry
+    /// across the interval.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Defaults to <see cref="Popolo.IO.Climate.Weather.TimestampConvention.EndOfInterval"/>,
+    /// matching EPW, TMY1, HASP, and WEA2.
+    /// </para>
+    /// <para>
+    /// Only the solar-dependent derivations
+    /// (<see cref="CompleteRadiationComponentsByGeometry"/> and
+    /// <see cref="SplitGlobalRadiationIntoDirectAndDiffuse"/>) consult this
+    /// setting; pressure and atmospheric-radiation derivations are
+    /// time-local and unaffected.
+    /// </para>
+    /// </remarks>
+    public TimestampConvention TimestampConvention { get; set; } = TimestampConvention.EndOfInterval;
+
+    /// <summary>
     /// If <c>true</c> and atmospheric pressure is not recorded in the source
     /// format, the reader estimates pressure from the station elevation using
     /// the standard atmosphere model. Default is <c>false</c>.

@@ -413,5 +413,189 @@ namespace Popolo.IO.Tests.Climate.Weather
     }
 
     #endregion
+
+    // ================================================================
+    #region 区間積分された sin(altitude) の使用
+
+    /// <summary>
+    /// EndOfInterval 規約と 1 時間の NominalInterval を設定すると、r.Time の
+    /// 瞬時値でなく区間中点相当の太陽位置に基づいて DHI が補完される。
+    /// ghi = dni · sinH(13:00) + dhi は 13:00 時点の恒等式だが、区間
+    /// (12:00, 13:00] の平均 sin(h) は 12:30 時点のそれに近いため、
+    /// 区間平均を使うと復元される DHI は元の dhi と一致しなくなる。
+    /// </summary>
+    [Fact]
+    public void EndOfInterval_UsesIntervalAveragedSinH_NotInstantAtRecordTime()
+    {
+      var t = new DateTime(2026, 6, 21, 13, 0, 0);
+      double sinAtRecordTime = Math.Sin(Sun.GetSunAltitude(
+          TokyoStation.Latitude, TokyoStation.Longitude, 135.0, t));
+      double dni = 800.0, dhiTrue = 100.0;
+      double ghi = dni * sinAtRecordTime + dhiTrue;  // 13:00 瞬時の恒等式
+
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      data.Add(Build(t, b => b
+          .SetGlobalHorizontalRadiation(ghi)
+          .SetDirectNormalRadiation(dni)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        CompleteRadiationComponentsByGeometry = true,
+        TimestampConvention = TimestampConvention.EndOfInterval,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
+      // sinH(12:30) < sinH(13:00) なので補完された DHI は dhiTrue より大きい
+      Assert.True(r.DiffuseHorizontalRadiation > dhiTrue);
+    }
+
+    /// <summary>
+    /// Instant 規約では区間積分を行わず、r.Time の瞬時 sin(h) をそのまま使う。
+    /// </summary>
+    [Fact]
+    public void InstantConvention_DoesNotAverageAcrossInterval()
+    {
+      var t = new DateTime(2026, 6, 21, 13, 0, 0);
+      double sinH = Math.Sin(Sun.GetSunAltitude(
+          TokyoStation.Latitude, TokyoStation.Longitude, 135.0, t));
+      double dni = 800.0, dhiTrue = 100.0;
+      double ghi = dni * sinH + dhiTrue;
+
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),   // あっても Instant なら無視
+      };
+      data.Add(Build(t, b => b
+          .SetGlobalHorizontalRadiation(ghi)
+          .SetDirectNormalRadiation(dni)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        CompleteRadiationComponentsByGeometry = true,
+        TimestampConvention = TimestampConvention.Instant,
+      });
+
+      Assert.Equal(dhiTrue, data.Records[0].DiffuseHorizontalRadiation, precision: 3);
+    }
+
+    /// <summary>
+    /// NominalInterval が未設定なら、TimestampConvention にかかわらず
+    /// 瞬時評価にフォールバックする。
+    /// </summary>
+    [Fact]
+    public void NoNominalInterval_FallsBackToInstantEvaluation()
+    {
+      var t = new DateTime(2026, 6, 21, 13, 0, 0);
+      double sinH = Math.Sin(Sun.GetSunAltitude(
+          TokyoStation.Latitude, TokyoStation.Longitude, 135.0, t));
+      double dni = 800.0, dhiTrue = 100.0;
+      double ghi = dni * sinH + dhiTrue;
+
+      // NominalInterval を設定しない
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv);
+      data.Add(Build(t, b => b
+          .SetGlobalHorizontalRadiation(ghi)
+          .SetDirectNormalRadiation(dni)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        CompleteRadiationComponentsByGeometry = true,
+        TimestampConvention = TimestampConvention.EndOfInterval,
+      });
+
+      Assert.Equal(dhiTrue, data.Records[0].DiffuseHorizontalRadiation, precision: 3);
+    }
+
+    /// <summary>
+    /// 夜間全体の区間 (r.Time が夜明け前で、前 1 時間も全て夜) は
+    /// sinHeff = 0 となり、GHI 補完は DNI 項が消えて DHI そのもの、
+    /// DHI 補完は GHI そのものになる (物理的に正しい: 夜間は DNI=0)。
+    /// </summary>
+    [Fact]
+    public void EndOfInterval_NightInterval_ZeroSinH_StillCompletesSafely()
+    {
+      var t = new DateTime(2026, 6, 21, 2, 0, 0);    // JST 2 時、夜
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      // GHI=0, DNI=0 の夜間データ → DHI=0 が期待値
+      data.Add(Build(t, b => b
+          .SetGlobalHorizontalRadiation(0)
+          .SetDirectNormalRadiation(0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        CompleteRadiationComponentsByGeometry = true,
+        TimestampConvention = TimestampConvention.EndOfInterval,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
+      Assert.Equal(0.0, r.DiffuseHorizontalRadiation);
+    }
+
+    /// <summary>
+    /// 夜間区間の Erbs split は両成分 0 を返し、estimated にマークする。
+    /// </summary>
+    [Fact]
+    public void EndOfInterval_NightInterval_Erbs_ReturnsZeroForBothComponents()
+    {
+      var t = new DateTime(2026, 6, 21, 2, 0, 0);
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      data.Add(Build(t, b => b.SetGlobalHorizontalRadiation(0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        SplitGlobalRadiationIntoDirectAndDiffuse = true,
+        TimestampConvention = TimestampConvention.EndOfInterval,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.DirectNormalRadiation));
+      Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
+      Assert.Equal(0.0, r.DirectNormalRadiation);
+      Assert.Equal(0.0, r.DiffuseHorizontalRadiation);
+    }
+
+    /// <summary>
+    /// 日の出を跨ぐ区間 (前 30 分は夜、後 30 分は日出後) では、区間平均の
+    /// sinHeff は小さいが 0 ではない。この場合 Erbs は非ゼロの DNI/DHI を
+    /// 返し、DNI = 0 への強制 fallback (sinHeff &lt; MinEffectiveSinH) は
+    /// ほぼ確実に発動しない程度の値を出す。
+    /// </summary>
+    [Fact]
+    public void EndOfInterval_SunriseCrossingInterval_ProducesNonzeroErbsSplit()
+    {
+      // Tokyo 夏至の日の出は約 04:25 JST。区間 (04:00, 05:00] は後半が日出後。
+      var t = new DateTime(2026, 6, 21, 5, 0, 0);
+      var data = new WeatherData(TokyoStation, WeatherDataSource.Csv)
+      {
+        NominalInterval = TimeSpan.FromHours(1),
+      };
+      data.Add(Build(t, b => b.SetGlobalHorizontalRadiation(50)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        SplitGlobalRadiationIntoDirectAndDiffuse = true,
+        TimestampConvention = TimestampConvention.EndOfInterval,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.DirectNormalRadiation >= 0);
+      Assert.True(r.DiffuseHorizontalRadiation > 0);
+      // エネルギー保存: DNI·sinHeff + DHI = GHI (Erbs はこの恒等式を満たす)
+      // ただし sinHeff を外部で再現するのは難しいので DHI ≤ GHI の緩い上限のみ検証
+      Assert.True(r.DiffuseHorizontalRadiation <= 50 + 1e-6);
+    }
+
+    #endregion
   }
 }
