@@ -23,6 +23,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
+using Popolo.IO.Climate.Weather;
 using Popolo.Core.Building;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Physics;
@@ -131,67 +133,68 @@ namespace Popolo.Core.Validation.BESTEST
     {
       Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-      // TMYデータからBESTEST用CSVを生成
-      //string tmyPath = FindFile("DRYCOLD.TMY", "WeatherData");
-      //Tmy1WeatherReader reader = new Tmy1WeatherReader();
-      //WeatherData data = reader.Read("DRYCOLD.TMY");
-      //var writer = new CsvWeatherWriter { AlwaysEmitSourceTime = data.IsTypicalYear };
-      //writer.Write(data, "BESTestWeather.csv");
-      string templatePath = FindFile("Result.xlsx", "ResultTemplate");
+      // TMYデータの読み込み
+      Tmy1WeatherReader reader = new Tmy1WeatherReader();
+      var opts = new WeatherReadOptions
+      {
+        Station = new WeatherStationInfo("BestestStation", 39 + 8d / 60d, 360 - 104 + 9d / 60d, 1609),
+        CompleteRadiationComponentsByGeometry = true,
+      };
+      WeatherData wData = reader.Read("DRYCOLD.TMY", opts);
 
       // テスト実行
       Directory.CreateDirectory("Result");
 
       // 実行するケースをここで選択（コメントアウトで除外）
       //Test(TestCase.C600, "Result\\C600.csv");
-      
-      Test(TestCase.C195,      "Result\\C195.csv");
-      Test(TestCase.C200,      "Result\\C200.csv");
-      Test(TestCase.C210,      "Result\\C210.csv");
-      Test(TestCase.C215,      "Result\\C215.csv");
-      Test(TestCase.C220,      "Result\\C220.csv");
-      Test(TestCase.C230,      "Result\\C230.csv");
-      Test(TestCase.C240,      "Result\\C240.csv");
-      Test(TestCase.C250,      "Result\\C250.csv");
-      Test(TestCase.C270,      "Result\\C270.csv");
-      Test(TestCase.C280,      "Result\\C280.csv");
-      Test(TestCase.C290,      "Result\\C290.csv");
-      Test(TestCase.C300,      "Result\\C300.csv");
-      Test(TestCase.C310,      "Result\\C310.csv");
-      Test(TestCase.C320,      "Result\\C320.csv");
-      Test(TestCase.C395,      "Result\\C395.csv");
-      Test(TestCase.C400,      "Result\\C400.csv");
-      Test(TestCase.C410,      "Result\\C410.csv");
-      Test(TestCase.C420,      "Result\\C420.csv");
-      Test(TestCase.C430,      "Result\\C430.csv");
-      Test(TestCase.C440,      "Result\\C440.csv");
-      Test(TestCase.C600,      "Result\\C600.csv");
-      Test(TestCase.C610,      "Result\\C610.csv");
-      Test(TestCase.C620,      "Result\\C620.csv");
-      Test(TestCase.C630,      "Result\\C630.csv");
-      Test(TestCase.C640,      "Result\\C640.csv");
-      Test(TestCase.C650,      "Result\\C650.csv");
-      Test(TestCase.C800,      "Result\\C800.csv");
-      Test(TestCase.C810,      "Result\\C810.csv");
-      Test(TestCase.C900,      "Result\\C900.csv");
-      Test(TestCase.C910,      "Result\\C910.csv");
-      Test(TestCase.C920,      "Result\\C920.csv");
-      Test(TestCase.C930,      "Result\\C930.csv");
-      Test(TestCase.C940,      "Result\\C940.csv");
-      Test(TestCase.C950,      "Result\\C950.csv");
-      Test(TestCase.C600FF,    "Result\\C600FF.csv");
-      Test(TestCase.C650FF,    "Result\\C650FF.csv");
-      Test(TestCase.C900FF,    "Result\\C900FF.csv");
-      Test(TestCase.C950FF,    "Result\\C950FF.csv");
-      Test(TestCase.C960,      "Result\\C960.csv");
-      Test(TestCase.C990,      "Result\\C990.csv");
-      Test(TestCase.C900_J1_1, "Result\\C900_J1_1.csv");
-      Test(TestCase.C900_J1_2, "Result\\C900_J1_2.csv");
-      Test(TestCase.C900_J2,   "Result\\C900_J2.csv");
-      Test(TestCase.C900_J3,   "Result\\C900_J3.csv");
-      
+
+      Test(wData, TestCase.C195,      "Result\\C195.csv");
+      Test(wData, TestCase.C200,      "Result\\C200.csv");
+      Test(wData, TestCase.C210,      "Result\\C210.csv");
+      Test(wData, TestCase.C215,      "Result\\C215.csv");
+      Test(wData, TestCase.C220,      "Result\\C220.csv");
+      Test(wData, TestCase.C230,      "Result\\C230.csv");
+      Test(wData, TestCase.C240,      "Result\\C240.csv");
+      Test(wData, TestCase.C250,      "Result\\C250.csv");
+      Test(wData, TestCase.C270,      "Result\\C270.csv");
+      Test(wData, TestCase.C280,      "Result\\C280.csv");
+      Test(wData, TestCase.C290,      "Result\\C290.csv");
+      Test(wData, TestCase.C300,      "Result\\C300.csv");
+      Test(wData, TestCase.C310,      "Result\\C310.csv");
+      Test(wData, TestCase.C320,      "Result\\C320.csv");
+      Test(wData, TestCase.C395,      "Result\\C395.csv");
+      Test(wData, TestCase.C400,      "Result\\C400.csv");
+      Test(wData, TestCase.C410,      "Result\\C410.csv");
+      Test(wData, TestCase.C420,      "Result\\C420.csv");
+      Test(wData, TestCase.C430,      "Result\\C430.csv");
+      Test(wData, TestCase.C440,      "Result\\C440.csv");
+      Test(wData, TestCase.C600,      "Result\\C600.csv");
+      Test(wData, TestCase.C610,      "Result\\C610.csv");
+      Test(wData, TestCase.C620,      "Result\\C620.csv");
+      Test(wData, TestCase.C630,      "Result\\C630.csv");
+      Test(wData, TestCase.C640,      "Result\\C640.csv");
+      Test(wData, TestCase.C650,      "Result\\C650.csv");
+      Test(wData, TestCase.C800,      "Result\\C800.csv");
+      Test(wData, TestCase.C810,      "Result\\C810.csv");
+      Test(wData, TestCase.C900,      "Result\\C900.csv");
+      Test(wData, TestCase.C910,      "Result\\C910.csv");
+      Test(wData, TestCase.C920,      "Result\\C920.csv");
+      Test(wData, TestCase.C930,      "Result\\C930.csv");
+      Test(wData, TestCase.C940,      "Result\\C940.csv");
+      Test(wData, TestCase.C950,      "Result\\C950.csv");
+      Test(wData, TestCase.C600FF,    "Result\\C600FF.csv");
+      Test(wData, TestCase.C650FF,    "Result\\C650FF.csv");
+      Test(wData, TestCase.C900FF,    "Result\\C900FF.csv");
+      Test(wData, TestCase.C950FF,    "Result\\C950FF.csv");
+      Test(wData, TestCase.C960,      "Result\\C960.csv");
+      Test(wData, TestCase.C990,      "Result\\C990.csv");
+      Test(wData, TestCase.C900_J1_1, "Result\\C900_J1_1.csv");
+      Test(wData, TestCase.C900_J1_2, "Result\\C900_J1_2.csv");
+      Test(wData, TestCase.C900_J2,   "Result\\C900_J2.csv");
+      Test(wData, TestCase.C900_J3,   "Result\\C900_J3.csv");
 
       // 結果をExcelに転記
+      string templatePath = FindFile("Result.xlsx", "ResultTemplate");
       if (File.Exists(templatePath))
         MakeBESTResultExcelSheet(templatePath);
     }
@@ -214,9 +217,12 @@ namespace Popolo.Core.Validation.BESTEST
 
     #region 年間計算処理
 
-    public static void Test(TestCase testCase, string outputFilePath)
+    public static void Test(WeatherData wData, TestCase testCase, string outputFilePath)
     {
       Console.Write("Testing Case " + testCase.ToString() + "...");
+
+      //地中温度計算
+      Ground ground = Ground.FromWeatherData(wData);
 
       bool isBangBang = (testCase & TestCase.ControlBangBang) == testCase;
       bool isDeadBand = (testCase & TestCase.ControlDeadBand) == testCase;
@@ -242,7 +248,6 @@ namespace Popolo.Core.Validation.BESTEST
       MakeBuilding(testCase, out mRoom, out zones, out walls, out windows);
       BuildingThermalModel bModel = new BuildingThermalModel(new MultiRoom[] { mRoom });
 
-      using (StreamReader sReader = new StreamReader("BESTestWeather.csv"))
       using (StreamWriter sWriter = new StreamWriter(outputFilePath, false, Encoding.GetEncoding("Shift_JIS")))
       {
         // ヘッダ行
@@ -253,29 +258,26 @@ namespace Popolo.Core.Validation.BESTEST
         if (testCase == TestCase.C960) sWriter.Write(",SunZone室温[C],SunZone顕熱負荷[W]");
         sWriter.WriteLine();
 
-        string sBuff;
-        string[] strs;
-        sReader.ReadLine(); // ヘッダスキップ
         DateTime dt = new DateTime(1999, 1, 1, 0, 30, 0);
         double prevDBT = 0;
         double prevAHD = 0;
         bool isStarting = true;
 
-        while ((sBuff = sReader.ReadLine()) != null)
+        for (int wi = 0; wi < wData.Count; wi++)
         {
           sWriter.Write(dt.ToString());
 
-          strs = sBuff.Split(',');
-          double dbt = (double.Parse(strs[2]) + prevDBT) / 2d;
-          double ahd = (double.Parse(strs[3]) + prevAHD) / 2d;
-          double iDn = double.Parse(strs[4]);
-          double iHol = double.Parse(strs[5]);
-          double iSky = double.Parse(strs[6]);
-          double nr = double.Parse(strs[8]);
-          double gdbt1 = double.Parse(strs[10]); // 地中温度（0.675 m）
-          double gdbt2 = double.Parse(strs[11]); // 地中温度（1.350 m）
-          prevDBT = double.Parse(strs[2]);
-          prevAHD = double.Parse(strs[3]);
+          double dbt = (wData.Records[wi].DryBulbTemperature + prevDBT) / 2d;
+          double ahd = (0.001 * wData.Records[wi].HumidityRatio + prevAHD) / 2d;
+          double iDn = wData.Records[wi].DirectNormalRadiation;
+          double iHol = wData.Records[wi].GlobalHorizontalRadiation;
+          double iSky = wData.Records[wi].DiffuseHorizontalRadiation;
+          double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(ahd, wData.Records[wi].AtmosphericPressure);
+          double nr = NO_NOC_RAD ? 0 : Sky.GetNocturnalRadiation(dbt, (int)(10 * wData.Records[wi].CloudCover), wvp);
+          double gdbt1 = ground.GetTemperature(dt.DayOfYear, 0.675); // 地中温度（0.675 m）
+          double gdbt2 = ground.GetTemperature(dt.DayOfYear, 1.350); // 地中温度（1.350 m）
+          prevDBT = wData.Records[wi].DryBulbTemperature;
+          prevAHD = 0.001 * wData.Records[wi].HumidityRatio;
 
           // 外気条件更新
           bModel.UpdateOutdoorCondition(dt, sun, dbt, ahd, nr);
@@ -339,10 +341,7 @@ namespace Popolo.Core.Validation.BESTEST
           // 室温制御
           bModel.ControlHeatSupply(0, 0, 0); // まず自然室温を予測
           bModel.ForecastHeatTransfer();
-          if (isBangBang)
-          {
-            bModel.ControlDryBulbTemperature(0, 0, 20);
-          }
+          if (isBangBang) bModel.ControlDryBulbTemperature(0, 0, 20);
           else if (isDeadBand)
           {
             if (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);
@@ -630,6 +629,7 @@ namespace Popolo.Core.Validation.BESTEST
           windows[i].SetGlassResistance(1, 0.003);
           windows[i].SetAirGapResistance(0, 0.1588);
           windows[i].LongWaveEmissivityF = extlwEmissivity;
+          windows[i].LongWaveEmissivityB = intlwEmissivity; //2026.04.21 Bug Fixed
           windows[i].ConvectiveCoefficientF = aowin;
           windows[i].RadiativeCoefficientF = 0;
           windows[i].ConvectiveCoefficientB = 3.16;
