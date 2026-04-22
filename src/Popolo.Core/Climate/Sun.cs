@@ -1033,6 +1033,44 @@ namespace Popolo.Core.Climate
         => SolarConstant * (1.0 + 0.033 * Math.Cos(2.0 * Math.PI * daysOfYear / 365.0));
 
     /// <summary>
+    /// Gets the relative optical air mass [-] at the given solar altitude
+    /// using the Kasten &amp; Young (1989) approximation.
+    /// </summary>
+    /// <param name="altitude">Solar altitude above the horizon [radian].</param>
+    /// <returns>
+    /// Relative air mass [-]. Equals 1 when the sun is at zenith, grows
+    /// with decreasing altitude, and is capped with the Kasten–Young
+    /// correction term to remain finite down to the horizon.
+    /// When <paramref name="altitude"/> ≤ 0 (sun below the horizon) the
+    /// return value is the horizon limit, not a formal extrapolation.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Formula (Kasten, F. and Young, A. T., "Revised optical air mass
+    /// tables and approximation formula," Applied Optics, Vol. 28, No. 22,
+    /// 1989, pp. 4735-4738):
+    /// </para>
+    /// <code>
+    /// AM = 1 / [ sin(h) + 0.50572 · (h_deg + 6.07995)^(-1.6364) ]
+    /// </code>
+    /// <para>
+    /// where <c>h</c> is the solar altitude angle and <c>h_deg</c> is the
+    /// same altitude expressed in degrees. This form is widely used by
+    /// solar-irradiance libraries (pvlib, SAM, etc.) and behaves smoothly
+    /// near the horizon, where the simpler <c>1 / sin(h)</c> approximation
+    /// diverges.
+    /// </para>
+    /// </remarks>
+    public static double GetAirMass(double altitude)
+    {
+      // 地平線以下は地平線 (h = 0°) の値で頭打ちにする。
+      double h = altitude < 0 ? 0 : altitude;
+      double hDeg = h * 180.0 / Math.PI;
+      double denom = Math.Sin(h) + 0.50572 * Math.Pow(hDeg + 6.07995, -1.6364);
+      return 1.0 / denom;
+    }
+
+    /// <summary>
     /// Gets the direct normal irradiance [W/m²] from altitude, transmissivity, and day of year.
     /// </summary>
     /// <param name="altitude">Solar altitude [radian]</param>
