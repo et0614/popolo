@@ -192,6 +192,7 @@ namespace Popolo.Core.Validation.BESTEST
       Test(wData, TestCase.C900_J1_2, "Result\\C900_J1_2.csv");
       Test(wData, TestCase.C900_J2,   "Result\\C900_J2.csv");
       Test(wData, TestCase.C900_J3,   "Result\\C900_J3.csv");
+      
 
       // 結果をExcelに転記
       string templatePath = FindFile("Result.xlsx", "ResultTemplate");
@@ -267,8 +268,8 @@ namespace Popolo.Core.Validation.BESTEST
         {
           sWriter.Write(dt.ToString());
 
-          double dbt = (wData.Records[wi].DryBulbTemperature + prevDBT) / 2d;
-          double ahd = (0.001 * wData.Records[wi].HumidityRatio + prevAHD) / 2d;
+          double dbt = wData.Records[wi].DryBulbTemperature;
+          double ahd = 0.001 * wData.Records[wi].HumidityRatio;
           double iDn = wData.Records[wi].DirectNormalRadiation;
           double iHol = wData.Records[wi].GlobalHorizontalRadiation;
           double iSky = wData.Records[wi].DiffuseHorizontalRadiation;
@@ -276,8 +277,6 @@ namespace Popolo.Core.Validation.BESTEST
           double nr = NO_NOC_RAD ? 0 : Sky.GetNocturnalRadiation(dbt, (int)(10 * wData.Records[wi].CloudCover), wvp);
           double gdbt1 = ground.GetTemperature(dt.DayOfYear, 0.675); // 地中温度（0.675 m）
           double gdbt2 = ground.GetTemperature(dt.DayOfYear, 1.350); // 地中温度（1.350 m）
-          prevDBT = wData.Records[wi].DryBulbTemperature;
-          prevAHD = 0.001 * wData.Records[wi].HumidityRatio;
 
           // 外気条件更新
           bModel.UpdateOutdoorCondition(dt, sun, dbt, ahd, nr);
@@ -328,15 +327,32 @@ namespace Popolo.Core.Validation.BESTEST
           }
 
           // 熱流の向きに応じた室内側対流熱伝達率の更新
-          // （SunspaceとGroundCouplingは非対応）
-          if (walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature)
-            walls[0].ConvectiveCoefficientB = 6.13 - 5.13;
+          const double kcLow = 6.13 - 5.13; // 滞留
+          const double kcHigh = 9.26 - 5.13; // 上昇流・下降流
+          // Sunspace
+          if (testCase == TestCase.C960)
+          {
+            // 床1・2
+            if (walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature) walls[0].ConvectiveCoefficientB = kcLow;
+            else walls[0].ConvectiveCoefficientB = kcHigh;
+            if (walls[1].Temperatures[walls[1].NodeCount - 1] < zones[1].Temperature) walls[1].ConvectiveCoefficientB = kcLow;
+            else walls[1].ConvectiveCoefficientB = kcHigh;
+            // 屋根1・2
+            if (walls[2].Temperatures[walls[2].NodeCount - 1] < zones[0].Temperature) walls[2].ConvectiveCoefficientB = kcHigh;
+            else walls[2].ConvectiveCoefficientB = kcLow;
+            if (walls[3].Temperatures[walls[3].NodeCount - 1] < zones[1].Temperature) walls[3].ConvectiveCoefficientB = kcHigh;
+            else walls[3].ConvectiveCoefficientB = kcLow;
+          }
+          // その他
           else
-            walls[0].ConvectiveCoefficientB = 9.26 - 5.13;
-          if (walls[1].Temperatures[walls[1].NodeCount - 1] < zones[0].Temperature)
-            walls[1].ConvectiveCoefficientB = 9.26 - 5.13;
-          else
-            walls[1].ConvectiveCoefficientB = 6.13 - 5.13;
+          {
+            // 床
+            if (walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature) walls[0].ConvectiveCoefficientB = kcLow;
+            else walls[0].ConvectiveCoefficientB = kcHigh;
+            // 天井
+            if (walls[1].Temperatures[walls[1].NodeCount - 1] < zones[0].Temperature) walls[1].ConvectiveCoefficientB = kcHigh;
+            else walls[1].ConvectiveCoefficientB = kcLow;
+          }
 
           // 室温制御
           bModel.ControlHeatSupply(0, 0, 0); // まず自然室温を予測
@@ -402,132 +418,6 @@ namespace Popolo.Core.Validation.BESTEST
         }
       }
       Console.WriteLine("Done.");
-    }
-
-    #endregion
-
-    #region 気象データ変換処理
-
-    /// <summary>TMY1形式のCSVをBESTEST用気象ファイルに変換する。</summary>
-    public static void MakeBESTestWeatherFile(string inputFile, string outputFile)
-    {
-      string[] sl;
-      using (StreamReader sr = new StreamReader(inputFile))
-        sl = sr.ReadToEnd().Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-
-      using (StreamWriter sw = new StreamWriter(outputFile, false, Encoding.GetEncoding("Shift_JIS")))
-      {
-        sw.WriteLine("日付,時刻,乾球温度[C],絶対湿度[kg/kg],法線面直達日射[W/m2],水平面全天日射[W/m2],水平面拡散日射[W/m2],雲量[-],夜間放射[W/m2],太陽高度[radian],地中温度(0.675m)[C],地中温度(1.35m)[C],地中温度(2.35m)[C]");
-
-        Sun sun = new Sun(39 + 8d / 60d, 360 - 104 + 9d / 60d, 360 - 105);
-        DateTime dTime;
-
-        // 年平均気温・年較差・最大平均気温日を計算
-        double dbt;
-        double dbtAve = 0;
-        double dbtMin = 100;
-        double dbtMax = -100;
-        double dbtMinSum = 0;
-        double dbtMaxSum = 0;
-        double maxDay = 1;
-        double daySum = 0;
-        double maxDaySum = 0;
-        double[] maxAve = new double[12];
-        double[] minAve = new double[12];
-        dTime = new DateTime(1999, 1, 1, 0, 0, 0);
-        int days = 0;
-
-        for (int i = 1; i < sl.Length; i++)
-        {
-          string[] strs = sl[i].Split(',');
-          dbt = double.Parse(strs[11]);
-          dbtAve += dbt;
-          dbtMin = Math.Min(dbt, dbtMin);
-          dbtMax = Math.Max(dbt, dbtMax);
-          daySum += dbt;
-
-          if (dTime.Hour == 23)
-          {
-            days++;
-            dbtMaxSum += dbtMax;
-            dbtMinSum += dbtMin;
-            dbtMax = -100;
-            dbtMin = 100;
-            if (maxDaySum < daySum) { maxDaySum = daySum; maxDay = (i / 24) + 1; }
-            daySum = 0;
-          }
-          dTime = dTime.AddHours(1);
-
-          if (dTime.Day == 1 && dTime.Hour == 0)
-          {
-            int mIdx = dTime.Month == 1 ? 11 : dTime.Month - 2;
-            maxAve[mIdx] = dbtMaxSum / days;
-            minAve[mIdx] = dbtMinSum / days;
-            dbtMaxSum = dbtMinSum = 0;
-            days = 0;
-          }
-        }
-        dbtAve /= 8760d;
-        foreach (double v in maxAve) dbtMax = Math.Max(v, dbtMax);
-        foreach (double v in minAve) dbtMin = Math.Min(v, dbtMin);
-
-        // 気象データ行を書き出す
-        for (int i = 1; i < sl.Length; i++)
-        {
-          string[] strs = sl[i].Split(',');
-          dTime = new DateTime(
-            int.Parse(strs[0]), int.Parse(strs[1]), int.Parse(strs[2]),
-            int.Parse(strs[3]), int.Parse(strs[4]), 0);
-          sun.Update(dTime.AddMinutes(30));
-          sw.Write(dTime.ToShortDateString() + "," + dTime.ToShortTimeString() + ",");
-
-          dbt = double.Parse(strs[11]);
-          sw.Write(dbt + ",");
-
-          double dpt = double.Parse(strs[12]);
-          double atm = double.Parse(strs[10]);
-          double ahd = MoistAir.GetSaturationHumidityRatioFromDryBulbTemperature(dpt, atm);
-          sw.Write(ahd + ",");
-
-          sun.DirectNormalRadiation = strs[5] == "" ? 0 : double.Parse(strs[5]);
-          sun.GlobalHorizontalRadiation = strs[7] == "" ? 0 : double.Parse(strs[7]);
-          sw.Write(sun.DirectNormalRadiation + ",");
-          sw.Write(sun.GlobalHorizontalRadiation + ",");
-
-          // 日の出・日没の補正
-          DateTime sRise = sun.GetSunRiseTime();
-          DateTime sSet = sun.GetSunSetTime();
-          if (sRise.Hour == sun.CurrentDateTime.Hour) sun.Update(dTime.AddMinutes(30 + 0.5 * sRise.Minute));
-          if (sSet.Hour == sun.CurrentDateTime.Hour) sun.Update(dTime.AddMinutes(0.5 * sSet.Minute));
-          sw.Write(Math.Max(0, Sun.GetDiffuseHorizontalRadiation(
-            sun.DirectNormalRadiation, sun.GlobalHorizontalRadiation, sun.Altitude)) + ",");
-
-          int cc = (int)(double.Parse(strs[15]) * 10);
-          if (cc > 10) cc = 10;
-          sw.Write(cc + ",");
-
-          double wbp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(ahd, atm);
-          double nr = NO_NOC_RAD ? 0 : Sky.GetNocturnalRadiation(dbt, cc, wbp);
-          sw.Write(nr + ",");
-
-          sw.Write(sun.Altitude + ",");
-
-          // 地中温度[C]（Kusuda-Achenbach式）
-          double nd = dTime.DayOfYear + dTime.Hour / 24d + (dTime.Minute + 30d) / 24d / 60d;
-          sw.Write(GroundTemp(dbtAve, dbtMax, dbtMin, nd, maxDay, 0.675) + ",");
-          sw.Write(GroundTemp(dbtAve, dbtMax, dbtMin, nd, maxDay, 1.35) + ",");
-          sw.Write(GroundTemp(dbtAve, dbtMax, dbtMin, nd, maxDay, 2.65) + ",");
-          sw.WriteLine();
-        }
-      }
-    }
-
-    /// <summary>Kusuda-Achenbach式で地中温度[°C]を計算する。</summary>
-    private static double GroundTemp(double ave, double max, double min, double dayOfYear, double maxDay, double depth)
-    {
-      return ave + 0.5 * (max - min)
-        * Math.Exp(-0.526 * depth)
-        * Math.Cos((dayOfYear - maxDay - 30.556 * depth) * 0.017214);
     }
 
     #endregion
@@ -701,21 +591,22 @@ namespace Popolo.Core.Validation.BESTEST
       zones[1].VentilationRate = zones[1].AirMass * 0.5 / 3600;
 
       // 壁
-      WallLayer[] exwL, flwL, rfwL;
-      MakeWallLayer(TestCase.C960, out exwL, out flwL, out rfwL);
+      WallLayer[] exwL_L, flwL_L, rfwL_L, exwL_H, flwL_H, rfwL_H;
+      MakeWallLayer(TestCase.C200, out exwL_L, out flwL_L, out rfwL_L); //軽量系壁材
+      MakeWallLayer(TestCase.C900, out exwL_H, out flwL_H, out rfwL_H); //重量系壁材
       WallLayer[] cwL = new[] { new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2) };
 
       walls = new Wall[11];
-      walls[0] = new Wall(48, flwL); // 床1
-      walls[1] = new Wall(16, flwL); // 床2
-      walls[2] = new Wall(48, rfwL); // 屋根1
-      walls[3] = new Wall(16, rfwL); // 屋根2
-      walls[4] = new Wall(8 * 2.7, exwL); // 北外壁
-      walls[5] = new Wall(8 * 2.7 - 6 - 6, exwL); // 南外壁
-      walls[6] = new Wall(6 * 2.7, exwL); // 東外壁1
-      walls[7] = new Wall(2 * 2.7, exwL); // 東外壁2
-      walls[8] = new Wall(6 * 2.7, exwL); // 西外壁1
-      walls[9] = new Wall(2 * 2.7, exwL); // 西外壁2
+      walls[0] = new Wall(48, flwL_L); // 床1
+      walls[1] = new Wall(16, flwL_H); // 床2
+      walls[2] = new Wall(48, rfwL_L); // 屋根1
+      walls[3] = new Wall(16, rfwL_H); // 屋根2
+      walls[4] = new Wall(8 * 2.7, exwL_L); // 北外壁
+      walls[5] = new Wall(8 * 2.7 - 6 - 6, exwL_H); // 南外壁
+      walls[6] = new Wall(6 * 2.7, exwL_L); // 東外壁1
+      walls[7] = new Wall(2 * 2.7, exwL_H); // 東外壁2
+      walls[8] = new Wall(6 * 2.7, exwL_L); // 西外壁1
+      walls[9] = new Wall(2 * 2.7, exwL_H); // 西外壁2
       walls[10] = new Wall(8 * 2.7, cwL);  // 共用壁
 
       for (int i = 0; i < walls.Length; i++)
@@ -743,6 +634,7 @@ namespace Popolo.Core.Validation.BESTEST
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
         windows[i].LongWaveEmissivityF = extlwEmissivity;
+        windows[i].LongWaveEmissivityB = intlwEmissivity; //2026.04.21 Bug Fixed
         windows[i].ConvectiveCoefficientF = aowin;
         windows[i].RadiativeCoefficientF = 0;
         windows[i].ConvectiveCoefficientB = 3.16;
@@ -811,6 +703,7 @@ namespace Popolo.Core.Validation.BESTEST
       // 壁
       WallLayer[] exwL, flwL, rfwL;
       MakeWallLayer(TestCase.C990, out exwL, out flwL, out rfwL);
+
       // 床は土壌層を追加
       flwL = new WallLayer[]
       {
@@ -829,7 +722,7 @@ namespace Popolo.Core.Validation.BESTEST
       walls[5] = new Wall(6 * 1.35, flwL); // 東外壁（地下）
       walls[6] = new Wall(6 * 1.35, exwL); // 西外壁（地上）
       walls[7] = new Wall(6 * 1.35, flwL); // 西外壁（地下）
-      walls[8] = new Wall(8 * 1.35, flwL); // 南外壁（地下）
+      walls[8] = new Wall(8 * 1.35, flwL); // 南外壁（地下）地上は無し
 
       for (int i = 0; i < walls.Length; i++)
       {
@@ -853,6 +746,7 @@ namespace Popolo.Core.Validation.BESTEST
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
         windows[i].LongWaveEmissivityF = extlwEmissivity;
+        windows[i].LongWaveEmissivityB = intlwEmissivity; //2026.04.21 Bug Fixed
         windows[i].ConvectiveCoefficientF = aowin;
         windows[i].RadiativeCoefficientF = 0;
         windows[i].ConvectiveCoefficientB = 3.16;
@@ -974,8 +868,8 @@ namespace Popolo.Core.Validation.BESTEST
       }
       floor = new WallLayer[]
       {
-        new WallLayer("Insulation1",     0.040, 0.001,                 0.500),
-        new WallLayer("Insulation2",     0.040, 0.001,                 0.5003),
+        new WallLayer("Insulation1",     0.040, 0.001,                 0.50035),
+        new WallLayer("Insulation2",     0.040, 0.001,                 0.50035),
         new WallLayer("Concrete Slab",   1.130, 1400d * 1000d / 1000d, 0.08 / 3),
         new WallLayer("Concrete Slab",   1.130, 1400d * 1000d / 1000d, 0.08 / 3),
         new WallLayer("Concrete Slab",   1.130, 1400d * 1000d / 1000d, 0.08 / 3),
