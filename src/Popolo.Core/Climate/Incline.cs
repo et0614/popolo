@@ -213,14 +213,66 @@ namespace Popolo.Core.Climate
 
     /// <summary>
     /// Gets the diffuse solar irradiance on the tilted surface [W/m²],
-    /// including sky diffuse and ground-reflected components.
+    /// including sky-diffuse and ground-reflected components. The sky
+    /// component uses the Perez (1990) all-weather anisotropic model by
+    /// default; see <see cref="GetDiffuseSolarIrradiance(IReadOnlySun, double, SkyDiffuseModel)"/>
+    /// for isotropic-sky behaviour.
     /// </summary>
     /// <param name="sun">Solar state</param>
     /// <param name="albedo">Ground reflectance [-]</param>
     /// <returns>Diffuse solar irradiance [W/m²]</returns>
     public double GetDiffuseSolarIrradiance(IReadOnlySun sun, double albedo)
-        => ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation
-           + albedo * ConfigurationFactorToGround * sun.GlobalHorizontalRadiation;
+        => GetDiffuseSolarIrradiance(sun, albedo, SkyDiffuseModel.Perez);
+
+    /// <summary>
+    /// Gets the diffuse solar irradiance on the tilted surface [W/m²]
+    /// using the specified sky model.
+    /// </summary>
+    /// <param name="sun">Solar state</param>
+    /// <param name="albedo">Ground reflectance [-]</param>
+    /// <param name="model">
+    /// Sky-diffuse projection model. <see cref="SkyDiffuseModel.Perez"/>
+    /// applies the Perez (1990) all-weather anisotropic model to the
+    /// horizontal diffuse; <see cref="SkyDiffuseModel.Isotropic"/> projects
+    /// the diffuse uniformly via the view factor to the sky.
+    /// </param>
+    /// <returns>Diffuse solar irradiance [W/m²]</returns>
+    /// <remarks>
+    /// <para>
+    /// The ground-reflected component,
+    /// <c>albedo · (1 − cos β)/2 · GHI</c>, is independent of the sky
+    /// model and is added to the sky-diffuse contribution regardless of
+    /// <paramref name="model"/>.
+    /// </para>
+    /// <para>
+    /// Perez, R., Ineichen, P., Seals, R., Michalsky, J., Stewart, R.,
+    /// "Modeling daylight availability and irradiance components from
+    /// direct and global irradiance," Solar Energy, Vol. 44, No. 5, 1990,
+    /// pp. 271-289.
+    /// </para>
+    /// </remarks>
+    public double GetDiffuseSolarIrradiance(
+        IReadOnlySun sun, double albedo, SkyDiffuseModel model)
+    {
+      double groundReflected = albedo * ConfigurationFactorToGround
+                               * sun.GlobalHorizontalRadiation;
+      double skyDiffuse = model switch
+      {
+        SkyDiffuseModel.Isotropic =>
+            ConfigurationFactorToSky * sun.DiffuseHorizontalRadiation,
+        SkyDiffuseModel.Perez => Sky.GetPerezSkyDiffuseOnPlane(
+            directNormalRadiation: sun.DirectNormalRadiation,
+            diffuseHorizontalRadiation: sun.DiffuseHorizontalRadiation,
+            surfaceTilt: VerticalAngle,
+            cosIncidenceAngle: GetDirectSolarRadiationRatio(sun),
+            solarZenith: 0.5 * Math.PI - sun.Altitude,
+            airMass: Sun.GetAirMass(sun.Altitude),
+            extraterrestrialNormalRadiation: sun.GetExtraterrestrialRadiation()),
+        _ => throw new Popolo.Core.Exceptions.PopoloArgumentException(
+            $"Unknown SkyDiffuseModel: {model}", nameof(model)),
+      };
+      return skyDiffuse + groundReflected;
+    }
 
     /// <summary>
     /// Gets the total solar irradiance on the tilted surface [W/m²].
