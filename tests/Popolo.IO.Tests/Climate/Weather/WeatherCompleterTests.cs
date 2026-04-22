@@ -420,7 +420,9 @@ namespace Popolo.IO.Tests.Climate.Weather
     /// <summary>
     /// 規約を既定 (StartOfInterval) のままにして、13:00 の record が
     /// [13:00, 14:00) を表す構成を組むと、区間平均 sin(h) は概ね 13:30
-    /// 時点のそれに近い。
+    /// 時点のそれに近い。ただし sinH は時間について厳密な 1 次関数ではない
+    /// ので、完了器の 6 点サンプリング平均と「中点 1 点」の値は数 W/m²
+    /// 程度ずれる。ここでは ±3 W/m² の帯で吸収する。
     /// </summary>
     [Fact]
     public void DefaultConvention_IsStartOfInterval_ForBuiltInReaders()
@@ -451,17 +453,19 @@ namespace Popolo.IO.Tests.Climate.Weather
 
       var r = data.Records[0];
       Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
-      // 13:30 中点を用いて構成したので、復元値と真値の差は N=6 のサンプリング
-      // 誤差程度に収まる。
-      Assert.Equal(dhiTrue, r.DiffuseHorizontalRadiation, precision: 0);
+      // sinH は時間について凸/凹なので 6 点離散平均 ≠ sinH(30 min) に完全一致
+      // はしない。Tokyo 夏至 13:30 近傍では 1-2 W/m² 程度の残差が出る。
+      Assert.InRange(r.DiffuseHorizontalRadiation, dhiTrue - 3.0, dhiTrue + 3.0);
     }
 
     /// <summary>
     /// EndOfInterval 規約と 1 時間の NominalInterval を設定すると、r.Time の
     /// 瞬時値でなく区間中点相当の太陽位置に基づいて DHI が補完される。
-    /// ghi = dni · sinH(13:00) + dhi は 13:00 時点の恒等式だが、区間
-    /// (12:00, 13:00] の平均 sin(h) は 12:30 時点のそれに近いため、
-    /// 区間平均を使うと復元される DHI は元の dhi と一致しなくなる。
+    /// Tokyo の夏至 13:00 (太陽時の正午は 11:40 JST 付近) では、
+    /// 区間 (12:00, 13:00] の中点 12:30 は r.Time 13:00 より太陽時の正午に
+    /// 近く、sinH(12:30) &gt; sinH(13:00)。従って
+    /// 区間平均 sinHeff &gt; sinH(r.Time) となり、
+    /// DHI_recovered = GHI − DNI·sinHeff &lt; dhiTrue に回る。
     /// </summary>
     [Fact]
     public void EndOfInterval_UsesIntervalAveragedSinH_NotInstantAtRecordTime()
@@ -488,8 +492,10 @@ namespace Popolo.IO.Tests.Climate.Weather
 
       var r = data.Records[0];
       Assert.True(r.IsEstimated(WeatherField.DiffuseHorizontalRadiation));
-      // sinH(12:30) < sinH(13:00) なので補完された DHI は dhiTrue より大きい
-      Assert.True(r.DiffuseHorizontalRadiation > dhiTrue);
+      // 区間 (12:00, 13:00] 中点の sinH は 13:00 瞬時値より大きいので、
+      // 恒等式 GHI − DNI·sinHeff で復元した DHI は dhiTrue を下回る。
+      Assert.True(r.DiffuseHorizontalRadiation < dhiTrue,
+          $"expected DHI < {dhiTrue}, got {r.DiffuseHorizontalRadiation}");
     }
 
     /// <summary>

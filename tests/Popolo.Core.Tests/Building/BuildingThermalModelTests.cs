@@ -321,10 +321,15 @@ namespace Popolo.Core.Tests.Building
       var (temp, _) = RunPeriodicSteadyState(bModel, season, false);
       double setpoint = DbtSetpoint[season];
 
-      // 空調時間帯（10〜16時）は設定値±1.0°C以内
+      // 空調時間帯 (10〜16時) は設定値±1.5°C以内。
+      // ±1.0°C からの緩和は、Incline.GetDiffuseSolarIrradiance の既定が
+      // Perez (1990) 異方性モデルに変わり、周囲光ブライトニングで南面等の
+      // 直達寄り日射の取り込みが増えて冬季設定値 22°C に対して 0.4°C 程度
+      // オーバーシュートするようになったことを踏まえたもの。
+      // 制御ロジック自体の精度を見るには十分タイトな帯。
       for (int h = AcStartHour + 1; h < AcEndHour; h++)
         for (int z = 0; z < temp.Length; z++)
-          Assert.InRange(temp[z][h], setpoint - 1.0, setpoint + 1.0);
+          Assert.InRange(temp[z][h], setpoint - 1.5, setpoint + 1.5);
     }
 
     #endregion
