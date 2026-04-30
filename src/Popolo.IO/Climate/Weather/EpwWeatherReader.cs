@@ -45,8 +45,8 @@ namespace Popolo.IO.Climate.Weather
   ///     [%], atmospheric pressure [Pa], horizontal infrared radiation from
   ///     sky [W/m²], global horizontal / direct normal / diffuse horizontal
   ///     radiation [W/m²], wind direction [degrees from north, clockwise],
-  ///     wind speed [m/s], total sky cover [0..10], and liquid
-  ///     precipitation depth [mm].
+  ///     wind speed [m/s], total sky cover [0..10], opaque sky cover
+  ///     [0..10], and liquid precipitation depth [mm].
   ///   </description></item>
   /// </list>
   /// <para>
@@ -287,6 +287,11 @@ namespace Popolo.IO.Climate.Weather
           if (f.Length > 22 && TryParseDouble(f[22], ci, out double tcc)
               && tcc >= 0 && tcc <= 10)
             builder.SetCloudCover(tcc / 10.0);
+
+          // [23] 不透明雲量 [0..10], 欠測: 99
+          if (f.Length > 23 && TryParseDouble(f[23], ci, out double occ)
+              && occ >= 0 && occ <= 10)
+            builder.SetOpaqueCloudCover(occ / 10.0);
 
           // [33] 降水量 [mm], 欠測: 999
           if (f.Length > 33 && TryParseDouble(f[33], ci, out double precip)

@@ -71,5 +71,8 @@ namespace Popolo.Core.Climate.Weather
 
     /// <summary>Cloud cover as fraction [0, 1].</summary>
     CloudCover = 1 << 10,
+
+    /// <summary>Opaque cloud cover as fraction [0, 1] (clouds that fully obscure the sky).</summary>
+    OpaqueCloudCover = 1 << 11,
   }
 }

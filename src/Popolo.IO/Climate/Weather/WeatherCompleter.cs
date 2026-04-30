@@ -397,6 +397,7 @@ namespace Popolo.IO.Climate.Weather
       if (r.Has(WeatherField.WindDirection))             b.SetWindDirection(r.WindDirection);
       if (r.Has(WeatherField.Precipitation))             b.SetPrecipitation(r.Precipitation);
       if (r.Has(WeatherField.CloudCover))                b.SetCloudCover(r.CloudCover);
+      if (r.Has(WeatherField.OpaqueCloudCover))          b.SetOpaqueCloudCover(r.OpaqueCloudCover);
 
       // 既存の estimated 分類を維持 (Set*は recorded に積むので、後から reclassify する)
       b.MarkEstimated(r.EstimatedFields);

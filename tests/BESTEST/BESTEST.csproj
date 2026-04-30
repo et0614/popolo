@@ -21,6 +21,9 @@
     <None Update="BESTestWeather.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="DRYCOLD.TMY">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Result.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -907,6 +907,20 @@ namespace Popolo.Core.Physics
     }
 
     /// <summary>
+    /// Gets the dew point temperature [°C] from the humidity ratio [kg/kg(DA)]
+    /// and atmospheric pressure [kPa]. Alias for
+    /// <see cref="GetSaturationDryBulbTemperatureFromHumidityRatio"/>; the dew
+    /// point is by definition the saturation temperature at the given partial
+    /// vapor pressure.
+    /// </summary>
+    /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
+    /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
+    /// <returns>Dew point temperature [°C]</returns>
+    public static double GetDewPointTemperatureFromHumidityRatio(
+        double humidityRatio, double atmosphericPressure)
+        => GetSaturationDryBulbTemperatureFromHumidityRatio(humidityRatio, atmosphericPressure);
+
+    /// <summary>
     /// Gets the dew point temperature [°C] (saturation dry-bulb temperature)
     /// from the specific enthalpy [kJ/kg] and atmospheric pressure [kPa].
     /// </summary>

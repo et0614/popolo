@@ -131,6 +131,27 @@ namespace Popolo.Core.Climate
     public static double GetSkyEmissivity(double waterVaporPartialPressure)
         => 0.526 + 0.209 * Math.Sqrt(waterVaporPartialPressure);
 
+    /// <summary>
+    /// Gets the apparent (effective) sky temperature [°C] from the downwelling
+    /// atmospheric (long-wave) radiation [W/m²]. Inverts Stefan–Boltzmann
+    /// assuming a black emitter:
+    /// <c>T_sky = (R / σ)^(1/4)</c>.
+    /// </summary>
+    /// <param name="infraredRadiationFromSky">
+    /// Downwelling atmospheric infrared radiation from the sky [W/m²].
+    /// </param>
+    /// <returns>Apparent sky temperature [°C].</returns>
+    /// <remarks>
+    /// This is the equivalent black-body temperature of the sky as seen by an
+    /// upward-facing horizontal surface, not the physical temperature of the
+    /// upper atmosphere. It is the form usually reported as "sky temperature"
+    /// in weather-driver test suites such as ANSI/ASHRAE Standard 140-2023
+    /// Section 6.
+    /// </remarks>
+    public static double GetSkyTemperature(double infraredRadiationFromSky)
+        => PhysicsConstants.ToCelsius(
+            Math.Pow(infraredRadiationFromSky / PhysicsConstants.StefanBoltzmannConstant, 0.25));
+
     /// <summary>Computes the black-body radiation σT⁴ [W/m²].</summary>
     private static double BlackBodyRadiation(double temperature)
         => PhysicsConstants.StefanBoltzmannConstant

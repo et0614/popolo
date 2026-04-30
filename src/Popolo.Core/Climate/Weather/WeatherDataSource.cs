@@ -37,6 +37,9 @@ namespace Popolo.Core.Climate.Weather
     /// <summary>TMY1 format (NOAA Typical Meteorological Year, 1st generation).</summary>
     Tmy1,
 
+    /// <summary>TMY3 format (NREL Typical Meteorological Year, 3rd generation).</summary>
+    Tmy3,
+
     /// <summary>EXA format (extended AMeDAS data CSV).</summary>
     Exa,
 

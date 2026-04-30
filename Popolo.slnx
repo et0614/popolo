@@ -6,6 +6,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BESTEST/BESTEST.csproj" Id="92668278-2541-4c35-8b18-d9b6ed9fb6f1" />
+    <Project Path="tests/BESTEST_2023/BESTEST_2023.csproj" Id="4c5410ab-6350-4219-bcac-a30d573d2fdb" />
     <Project Path="tests/Popolo.Core.Tests/Popolo.Core.Tests.csproj" Id="1542e520-dc61-4137-91d1-72879247d1f0" />
     <Project Path="tests/Popolo.IO.Tests/Popolo.IO.Tests.csproj" Id="32f9f0a4-fba2-4210-aee4-348722a73f8d" />
     <Project Path="tests/Popolo.Webpro.Tests/Popolo.Webpro.Tests.csproj" Id="7e12bb3c-3ead-40da-a788-7c259374c042" />

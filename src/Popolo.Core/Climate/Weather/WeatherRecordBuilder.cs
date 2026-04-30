@@ -64,6 +64,7 @@ namespace Popolo.Core.Climate.Weather
     private double _windDirection;
     private double _precipitation;
     private double _cloudCover;
+    private double _opaqueCloudCover;
     private WeatherField _recordedMask;
     private WeatherField _estimatedMask;
 
@@ -177,6 +178,14 @@ namespace Popolo.Core.Climate.Weather
       return this;
     }
 
+    /// <summary>Sets the opaque cloud cover fraction [0, 1] and marks it as recorded.</summary>
+    public WeatherRecordBuilder SetOpaqueCloudCover(double value)
+    {
+      _opaqueCloudCover = value;
+      _recordedMask |= WeatherField.OpaqueCloudCover;
+      return this;
+    }
+
     /// <summary>
     /// Reclassifies the given fields from recorded to estimated.
     /// </summary>
@@ -213,7 +222,8 @@ namespace Popolo.Core.Climate.Weather
           _dryBulbTemperature, _humidityRatio, _atmosphericPressure,
           _globalHorizontalRadiation, _directNormalRadiation, _diffuseHorizontalRadiation,
           _atmosphericRadiation, _windSpeed, _windDirection,
-          _precipitation, _cloudCover, _recordedMask, _estimatedMask);
+          _precipitation, _cloudCover, _opaqueCloudCover,
+          _recordedMask, _estimatedMask);
     }
 
     /// <summary>

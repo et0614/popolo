@@ -125,6 +125,13 @@ namespace Popolo.Core.Climate.Weather
     public double CloudCover { get; }
 
     /// <summary>
+    /// Opaque cloud cover as a fraction in [0, 1]. The portion of the sky
+    /// that is entirely obscured by clouds (excluding partial / transparent
+    /// cloud layers). Always less than or equal to <see cref="CloudCover"/>.
+    /// </summary>
+    public double OpaqueCloudCover { get; }
+
+    /// <summary>
     /// Bit mask of fields that were read verbatim from the source format.
     /// </summary>
     public WeatherField RecordedFields { get; }
@@ -166,6 +173,7 @@ namespace Popolo.Core.Climate.Weather
         double windDirection,
         double precipitation,
         double cloudCover,
+        double opaqueCloudCover,
         WeatherField recordedFields,
         WeatherField estimatedFields)
     {
@@ -182,6 +190,7 @@ namespace Popolo.Core.Climate.Weather
       WindDirection = windDirection;
       Precipitation = precipitation;
       CloudCover = cloudCover;
+      OpaqueCloudCover = opaqueCloudCover;
       RecordedFields = recordedFields;
       EstimatedFields = estimatedFields;
     }
