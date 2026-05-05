@@ -267,11 +267,13 @@ namespace BESTEST_2023
           {
             walls[i].ConvectiveCoefficientB = intH;
             walls[i].LongWaveEmissivityB = 0;        // 放射を全部 Convective に集約
+            walls[i].RadiativeCoefficientB = 0;      // ε=0 と整合 (動的更新無効でも 0 を維持)
           }
           if (isConstExtCoeffs)
           {
             walls[i].ConvectiveCoefficientF = extH;
             walls[i].LongWaveEmissivityF = 0;
+            walls[i].RadiativeCoefficientF = 0;
           }
         }
       }
@@ -351,11 +353,13 @@ namespace BESTEST_2023
           {
             windows[i].ConvectiveCoefficientF = 17.8;
             windows[i].LongWaveEmissivityF = 0;
+            windows[i].RadiativeCoefficientF = 0;
           }
           if (isConstIntCoeffs)
           {
             windows[i].ConvectiveCoefficientB = 4.5;
             windows[i].LongWaveEmissivityB = 0;
+            windows[i].RadiativeCoefficientB = 0;
           }
         }
 

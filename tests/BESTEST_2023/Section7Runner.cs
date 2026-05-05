@@ -407,21 +407,22 @@ namespace BESTEST_2023
       bool isC650Style  = tCase == Buildings.TestCase.C650 || tCase == Buildings.TestCase.C950;
       bool isC960       = tCase == Buildings.TestCase.C960;
       bool isC990       = tCase == Buildings.TestCase.C990;
-      // Cases 450/460 では室内側対流係数を一定値に固定するため、
-      // per-hour の kcLow/kcHigh 切替は無効化する。
+      // ConstIntCoeffs (C450/C460): 室内側 h を仕様固定値とするため per-hour 切替を無効化
+      // ConstExtCoeffs (C450/C470): 屋外側 h を仕様固定値とするため動的更新軸を無効化
       bool isConstIntCoeffs = (tCase & Buildings.TestCase.ConstIntCoeffs) == tCase;
+      bool isConstExtCoeffs = (tCase & Buildings.TestCase.ConstExtCoeffs) == tCase;
 
       // 建物作成
       Buildings.MakeBuilding(tCase, out MultiRoom mRoom, out Zone[] zones,
                              out Wall[] walls, out Window[] windows);
       var bModel = new BuildingThermalModel(new[] { mRoom });
-      // 動的表面熱伝達係数を全軸有効化 (Std 140-2023 §7.2.1.9.3 (b) / §7.2.1.10.3 (b) 経路:
+      // 動的表面熱伝達係数 (Std 140-2023 §7.2.1.9.3 (b) / §7.2.1.10.3 (b) 経路)
       //  - 室内側 h_r: 表面温度の面積加重平均で再線形化
       //  - 屋外側 h_r: 外気温で再線形化
-      //  - 屋外側 h_c: 風速依存 (MoWiTT))
-      bModel.DynamicIndoorRadiativeCoefficient = true;
-      bModel.DynamicOutdoorRadiativeCoefficient = true;
-      bModel.DynamicOutdoorConvectiveCoefficient = true;
+      //  - 屋外側 h_c: 風速依存 (MoWiTT)
+      bModel.DynamicIndoorRadiativeCoefficient = !isConstIntCoeffs;
+      bModel.DynamicOutdoorRadiativeCoefficient = !isConstExtCoeffs;
+      bModel.DynamicOutdoorConvectiveCoefficient = !isConstExtCoeffs;
       var sun = new Sun(site.Latitude, site.Longitude, site.StdLongitude);
 
       // 5 面のサーフェス (§7.3.2.1, Case 600 用)
@@ -930,6 +931,12 @@ namespace BESTEST_2023
       if (calc == null) { calc = new CalculationProperties(); wbp.Workbook.AppendChild(calc); }
       calc.CalculationMode = new EnumValue<CalculateModeValues>(CalculateModeValues.Auto);
       calc.FullCalculationOnLoad = true;
+
+      // 数式セルの一部を値で上書きしているため、テンプレート由来の calcChain.xml は
+      // 古い参照を含み Excel 起動時に「内容に問題が見つかりました」警告を出す。
+      // 削除しておけば Excel が次回保存時に再生成する (任意 part)。
+      if (wbp.CalculationChainPart != null)
+        wbp.DeletePart(wbp.CalculationChainPart);
 
       wsp.Worksheet.Save();
       wbp.Workbook.Save();
