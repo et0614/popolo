@@ -65,6 +65,7 @@ namespace Popolo.Core.Climate.Weather
     private double _precipitation;
     private double _cloudCover;
     private double _opaqueCloudCover;
+    private double _ceilingHeight;
     private WeatherField _recordedMask;
     private WeatherField _estimatedMask;
 
@@ -186,6 +187,14 @@ namespace Popolo.Core.Climate.Weather
       return this;
     }
 
+    /// <summary>Sets the ceiling height [m] above ground and marks it as recorded.</summary>
+    public WeatherRecordBuilder SetCeilingHeight(double value)
+    {
+      _ceilingHeight = value;
+      _recordedMask |= WeatherField.CeilingHeight;
+      return this;
+    }
+
     /// <summary>
     /// Reclassifies the given fields from recorded to estimated.
     /// </summary>
@@ -222,7 +231,7 @@ namespace Popolo.Core.Climate.Weather
           _dryBulbTemperature, _humidityRatio, _atmosphericPressure,
           _globalHorizontalRadiation, _directNormalRadiation, _diffuseHorizontalRadiation,
           _atmosphericRadiation, _windSpeed, _windDirection,
-          _precipitation, _cloudCover, _opaqueCloudCover,
+          _precipitation, _cloudCover, _opaqueCloudCover, _ceilingHeight,
           _recordedMask, _estimatedMask);
     }
 

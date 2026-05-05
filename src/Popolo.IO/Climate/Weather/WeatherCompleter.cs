@@ -347,15 +347,37 @@ namespace Popolo.IO.Climate.Weather
 
         // 気象レコードの絶対湿度は [g/kg(DA)]、MoistAir は [kg/kg(DA)]
         double wKgKg = r.HumidityRatio / 1000.0;
-        double vaporPressure =
-            MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(wKgKg, pressure);
 
-        int cloudIndex = r.Has(WeatherField.CloudCover)
-            ? (int)Math.Round(Math.Clamp(r.CloudCover, 0.0, 1.0) * 10.0)
-            : 0;
+        double atmRad;
+        // 不透明雲量・シーリング高さ・雲量がそろっていれば Martin-Berdahl 1984 を使用
+        // (ANSI/ASHRAE 140-2023 Tsky-Informative と同じ式)。
+        // 雲量だけしか無い場合は従来の単純式にフォールバック。
+        bool canUseMartinBerdahl =
+               r.Has(WeatherField.CloudCover)
+            && r.Has(WeatherField.OpaqueCloudCover)
+            && r.Has(WeatherField.CeilingHeight);
 
-        double atmRad = Sky.GetInfraredRadiationFromSky(
-            r.DryBulbTemperature, cloudIndex, vaporPressure);
+        if (canUseMartinBerdahl)
+        {
+          double tdp = MoistAir.GetDewPointTemperatureFromHumidityRatio(wKgKg, pressure);
+          atmRad = Sky.GetInfraredRadiationFromSky(
+              r.DryBulbTemperature,
+              tdp,
+              r.CloudCover,
+              r.OpaqueCloudCover,
+              r.CeilingHeight,
+              r.Time.Hour);
+        }
+        else
+        {
+          double vaporPressure =
+              MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(wKgKg, pressure);
+          int cloudIndex = r.Has(WeatherField.CloudCover)
+              ? (int)Math.Round(Math.Clamp(r.CloudCover, 0.0, 1.0) * 10.0)
+              : 0;
+          atmRad = Sky.GetInfraredRadiationFromSky(
+              r.DryBulbTemperature, cloudIndex, vaporPressure);
+        }
 
         var updated = RebuildWith(r, b => b
             .SetAtmosphericRadiation(atmRad)
@@ -398,6 +420,7 @@ namespace Popolo.IO.Climate.Weather
       if (r.Has(WeatherField.Precipitation))             b.SetPrecipitation(r.Precipitation);
       if (r.Has(WeatherField.CloudCover))                b.SetCloudCover(r.CloudCover);
       if (r.Has(WeatherField.OpaqueCloudCover))          b.SetOpaqueCloudCover(r.OpaqueCloudCover);
+      if (r.Has(WeatherField.CeilingHeight))             b.SetCeilingHeight(r.CeilingHeight);
 
       // 既存の estimated 分類を維持 (Set*は recorded に積むので、後から reclassify する)
       b.MarkEstimated(r.EstimatedFields);

@@ -98,12 +98,74 @@ namespace Popolo.Core.Climate
     /// <param name="cloudCover">Cloud cover [-] (0: clear, 10: overcast)</param>
     /// <param name="waterVaporPartialPressure">Water vapor partial pressure [kPa]</param>
     /// <returns>Atmospheric infrared radiation [W/m²]</returns>
+    /// <remarks>
+    /// Simple linear cloud-cover correction. Treats opaque and thin clouds together
+    /// and ignores cloud height. For higher accuracy when opaque cloud cover and
+    /// ceiling height are available, see the
+    /// <see cref="GetInfraredRadiationFromSky(double, double, double, double, double, int)"/>
+    /// overload that implements the Martin-Berdahl (1984) model used in ANSI/ASHRAE
+    /// Standard 140-2023 Tsky-Informative.
+    /// </remarks>
     public static double GetInfraredRadiationFromSky(
         double temperature, int cloudCover, double waterVaporPartialPressure)
     {
       double br = GetSkyEmissivity(waterVaporPartialPressure);
       return ((1.0 - 0.062 * cloudCover) * br + 0.062 * cloudCover)
           * BlackBodyRadiation(temperature);
+    }
+
+    /// <summary>
+    /// Gets the atmospheric (downwelling longwave) radiation from the sky [W/m²]
+    /// using the Martin-Berdahl (1984) model with separate opaque and thin cloud
+    /// contributions and ceiling-height correction. This is the model used by
+    /// ANSI/ASHRAE Standard 140-2023 to generate the informative Tsky values for
+    /// the Section 7 BESTEST cases.
+    /// </summary>
+    /// <param name="temperature">Outdoor dry-bulb temperature [°C].</param>
+    /// <param name="dewPointTemperature">Outdoor dew-point temperature [°C].</param>
+    /// <param name="totalCloudCover">Total cloud cover [-] (0 = clear, 1 = fully covered).</param>
+    /// <param name="opaqueCloudCover">
+    /// Opaque cloud cover [-] (0 = clear, 1 = fully covered with opaque clouds).
+    /// Always ≤ <paramref name="totalCloudCover"/>; the difference is treated as thin clouds.
+    /// </param>
+    /// <param name="ceilingHeight">Ceiling height [m] (lowest opaque cloud base).</param>
+    /// <param name="hour">Hour of day [0–23] for the small diurnal correction.</param>
+    /// <returns>Atmospheric infrared radiation [W/m²].</returns>
+    /// <remarks>
+    /// <para>Formulation (consistent with ASHRAE 140-2023 Tsky-Informative.xlsx):</para>
+    /// <list type="bullet">
+    ///   <item><description><c>ε_clr = 0.711 + 0.56·(Tdp/100) + 0.73·(Tdp/100)² + 0.013·cos(2π·hr/24)</c></description></item>
+    ///   <item><description><c>Γ_opaque = exp(−CeilHgt/8200)</c> (cloud-attenuation function of ceiling height).</description></item>
+    ///   <item><description><c>C_opaque = OpqCld · Γ_opaque</c>, <c>C_thin = (TotCld − OpqCld) · 0.4 · exp(−8000/8200)</c></description></item>
+    ///   <item><description><c>ε_sky = ε_clr + (1 − ε_clr) · (C_opaque + C_thin)</c></description></item>
+    ///   <item><description><c>R = ε_sky · σ · (T+273.15)⁴</c></description></item>
+    /// </list>
+    /// </remarks>
+    public static double GetInfraredRadiationFromSky(
+        double temperature,
+        double dewPointTemperature,
+        double totalCloudCover,
+        double opaqueCloudCover,
+        double ceilingHeight,
+        int hour)
+    {
+      double tdp100 = dewPointTemperature / 100.0;
+      double epsClear = 0.711
+                      + 0.56  * tdp100
+                      + 0.73  * tdp100 * tdp100
+                      + 0.013 * Math.Cos(2.0 * Math.PI * hour / 24.0);
+
+      double gammaOpaque = Math.Exp(-ceilingHeight / 8200.0);
+      double thinFraction = Math.Max(0.0, totalCloudCover - opaqueCloudCover);
+      double cOpaque = opaqueCloudCover * gammaOpaque;
+      double cThin   = thinFraction * 0.4 * Math.Exp(-8000.0 / 8200.0);
+      double cTotal  = cOpaque + cThin;
+
+      double epsSky = epsClear + (1.0 - epsClear) * cTotal;
+      // Clamp to avoid pathological values from extreme inputs.
+      if (epsSky < 0.0) epsSky = 0.0;
+      if (epsSky > 1.0) epsSky = 1.0;
+      return epsSky * BlackBodyRadiation(temperature);
     }
 
     /// <summary>
@@ -156,6 +218,55 @@ namespace Popolo.Core.Climate
     private static double BlackBodyRadiation(double temperature)
         => PhysicsConstants.StefanBoltzmannConstant
            * Math.Pow(PhysicsConstants.ToKelvin(temperature), 4);
+
+    #endregion
+
+    #region 屋外側対流熱伝達率
+
+    /// <summary>
+    /// Returns the windward exterior convective heat transfer coefficient [W/(m²·K)]
+    /// from local wind speed and surface-air temperature difference, using the
+    /// MoWiTT correlation (Yazdanian and Klems 1994).
+    /// </summary>
+    /// <param name="windSpeed">Local wind speed at the surface [m/s] (typically the
+    /// 10 m weather-station value; building-height correction is the caller's
+    /// responsibility).</param>
+    /// <param name="surfaceAirDeltaT">Surface-to-air temperature difference [K]
+    /// (sign ignored; |Ts − Tair| is used for the natural-convection term).</param>
+    /// <returns>Combined forced + natural exterior convective coefficient [W/(m²·K)].</returns>
+    /// <remarks>
+    /// <para>
+    /// The MoWiTT correlation has the form
+    /// <c>h_c = sqrt( (Ct·|ΔT|^(1/3))² + (a·v^b)² )</c>
+    /// with windward coefficients <c>Ct = 0.84</c>, <c>a = 3.26</c>, <c>b = 0.89</c>.
+    /// It was fitted to outdoor measurements on smooth vertical surfaces (window
+    /// glass) at the Mobile Window Thermal Test (MoWiTT) facility and is the
+    /// EnergyPlus "DOE-2" default.
+    /// </para>
+    /// <para>
+    /// The returned value is windward; leeward surfaces typically run 30–40%
+    /// lower. Because most building surfaces alternate between windward and
+    /// leeward over time, this function returns the single windward value as a
+    /// physically meaningful upper-bound. Callers that need to distinguish the
+    /// two faces should apply their own directional weighting.
+    /// </para>
+    /// <para>
+    /// Reference: Yazdanian, M., Klems, J. H., 1994. <i>Measurement of the exterior
+    /// convective film coefficient for windows in low-rise buildings.</i>
+    /// ASHRAE Transactions 100 (1).
+    /// </para>
+    /// </remarks>
+    public static double GetExteriorConvectiveCoefficient(double windSpeed, double surfaceAirDeltaT)
+    {
+      const double Ct = 0.84;
+      const double a = 3.26;
+      const double b = 0.89;
+      double v = windSpeed > 0 ? windSpeed : 0;
+      double dT = Math.Abs(surfaceAirDeltaT);
+      double natural = Ct * Math.Pow(dT, 1.0 / 3.0);
+      double forced = a * Math.Pow(v, b);
+      return Math.Sqrt(natural * natural + forced * forced);
+    }
 
     #endregion
 

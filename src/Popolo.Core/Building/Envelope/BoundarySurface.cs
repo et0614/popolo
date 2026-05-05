@@ -54,6 +54,15 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the adjacent space temperature difference factor [-].</summary>
     public double AdjacentSpaceFactor { get; set; } = -1.0;
 
+    /// <summary>
+    /// Indicates whether the convective or radiative heat transfer coefficient on this side
+    /// has changed since the last <see cref="MultiRoom.MakeABMatrix"/> rebuild. Set by
+    /// <see cref="Wall"/> / <see cref="Window"/> coefficient setters; cleared by
+    /// <see cref="MultiRoom"/> after consuming the change. Initial value <c>true</c> guarantees
+    /// the AB matrix is built on the first call.
+    /// </summary>
+    internal bool BoundaryCoefficientChanged { get; set; } = true;
+
     /// <summary>Gets or sets the tilted surface orientation.</summary>
     public IReadOnlyIncline? Incline { get; set; }
 

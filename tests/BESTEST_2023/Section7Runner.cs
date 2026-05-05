@@ -13,22 +13,21 @@
  * Site : Denver, CO  39.833°N / 104.65°W / 1650 m / TZ -7  (Std 140-2023 Annex A1)
  */
 
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Popolo.Core.Building;
+using Popolo.Core.Building.Envelope;
+using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
+using Popolo.Core.Physics;
+using Popolo.IO.Climate.Weather;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-
-using Popolo.Core.Building;
-using Popolo.Core.Building.Envelope;
-using Popolo.Core.Climate;
-using Popolo.Core.Climate.Weather;
-using Popolo.IO.Climate.Weather;
 
 namespace BESTEST_2023
 {
@@ -416,6 +415,13 @@ namespace BESTEST_2023
       Buildings.MakeBuilding(tCase, out MultiRoom mRoom, out Zone[] zones,
                              out Wall[] walls, out Window[] windows);
       var bModel = new BuildingThermalModel(new[] { mRoom });
+      // 動的表面熱伝達係数を全軸有効化 (Std 140-2023 §7.2.1.9.3 (b) / §7.2.1.10.3 (b) 経路:
+      //  - 室内側 h_r: 表面温度の面積加重平均で再線形化
+      //  - 屋外側 h_r: 外気温で再線形化
+      //  - 屋外側 h_c: 風速依存 (MoWiTT))
+      bModel.DynamicIndoorRadiativeCoefficient = true;
+      bModel.DynamicOutdoorRadiativeCoefficient = true;
+      bModel.DynamicOutdoorConvectiveCoefficient = true;
       var sun = new Sun(site.Latitude, site.Longitude, site.StdLongitude);
 
       // 5 面のサーフェス (§7.3.2.1, Case 600 用)
@@ -462,22 +468,98 @@ namespace BESTEST_2023
       {
         sw.WriteLine("Hour,DateTimeEnd,DryBulb_C,Tzone_C,HeatSupply_W,Heating_kW,Cooling_kW,Tsky_C,IncH,IncN,IncE,IncS,IncW,TransSouth");
 
-        bool isStarting = true;
+        // ========================================================================
+        // Warmup (周期定常): Std140-2023 §5.1.1.7.2 に従い Jan 1 hour 1 から記録開始する前に
+        // preconditioning を実施。先頭 24 時間 (Jan 1 の 1 日サイクル) を実気象で N 日反復して
+        // 壁体内部温度を実シミュレーション初日の周期定常状態へ収束させる。
+        // 同 §の informative 注記: 「初期化は年間ピーク暖房・1月暖房負荷に最も影響する」。
+        // ========================================================================
+        const int WARMUP_DAYS = 7;
+        int hoursPerDay = Math.Min(24, wd.Count);
+        for (int day = 0; day < WARMUP_DAYS; day++)
+        {
+          for (int h = 0; h < hoursPerDay; h++)
+          {
+            WeatherRecord recH = EnrichRecord(wd.Records[h]);
+            DateTime simTimeH = recH.Time.AddMinutes(30);
+            double iDnH = recH.Has(WeatherField.DirectNormalRadiation)     ? recH.DirectNormalRadiation     : 0.0;
+            double iHolH= recH.Has(WeatherField.GlobalHorizontalRadiation) ? recH.GlobalHorizontalRadiation : 0.0;
+            double iSkyH= recH.Has(WeatherField.DiffuseHorizontalRadiation)? recH.DiffuseHorizontalRadiation: 0.0;
+            bModel.UpdateOutdoorCondition(simTimeH, sun, recH);
+
+            if (isC990)
+            {
+              double gdbt1H = ground.GetTemperature(simTimeH.DayOfYear, 0.675);
+              double gdbt2H = ground.GetTemperature(simTimeH.DayOfYear, 1.350);
+              bModel.SetGroundTemperature(0, 0, true, gdbt2H);
+              bModel.SetGroundTemperature(0, 3, true, gdbt1H);
+              bModel.SetGroundTemperature(0, 5, true, gdbt1H);
+              bModel.SetGroundTemperature(0, 7, true, gdbt1H);
+              bModel.SetGroundTemperature(0, 8, true, gdbt1H);
+            }
+
+            if (isVenting)
+            {
+              if (simTimeH.Hour < 7 || 18 <= simTimeH.Hour)
+                bModel.SetVentilationRate(0, 0,
+                    (mRoom.Zones[0].AirMass + 1400 * Buildings.AIR_DNS) / 3600.0);
+              else
+                bModel.SetVentilationRate(0, 0, mRoom.Zones[0].AirMass * 0.5 / 3600.0);
+            }
+
+            sun.Update(simTimeH);
+            DateTime sRiseH = sun.GetSunRiseTime();
+            DateTime sSetH  = sun.GetSunSetTime();
+            if (sRiseH.Hour == sun.CurrentDateTime.Hour)
+              sun.Update(simTimeH.AddMinutes(0.5 * sRiseH.Minute));
+            else if (sSetH.Hour == sun.CurrentDateTime.Hour)
+              sun.Update(simTimeH.AddMinutes(-30 + 0.5 * sSetH.Minute));
+            sun.DirectNormalRadiation     = iDnH;
+            sun.DiffuseHorizontalRadiation= iSkyH;
+            sun.GlobalHorizontalRadiation = iHolH;
+
+            // 自然室温を予測してから本番と同じ制御ロジックを適用 (FreeFloat は何もしない)
+            bModel.ControlHeatSupply(0, 0, 0);
+            bModel.ForecastHeatTransfer();
+            if      (isBangBang) bModel.ControlDryBulbTemperature(0, 0, 20);
+            else if (isTight20)  bModel.ControlDryBulbTemperature(0, 0, 20);
+            else if (isDeadBand)
+            {
+              if      (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);
+              else if (zones[0].Temperature > 27) bModel.ControlDryBulbTemperature(0, 0, 27);
+            }
+            else if (isSetBack)
+            {
+              if (zones[0].Temperature > 27) bModel.ControlDryBulbTemperature(0, 0, 27);
+              else if ((7 <= simTimeH.Hour && simTimeH.Hour < 23) && zones[0].Temperature < 20)
+                bModel.ControlDryBulbTemperature(0, 0, 20);
+              else if (zones[0].Temperature < 10)
+                bModel.ControlDryBulbTemperature(0, 0, 10);
+            }
+            else if (isC650Style)
+            {
+              if ((7 <= simTimeH.Hour && simTimeH.Hour < 18) && zones[0].Temperature > 27)
+                bModel.ControlDryBulbTemperature(0, 0, 27);
+            }
+            bModel.ForecastHeatTransfer();
+            bModel.FixState();
+          }
+        }
+
         for (int i = 0; i < wd.Count; i++)
         {
-          WeatherRecord rec = wd.Records[i];
+          WeatherRecord rec = EnrichRecord(wd.Records[i]);
           DateTime simTime = rec.Time.AddMinutes(30);  // 中点
-
           double dbt = rec.DryBulbTemperature;
-          double ahd = rec.HumidityRatio * 1e-3;
           double iDn = rec.Has(WeatherField.DirectNormalRadiation)     ? rec.DirectNormalRadiation     : 0.0;
           double iHol= rec.Has(WeatherField.GlobalHorizontalRadiation) ? rec.GlobalHorizontalRadiation : 0.0;
           double iSky= rec.Has(WeatherField.DiffuseHorizontalRadiation)? rec.DiffuseHorizontalRadiation: 0.0;
-          double nr = Buildings.NO_NOC_RAD ? 0.0 : 0.0;
 
-          bModel.UpdateOutdoorCondition(simTime, sun, dbt, ahd, nr);
+          bModel.UpdateOutdoorCondition(simTime, sun, rec);
 
-          // 地中温度 (C990 は Kusuda モデルで深さ別、それ以外は床F側 10°C 一定)
+          // 地中温度: C990 のみ Kusuda モデルで深さ別に設定。
+          // 非 C990 (Cases 195/600 系) は raised floor = 外気温 (Std140-2023 §7.2.1.5.1) で
+          // 床は SetOutsideWall 化されているので地面温度設定は不要。
           if (isC990)
           {
             double gdbt1 = ground.GetTemperature(simTime.DayOfYear, 0.675);
@@ -487,10 +569,6 @@ namespace BESTEST_2023
             bModel.SetGroundTemperature(0, 5, true, gdbt1);   // 東壁地下
             bModel.SetGroundTemperature(0, 7, true, gdbt1);   // 西壁地下
             bModel.SetGroundTemperature(0, 8, true, gdbt1);   // 南壁地下
-          }
-          else
-          {
-            bModel.SetGroundTemperature(0, 0, true, 10.0);
           }
 
           // 換気量制御 (Venting ケース 650/950/650FF/950FF: 夜間ブースト, 7-18 時は通常)
@@ -524,9 +602,14 @@ namespace BESTEST_2023
           sumIncH += incH; sumIncN += incN; sumIncE += incE; sumIncS += incS; sumIncW += incW;
 
           // 透過日射 (南窓を持つケースのみ)
+          // 注: bModel.ForecastHeatTransfer() より前に計算するため、ここで明示的に
+          // 窓の入射角依存光学特性を最新化しておく (= 直達透過率 DirectSolarIncidentTransmittance を
+          // 現在の太陽位置に対応した値にする)。これを忘れると前ステップ末の値が使われ、
+          // 日の出直後の hour で前ステップ「太陽地平線下」の T=0 が掛かり、直達透過が消失する。
           double transS = 0;
           if (windows.Length > 0)
           {
+            windows[0].UpdateOpticalProperties(sun);
             double directIrr  = windows[0].OutsideIncline.GetDirectSolarIrradiance(sun);
             double diffuseIrr = windows[0].OutsideIncline.GetDiffuseSolarIrradiance(sun, mRoom.Albedo);
             double shadeFactor = windows[0].SunShade != null
@@ -536,40 +619,33 @@ namespace BESTEST_2023
           }
           sumTransSouth += transS;
 
-          // 24時間プリコン
-          if (isStarting)
-          {
-            bModel.ControlDryBulbTemperature(0, 0, 20);
-            if (isC960) bModel.ControlHeatSupply(0, 1, 0);  // SunZone は FreeFloat
-            for (int j = 0; j < 24; j++) { bModel.ForecastHeatTransfer(); bModel.FixState(); }
-            isStarting = false;
-          }
+          // (Warmup はメインループ前に 24h サイクル × 7 日反復で実施済み)
 
           // 室内側対流熱伝達率を熱流向きで切替
           // Cases 450/460 (ConstIntCoeffs): MakeBuilding で一定値に設定済み、毎時更新しない
-          const double kcLow  = 6.13 - 5.13;
+          /*const double kcLow  = 6.13 - 5.13;
           const double kcHigh = 9.26 - 5.13;
-          if (isConstIntCoeffs) { /* skip update */ }
+          if (isConstIntCoeffs) {  }
           else if (isC960)
           {
             // 床1・2 (ストラティフィケーション: 床面が低温なら滞留)
             walls[0].ConvectiveCoefficientB =
-                walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature ? kcLow : kcHigh;
+                walls[0].SurfaceTemperatureB < zones[0].Temperature ? kcLow : kcHigh;
             walls[1].ConvectiveCoefficientB =
-                walls[1].Temperatures[walls[1].NodeCount - 1] < zones[1].Temperature ? kcLow : kcHigh;
+                walls[1].SurfaceTemperatureB < zones[1].Temperature ? kcLow : kcHigh;
             // 屋根1・2 (屋根面が低温なら下降流: kcHigh)
             walls[2].ConvectiveCoefficientB =
-                walls[2].Temperatures[walls[2].NodeCount - 1] < zones[0].Temperature ? kcHigh : kcLow;
+                walls[2].SurfaceTemperatureB < zones[0].Temperature ? kcHigh : kcLow;
             walls[3].ConvectiveCoefficientB =
-                walls[3].Temperatures[walls[3].NodeCount - 1] < zones[1].Temperature ? kcHigh : kcLow;
+                walls[3].SurfaceTemperatureB < zones[1].Temperature ? kcHigh : kcLow;
           }
           else
           {
             walls[0].ConvectiveCoefficientB =
-                walls[0].Temperatures[walls[0].NodeCount - 1] < zones[0].Temperature ? kcLow : kcHigh;
+                walls[0].SurfaceTemperatureB < zones[0].Temperature ? kcLow : kcHigh;
             walls[1].ConvectiveCoefficientB =
-                walls[1].Temperatures[walls[1].NodeCount - 1] < zones[0].Temperature ? kcHigh : kcLow;
-          }
+                walls[1].SurfaceTemperatureB < zones[0].Temperature ? kcHigh : kcLow;
+          }*/
 
           // 自然室温の予測
           bModel.ControlHeatSupply(0, 0, 0);
@@ -755,6 +831,53 @@ namespace BESTEST_2023
       }
 
       return result;
+    }
+
+    /// <summary>
+    /// レコードに <see cref="WeatherField.AtmosphericRadiation"/> が無い場合 (TMY1 など)、
+    /// 雲量と水蒸気圧から夜間放射量を推定して <c>R_atm = σ·T_air⁴ − NR</c> を補完する。
+    /// <see cref="Buildings.NO_NOC_RAD"/> が <c>true</c> のときは <c>NR=0</c> 相当の <c>R_atm = σ·T_air⁴</c> を入れる。
+    /// それ以外のフィールドは元レコードからそのまま転記される (将来 WeatherRecord に
+    /// 追加されたフィールドも自動的に伝搬される)。
+    /// </summary>
+    private static WeatherRecord EnrichRecord(WeatherRecord rec)
+    {
+      if (!Buildings.NO_NOC_RAD && rec.Has(WeatherField.AtmosphericRadiation)) return rec;
+
+      double dbt = rec.DryBulbTemperature;
+      double Tk = PhysicsConstants.ToKelvin(dbt);
+      double sigmaT4 = PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk;
+      double rAtm;
+      if (Buildings.NO_NOC_RAD)
+      {
+        rAtm = sigmaT4;  // NR = 0
+      }
+      else
+      {
+        double ahd = rec.HumidityRatio * 1e-3;
+        double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(ahd, rec.AtmosphericPressure);
+        double nr = Sky.GetNocturnalRadiation(dbt, (int)(10 * rec.CloudCover), wvp);
+        rAtm = sigmaT4 - nr;
+      }
+
+      var b = new WeatherRecordBuilder()
+          .SetTime(rec.Time)
+          .SetSourceTime(rec.SourceTime)
+          .SetDryBulbTemperature(rec.DryBulbTemperature)
+          .SetHumidityRatio(rec.HumidityRatio)
+          .SetAtmosphericPressure(rec.AtmosphericPressure)
+          .SetAtmosphericRadiation(rAtm)
+          .MarkEstimated(WeatherField.AtmosphericRadiation);
+      if (rec.Has(WeatherField.GlobalHorizontalRadiation))  b.SetGlobalHorizontalRadiation(rec.GlobalHorizontalRadiation);
+      if (rec.Has(WeatherField.DirectNormalRadiation))      b.SetDirectNormalRadiation(rec.DirectNormalRadiation);
+      if (rec.Has(WeatherField.DiffuseHorizontalRadiation)) b.SetDiffuseHorizontalRadiation(rec.DiffuseHorizontalRadiation);
+      if (rec.Has(WeatherField.WindSpeed))                  b.SetWindSpeed(rec.WindSpeed);
+      if (rec.Has(WeatherField.WindDirection))              b.SetWindDirection(rec.WindDirection);
+      if (rec.Has(WeatherField.Precipitation))              b.SetPrecipitation(rec.Precipitation);
+      if (rec.Has(WeatherField.CloudCover))                 b.SetCloudCover(rec.CloudCover);
+      if (rec.Has(WeatherField.OpaqueCloudCover))           b.SetOpaqueCloudCover(rec.OpaqueCloudCover);
+      if (rec.Has(WeatherField.CeilingHeight))              b.SetCeilingHeight(rec.CeilingHeight);
+      return b.ToRecord();
     }
 
     private static string FormatHourEnd(DateTime hourEnd)

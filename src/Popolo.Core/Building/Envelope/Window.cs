@@ -170,6 +170,7 @@ namespace Popolo.Core.Building.Envelope
       {
         cCoefF = value;
         UpdateFilmCoefficient();
+        if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -181,6 +182,7 @@ namespace Popolo.Core.Building.Envelope
       {
         rCoefF = value;
         UpdateFilmCoefficient();
+        if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -196,6 +198,13 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side (outdoor) [-].</summary>
     public double LongWaveEmissivityF { get; set; } = 0.9;
 
+    /// <summary>
+    /// Whether the F (outdoor) side is exposed to outdoor wind (default <c>true</c>).
+    /// When <c>false</c>, the F-side convective coefficient is excluded from the
+    /// wind-speed-driven dynamic update and retains its user-set value.
+    /// </summary>
+    public bool IsWindExposedF { get; set; } = true;
+
     /// <summary>Gets or sets the sol-air temperature on the F side (outdoor) [°C].</summary>
     public double SolAirTemperatureF { get; set; }
 
@@ -210,6 +219,7 @@ namespace Popolo.Core.Building.Envelope
       {
         cCoefB = value;
         UpdateFilmCoefficient();
+        if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -221,6 +231,7 @@ namespace Popolo.Core.Building.Envelope
       {
         rCoefB = value;
         UpdateFilmCoefficient();
+        if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
       }
     }
 

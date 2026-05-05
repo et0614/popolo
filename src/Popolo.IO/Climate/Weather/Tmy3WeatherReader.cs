@@ -275,6 +275,17 @@ namespace Popolo.IO.Climate.Weather
           if (TryParseDouble(f[46], ci, out double wsp) && wsp >= 0 && wsp < 99)
             builder.SetWindSpeed(wsp);
 
+          // [52] CeilHgt [m]、77777 = unlimited (=雲なし扱い), 99999 = missing
+          // 大気放射推定 (Martin-Berdahl 1984) で不透明雲の影響を補正するために用いる
+          if (f.Length > 52 && TryParseDouble(f[52], ci, out double ceil))
+          {
+            if (ceil >= 0 && ceil < 77000)
+              builder.SetCeilingHeight(ceil);
+            else if ((int)ceil == 77777)
+              builder.SetCeilingHeight(22000);   // unlimited を 22 km 相当として扱う (Std140-2023 慣例)
+            // 99999 (missing) は SetCeilingHeight 未呼出 → fallback
+          }
+
           // [64] Lprecip depth [mm], 欠測値は -9900 等の負値や 99 (TMY3 仕様)。
           // 正常範囲のみ受け入れる。
           if (f.Length > 64 && TryParseDouble(f[64], ci, out double precip)

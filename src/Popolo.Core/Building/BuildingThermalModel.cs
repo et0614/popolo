@@ -23,7 +23,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
 using Popolo.Core.Exceptions;
+using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building
 {
@@ -123,14 +125,92 @@ namespace Popolo.Core.Building
     /// <summary>Gets the solar state.</summary>
     public IReadOnlySun Sun { get; private set; } = null!;
 
-    /// <summary>Gets the outdoor dry-bulb temperature [°C].</summary>
-    public double OutdoorTemperature { get; private set; }
+    /// <summary>
+    /// Gets the current weather record. <c>null</c> until the first
+    /// <see cref="UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>
+    /// (or its scalar overload, which builds a record internally).
+    /// </summary>
+    /// <remarks>
+    /// All outdoor-state convenience properties read from this record on demand,
+    /// deferring <see cref="WeatherRecord.Has(WeatherField)"/> checks to the
+    /// consumer site. Future fields added to <see cref="WeatherRecord"/> are
+    /// automatically available without changing this class's API.
+    /// </remarks>
+    public WeatherRecord? CurrentWeather { get; private set; }
 
-    /// <summary>Gets the outdoor humidity ratio [kg/kg].</summary>
-    public double OutdoorHumidityRatio { get; private set; }
+    /// <summary>Gets the outdoor dry-bulb temperature [°C] from <see cref="CurrentWeather"/>.</summary>
+    public double OutdoorTemperature => CurrentWeather?.DryBulbTemperature ?? 0.0;
 
-    /// <summary>Gets the nocturnal (long-wave) radiation [W/m²].</summary>
-    public double NocturnalRadiation { get; private set; }
+    /// <summary>Gets the outdoor humidity ratio [kg/kg] from <see cref="CurrentWeather"/>.</summary>
+    public double OutdoorHumidityRatio
+        => CurrentWeather.HasValue ? CurrentWeather.Value.HumidityRatio * 1e-3 : 0.0;
+
+    /// <summary>
+    /// Gets the nocturnal (long-wave) radiation [W/m²] derived from the record's
+    /// atmospheric IR: <c>σ·T_air⁴ − R_atm</c>. Returns 0 when the record does not
+    /// carry <see cref="WeatherField.AtmosphericRadiation"/>.
+    /// </summary>
+    public double NocturnalRadiation
+    {
+      get
+      {
+        if (!CurrentWeather.HasValue) return 0.0;
+        WeatherRecord rec = CurrentWeather.Value;
+        if (!rec.Has(WeatherField.AtmosphericRadiation)) return 0.0;
+        double Tk = PhysicsConstants.ToKelvin(rec.DryBulbTemperature);
+        return PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk
+             - rec.AtmosphericRadiation;
+      }
+    }
+
+    /// <summary>
+    /// When <c>true</c>, the indoor-side radiative coefficient is refreshed each step from
+    /// the area-weighted mean indoor surface temperature on every contained
+    /// <see cref="MultiRoom"/>.
+    /// </summary>
+    public bool DynamicIndoorRadiativeCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicIndoorRadiativeCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicIndoorRadiativeCoefficient = value; }
+    }
+
+    /// <summary>
+    /// When <c>true</c>, the outdoor-side radiative coefficient is refreshed each step from
+    /// the outdoor air temperature on every contained <see cref="MultiRoom"/>.
+    /// </summary>
+    public bool DynamicOutdoorRadiativeCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicOutdoorRadiativeCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicOutdoorRadiativeCoefficient = value; }
+    }
+
+    /// <summary>
+    /// When <c>true</c>, the outdoor-side convective coefficient is refreshed each step from
+    /// the current outdoor wind speed (windward MoWiTT) on every wind-exposed exterior
+    /// surface across all contained <see cref="MultiRoom"/>.
+    /// </summary>
+    public bool DynamicOutdoorConvectiveCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicOutdoorConvectiveCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicOutdoorConvectiveCoefficient = value; }
+    }
+
+    /// <summary>
+    /// Compound switch covering both <see cref="DynamicIndoorRadiativeCoefficient"/> and
+    /// <see cref="DynamicOutdoorRadiativeCoefficient"/>. Provided for backward compatibility;
+    /// the getter returns <c>true</c> only when both sub-flags are <c>true</c>.
+    /// </summary>
+    /// <remarks>
+    /// Recommended for ANSI/ASHRAE 140-2023 BESTEST validation. Setting this property
+    /// propagates to every contained <see cref="MultiRoom"/>. Use the per-axis flags above
+    /// when only one of indoor/outdoor needs to vary, or when convective dynamics are
+    /// also required.
+    /// </remarks>
+    public bool DynamicRadiativeCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicRadiativeCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicRadiativeCoefficient = value; }
+    }
 
     #endregion
 
@@ -484,23 +564,58 @@ namespace Popolo.Core.Building
     public void InitializeAirState(double temperature, double humidityRatio)
     { foreach (MultiRoom ml in mRooms) ml.InitializeAirState(temperature, humidityRatio); }
 
-    /// <summary>Updates outdoor conditions for all multi-room systems.</summary>
+    /// <summary>
+    /// Updates outdoor conditions for all multi-room systems from scalar values.
+    /// Internally synthesizes a <see cref="WeatherRecord"/> with dry-bulb temperature,
+    /// humidity ratio, and atmospheric IR derived from <c>R_atm = σ·T_air⁴ − nr</c>;
+    /// wind speed is left unrecorded.
+    /// </summary>
     /// <param name="dTime">Current date and time.</param>
     /// <param name="sun">Solar state.</param>
     /// <param name="temperature">Outdoor dry-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Outdoor humidity ratio [kg/kg].</param>
     /// <param name="nocRadiation">Nocturnal radiation [W/m²].</param>
+    /// <remarks>
+    /// Backward-compatible scalar entry point. Prefer the
+    /// <see cref="UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>
+    /// overload when the caller already has a <see cref="WeatherRecord"/>, so that
+    /// wind speed and other future fields propagate without changing this signature.
+    /// </remarks>
     public void UpdateOutdoorCondition
       (DateTime dTime, IReadOnlySun sun, double temperature, double humidityRatio, double nocRadiation)
     {
+      double Tk = PhysicsConstants.ToKelvin(temperature);
+      double rAtm = PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk - nocRadiation;
+      WeatherRecord rec = new WeatherRecordBuilder()
+          .SetTime(dTime)
+          .SetDryBulbTemperature(temperature)
+          .SetHumidityRatio(humidityRatio * 1e3)  // kg/kg → g/kg
+          .SetAtmosphericRadiation(rAtm)
+          .ToRecord();
+      UpdateOutdoorCondition(dTime, sun, rec);
+    }
+
+    /// <summary>
+    /// Updates outdoor conditions for all multi-room systems by storing the
+    /// <see cref="WeatherRecord"/> as the authoritative source for the current step.
+    /// </summary>
+    /// <param name="dTime">Current date and time.</param>
+    /// <param name="sun">Solar state.</param>
+    /// <param name="record">Weather record (referenced, not copied).</param>
+    /// <remarks>
+    /// All outdoor-state convenience getters and the dynamic surface-coefficient
+    /// updates read from this record. Field-availability checks are deferred to
+    /// the consumer site so that callers can pass a richer record (additional fields
+    /// added to <see cref="WeatherRecord"/> in the future) without API changes here.
+    /// </remarks>
+    public void UpdateOutdoorCondition(DateTime dTime, IReadOnlySun sun, WeatherRecord record)
+    {
       CurrentDateTime = dTime;
       this.Sun = sun;
-      OutdoorTemperature = temperature;
-      OutdoorHumidityRatio = humidityRatio;
-      NocturnalRadiation = nocRadiation;
+      CurrentWeather = record;
       foreach (MultiRoom mr in mRooms)
       {
-        mr.UpdateOutdoorCondition(dTime, sun, temperature, humidityRatio, nocRadiation);
+        mr.UpdateOutdoorCondition(dTime, sun, record);
         hasHTChgd[mr] = hasWTChgd[mr] = true;
       }
     }

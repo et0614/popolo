@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using Popolo.Core.Numerics.LinearAlgebra;
 using Popolo.Core.Numerics;
 using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Physics;
 
@@ -93,6 +94,14 @@ namespace Popolo.Core.Building
     /// <summary>Short-wave emissivity values for each window.</summary>
     private double[] wSWEmissivity = null!;
 
+    /// <summary>
+    /// Per-interior-surface Gebhart self-absorption factor <c>bf = 1 − G[i,i]</c>, captured
+    /// during <see cref="ComputeGebhartMatrix"/> before the diagonal of <c>gMatL</c> is zeroed
+    /// out as part of normalization. Reused by <see cref="UpdateIndoorRadiativeCoefficient"/>
+    /// when <see cref="DynamicIndoorRadiativeCoefficient"/> is enabled.
+    /// </summary>
+    private double[] gebhartBF = null!;
+
     /// <summary>Zone indices belonging to each room.</summary>
     private List<int>[] rZones = null!;
 
@@ -158,20 +167,105 @@ namespace Popolo.Core.Building
     /// <summary>Gets the array of window assemblies.</summary>
     public IReadOnlyWindow[] Windows { get { return windows; } }
 
-    /// <summary>Gets the outdoor dry-bulb temperature [°C].</summary>
-    public double OutdoorTemperature { get; private set; }
+    /// <summary>
+    /// Gets the current weather record. <c>null</c> until the first
+    /// <see cref="UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>
+    /// (or its scalar overload, which builds a record internally).
+    /// </summary>
+    /// <remarks>
+    /// All outdoor-state convenience properties (<see cref="OutdoorTemperature"/>,
+    /// <see cref="OutdoorHumidityRatio"/>, <see cref="NocturnalRadiation"/>,
+    /// <see cref="OutdoorWindSpeed"/>) read from this record on demand and the
+    /// availability checks (<see cref="WeatherRecord.Has(WeatherField)"/>) are
+    /// deferred to the consumer site, so callers can pass a richer record in the
+    /// future without changing this class's surface.
+    /// </remarks>
+    public WeatherRecord? CurrentWeather { get; private set; }
 
-    /// <summary>Gets the outdoor humidity ratio [kg/kg].</summary>
-    public double OutdoorHumidityRatio { get; private set; }
+    /// <summary>Gets the outdoor dry-bulb temperature [°C] from <see cref="CurrentWeather"/>.</summary>
+    public double OutdoorTemperature => CurrentWeather?.DryBulbTemperature ?? 0.0;
 
-    /// <summary>Gets the nocturnal (long-wave) radiation [W/m²].</summary>
-    public double NocturnalRadiation { get; private set; }
+    /// <summary>Gets the outdoor humidity ratio [kg/kg] from <see cref="CurrentWeather"/>.</summary>
+    public double OutdoorHumidityRatio
+        => CurrentWeather.HasValue ? CurrentWeather.Value.HumidityRatio * 1e-3 : 0.0;
+
+    /// <summary>
+    /// Gets the nocturnal (long-wave) radiation [W/m²] derived from the record's
+    /// atmospheric IR: <c>σ·T_air⁴ − R_atm</c>. Returns 0 if the record does not
+    /// carry <see cref="WeatherField.AtmosphericRadiation"/>.
+    /// </summary>
+    public double NocturnalRadiation
+    {
+      get
+      {
+        if (!CurrentWeather.HasValue) return 0.0;
+        WeatherRecord rec = CurrentWeather.Value;
+        if (!rec.Has(WeatherField.AtmosphericRadiation)) return 0.0;
+        double Tk = PhysicsConstants.ToKelvin(rec.DryBulbTemperature);
+        return PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk
+             - rec.AtmosphericRadiation;
+      }
+    }
+
+    /// <summary>
+    /// Gets the outdoor wind speed [m/s] from <see cref="CurrentWeather"/>.
+    /// Returns 0 when the record does not carry <see cref="WeatherField.WindSpeed"/>.
+    /// </summary>
+    public double OutdoorWindSpeed
+        => CurrentWeather.HasValue && CurrentWeather.Value.Has(WeatherField.WindSpeed)
+            ? CurrentWeather.Value.WindSpeed : 0.0;
 
     /// <summary>Gets or sets the ground surface albedo [-].</summary>
     public double Albedo { get; set; } = 0.4;
 
     /// <summary>Gets or sets a value indicating whether tilted-surface solar irradiance is provided directly.</summary>
     public bool IsSolarIrradianceGiven { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, the indoor-side (B) radiative coefficient on every wall and window is
+    /// recomputed each step from the area-weighted mean of the room's interior surface
+    /// temperatures (<c>h_r ≈ 4·ε·σ·T̄³</c>), preserving each surface's Gebhart self-absorption
+    /// factor. Default <c>false</c> keeps the value at its initial (typically 24 °C-linearized)
+    /// assignment.
+    /// </summary>
+    public bool DynamicIndoorRadiativeCoefficient { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, the outdoor-side radiative coefficient on every exterior wall and
+    /// window face is recomputed each step from the outdoor air temperature
+    /// (<c>h_r = 4·ε·σ·T_air³</c>). Default <c>false</c>.
+    /// </summary>
+    public bool DynamicOutdoorRadiativeCoefficient { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, the outdoor-side convective coefficient on every wind-exposed
+    /// surface (<see cref="Wall.IsWindExposedF"/>, <see cref="Window.IsWindExposedF"/>) is
+    /// recomputed each step from <see cref="OutdoorWindSpeed"/> using the windward MoWiTT
+    /// correlation (<see cref="Sky.GetExteriorConvectiveCoefficient"/>). Default <c>false</c>.
+    /// </summary>
+    public bool DynamicOutdoorConvectiveCoefficient { get; set; } = false;
+
+    /// <summary>
+    /// Compound switch covering both <see cref="DynamicIndoorRadiativeCoefficient"/> and
+    /// <see cref="DynamicOutdoorRadiativeCoefficient"/>. Provided for backward compatibility
+    /// with prior single-switch API; the getter returns <c>true</c> only when both sub-flags
+    /// are <c>true</c>; the setter sets both.
+    /// </summary>
+    /// <remarks>
+    /// Each per-step update invalidates the affected wall's inverse step-coefficient matrix,
+    /// so the per-step cost increases noticeably. Recommended for validation runs (e.g.,
+    /// ANSI/ASHRAE 140-2023 BESTEST) where reference simulators compute time-step varying
+    /// infrared exchange. Use the per-side flags above when only one side needs to vary.
+    /// </remarks>
+    public bool DynamicRadiativeCoefficient
+    {
+      get => DynamicIndoorRadiativeCoefficient && DynamicOutdoorRadiativeCoefficient;
+      set
+      {
+        DynamicIndoorRadiativeCoefficient = value;
+        DynamicOutdoorRadiativeCoefficient = value;
+      }
+    }
 
     #endregion
 
@@ -366,19 +460,48 @@ namespace Popolo.Core.Building
     }
 
     /// <summary>Computes the A and B matrices for the sensible heat balance.</summary>
+    /// <remarks>
+    /// Triggered when any boundary surface's convective or radiative heat transfer coefficient
+    /// has changed since the last build (tracked per-side via
+    /// <see cref="BoundarySurface.BoundaryCoefficientChanged"/>). Both walls and windows are
+    /// scanned; for walls whose film coefficients have changed, the inverse step-coefficient
+    /// matrix is refreshed via <see cref="Wall.UpdateInverseMatrix"/> so the boundary-temperature
+    /// sensitivity coefficients (FFS2/3, BFS2/3) are up-to-date within the same time step.
+    /// </remarks>
     private void MakeABMatrix()
     {
       //AB行列の再計算の要否を確認
+      // (1) 全 surface (壁+窓) の境界係数変化フラグ — setter で立つ、即時反映用
+      // (2) Wall.invMatrixUpdated — 前 FixState の Update で逆行列が再計算された痕跡
+      //     (PCM 等の層プロパティ変化や埋設配管流量変化を反映)
       bool needUpdateAB = false;
-      for (int i = 0; i < walls.Length; i++)
+      for (int i = 0; i < surfaces.Length; i++)
       {
-        if (walls[i].invMatrixUpdated)
+        if (surfaces[i].BoundaryCoefficientChanged) { needUpdateAB = true; break; }
+      }
+      if (!needUpdateAB)
+      {
+        for (int i = 0; i < walls.Length; i++)
         {
-          needUpdateAB = true;
-          break;
+          if (walls[i].invMatrixUpdated) { needUpdateAB = true; break; }
         }
       }
       if (!needUpdateAB) return;
+
+      // 境界係数が変わった Wall の逆行列を同タイムステップで最新化。
+      // uxMatrix を作り直したら IF2/3 も同じ uxMatrix と現 tempAndHumid から再計算
+      // しないと、AB 行列 (FFS/BFS 経由、新 uxMatrix) と C ベクトル (IF 経由、旧 uxMatrix)
+      // で整合性が崩れ、ピーク負荷などで誤差が出る。
+      // 窓は FFS 系を inverse 経由で持たないので追加処理不要。
+      for (int i = 0; i < walls.Length; i++)
+      {
+        if (walls[i].SurfaceF.BoundaryCoefficientChanged ||
+            walls[i].SurfaceB.BoundaryCoefficientChanged)
+        {
+          walls[i].UpdateInverseMatrix();
+          walls[i].UpdateIFCoefficients();
+        }
+      }
 
       int nS = surfaces.Length;
       matA.Initialize(0);
@@ -463,6 +586,10 @@ namespace Popolo.Core.Building
 
       //Aの逆行列計算
       LinearAlgebraOperations.GetInverse(matA, matAInv);
+
+      // 全 surface のフラグを下ろす (次の coefficient 変更で再度立つ)
+      for (int i = 0; i < surfaces.Length; i++)
+        surfaces[i].BoundaryCoefficientChanged = false;
     }
 
     /// <summary>Computes the C vector for the sensible heat balance.</summary>
@@ -632,6 +759,13 @@ namespace Popolo.Core.Building
         for (int i = 0; i < RoomCount; i++) radToSurf_L[i] = 0;
         DistributeShortwaveRad();
         DistributeLongwaveRad();
+
+        //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
+        // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
+        // 必ず動的更新の後に呼ぶ。
+        if (DynamicIndoorRadiativeCoefficient)   UpdateIndoorRadiativeCoefficient();
+        if (DynamicOutdoorRadiativeCoefficient)  UpdateOutdoorRadiativeCoefficient();
+        if (DynamicOutdoorConvectiveCoefficient) UpdateOutdoorConvectiveCoefficient();
 
         //屋外側相当温度を設定
         SetOutdoorAirState();
@@ -878,6 +1012,7 @@ namespace Popolo.Core.Building
       for (int i = 0; i < sfs.Count; i++) isSFboundary[i] = !sfs.Contains(sfs[i].ReverseSideSurface);
       radToSurf_S = new double[sNum];
       gMatL = new double[sNum, sNum];
+      gebhartBF = new double[sNum];
       gMatS = new double[sNum, sNum];
       if (SolveMoistureTransferSimultaneously)
       {
@@ -1042,8 +1177,9 @@ namespace Popolo.Core.Building
             gMatL[wInd[j], wInd[k]] = ffRhoL[j, k] * ws2.LongWaveEmissivity;
             gMatS[wInd[j], wInd[k]] = ffRhoS[j, k] * ws2.ShortWaveEmissivity;
           }
-          //長波長は基準化して放射熱伝達率を計算
+          //長波長は基準化して放射熱伝達率を計算 (動的更新用に bf を保存)
           double bf = 1 - gMatL[wInd[j], wInd[j]];
+          gebhartBF[wInd[j]] = bf;
           ws1.RadiativeCoefficient = bf * ws1.LongWaveEmissivity * RAD_COEF;
           for (int k = 0; k < wsn; k++)
           {
@@ -1088,6 +1224,127 @@ namespace Popolo.Core.Building
         }
       }
       if (needUpdateGebhartMatrix) ComputeGebhartMatrix();
+    }
+
+    /// <summary>
+    /// Refreshes the indoor-side (B) radiative coefficient on every wall and window using
+    /// the area-weighted mean of the previous-step indoor surface temperatures and the
+    /// per-surface Gebhart self-absorption factor: <c>h_r = bf · ε · 4σ·T̄_surf³</c>.
+    /// </summary>
+    /// <remarks>
+    /// The mean surface temperature is closer to the radiative-network linearization point
+    /// than the zone air temperature (especially when a cold window or a sun-lit floor pulls
+    /// surface temperatures away from the air). Each updated coefficient flows through the
+    /// wall's setter and sets <c>BoundaryCoefficientChanged</c>; <see cref="MakeABMatrix"/>
+    /// then refreshes the wall response coefficients.
+    /// </remarks>
+    private void UpdateIndoorRadiativeCoefficient()
+    {
+      if (gebhartBF == null) return;
+      const double SBC = PhysicsConstants.StefanBoltzmannConstant;
+
+      for (int i = 0; i < RoomCount; i++)
+      {
+        double atSum = 0;   // Σ A·T_surf
+        double aSum  = 0;   // Σ A
+        for (int j = 0; j < wsIndex[i].Length; j++)
+        {
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
+          {
+            int idx = wsIndex[i][j][k];
+            BoundarySurface ws = surfaces[idx];
+            atSum += ws.Area * ws.SurfaceTemperature;
+            aSum  += ws.Area;
+          }
+        }
+        if (aSum <= 0) continue;
+        double Tk = PhysicsConstants.ToKelvin(atSum / aSum);
+        double radCoef = 4 * SBC * Tk * Tk * Tk;
+
+        for (int j = 0; j < wsIndex[i].Length; j++)
+        {
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
+          {
+            int idx = wsIndex[i][j][k];
+            BoundarySurface ws = surfaces[idx];
+            ws.RadiativeCoefficient = gebhartBF[idx] * ws.LongWaveEmissivity * radCoef;
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Refreshes the outdoor-side radiative coefficient on every exterior wall and window
+    /// face using the current outdoor air temperature: <c>h_r = ε · 4σ·T_outdoor³</c>.
+    /// </summary>
+    /// <remarks>
+    /// Sky/ground partition is handled separately through the
+    /// <see cref="NocturnalRadiation"/> sol-air correction. Faces facing other zones (in the
+    /// indoor <c>surfaces</c> array) are skipped.
+    /// </remarks>
+    private void UpdateOutdoorRadiativeCoefficient()
+    {
+      const double SBC = PhysicsConstants.StefanBoltzmannConstant;
+      double TkOut = PhysicsConstants.ToKelvin(OutdoorTemperature);
+      double radCoefOut = 4 * SBC * TkOut * TkOut * TkOut;
+      HashSet<BoundarySurface> interiorSet = new HashSet<BoundarySurface>(surfaces);
+      foreach (Wall w in walls)
+      {
+        if (!interiorSet.Contains(w.SurfaceF))
+          w.RadiativeCoefficientF = w.LongWaveEmissivityF * radCoefOut;
+        if (!interiorSet.Contains(w.SurfaceB))
+          w.RadiativeCoefficientB = w.LongWaveEmissivityB * radCoefOut;
+      }
+      foreach (Window win in windows)
+      {
+        if (!interiorSet.Contains(win.OutsideSurface))
+          win.RadiativeCoefficientF = win.LongWaveEmissivityF * radCoefOut;
+        if (!interiorSet.Contains(win.InsideSurface))
+          win.RadiativeCoefficientB = win.LongWaveEmissivityB * radCoefOut;
+      }
+    }
+
+    /// <summary>
+    /// Refreshes the outdoor-side convective coefficient on every wind-exposed exterior
+    /// surface using <see cref="OutdoorWindSpeed"/> and the previous-step surface-air
+    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient"/>
+    /// (windward MoWiTT).
+    /// </summary>
+    /// <remarks>
+    /// Faces facing other zones (in the indoor <c>surfaces</c> array) and faces flagged with
+    /// <see cref="Wall.IsWindExposedF"/> / <see cref="Window.IsWindExposedF"/> = <c>false</c>
+    /// (e.g., raised-floor undersides) are skipped. The same windward correlation is applied
+    /// to all exposed surfaces regardless of orientation; orientation-specific tuning is
+    /// outside the scope of the model's current inputs.
+    /// </remarks>
+    private void UpdateOutdoorConvectiveCoefficient()
+    {
+      // 風速が記録されていなければ更新を見送り (ユーザ初期値を保持)。
+      if (!CurrentWeather.HasValue || !CurrentWeather.Value.Has(WeatherField.WindSpeed)) return;
+      double v = CurrentWeather.Value.WindSpeed;
+      double Ta = OutdoorTemperature;
+      HashSet<BoundarySurface> interiorSet = new HashSet<BoundarySurface>(surfaces);
+      foreach (Wall w in walls)
+      {
+        if (w.IsWindExposedF && !interiorSet.Contains(w.SurfaceF) && !w.SurfaceF.IsGroundWall)
+        {
+          double dT = w.SurfaceTemperatureF - Ta;
+          w.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT);
+        }
+        if (w.IsWindExposedB && !interiorSet.Contains(w.SurfaceB) && !w.SurfaceB.IsGroundWall)
+        {
+          double dT = w.SurfaceTemperatureB - Ta;
+          w.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT);
+        }
+      }
+      // Window の F 側 SurfaceTemperature は応答係数モデル上未定義 (FFS2_F/B が無い)。
+      // 自然対流寄与は windward MoWiTT では小 (typical |ΔT|≈10K で 1.8 W/m²K) なので
+      // 風速のみで強制対流項を評価する近似を採用。
+      foreach (Window win in windows)
+      {
+        if (win.IsWindExposedF && !interiorSet.Contains(win.OutsideSurface))
+          win.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, 0.0);
+      }
     }
 
     /// <summary>Distributes short-wave (solar) radiation among interior surfaces.</summary>
@@ -1164,20 +1421,52 @@ namespace Popolo.Core.Building
 
     #region 境界条件設定処理
 
-    /// <summary>Updates outdoor air conditions from the current weather state.</summary>
+    /// <summary>
+    /// Updates outdoor air conditions from scalar values. Internally synthesizes a
+    /// <see cref="WeatherRecord"/> with the dry-bulb temperature, humidity ratio,
+    /// and (when <paramref name="nocRadiation"/> is non-default) atmospheric IR
+    /// derived from <c>R_atm = σ·T_air⁴ − nr</c>. Wind speed is left unrecorded.
+    /// </summary>
     /// <param name="dTime">Current date and time.</param>
     /// <param name="sun">Solar state.</param>
     /// <param name="temperature">Outdoor dry-bulb temperature [°C].</param>
     /// <param name="humidityRatio">Outdoor humidity ratio [kg/kg].</param>
     /// <param name="nocRadiation">Nocturnal radiation [W/m²].</param>
+    /// <remarks>
+    /// Backward-compatible scalar entry point. Prefer the
+    /// <see cref="UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>
+    /// overload when the caller already has a <see cref="WeatherRecord"/>, so that
+    /// wind speed and other future fields propagate without changing this signature.
+    /// </remarks>
     internal void UpdateOutdoorCondition
       (DateTime dTime, IReadOnlySun sun, double temperature, double humidityRatio, double nocRadiation)
     {
+      double Tk = PhysicsConstants.ToKelvin(temperature);
+      double rAtm = PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk - nocRadiation;
+      WeatherRecord rec = new WeatherRecordBuilder()
+          .SetTime(dTime)
+          .SetDryBulbTemperature(temperature)
+          .SetHumidityRatio(humidityRatio * 1e3)  // kg/kg → g/kg
+          .SetAtmosphericRadiation(rAtm)
+          .ToRecord();
+      UpdateOutdoorCondition(dTime, sun, rec);
+    }
+
+    /// <summary>
+    /// Updates outdoor air conditions by storing the <see cref="WeatherRecord"/> as the
+    /// authoritative source. All outdoor-state properties subsequently read from this
+    /// record; field-availability checks (<see cref="WeatherRecord.Has(WeatherField)"/>)
+    /// happen at consumer sites so that future record extensions do not require API
+    /// changes here.
+    /// </summary>
+    /// <param name="dTime">Current date and time.</param>
+    /// <param name="sun">Solar state.</param>
+    /// <param name="record">Weather record (referenced, not copied).</param>
+    internal void UpdateOutdoorCondition(DateTime dTime, IReadOnlySun sun, WeatherRecord record)
+    {
       CurrentDateTime = dTime;
       Sun = sun;
-      OutdoorTemperature = temperature;
-      OutdoorHumidityRatio = humidityRatio;
-      NocturnalRadiation = nocRadiation;
+      CurrentWeather = record;
     }
 
     /// <summary>Sets the ground temperature [°C] for ground-contact walls.</summary>
@@ -1522,14 +1811,17 @@ namespace Popolo.Core.Building
     public void SetOutsideWall(int wallIndex, bool isSideF, IReadOnlyIncline incline)
     {
       needInitialize = true;
-      BoundarySurface ws;
-      if (isSideF) ws = walls[wallIndex].SurfaceF;
-      else ws = walls[wallIndex].SurfaceB;
+      Wall w = walls[wallIndex];
+      BoundarySurface ws = isSideF ? w.SurfaceF : w.SurfaceB;
 
       ws.AdjacentSpaceFactor = -1.0;
       ws.Incline = incline;
       ws.ZoneIndex = -1;
       ws.IsGroundWall = false;
+      // 既定では外気側として登録された面は風に晒されると想定。
+      // 庇下面など遮蔽面では呼び出し側が設定後に false へ上書きする。
+      if (isSideF) w.IsWindExposedF = true;
+      else         w.IsWindExposedB = true;
       for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
       bndSurfaces.Add(ws);
     }

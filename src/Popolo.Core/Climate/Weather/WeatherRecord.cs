@@ -132,6 +132,12 @@ namespace Popolo.Core.Climate.Weather
     public double OpaqueCloudCover { get; }
 
     /// <summary>
+    /// Ceiling height [m] above ground level (lowest opaque cloud base).
+    /// Sources commonly use a sentinel like 22000 m for "unlimited / no clouds".
+    /// </summary>
+    public double CeilingHeight { get; }
+
+    /// <summary>
     /// Bit mask of fields that were read verbatim from the source format.
     /// </summary>
     public WeatherField RecordedFields { get; }
@@ -174,6 +180,7 @@ namespace Popolo.Core.Climate.Weather
         double precipitation,
         double cloudCover,
         double opaqueCloudCover,
+        double ceilingHeight,
         WeatherField recordedFields,
         WeatherField estimatedFields)
     {
@@ -191,6 +198,7 @@ namespace Popolo.Core.Climate.Weather
       Precipitation = precipitation;
       CloudCover = cloudCover;
       OpaqueCloudCover = opaqueCloudCover;
+      CeilingHeight = ceilingHeight;
       RecordedFields = recordedFields;
       EstimatedFields = estimatedFields;
     }

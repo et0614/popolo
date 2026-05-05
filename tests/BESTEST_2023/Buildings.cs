@@ -28,15 +28,26 @@ namespace BESTEST_2023
     private static readonly Incline INC_W = new Incline(Incline.Orientation.W, 0.5 * Math.PI);
     private static readonly Incline INC_S = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
     private static readonly Incline INC_H = new Incline(Incline.Orientation.N, 0);
+    /// <summary>水平面下向き (raised floor の F 側)。tilt=π で fs_to_sky=0、ground albedo の入射のみ。</summary>
+    private static readonly Incline INC_F = new Incline(Incline.Orientation.N, Math.PI);
 
-    /// <summary>
-    /// 夜間放射 (nocturnal radiation) を抑制するか。BESTEST 結果は夜間放射への
-    /// 感度が低く、TMY からの近似でむしろ誤差を入れるとの判断で旧来から true。
-    /// </summary>
-    public const bool NO_NOC_RAD = true;
+    //屋外側対流熱伝達率 (Std 140-2023 Table 7-7 既定; 風速 4.02 m/s 想定の年平均値)
+    public const double AO_WALL = 11.9;    // h_conv,ext walls
+    public const double AO_WINDOW = 8.0;   // h_conv,ext windows
+    public const double AO_FLOOR = 0.8;    // h_conv,ext raised floor (sheltered)
+    public const double AO_ROOF = 14.4;    // h_conv,ext roof
+    //屋内側対流熱伝達率
+    const double AI_WALL = 2.2;     // h_conv,int walls / floor
+    const double AI_WINDOW = 2.4;   // h_conv,int windows
+    const double AI_FLOOR = 2.2;    // h_conv,int floor
+    const double AI_CEILING = 1.8;  // h_conv,int ceiling
+
+
+    /// <summary>BESTEST2023では天空温度が提供されており夜間放射が計算可能</summary>
+    public const bool NO_NOC_RAD = false;
 
     /// <summary>BESTEST 標準条件における空気密度 [kg/m³]。</summary>
-    public const double AIR_DNS = PhysicsConstants.NominalMoistAirDensity * 0.822;
+    public const double AIR_DNS = PhysicsConstants.NominalMoistAirDensity * (1.0156 / 1.2255);
 
     #endregion
 
@@ -185,14 +196,17 @@ namespace BESTEST_2023
       bool isConstIntCoeffs = (tCase & TestCase.ConstIntCoeffs) == tCase;
       bool isConstExtCoeffs = (tCase & TestCase.ConstExtCoeffs) == tCase;
 
-      // 放射率・吸収率・表面熱伝達率
-      double extswAbsorptance, extlwEmissivity, intswAbsorptance, intlwEmissivity, aowal, aowin;
-      if (isLowExtIREmissivity) { extlwEmissivity = 0.1; aowal = 25.2; aowin = 16.9; }
-      else { extlwEmissivity = 0.9; aowal = 29.3; aowin = 21.0; }
+      // 屋外表面長波長放射率
+      double extlwEmissivity = isLowExtIREmissivity ? 0.1 : 0.9;
+      // 屋外表面短波長吸収率
+      double extswAbsorptance;
       if (tCase == TestCase.C250) extswAbsorptance = 0.9;
       else if (isLowExtSWEmissivity) extswAbsorptance = 0.1;
       else extswAbsorptance = 0.6;
-      intlwEmissivity = isLowIntIREmissivity ? 0.1 : 0.9;
+      // 屋内表面長波長放射率
+      double intlwEmissivity = isLowIntIREmissivity ? 0.1 : 0.9;
+      // 屋内表面短波長吸収率
+      double intswAbsorptance;
       if (isLowIntSWEmissivity) intswAbsorptance = 0.1;
       else if (isHighIntSWEmissivity) intswAbsorptance = 0.9;
       else intswAbsorptance = 0.6;
@@ -218,16 +232,23 @@ namespace BESTEST_2023
       walls[5] = new Wall(
           (noWindow || hasEWWindow) ? 8 * 2.7 : 8 * 2.7 - 6d - 6d, exwL);    // 南外壁
 
+      // h_r ≈ 4εσT̄³ を T̄=20°C で線形化 (内側/外側それぞれ ε に応じて)
+      double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       for (int i = 0; i < walls.Length; i++)
       {
-        walls[i].ConvectiveCoefficientF = aowal;
-        walls[i].RadiativeCoefficientF = 0;
         walls[i].Initialize(25);
+
+        //屋外側
+        walls[i].ConvectiveCoefficientF = (i == 0) ? AO_FLOOR : (i == 1) ? AO_ROOF : AO_WALL;
+        walls[i].RadiativeCoefficientF = hrF;
         walls[i].ShortWaveAbsorptanceF = extswAbsorptance;
         walls[i].LongWaveEmissivityF = extlwEmissivity;
+        //屋内側
+        walls[i].ConvectiveCoefficientB = (i == 0) ? AI_FLOOR : (i == 1) ? AI_CEILING : AI_WALL;  // 屋根=ceiling, 他=walls/floor
+        walls[i].RadiativeCoefficientB = hrB;
         walls[i].ShortWaveAbsorptanceB = intswAbsorptance;
         walls[i].LongWaveEmissivityB = intlwEmissivity;
-        walls[i].ConvectiveCoefficientB = 3.16;
       }
 
       // Cases 450/460/470: 表面熱伝達係数を一定値で上書き (Std 140-2023 Table 7-46)
@@ -279,8 +300,8 @@ namespace BESTEST_2023
             // (n=1.493, K=0.0337/mm, TH=3.048mm) から計算した値で、Case 600 と同一材料。
             // GlazingCount=1 の真の単板として構築。
             windows[i] = new Window(6,
-                new[] { 0.83446 }, new[] { 0.0391 },
-                new[] { 0.83446 }, new[] { 0.0391 },
+                new[] { 0.834 }, new[] { 0.075 },
+                new[] { 0.834 }, new[] { 0.075 },
                 inc[i]);
             windows[i].SetGlassResistance(0, 0.00305);
           }
@@ -308,8 +329,8 @@ namespace BESTEST_2023
             // (n=1.493, K=0.0337/mm, TH=3.048mm)。両 pane 同一材料。
             // Pane R=0.003, AirGap R=0.1588 m²K/W。
             windows[i] = new Window(6,
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 inc[i]);
             windows[i].SetGlassResistance(0, 0.003);
             windows[i].SetGlassResistance(1, 0.003);
@@ -318,9 +339,10 @@ namespace BESTEST_2023
 
           windows[i].LongWaveEmissivityF = extlwEmissivity;
           windows[i].LongWaveEmissivityB = intlwEmissivity;
-          windows[i].ConvectiveCoefficientF = aowin;
-          windows[i].RadiativeCoefficientF = 0;
-          windows[i].ConvectiveCoefficientB = 3.16;
+          windows[i].ConvectiveCoefficientF = AO_WINDOW;
+          windows[i].RadiativeCoefficientF = hrF;
+          windows[i].ConvectiveCoefficientB = AI_WINDOW;
+          windows[i].RadiativeCoefficientB = hrB;
           SetBESTESTWindowAngleDependence(windows[i]);
 
           // Cases 450/470: 窓も外側を 17.8 W/m²K に固定 (Table 7-46)
@@ -360,7 +382,12 @@ namespace BESTEST_2023
       mRoom.AddZone(0, 0);
 
       // 屋外表面設定
-      mRoom.SetGroundWall(0, true, 10000);    // 床: 断熱材の向こう側を土壌温度に固定
+      // Std140-2023 §7.2.1.5.1: raised floor は床下空気が外気温に等しい (slab-on-grade ではない)。
+      // F 側を OutsideWall (tilt=π, fs_to_sky=0) とし、§7.2.1.5.1.b で日射ゼロのため α_F=0。
+      // 床下は風が当たらないので h_conv 動的更新の対象外 (Std140 が h_conv,floor=0.8 を規定)。
+      mRoom.SetOutsideWall(0, true, INC_F);
+      walls[0].ShortWaveAbsorptanceF = 0.0;
+      walls[0].IsWindExposedF = false;
       mRoom.SetOutsideWall(1, true, INC_H);
       mRoom.SetOutsideWall(2, true, INC_N);
       mRoom.SetOutsideWall(3, true, INC_E);
@@ -381,8 +408,8 @@ namespace BESTEST_2023
     public static void MakeSunZoneBuilding(
         out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
-      const double aowal = 29.3;
-      const double aowin = 21.0;
+      // 表面熱伝達率は Std 140-2023 Tables 7-7/7-9 の h_conv (定数はクラス冒頭で共有)。
+      // 放射は NR 経路で別途計算。
       const double extswEmissivity = 0.6;
       const double extlwEmissivity = 0.9;
       const double intswEmissivity = 0.6;
@@ -416,18 +443,24 @@ namespace BESTEST_2023
       walls[9]  = new Wall(2 * 2.7,    exwL_H); // 西外壁2
       walls[10] = new Wall(8 * 2.7,    cwL);    // 共用壁
 
+      // h_r 線形化 (T̄=20°C)
+      double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      // walls[0,1]=床, [2,3]=屋根, [4..9]=外壁, [10]=共用壁 (内部、ループ後に上書き)
       for (int i = 0; i < walls.Length; i++)
       {
-        walls[i].ConvectiveCoefficientF = aowal;
-        walls[i].RadiativeCoefficientF = 0;
+        walls[i].ConvectiveCoefficientF = (i <= 1) ? AO_FLOOR : (i <= 3) ? AO_ROOF : AO_WALL;
+        walls[i].RadiativeCoefficientF = hrF;
         walls[i].Initialize(25);
         walls[i].ShortWaveAbsorptanceF = extswEmissivity;
         walls[i].LongWaveEmissivityF = extlwEmissivity;
         walls[i].ShortWaveAbsorptanceB = intswEmissivity;
         walls[i].LongWaveEmissivityB = intlwEmissivity;
-        walls[i].ConvectiveCoefficientB = 3.16;
+        walls[i].ConvectiveCoefficientB = (i <= 1) ? AI_FLOOR : (i <= 3) ? AI_CEILING : AI_WALL;
+        walls[i].RadiativeCoefficientB = hrB;
       }
-      walls[10].ConvectiveCoefficientF = 3.16;
+      // 共用壁: 両側室内なので F も h_conv,int で
+      walls[10].ConvectiveCoefficientF = AI_WALL;
       walls[10].ShortWaveAbsorptanceF = intswEmissivity;
       walls[10].LongWaveEmissivityF = intlwEmissivity;
 
@@ -437,17 +470,18 @@ namespace BESTEST_2023
       for (int i = 0; i < 2; i++)
       {
         windows[i] = new Window(6,
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 INC_S);
         windows[i].SetGlassResistance(0, 0.003);
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
         windows[i].LongWaveEmissivityF = extlwEmissivity;
         windows[i].LongWaveEmissivityB = intlwEmissivity;
-        windows[i].ConvectiveCoefficientF = aowin;
-        windows[i].RadiativeCoefficientF = 0;
-        windows[i].ConvectiveCoefficientB = 3.16;
+        windows[i].ConvectiveCoefficientF = AO_WINDOW;
+        windows[i].RadiativeCoefficientF = hrF;
+        windows[i].ConvectiveCoefficientB = AI_WINDOW;
+        windows[i].RadiativeCoefficientB = hrB;
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
@@ -458,9 +492,13 @@ namespace BESTEST_2023
       mRoom.AddZone(0, 0);
       mRoom.AddZone(1, 1);
 
-      // 屋外表面設定
-      mRoom.SetGroundWall(0, true, 10000);
-      mRoom.SetGroundWall(1, true, 10000);
+      // 屋外表面設定 (Std140-2023 §7.2.1.5.1: raised floor は外気温、no solar、wind shelter)
+      mRoom.SetOutsideWall(0, true, INC_F);
+      mRoom.SetOutsideWall(1, true, INC_F);
+      walls[0].ShortWaveAbsorptanceF = 0.0;
+      walls[1].ShortWaveAbsorptanceF = 0.0;
+      walls[0].IsWindExposedF = false;
+      walls[1].IsWindExposedF = false;
       mRoom.SetOutsideWall(2, true, INC_H);
       mRoom.SetOutsideWall(3, true, INC_H);
       mRoom.SetOutsideWall(4, true, INC_N);
@@ -497,8 +535,8 @@ namespace BESTEST_2023
     public static void MakeGroundCouplingBuilding(
         out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
-      const double aowal = 29.3;
-      const double aowin = 21.0;
+      // 表面熱伝達率は Std 140-2023 Tables 7-7/7-9 の h_conv (定数はクラス冒頭で共有)。
+      // 地下外壁は SetGroundWall で F 側上書きされるので AO_WALL は実質バイパス。
       const double extswEmissivity = 0.6;
       const double extlwEmissivity = 0.9;
       const double intswEmissivity = 0.6;
@@ -534,16 +572,21 @@ namespace BESTEST_2023
       walls[7] = new Wall(6 * 1.35,  flwL);  // 西外壁 (地下)
       walls[8] = new Wall(8 * 1.35,  flwL);  // 南外壁 (地下) ※地上は無し
 
+      // h_r 線形化 (T̄=20°C)
+      double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      // walls[0]=床(slab), [1]=屋根, [2-8]=外壁(地上+地下混在、地下は SetGroundWall で F 側上書き)
       for (int i = 0; i < walls.Length; i++)
       {
-        walls[i].ConvectiveCoefficientF = aowal;
-        walls[i].RadiativeCoefficientF = 0;
+        walls[i].ConvectiveCoefficientF = (i == 1) ? AO_ROOF : AO_WALL;  // 床(0)/地下壁は実質バイパス
+        walls[i].RadiativeCoefficientF = hrF;
         walls[i].Initialize(25);
         walls[i].ShortWaveAbsorptanceF = extswEmissivity;
         walls[i].LongWaveEmissivityF = extlwEmissivity;
         walls[i].ShortWaveAbsorptanceB = intswEmissivity;
         walls[i].LongWaveEmissivityB = intlwEmissivity;
-        walls[i].ConvectiveCoefficientB = 3.16;
+        walls[i].ConvectiveCoefficientB = (i == 1) ? AI_CEILING : AI_WALL;
+        walls[i].RadiativeCoefficientB = hrB;
       }
 
       // 窓 (Case 990 用 clear double-pane、面積 5.4 m²)。
@@ -552,17 +595,18 @@ namespace BESTEST_2023
       for (int i = 0; i < 2; i++)
       {
         windows[i] = new Window(5.4,
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
-                new[] { 0.83446, 0.83446 }, new[] { 0.0391, 0.0391 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
+                new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 INC_S);
         windows[i].SetGlassResistance(0, 0.003);
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
         windows[i].LongWaveEmissivityF = extlwEmissivity;
         windows[i].LongWaveEmissivityB = intlwEmissivity;
-        windows[i].ConvectiveCoefficientF = aowin;
-        windows[i].RadiativeCoefficientF = 0;
-        windows[i].ConvectiveCoefficientB = 3.16;
+        windows[i].ConvectiveCoefficientF = AO_WINDOW;
+        windows[i].RadiativeCoefficientF = hrF;
+        windows[i].ConvectiveCoefficientB = AI_WINDOW;
+        windows[i].RadiativeCoefficientB = hrB;
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 

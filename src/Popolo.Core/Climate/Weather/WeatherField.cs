@@ -74,5 +74,13 @@ namespace Popolo.Core.Climate.Weather
 
     /// <summary>Opaque cloud cover as fraction [0, 1] (clouds that fully obscure the sky).</summary>
     OpaqueCloudCover = 1 << 11,
+
+    /// <summary>
+    /// Ceiling height [m] above ground level (lowest opaque cloud base).
+    /// Used by atmospheric-radiation models that distinguish high (thin) vs low (opaque)
+    /// clouds, e.g., Martin-Berdahl (1984). For unlimited / no-cloud condition the field
+    /// is typically reported as a sentinel (e.g., 22000 m) by the source weather format.
+    /// </summary>
+    CeilingHeight = 1 << 12,
   }
 }

@@ -37,11 +37,16 @@ namespace Popolo.Core.Building.Envelope
   /// radiant pipes with <c>AddPipe</c>.
   /// </para>
   /// <para>
-  /// The coefficient and inverse matrices of the response-factor model are
-  /// cached and recomputed lazily: internal flags indicate when layer
-  /// properties or pipe flow conditions have changed, and the matrices are
-  /// rebuilt on the next solver step. This keeps the per-step cost low when
-  /// properties are steady.
+  /// Internally the wall is solved as a node-per-layer-interface lumped
+  /// finite-difference network advanced by implicit Euler. The coefficient
+  /// matrix <c>(I − Δt·A)</c> and its inverse are cached and recomputed
+  /// lazily: internal flags indicate when layer properties or pipe flow
+  /// conditions have changed, and the matrices are rebuilt on the next
+  /// solver step. This keeps the per-step cost low when properties are
+  /// steady. Note that this is <em>not</em> a CTF / response-factor
+  /// (z-domain) formulation; the boundary-temperature sensitivity
+  /// coefficients exposed to <see cref="MultiRoom"/> (FFS2/3, BFS2/3, IF2/3,
+  /// FFL/BFL) are instantaneous step coefficients derived from that inverse.
   /// </para>
   /// <para>
   /// Boundary attachment (outdoor, ground, adjacent space, or another zone)
@@ -92,8 +97,14 @@ namespace Popolo.Core.Building.Envelope
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
     private double[] resL = null!, capL = null!, cNu = null!, cKappa = null!;
 
-    /// <summary>Working matrices for the response factor calculation.</summary>
-    /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
+    /// <summary>Working matrices for the implicit-Euler step solution of the wall thermal network.</summary>
+    /// <remarks>
+    /// <c>uMatrix</c> is the bare coefficient matrix <c>(I − Δt·A)</c>;
+    /// <c>umWithTubeEffect</c> is the same with embedded-pipe corrections applied;
+    /// <c>uxMatrix</c> is its inverse, used to advance nodal temperatures and to derive
+    /// the boundary-temperature sensitivity coefficients (FFS2/3, BFS2/3, FFL/BFL).
+    /// Pre-allocated to avoid repeated heap allocation during simulation.
+    /// </remarks>
     private IMatrix uMatrix = null!, umWithTubeEffect = null!, uxMatrix = null!;
 
     /// <summary>Working arrays for sensible heat balance and radiant floor/ceiling calculation.</summary>
@@ -155,6 +166,7 @@ namespace Popolo.Core.Building.Envelope
         if (cCoefF == value) return;
         needToUpdateUMatrix = true;
         cCoefF = value;
+        if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -167,6 +179,7 @@ namespace Popolo.Core.Building.Envelope
         if (rCoefF == value) return;
         needToUpdateUMatrix = true;
         rCoefF = value;
+        if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -178,6 +191,17 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side [-].</summary>
     public double LongWaveEmissivityF { get; set; } = 0.9;
+
+    /// <summary>
+    /// Whether the F side is exposed to outdoor wind. Default <c>false</c>; the side
+    /// is initialized to <c>true</c> when the F side is registered as an exterior
+    /// surface via <see cref="MultiRoom.SetOutsideWall(int, bool, Popolo.Core.Climate.IReadOnlyIncline)"/>.
+    /// Override to <c>false</c> after <c>SetOutsideWall</c> for sheltered exterior surfaces
+    /// (e.g., raised-floor undersides, attic-side roofs, surfaces under deep overhangs).
+    /// When <c>false</c>, the F-side convective coefficient is excluded from the
+    /// wind-speed-driven dynamic update and retains its user-set value.
+    /// </summary>
+    public bool IsWindExposedF { get; set; } = false;
 
     /// <summary>Gets or sets the sol-air temperature on the F side [°C].</summary>
     public double SolAirTemperatureF { get; set; }
@@ -197,6 +221,7 @@ namespace Popolo.Core.Building.Envelope
         if (cCoefB == value) return;
         needToUpdateUMatrix = true;
         cCoefB = value;
+        if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -209,6 +234,7 @@ namespace Popolo.Core.Building.Envelope
         if (rCoefB == value) return;
         needToUpdateUMatrix = true;
         rCoefB = value;
+        if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
       }
     }
 
@@ -220,6 +246,15 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets or sets the long-wave (thermal) emissivity on the B side [-].</summary>
     public double LongWaveEmissivityB { get; set; } = 0.9;
+
+    /// <summary>
+    /// Whether the B side is exposed to outdoor wind. Default <c>false</c>; the side
+    /// is initialized to <c>true</c> when the B side is registered as an exterior
+    /// surface via <see cref="MultiRoom.SetOutsideWall(int, bool, Popolo.Core.Climate.IReadOnlyIncline)"/>
+    /// (with <c>isSideF = false</c>). Override to <c>false</c> after <c>SetOutsideWall</c>
+    /// for sheltered exterior surfaces.
+    /// </summary>
+    public bool IsWindExposedB { get; set; } = false;
 
     /// <summary>Gets or sets the sol-air temperature on the B side [°C].</summary>
     public double SolAirTemperatureB { get; set; }
@@ -246,64 +281,64 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the boundary surface element on the B side.</summary>
     internal BoundarySurface SurfaceB { get; private set; } = null!;
 
-    /// <summary>Response factor coefficient: boundary condition term (F side × temperature).</summary>
+    /// <summary>Inverse-matrix–derived F-side temperature contribution to the next-step nodal solution.</summary>
     internal double IF2_F { get; private set; }
 
-    /// <summary>Response factor coefficient: boundary condition term (B side × temperature).</summary>
+    /// <summary>Inverse-matrix–derived B-side temperature contribution to the next-step nodal solution.</summary>
     internal double IF2_B { get; private set; }
 
-    /// <summary>Response factor coefficient: boundary condition term (F side × humidity).</summary>
+    /// <summary>Inverse-matrix–derived F-side humidity contribution to the next-step nodal solution.</summary>
     internal double IF3_F { get; private set; }
 
-    /// <summary>Response factor coefficient: boundary condition term (B side × humidity).</summary>
+    /// <summary>Inverse-matrix–derived B-side humidity contribution to the next-step nodal solution.</summary>
     internal double IF3_B { get; private set; }
 
-    /// <summary>Response factor: F-side sol-air temperature → F-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (temperature row).</summary>
     internal double FFS2_F { get; private set; }
 
-    /// <summary>Response factor: F-side sol-air temperature → B-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (temperature row).</summary>
     internal double FFS2_B { get; private set; }
 
-    /// <summary>Response factor: F-side sol-air temperature → F-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
     internal double FFS3_F { get; private set; }
 
-    /// <summary>Response factor: F-side sol-air temperature → B-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
     internal double FFS3_B { get; private set; }
 
-    /// <summary>Response factor: B-side sol-air temperature → F-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (temperature row).</summary>
     internal double BFS2_F { get; private set; }
 
-    /// <summary>Response factor: B-side sol-air temperature → B-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side sol-air temperature (temperature row).</summary>
     internal double BFS2_B { get; private set; }
 
-    /// <summary>Response factor: B-side sol-air temperature → F-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
     internal double BFS3_F { get; private set; }
 
-    /// <summary>Response factor: B-side sol-air temperature → B-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
     internal double BFS3_B { get; private set; }
 
-    /// <summary>Response factor: F-side humidity ratio → F-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
     internal double FFL2_F { get; private set; }
 
-    /// <summary>Response factor: F-side humidity ratio → B-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
     internal double FFL2_B { get; private set; }
 
-    /// <summary>Response factor: F-side humidity ratio → F-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
     internal double FFL3_F { get; private set; }
 
-    /// <summary>Response factor: F-side humidity ratio → B-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
     internal double FFL3_B { get; private set; }
 
-    /// <summary>Response factor: B-side humidity ratio → F-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
     internal double BFL2_F { get; private set; }
 
-    /// <summary>Response factor: B-side humidity ratio → B-side sensible heat (temperature term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
     internal double BFL2_B { get; private set; }
 
-    /// <summary>Response factor: B-side humidity ratio → F-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
     internal double BFL3_F { get; private set; }
 
-    /// <summary>Response factor: B-side humidity ratio → B-side sensible heat (humidity term).</summary>
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
     internal double BFL3_B { get; private set; }
 
     /// <summary>Gets or sets a value indicating whether the inverse matrix has been updated.</summary>
@@ -328,7 +363,7 @@ namespace Popolo.Core.Building.Envelope
     /// <remarks>
     /// Enabling moisture transfer roughly doubles the per-step cost: the
     /// number of unknowns per node becomes two (temperature + humidity ratio),
-    /// and a second set of response-factor coefficients is maintained. Each
+    /// and a second set of boundary-sensitivity coefficients is maintained. Each
     /// layer's <see cref="IReadOnlyWallLayer.MoistureConductivity"/>,
     /// <see cref="IReadOnlyWallLayer.WaterCapacity"/>, <see cref="IReadOnlyWallLayer.KappaC"/>,
     /// and <see cref="IReadOnlyWallLayer.NuC"/> must be populated for the
@@ -399,10 +434,10 @@ namespace Popolo.Core.Building.Envelope
     /// <remarks>
     /// Per call, <see cref="Update"/>:
     /// <list type="bullet">
-    ///   <item><description>rebuilds the inverse response-factor matrix if an input has changed (layer properties, pipe flow, film coefficients, time step);</description></item>
+    ///   <item><description>rebuilds the inverse step-coefficient matrix if an input has changed (layer properties, pipe flow, film coefficients, time step);</description></item>
     ///   <item><description>applies <see cref="SolAirTemperatureF"/> / <see cref="SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
     ///   <item><description>calls <c>UpdateState</c> on variable-property layers (e.g., <see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/>) and, if any property changed, schedules a matrix rebuild for the next call;</description></item>
-    ///   <item><description>refreshes the surface-delay response factors (IF2 / IF3) used by the zone solver.</description></item>
+    ///   <item><description>refreshes the boundary-temperature sensitivity coefficients (IF2 / IF3) used by the zone solver.</description></item>
     /// </list>
     /// Called internally by <see cref="MultiRoom"/> during each forecast /
     /// fix cycle; external code normally does not call <see cref="Update"/>
@@ -497,6 +532,24 @@ namespace Popolo.Core.Building.Envelope
       }
 
       //係数IFを更新
+      UpdateIFCoefficients();
+    }
+
+    /// <summary>
+    /// Recomputes the boundary-temperature contribution coefficients (<c>IF2_F/B</c>,
+    /// <c>IF3_F/B</c>) from the current <c>uxMatrix</c> and <c>tempAndHumid</c> state.
+    /// </summary>
+    /// <remarks>
+    /// These coefficients capture the wall's intrinsic response from its current internal
+    /// state (independent of new boundary inputs) and are consumed by
+    /// <see cref="MultiRoom.MakeCVector"/>. They must stay consistent with the
+    /// <c>FFS2/3</c>, <c>BFS2/3</c> coefficients (which are derived from the same
+    /// <c>uxMatrix</c>): if the inverse matrix is rebuilt mid-step due to a film-coefficient
+    /// change, IF2/3 must be recomputed too — otherwise the C vector is inconsistent with
+    /// the A/B matrix and the zone heat balance produces incorrect results.
+    /// </remarks>
+    internal void UpdateIFCoefficients()
+    {
       if (ComputeMoistureTransfer)
       {
         int nm = layers.Length;
@@ -602,7 +655,7 @@ namespace Popolo.Core.Building.Envelope
     /// Fin thicknesses and conductivities are derived automatically from the
     /// two adjacent layers in the stack (clamped by the pipe outer diameter).
     /// At most one pipe can occupy a given node; calling this again at the
-    /// same node replaces the previous pipe. The wall's response-factor
+    /// same node replaces the previous pipe. The wall's inverse step-coefficient
     /// matrix is invalidated and rebuilt on the next <see cref="Update"/>
     /// call. Water flow is off by default; set it with
     /// <see cref="SetInletWater(int,double,double)"/> before expecting any
@@ -650,7 +703,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="temperature">Inlet water temperature [°C].</param>
     /// <remarks>
     /// Re-computes the pipe's ε-NTU effectiveness and invalidates the
-    /// inverse response-factor matrix so the next <see cref="Update"/> picks
+    /// inverse step-coefficient matrix so the next <see cref="Update"/> picks
     /// up the change. If both arguments match the current state, the call is
     /// a no-op (no matrix rebuild is triggered), so it is safe to call every
     /// step from an HVAC loop.
@@ -824,8 +877,34 @@ namespace Popolo.Core.Building.Envelope
       needToUpdateUMatrix = false;  //BugFix 2017.09.10
     }
 
-    /// <summary>Updates the inverse matrix used in the response factor calculation.</summary>
-    private void UpdateInverseMatrix()
+    /// <summary>
+    /// Updates the inverse of the implicit-Euler coefficient matrix used to advance
+    /// the wall's nodal temperatures by one time step.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The matrix represents <c>(I − Δt·A)</c> where <c>A</c> is the wall's lumped-finite-difference
+    /// thermal-network operator (capacitance / conductance per node). The inverse is used in
+    /// <see cref="Update"/> to solve the implicit step <c>T_new = (I − Δt·A)⁻¹ · (T_old + Δt·boundary)</c>,
+    /// and to extract the boundary-temperature sensitivity coefficients
+    /// (<c>FFS2_F/B</c>, <c>BFS2_F/B</c>, <c>IF2_F/B</c>, etc.) consumed by
+    /// <see cref="MultiRoom.MakeABMatrix"/>.
+    /// </para>
+    /// <para>
+    /// This is <b>not</b> a CTF (Conduction Transfer Function) / response-factor formulation.
+    /// Popolo uses node-per-layer-interface finite differences with implicit Euler integration,
+    /// so the "FF/BF" coefficients are <em>instantaneous</em> step coefficients derived from the
+    /// inverse, not z-domain CTF coefficients that convolve a history of past boundary states.
+    /// </para>
+    /// <para>
+    /// Exposed as <c>internal</c> so that <see cref="MultiRoom.MakeABMatrix"/> can refresh
+    /// the coefficients within the same time step when surface heat-transfer coefficients change
+    /// (e.g., dynamic h_r tracking outdoor surface temperature). It is a pure matrix preparation
+    /// and does not advance the wall's response-history state — that remains <see cref="Update"/>'s
+    /// responsibility, called once per step from <c>FixState</c>.
+    /// </para>
+    /// </remarks>
+    internal void UpdateInverseMatrix()
     {
       //係数行列（配管の影響を除く）を更新
       UpdateUMatrix();
