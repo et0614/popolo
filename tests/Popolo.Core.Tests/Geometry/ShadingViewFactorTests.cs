@@ -237,5 +237,148 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
+    #region 縦フィン (vertical fin)
+
+    /// <summary>フィン深さ 0 で遮蔽率 0。</summary>
+    [Fact]
+    public void VerticalFin_DepthZero_ReturnsZero()
+    {
+      double f = ShadingViewFactor.GetViewFactorWindowToVerticalFin(3, 2, 0);
+      Assert.Equal(0.0, f, precision: 10);
+    }
+
+    /// <summary>フィン深さが増えると単調増加。</summary>
+    [Fact]
+    public void VerticalFin_DeeperFin_IncreasesViewFactor()
+    {
+      double[] depths = { 0.1, 0.5, 1.0, 2.0, 5.0 };
+      double prev = -1;
+      foreach (var d in depths)
+      {
+        double f = ShadingViewFactor.GetViewFactorWindowToVerticalFin(3, 2, d);
+        Assert.True(f > prev, $"depth={d}: f={f}, prev={prev}");
+        prev = f;
+      }
+    }
+
+    /// <summary>フィンと窓の隙間 (lateralGap) が増えると遮蔽が単調減少。</summary>
+    [Fact]
+    public void VerticalFin_LargerLateralGap_DecreasesViewFactor()
+    {
+      double[] gaps = { 0.0, 0.1, 0.5, 1.0, 2.0, 5.0 };
+      double prev = double.PositiveInfinity;
+      foreach (var g in gaps)
+      {
+        double f = ShadingViewFactor.GetViewFactorWindowToVerticalFin(3, 2, 1.0, g);
+        Assert.True(f < prev || g == 0.0, $"gap={g}: f={f}, prev={prev}");
+        prev = f;
+      }
+    }
+
+    /// <summary>同高フィンの天空遮蔽は F_window→fin の半分 (近似)。</summary>
+    [Fact]
+    public void VerticalFin_SkyBlocked_IsHalfOfViewFactor()
+    {
+      double f = ShadingViewFactor.GetViewFactorWindowToVerticalFin(3, 2, 1);
+      double sky = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(3, 2, 1);
+      Assert.Equal(0.5 * f, sky, precision: 10);
+    }
+
+    /// <summary>左右両フィンの天空遮蔽は片側の和。</summary>
+    [Fact]
+    public void VerticalFinPair_IsSumOfSingles()
+    {
+      double left = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(3, 2, 1, lateralGap: 0);
+      double right = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(3, 2, 1, lateralGap: 0.5);
+      double pair = ShadingViewFactor.GetSkyBlockedFractionByVerticalFinPair(3, 2, 1, leftLateralGap: 0, rightLateralGap: 0.5);
+      Assert.Equal(left + right, pair, precision: 10);
+    }
+
+    /// <summary>フィン縦寸法および天空遮蔽は常に [0, 0.5] の範囲。</summary>
+    [Theory]
+    [InlineData(3, 2, 1.0, 0)]
+    [InlineData(3, 2, 100, 0)]
+    [InlineData(1, 5, 1.0, 0)]
+    [InlineData(3, 2, 1.0, 0.5)]
+    public void VerticalFin_SkyBlockingInRange(double w, double h, double d, double g)
+    {
+      double sky = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(w, h, d, g);
+      Assert.InRange(sky, 0.0, 0.5);
+    }
+
+    /// <summary>
+    /// 物理極限: 片側のフィンを無限に大きく (深さ + 高さの両方が ≫ 窓寸法) すると、
+    /// 天空遮蔽は 0.25 (=0.5×0.5) に漸近する。
+    /// 理由: フィンが前方半球の左半分を完全占有 (F_window→fin = 0.5) し、
+    /// 占有分の半分 (上半分) が天空角となるため、天空遮蔽 = 0.5×0.5 = 0.25。
+    /// </summary>
+    [Fact]
+    public void VerticalFin_InfiniteSize_SkyBlockedApproachesQuarter()
+    {
+      // 窓 1×1、フィン高 = 窓高、フィン深さ → 大: 部分極限を確認。
+      // (フィン高は ShadingViewFactor の仮定により窓高と同じ。窓を扁平にすれば
+      //  フィン高が「窓高に対して相対的に大きい」効果に近づく。)
+      // 扁平な窓 (W >> H) + 深いフィンで 0.25 に漸近。
+      double f1 = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(1, 100, 100);
+      double f2 = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(1, 1000, 1000);
+      double f3 = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(1, 10000, 10000);
+      Assert.True(f1 < f2, $"f1={f1} should < f2={f2}");
+      Assert.True(f2 < f3, $"f2={f2} should < f3={f3}");
+      Assert.True(f3 > 0.245, $"f3={f3} should approach 0.25");
+      Assert.True(f3 <= 0.25 + 1e-9, $"f3={f3} bounded by 0.25");
+    }
+
+    /// <summary>
+    /// 物理極限: 両側フィンを無限大にすると、天空遮蔽は 0.5 (=2×0.25) に漸近。
+    /// 結果として天空視野係数は 0 (前方半球すべてが両フィンで占有される)。
+    /// </summary>
+    [Fact]
+    public void VerticalFinPair_InfiniteSize_SkyFullyBlocked()
+    {
+      double pair = ShadingViewFactor.GetSkyBlockedFractionByVerticalFinPair(
+          1, 10000, 10000, leftLateralGap: 0, rightLateralGap: 0);
+      Assert.True(pair > 0.49, $"pair={pair} should approach 0.5");
+      Assert.True(pair <= 0.5 + 1e-9, $"pair={pair} bounded by 0.5");
+    }
+
+    #endregion
+
+    #region Grid (overhang + 両フィン)
+
+    /// <summary>Grid 遮蔽 = 庇 + 左右フィンの和。</summary>
+    [Fact]
+    public void Grid_EqualsOverhangPlusFinPair()
+    {
+      double overhang = ShadingViewFactor.GetSkyBlockedFractionByOverhang(3, 2, 1, gap: 0);
+      double fins = ShadingViewFactor.GetSkyBlockedFractionByVerticalFinPair(3, 2, 1, 0, 0);
+      double grid = ShadingViewFactor.GetSkyBlockedFractionByGrid(3, 2, 1, topGap: 0, leftLateralGap: 0, rightLateralGap: 0);
+      Assert.Equal(overhang + fins, grid, precision: 10);
+    }
+
+    /// <summary>Grid 遮蔽は庇単独より大きい (フィン分の追加遮蔽)。</summary>
+    [Fact]
+    public void Grid_GreaterThanOverhangAlone()
+    {
+      double overhang = ShadingViewFactor.GetSkyBlockedFractionByOverhang(3, 2, 1, gap: 0);
+      double grid = ShadingViewFactor.GetSkyBlockedFractionByGrid(3, 2, 1, topGap: 0, leftLateralGap: 0, rightLateralGap: 0);
+      Assert.True(grid > overhang, $"grid={grid} should > overhang={overhang}");
+    }
+
+    /// <summary>Grid 遮蔽は深さ単調増加で 0.5 を超えない (理論的には少し超える可能性ある近似)。</summary>
+    [Fact]
+    public void Grid_BoundedAndMonotonic()
+    {
+      double[] depths = { 0.5, 1.0, 2.0, 5.0 };
+      double prev = -1;
+      foreach (var d in depths)
+      {
+        double grid = ShadingViewFactor.GetSkyBlockedFractionByGrid(3, 2, d, 0, 0, 0);
+        Assert.True(grid > prev, $"depth={d}: grid={grid}");
+        prev = grid;
+      }
+    }
+
+    #endregion
+
   }
 }

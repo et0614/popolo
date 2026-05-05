@@ -19,6 +19,7 @@
 
 using System;
 using Popolo.Core.Climate;
+using Popolo.Core.Geometry;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -180,6 +181,100 @@ namespace Popolo.Core.Building.Envelope
     #endregion
 
     #region インスタンスメソッド
+
+    /// <summary>
+    /// Gets the effective sky view factor of the window with this shading device.
+    /// Without any shading the value equals
+    /// <see cref="IReadOnlyIncline.ConfigurationFactorToSky"/> of the attached
+    /// surface (0.5 for a vertical wall).
+    /// </summary>
+    /// <returns>Sky view factor in <c>[0, ConfigurationFactorToSky]</c>.</returns>
+    /// <remarks>
+    /// <para>
+    /// All shape types are handled via the analytical
+    /// <see cref="ShadingViewFactor"/> formulas:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description><see cref="ShapeType.Horizontal"/> / <see cref="ShapeType.LongHorizontal"/>: overhang above the window.</description></item>
+    ///   <item><description><see cref="ShapeType.VerticalLeft"/> / <see cref="ShapeType.LongVerticalLeft"/>: left-side fin.</description></item>
+    ///   <item><description><see cref="ShapeType.VerticalRight"/> / <see cref="ShapeType.LongVerticalRight"/>: right-side fin.</description></item>
+    ///   <item><description><see cref="ShapeType.VerticalBoth"/> / <see cref="ShapeType.LongVerticalBoth"/>: both fins.</description></item>
+    ///   <item><description><see cref="ShapeType.Grid"/>: overhang + both fins (egg-crate).</description></item>
+    /// </list>
+    /// <para>
+    /// Approximations: the overhang and fin formulas assume the shading device
+    /// shares the window's perpendicular extent (overhang width = window width;
+    /// fin height = window height). Side-extensions of an overhang
+    /// (<see cref="LeftMargin"/> / <see cref="RightMargin"/>) and top/bottom
+    /// extensions of a fin are ignored; this slightly under-attenuates the
+    /// diffuse-sky component for shading devices that span beyond the window.
+    /// </para>
+    /// </remarks>
+    public double GetSkyViewFactor()
+    {
+      // Incline 未設定のときは安全側に「視野なし」扱い (caller 側で扱える)。
+      if (Incline == null) return 0;
+      double unobstructed = Incline.ConfigurationFactorToSky;
+      if (Shape == ShapeType.None) return unobstructed;
+
+      double blocked = 0;
+      switch (Shape)
+      {
+        case ShapeType.Horizontal:
+        case ShapeType.LongHorizontal:
+          blocked = ShadingViewFactor.GetSkyBlockedFractionByOverhang(
+              WinWidth, WinHeight, Overhang, gap: TopMargin);
+          break;
+
+        case ShapeType.VerticalLeft:
+        case ShapeType.LongVerticalLeft:
+          blocked = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(
+              WinWidth, WinHeight, Overhang, lateralGap: LeftMargin);
+          break;
+
+        case ShapeType.VerticalRight:
+        case ShapeType.LongVerticalRight:
+          blocked = ShadingViewFactor.GetSkyBlockedFractionByVerticalFin(
+              WinWidth, WinHeight, Overhang, lateralGap: RightMargin);
+          break;
+
+        case ShapeType.VerticalBoth:
+        case ShapeType.LongVerticalBoth:
+          blocked = ShadingViewFactor.GetSkyBlockedFractionByVerticalFinPair(
+              WinWidth, WinHeight, Overhang,
+              leftLateralGap: LeftMargin, rightLateralGap: RightMargin);
+          break;
+
+        case ShapeType.Grid:
+          blocked = ShadingViewFactor.GetSkyBlockedFractionByGrid(
+              WinWidth, WinHeight, Overhang,
+              topGap: TopMargin,
+              leftLateralGap: LeftMargin,
+              rightLateralGap: RightMargin);
+          break;
+      }
+
+      double sky = unobstructed - blocked;
+      return sky < 0 ? 0 : sky;
+    }
+
+    /// <summary>
+    /// Gets the diffuse-sky attenuation factor [0, 1] caused by this shading
+    /// device. Multiply this by the unobstructed sky-diffuse irradiance on the
+    /// window to obtain the attenuated value. Returns 1 when the shape has no
+    /// implemented sky-blocking model or there is no shading.
+    /// </summary>
+    public double GetSkyDiffuseAttenuation()
+    {
+      if (Shape == ShapeType.None || Incline == null) return 1.0;
+      double unobstructed = Incline.ConfigurationFactorToSky;
+      if (unobstructed <= 0) return 1.0;
+      double sky = GetSkyViewFactor();
+      double attenuation = sky / unobstructed;
+      if (attenuation < 0) return 0;
+      if (attenuation > 1) return 1;
+      return attenuation;
+    }
 
     /// <summary>Gets the shadow area ratio [-] on the window for the given solar position.</summary>
     /// <param name="sun">Solar state.</param>

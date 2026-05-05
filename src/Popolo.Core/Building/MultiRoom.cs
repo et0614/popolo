@@ -1378,7 +1378,24 @@ namespace Popolo.Core.Building
               {
                 IReadOnlyIncline inc = win.OutsideIncline;
                 dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetShadowRatio(Sun));
-                dif = inc.GetDiffuseSolarIrradiance(Sun, Albedo);
+                // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
+                //
+                // Note: Perez (1990) 異方性モデルでは sky diffuse は
+                //   ① isotropic dome
+                //   ② circumsolar (太陽近傍に集中)
+                //   ③ horizon brightening (地平線近傍)
+                // の 3 成分から成る。一律係数 (sky view factor 比) で全 sky diffuse に
+                // 掛ける現在の方式は ① には適切だが、② (太陽方向依存・遮蔽は二値的) と
+                // ③ (地平線高度に集中・庇では物理的に遮蔽されない) には不適切。
+                // 理論的に厳密化するには Perez 3 成分を分解し個別に減衰させる必要があるが、
+                // 現状は近似として全成分一律で扱う (TODO: Perez 分解の実装)。
+                double diffuseTotal = inc.GetDiffuseSolarIrradiance(Sun, Albedo);
+                double groundReflected = Albedo * inc.ConfigurationFactorToGround
+                                       * Sun.GlobalHorizontalRadiation;
+                double skyDiffuse = diffuseTotal - groundReflected;
+                if (skyDiffuse < 0) skyDiffuse = 0;
+                double attenuation = win.SunShade.GetSkyDiffuseAttenuation();
+                dif = skyDiffuse * attenuation + groundReflected;
               }
               radToSurf_S[indx1] +=
                 dir * win.DirectSolarIncidentAbsorptance + dif * win.DiffuseSolarIncidentAbsorptance;
