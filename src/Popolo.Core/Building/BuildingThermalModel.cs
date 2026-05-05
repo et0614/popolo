@@ -148,20 +148,11 @@ namespace Popolo.Core.Building
     /// <summary>
     /// Gets the nocturnal (long-wave) radiation [W/m²] derived from the record's
     /// atmospheric IR: <c>σ·T_air⁴ − R_atm</c>. Returns 0 when the record does not
-    /// carry <see cref="WeatherField.AtmosphericRadiation"/>.
+    /// carry <see cref="WeatherField.AtmosphericRadiation"/>. Delegates to the cached
+    /// value computed once per step in <see cref="MultiRoom.UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>.
     /// </summary>
     public double NocturnalRadiation
-    {
-      get
-      {
-        if (!CurrentWeather.HasValue) return 0.0;
-        WeatherRecord rec = CurrentWeather.Value;
-        if (!rec.Has(WeatherField.AtmosphericRadiation)) return 0.0;
-        double Tk = PhysicsConstants.ToKelvin(rec.DryBulbTemperature);
-        return PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk
-             - rec.AtmosphericRadiation;
-      }
-    }
+        => mRooms.Length > 0 ? mRooms[0].NocturnalRadiation : 0.0;
 
     /// <summary>
     /// When <c>true</c>, the indoor-side radiative coefficient is refreshed each step from

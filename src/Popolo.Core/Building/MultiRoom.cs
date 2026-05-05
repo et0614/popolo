@@ -194,18 +194,12 @@ namespace Popolo.Core.Building
     /// atmospheric IR: <c>σ·T_air⁴ − R_atm</c>. Returns 0 if the record does not
     /// carry <see cref="WeatherField.AtmosphericRadiation"/>.
     /// </summary>
-    public double NocturnalRadiation
-    {
-      get
-      {
-        if (!CurrentWeather.HasValue) return 0.0;
-        WeatherRecord rec = CurrentWeather.Value;
-        if (!rec.Has(WeatherField.AtmosphericRadiation)) return 0.0;
-        double Tk = PhysicsConstants.ToKelvin(rec.DryBulbTemperature);
-        return PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk
-             - rec.AtmosphericRadiation;
-      }
-    }
+    /// <remarks>
+    /// Computed once per <see cref="UpdateOutdoorCondition(DateTime, IReadOnlySun, WeatherRecord)"/>
+    /// call and cached, since it is read by every exterior-surface sol-air evaluation
+    /// during a heat-balance step.
+    /// </remarks>
+    public double NocturnalRadiation { get; private set; }
 
     /// <summary>
     /// Gets the outdoor wind speed [m/s] from <see cref="CurrentWeather"/>.
@@ -1275,18 +1269,29 @@ namespace Popolo.Core.Building
 
     /// <summary>
     /// Refreshes the outdoor-side radiative coefficient on every exterior wall and window
-    /// face using the current outdoor air temperature: <c>h_r = ε · 4σ·T_outdoor³</c>.
+    /// face using the single-temperature linearization <c>h_r = 4εσ·T_air³</c>.
     /// </summary>
     /// <remarks>
-    /// Sky/ground partition is handled separately through the
-    /// <see cref="NocturnalRadiation"/> sol-air correction. Faces facing other zones (in the
-    /// indoor <c>surfaces</c> array) are skipped.
+    /// <para>
+    /// In the sol-air formulation <c>q = a_o·(T_air − T_s) − ε·fs·R_N</c>, the
+    /// <c>h_r</c> in <c>a_o = a_c + h_r</c> is the linearization of
+    /// <c>ε·σ(T_air⁴ − T_s⁴)</c>, so the appropriate reference temperature lies between
+    /// <c>T_air</c> and <c>T_s</c>. The single-temperature form
+    /// <c>h_r = 4εσ·T_air³</c> assumes <c>T_s ≈ T_air</c>; this is exact at the limit
+    /// and a reasonable approximation for typical envelope conditions.
+    /// </para>
+    /// <para>
+    /// The nocturnal radiation <c>R_N = σ·T_air⁴ − R_atm</c> is handled exactly via the
+    /// <see cref="NocturnalRadiation"/> sol-air offset and is independent of this
+    /// linearization. Faces facing other zones (in the indoor <c>surfaces</c> array) are
+    /// skipped.
+    /// </para>
     /// </remarks>
     private void UpdateOutdoorRadiativeCoefficient()
     {
       const double SBC = PhysicsConstants.StefanBoltzmannConstant;
-      double TkOut = PhysicsConstants.ToKelvin(OutdoorTemperature);
-      double radCoefOut = 4 * SBC * TkOut * TkOut * TkOut;
+      double TkAir = PhysicsConstants.ToKelvin(OutdoorTemperature);
+      double radCoefOut = 4 * SBC * TkAir * TkAir * TkAir;
       HashSet<BoundarySurface> interiorSet = new HashSet<BoundarySurface>(surfaces);
       foreach (Wall w in walls)
       {
@@ -1467,6 +1472,17 @@ namespace Popolo.Core.Building
       CurrentDateTime = dTime;
       Sun = sun;
       CurrentWeather = record;
+      // sol-air 評価で表面ごとに参照されるため、ここで一度だけ σT⁴ − R_atm を計算しキャッシュ。
+      if (record.Has(WeatherField.AtmosphericRadiation))
+      {
+        double Tk = PhysicsConstants.ToKelvin(record.DryBulbTemperature);
+        NocturnalRadiation =
+          PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk - record.AtmosphericRadiation;
+      }
+      else
+      {
+        NocturnalRadiation = 0.0;
+      }
     }
 
     /// <summary>Sets the ground temperature [°C] for ground-contact walls.</summary>

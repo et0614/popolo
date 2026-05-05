@@ -43,13 +43,6 @@ namespace BESTEST_2023
     private static readonly SiteInfo Std140_2023Site
         = new SiteInfo(39.833, -104.65, -105.0, 1650.0);
 
-    /// <summary>
-    /// 旧 BESTEST DRYCOLD.TMY 用のサイト (旧 BESTEST/Program.cs 由来)。
-    /// 緯度=39°08' N, 経度=104°09' W, 標準時子午線 105°W, 標高 1609 m。
-    /// </summary>
-    private static readonly SiteInfo LegacyBestestSite
-        = new SiteInfo(39.0 + 8.0 / 60.0, -(104.0 - 9.0 / 60.0), -105.0, 1609.0);
-
     private const string WEATHER_FILE = "725650TY.csv";
 
     private static readonly string[] MonthAbbrev =
@@ -303,89 +296,6 @@ namespace BESTEST_2023
       }
     }
 
-    /// <summary>
-    /// 診断モード: 旧 BESTEST の DRYCOLD.TMY (TMY1) を新 Section 7 ランナーで実行。
-    /// 旧版 Popolo 結果との直接比較で「移植による論理差」を切り分けるため。
-    /// </summary>
-    /// <param name="legacyWeatherPath">DRYCOLD.TMY の絶対 / 相対パス。</param>
-    /// <param name="resultsDir">結果 CSV の出力先。</param>
-    /// <param name="legacyXlsxPath">旧版結果が入った classic_bestest_result.xlsx (任意)。
-    /// 指定があれば自動で col J と突合プリントする。</param>
-    public static void RunWithLegacyWeather(
-        string legacyWeatherPath, string resultsDir, string? legacyXlsxPath = null)
-    {
-      Directory.CreateDirectory(resultsDir);
-
-      if (!File.Exists(legacyWeatherPath))
-      {
-        Console.WriteLine($"Diagnostic skipped: {legacyWeatherPath} not found");
-        return;
-      }
-
-      // 旧版 BESTEST/Program.cs と同じオプションで読み込む
-      var reader = new Tmy1WeatherReader();
-      var opts = new WeatherReadOptions
-      {
-        Station = new WeatherStationInfo("BestestStation",
-            LegacyBestestSite.Latitude, 360.0 - 104.0 + 9.0 / 60.0, LegacyBestestSite.Elevation),
-        CompleteRadiationComponentsByGeometry = true,
-      };
-      WeatherData wd = reader.Read(legacyWeatherPath, opts);
-      Ground ground = Ground.FromWeatherData(wd);
-
-      Console.WriteLine();
-      Console.WriteLine($"=== Section 7 [LEGACY WEATHER DIAGNOSTIC] ===");
-      Console.WriteLine($"  Weather: {legacyWeatherPath} (TMY1, DRYCOLD)");
-      Console.WriteLine($"  Site   : {LegacyBestestSite.Latitude:F4}°N / {LegacyBestestSite.Longitude:F4}°E,"
-                        + $" Alt {LegacyBestestSite.Elevation} m  (旧 BESTEST 由来)");
-      Console.WriteLine($"  Records: {wd.Count}");
-      Console.WriteLine();
-
-      // 旧 BESTEST にあったケースのみ実行 (新 2023 ケースは旧結果との比較不可)
-      var legacyCases = new[]
-      {
-        Buildings.TestCase.C195, Buildings.TestCase.C200, Buildings.TestCase.C210,
-        Buildings.TestCase.C215, Buildings.TestCase.C220, Buildings.TestCase.C230,
-        Buildings.TestCase.C240, Buildings.TestCase.C250,
-        Buildings.TestCase.C270, Buildings.TestCase.C280, Buildings.TestCase.C290,
-        Buildings.TestCase.C300, Buildings.TestCase.C310, Buildings.TestCase.C320,
-        Buildings.TestCase.C395, Buildings.TestCase.C400, Buildings.TestCase.C410,
-        Buildings.TestCase.C420, Buildings.TestCase.C430, Buildings.TestCase.C440,
-        Buildings.TestCase.C600, Buildings.TestCase.C610, Buildings.TestCase.C620,
-        Buildings.TestCase.C630, Buildings.TestCase.C640, Buildings.TestCase.C650,
-        Buildings.TestCase.C800, Buildings.TestCase.C810,
-        Buildings.TestCase.C900, Buildings.TestCase.C910, Buildings.TestCase.C920,
-        Buildings.TestCase.C930, Buildings.TestCase.C940, Buildings.TestCase.C950,
-        Buildings.TestCase.C960, Buildings.TestCase.C990,
-        Buildings.TestCase.C600FF, Buildings.TestCase.C650FF,
-        Buildings.TestCase.C900FF, Buildings.TestCase.C950FF,
-      };
-
-      var allResults = new List<CaseResult>();
-      foreach (var tCase in legacyCases)
-        allResults.Add(RunCase(tCase, wd, ground, resultsDir, LegacyBestestSite));
-
-      // CSV 出力 (旧版結果との目視比較用)
-      string outCsv = Path.Combine(resultsDir, "TF_LegacyWeatherDiagnostic.csv");
-      using (var sw = new StreamWriter(outCsv, false, new UTF8Encoding(false)))
-      {
-        sw.WriteLine("Case,Heat_MWh,Cool_MWh,PeakHeat_kW,PeakCool_kW,Tmean_C");
-        foreach (var r in allResults)
-        {
-          sw.WriteLine($"{r.Case},{r.AnnualHeating_MWh:F4},{r.AnnualCooling_MWh:F4},"
-              + $"{r.PeakHeating_kW:F3},{r.PeakCooling_kW:F3},{r.ZoneTempMean_C:F2}");
-        }
-      }
-      Console.WriteLine($"  -> {outCsv}");
-
-      // classic_bestest_result.xlsx との自動突合
-      if (legacyXlsxPath != null && File.Exists(legacyXlsxPath))
-      {
-        Console.WriteLine();
-        CompareWithLegacyResults(allResults, legacyXlsxPath);
-      }
-    }
-
     #endregion
 
     #region 1ケース実行
@@ -481,7 +391,7 @@ namespace BESTEST_2023
         {
           for (int h = 0; h < hoursPerDay; h++)
           {
-            WeatherRecord recH = EnrichRecord(wd.Records[h]);
+            WeatherRecord recH = wd.Records[h];
             DateTime simTimeH = recH.Time.AddMinutes(30);
             double iDnH = recH.Has(WeatherField.DirectNormalRadiation)     ? recH.DirectNormalRadiation     : 0.0;
             double iHolH= recH.Has(WeatherField.GlobalHorizontalRadiation) ? recH.GlobalHorizontalRadiation : 0.0;
@@ -549,7 +459,7 @@ namespace BESTEST_2023
 
         for (int i = 0; i < wd.Count; i++)
         {
-          WeatherRecord rec = EnrichRecord(wd.Records[i]);
+          WeatherRecord rec = wd.Records[i];
           DateTime simTime = rec.Time.AddMinutes(30);  // 中点
           double dbt = rec.DryBulbTemperature;
           double iDn = rec.Has(WeatherField.DirectNormalRadiation)     ? rec.DirectNormalRadiation     : 0.0;
@@ -832,53 +742,6 @@ namespace BESTEST_2023
       }
 
       return result;
-    }
-
-    /// <summary>
-    /// レコードに <see cref="WeatherField.AtmosphericRadiation"/> が無い場合 (TMY1 など)、
-    /// 雲量と水蒸気圧から夜間放射量を推定して <c>R_atm = σ·T_air⁴ − NR</c> を補完する。
-    /// <see cref="Buildings.NO_NOC_RAD"/> が <c>true</c> のときは <c>NR=0</c> 相当の <c>R_atm = σ·T_air⁴</c> を入れる。
-    /// それ以外のフィールドは元レコードからそのまま転記される (将来 WeatherRecord に
-    /// 追加されたフィールドも自動的に伝搬される)。
-    /// </summary>
-    private static WeatherRecord EnrichRecord(WeatherRecord rec)
-    {
-      if (!Buildings.NO_NOC_RAD && rec.Has(WeatherField.AtmosphericRadiation)) return rec;
-
-      double dbt = rec.DryBulbTemperature;
-      double Tk = PhysicsConstants.ToKelvin(dbt);
-      double sigmaT4 = PhysicsConstants.StefanBoltzmannConstant * Tk * Tk * Tk * Tk;
-      double rAtm;
-      if (Buildings.NO_NOC_RAD)
-      {
-        rAtm = sigmaT4;  // NR = 0
-      }
-      else
-      {
-        double ahd = rec.HumidityRatio * 1e-3;
-        double wvp = MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(ahd, rec.AtmosphericPressure);
-        double nr = Sky.GetNocturnalRadiation(dbt, (int)(10 * rec.CloudCover), wvp);
-        rAtm = sigmaT4 - nr;
-      }
-
-      var b = new WeatherRecordBuilder()
-          .SetTime(rec.Time)
-          .SetSourceTime(rec.SourceTime)
-          .SetDryBulbTemperature(rec.DryBulbTemperature)
-          .SetHumidityRatio(rec.HumidityRatio)
-          .SetAtmosphericPressure(rec.AtmosphericPressure)
-          .SetAtmosphericRadiation(rAtm)
-          .MarkEstimated(WeatherField.AtmosphericRadiation);
-      if (rec.Has(WeatherField.GlobalHorizontalRadiation))  b.SetGlobalHorizontalRadiation(rec.GlobalHorizontalRadiation);
-      if (rec.Has(WeatherField.DirectNormalRadiation))      b.SetDirectNormalRadiation(rec.DirectNormalRadiation);
-      if (rec.Has(WeatherField.DiffuseHorizontalRadiation)) b.SetDiffuseHorizontalRadiation(rec.DiffuseHorizontalRadiation);
-      if (rec.Has(WeatherField.WindSpeed))                  b.SetWindSpeed(rec.WindSpeed);
-      if (rec.Has(WeatherField.WindDirection))              b.SetWindDirection(rec.WindDirection);
-      if (rec.Has(WeatherField.Precipitation))              b.SetPrecipitation(rec.Precipitation);
-      if (rec.Has(WeatherField.CloudCover))                 b.SetCloudCover(rec.CloudCover);
-      if (rec.Has(WeatherField.OpaqueCloudCover))           b.SetOpaqueCloudCover(rec.OpaqueCloudCover);
-      if (rec.Has(WeatherField.CeilingHeight))              b.SetCeilingHeight(rec.CeilingHeight);
-      return b.ToRecord();
     }
 
     private static string FormatHourEnd(DateTime hourEnd)
@@ -1269,93 +1132,6 @@ namespace BESTEST_2023
         Console.WriteLine($"  {r.Case,-7} {pop,10:F3} {rr.Min,10:F3} {rr.Max,10:F3} {rr.Mean,10:F3}  {devPct,9:+0.0;-0.0;0.0}%  {status}");
       }
       Console.WriteLine($"  Summary: {inEnv} in env, {above} above, {below} below, {noRef} no-ref");
-    }
-
-    /// <summary>
-    /// 診断用: classic_bestest_result.xlsx (旧版 BESTEST 結果) の "検証" シートから
-    /// 旧 Popolo 値 (col J) を読み出し、新ランナーの結果と突合プリント。
-    /// 旧版 BESTEST の構造:
-    ///   r5-r40   : Annual Heating  (col A=case#, col J=Popolo)
-    ///   r44-r79  : Annual Cooling
-    ///   r84-r119 : Peak Heating
-    ///   r124-r159: Peak Cooling
-    /// </summary>
-    private static void CompareWithLegacyResults(List<CaseResult> results, string xlsxPath)
-    {
-      Console.WriteLine($"=== Legacy Popolo comparison vs {Path.GetFileName(xlsxPath)} ===");
-      Console.WriteLine($"  (col J of '検証' sheet = legacy Popolo with DRYCOLD.TMY)");
-
-      Dictionary<int, double> lH, lC, lpH, lpC;
-      using (var doc = SpreadsheetDocument.Open(xlsxPath, false))
-      {
-        var wbp = doc.WorkbookPart!;
-        var sst = wbp.SharedStringTablePart?.SharedStringTable;
-        SheetData? sd = GetSheetData(wbp, "検証");
-        if (sd == null) { Console.WriteLine("  WARN: '検証' sheet not found"); return; }
-        lH  = ParseLegacyTable(sd, sst,   5,  40);
-        lC  = ParseLegacyTable(sd, sst,  44,  79);
-        lpH = ParseLegacyTable(sd, sst,  84, 119);
-        lpC = ParseLegacyTable(sd, sst, 124, 159);
-      }
-
-      PrintLegacyComp("Annual Heating [MWh]", results, r => !r.IsFreeFloat,
-                      r => r.AnnualHeating_MWh, lH);
-      PrintLegacyComp("Annual Cooling [MWh]", results, r => !r.IsFreeFloat,
-                      r => r.AnnualCooling_MWh, lC);
-      PrintLegacyComp("Peak Heating [kW]", results, r => !r.IsFreeFloat && r.PeakHeating_kW > 0,
-                      r => r.PeakHeating_kW, lpH);
-      PrintLegacyComp("Peak Cooling [kW]", results, r => !r.IsFreeFloat && r.PeakCooling_kW > 0,
-                      r => r.PeakCooling_kW, lpC);
-    }
-
-    /// <summary>"検証" シート内 1 表 (case# 列 A, Popolo 値 列 J) をパース。</summary>
-    private static Dictionary<int, double> ParseLegacyTable(
-        SheetData sd, SharedStringTable? sst, uint rowStart, uint rowEnd)
-    {
-      var dict = new Dictionary<int, double>();
-      for (uint r = rowStart; r <= rowEnd; r++)
-      {
-        var row = sd.Elements<Row>().FirstOrDefault(x => x.RowIndex?.Value == r);
-        if (row == null) continue;
-        string aStr = GetCellText(row, $"A{r}", sst);
-        string jStr = GetCellText(row, $"J{r}", sst);
-        if (string.IsNullOrEmpty(aStr) || string.IsNullOrEmpty(jStr)) continue;
-        if (!int.TryParse(aStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out int caseNum)) continue;
-        double val = ParseDouble(jStr);
-        if (!double.IsNaN(val)) dict[caseNum] = val;
-      }
-      return dict;
-    }
-
-    private static void PrintLegacyComp(string title,
-        List<CaseResult> results,
-        Func<CaseResult, bool> includePredicate,
-        Func<CaseResult, double> selector,
-        Dictionary<int, double> legacyDict)
-    {
-      Console.WriteLine();
-      Console.WriteLine($"  ── {title} ──");
-      Console.WriteLine($"  {"Case",-7} {"Legacy",10} {"NewLegSite",12} {"Diff",10}  {"%diff",8}");
-      var diffs = new List<double>();
-      foreach (var r in results)
-      {
-        if (!includePredicate(r)) continue;
-        int? cn = GetCaseNumber(r.Case);
-        if (cn == null) continue;
-        double pop = selector(r);
-        if (!legacyDict.TryGetValue(cn.Value, out double L))
-        {
-          Console.WriteLine($"  {r.Case,-7} {"--",10} {pop,12:F3}    --        no-legacy");
-          continue;
-        }
-        double diff = pop - L;
-        double pct = Math.Abs(L) > 1e-6 ? diff / L * 100 : 0;
-        diffs.Add(Math.Abs(pct));
-        string flag = Math.Abs(pct) > 5 ? " ⚠" : "";
-        Console.WriteLine($"  {r.Case,-7} {L,10:F3} {pop,12:F3} {diff,+10:F3}  {pct,+7:F1}%{flag}");
-      }
-      if (diffs.Count > 0)
-        Console.WriteLine($"  --- avg|%|: {diffs.Average():F2}%, max|%|: {diffs.Max():F2}%, n={diffs.Count}");
     }
 
     /// <summary>

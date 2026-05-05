@@ -26,9 +26,6 @@
     <None Update="weather_data\725650TY.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="weather_data\DRYCOLD.TMY">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="weather_data\WD100.epw">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

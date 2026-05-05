@@ -43,9 +43,6 @@ namespace BESTEST_2023
     const double AI_CEILING = 1.8;  // h_conv,int ceiling
 
 
-    /// <summary>BESTEST2023では天空温度が提供されており夜間放射が計算可能</summary>
-    public const bool NO_NOC_RAD = false;
-
     /// <summary>BESTEST 標準条件における空気密度 [kg/m³]。</summary>
     public const double AIR_DNS = PhysicsConstants.NominalMoistAirDensity * (1.0156 / 1.2255);
 
