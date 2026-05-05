@@ -83,7 +83,7 @@ namespace BESTEST_2023
       Buildings.TestCase.C980FF,
     };
 
-    /// <summary>非自由温度ケース → Std140_TF_Output.xlsx シート"A"の年間負荷行。</summary>
+    /// <summary>非自由温度ケース → Std140_TF_Output.xlsx シート 'YourData' の年間負荷行。</summary>
     private static readonly Dictionary<Buildings.TestCase, uint> AnnualLoadRow
         = new Dictionary<Buildings.TestCase, uint>
         {
@@ -121,7 +121,7 @@ namespace BESTEST_2023
           // C990 はテンプレに行が無い (旧 ASHRAE 拡張)。出力はスキップ。
         };
 
-    /// <summary>自由温度ケース → Std140_TF_Output.xlsx シート"A"の自由温度行。</summary>
+    /// <summary>自由温度ケース → Std140_TF_Output.xlsx シート 'YourData' の自由温度行。</summary>
     private static readonly Dictionary<Buildings.TestCase, uint> FreeFloatRow
         = new Dictionary<Buildings.TestCase, uint>
         {
@@ -764,8 +764,10 @@ namespace BESTEST_2023
     #region xlsx テンプレ書込み
 
     /// <summary>
-    /// Std140_TF_Output.xlsx の "A" シートの所定セルに各ケースの集計値を書き込む。
-    /// 既存のレイアウト・他セルは保持。
+    /// Std140_TF_Output.xlsx の 'YourData' シートの所定セルに各ケースの集計値を書き込む。
+    /// 既存のレイアウト・他セルは保持。テンプレートは Std 140-2023 公式 Std140_TF_Results.xlsx
+    /// を流用しており、書き込み後は同ファイル内の Tables / Fig B8-* シートで参照値との
+    /// 相対誤差が自動的に評価される。
     /// </summary>
     private static void FillStd140Template(
         string templatePath, string outPath, List<CaseResult> results)
@@ -774,10 +776,13 @@ namespace BESTEST_2023
       using var doc = SpreadsheetDocument.Open(outPath, isEditable: true);
       var wbp = doc.WorkbookPart!;
 
-      var sheetA = wbp.Workbook.Descendants<Sheet>().FirstOrDefault(s => s.Name?.Value == "A");
+      // Std140_TF_Output.xlsx は Std 140-2023 公式の Std140_TF_Results.xlsx を流用しており、
+      // ユーザー側の入力欄はシート 'YourData'。同シートに各ケース結果を書き込むと、
+      // 同ファイル内の他シート (Tables 1-7 / 'Fig B8-*' 等) で参照値との相対誤差が自動評価される。
+      var sheetA = wbp.Workbook.Descendants<Sheet>().FirstOrDefault(s => s.Name?.Value == "YourData");
       if (sheetA == null)
       {
-        Console.WriteLine("  WARN: sheet 'A' not found in template");
+        Console.WriteLine("  WARN: sheet 'YourData' not found in template");
         return;
       }
       var wsp = (WorksheetPart)wbp.GetPartById(sheetA.Id!.Value!);
@@ -937,7 +942,7 @@ namespace BESTEST_2023
     }
 
     /// <summary>
-    /// §7.3.8 特定日毎時値の書込み。テンプレ (Std140_TF_Output.xlsx シート"A") の構成:
+    /// §7.3.8 特定日毎時値の書込み。テンプレ (Std140_TF_Output.xlsx シート 'YourData') の構成:
     ///   rows 230-253: Solar/Sky/Trans (cases 600/660/670)
     ///   rows 262-285: Zone Loads + Zone Air Temps (cases 600/640/660-695/900/940/980-995)
     ///   rows 294-317: FF Zone Temperatures (cases 600FF/650FF/680FF/900FF/950FF/980FF)

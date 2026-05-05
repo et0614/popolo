@@ -724,16 +724,32 @@ namespace BESTEST_2023
     #region 窓入射角特性設定
 
     /// <summary>
-    /// Std 140-2023 Annex B6.2 の clear glass 公式 (Snell + Fresnel + Bouguer) から
-    /// フィットした 5 次多項式係数を、窓の全グレージング層に適用する。Case 600
-    /// (clear double-pane) と Case 670 (clear single-pane) は同一材料なので、
-    /// per-pane の角度依存シェイプは共通で扱える。Case 660 の clear 内側 pane も同様。
+    /// 窓の全グレージング層に角度依存性係数を適用する。
+    ///
+    /// <list type="bullet">
+    ///   <item>Clear glass pane (Case 600 両 pane / Case 660 内側 / Case 670):
+    ///     Std 140-2023 Annex B6.2 公式 (Snell + Fresnel + Bouguer) からフィットした
+    ///     5 次多項式 (<see cref="WindowOptics.BESTESTClearGlass_C600"/>)。</item>
+    ///   <item>Low-e coated pane (Case 660 外側): §B6.2 は coated glass に適用不可と
+    ///     仕様明記されているため、Popolo 本体に組み込まれた
+    ///     <see cref="Window.GlassType.LowEmissivity"/> の F/B 非対称な代表多項式を援用。</item>
+    /// </list>
+    ///
+    /// Low-e pane は法線入射 T_n=0.452 (外 pane の Tables 7-17/18 値) で識別する
+    /// — Case 600 両 pane や Case 670 単板はいずれも T_n=0.834 なので衝突しない。
     /// </summary>
     public static void SetBESTESTWindowAngleDependence(Window win)
     {
       var (tau, rho) = WindowOptics.BESTESTClearGlass_C600;
       for (int i = 0; i < win.GlazingCount; i++)
-        win.SetAngleDependence(i, tau, tau, rho, rho);
+      {
+        bool isLowECoatedPane =
+            Math.Abs(win.GetGlazingTransmittance(i, true) - 0.452) < 1e-3;
+        if (isLowECoatedPane)
+          win.SetAngleDependence(i, Window.GlassType.LowEmissivity);
+        else
+          win.SetAngleDependence(i, tau, tau, rho, rho);
+      }
     }
 
     #endregion
