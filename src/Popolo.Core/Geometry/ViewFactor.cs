@@ -132,6 +132,9 @@ namespace Popolo.Core.Geometry
       if (depth == double.PositiveInfinity) return 0.5;
       if (width == 0 || height == 0 || depth <= 0) return 0;
 
+      // Hamilton-Morgan formula for two perpendicular rectangles sharing an edge.
+      // Reference: Howell, Mengüç, Siegel, Thermal Radiation Heat Transfer.
+      // 対数項の係数導出に誤りがあったため修正 (3項展開)。
       double x = width / depth;
       double y = height / depth;
       double rx = Math.Sqrt(1 + x * x);
@@ -139,11 +142,17 @@ namespace Popolo.Core.Geometry
       double rxy1 = Math.Sqrt(1 + x * x + y * y);
       double rxy2 = Math.Sqrt(x * x + y * y);
 
-      return (Math.Atan(x) / y
-          - ry * Math.Atan(x / ry) / y
-          + Math.Atan(x / y)
-          + 0.5 / x / y * Math.Log(rxy1 * y / rxy2 / ry)
-          + 0.5 * x / y * Math.Log(rxy2 * rx / rxy1 / x)) / Math.PI;
+      double trig =
+          Math.Atan(x) / y
+        - ry * Math.Atan(x / ry) / y
+        + Math.Atan(x / y);
+
+      double log =
+          0.5 * x / y * Math.Log(rxy2 * rx / (x * rxy1))
+        + 0.5 * y / x * Math.Log(y * rxy1 / (rxy2 * ry))
+        + 0.5 / (x * y) * Math.Log(rxy1 / (rx * ry));
+
+      return (trig + log) / Math.PI;
     }
 
     private static double ViewVerticalRectangle2FromRectangle1(

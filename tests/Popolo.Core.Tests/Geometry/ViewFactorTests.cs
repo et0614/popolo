@@ -101,6 +101,31 @@ namespace Popolo.Core.Tests.Geometry
             Assert.InRange(f, 0.0, 1.0);
         }
 
+        /// <summary>
+        /// 1m×1m の正方形 2 枚が共通辺で直交する古典的な配置 (W=H=D=1)。
+        /// Hamilton-Morgan の公式に基づく文献値:
+        ///   F = (1/π)·(π/2 − √2·atan(1/√2) + (1/4)·ln(3/4)) ≈ 0.20004。
+        /// (Howell, Mengüç, Siegel "Thermal Radiation Heat Transfer" Configuration C-14)
+        /// </summary>
+        [Fact]
+        public void GetViewFactorPerpendicularRectangles_UnitSquareSharedEdge_MatchesLiterature()
+        {
+            double f = ViewFactor.GetViewFactorPerpendicularRectangles(1.0, 1.0, 1.0);
+            Assert.Equal(0.20004, f, precision: 5);
+        }
+
+        /// <summary>
+        /// 共有辺方向に細長く、深さ方向にも長い場合 F は 0.5 に漸近する。
+        /// W >> H かつ D >= H 程度で 2D 近似が効く範囲。
+        /// </summary>
+        [Fact]
+        public void GetViewFactorPerpendicularRectangles_LargeAspectRatio_ApproachesHalf()
+        {
+            double f = ViewFactor.GetViewFactorPerpendicularRectangles(10000, 1, 10000);
+            Assert.True(f > 0.499 && f <= 0.5 + 1e-9,
+                $"Expected close to 0.5 for large aspect ratio; got {f}");
+        }
+
         /// <summary>deltaZ=0のとき基本形と同じ結果になる</summary>
         [Fact]
         public void GetViewFactorPerpendicularRectangles_ZeroDeltaZ_SameAsBasic()
