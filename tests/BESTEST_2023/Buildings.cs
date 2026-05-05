@@ -131,8 +131,10 @@ namespace BESTEST_2023
                   | C660 | C670 | C680 | C685 | C695
                   | C980 | C985 | C995 | C680FF | C980FF
                   | C450 | C460 | C470,
-      HasOpaqueWindow = C200 | C210 | C215 | C220 | C230 | C240 | C250
-                      | C400 | C410 | C420 | C430 | C800,
+      // 高貫流壁要素 (Std 140-2023 §7.2.3.1.4 / Tables 7-35/7-36; 旧称: opaque window)
+      // 南面 12 m² の透明窓を不透明高貫流壁要素で置換するケース群。
+      HasHighConductanceWall = C200 | C210 | C215 | C220 | C230 | C240 | C250
+                             | C400 | C410 | C420 | C430 | C800,
       NoInfiltration = C195 | C200 | C210 | C215 | C220 | C240 | C250
                      | C270 | C280 | C290 | C300 | C310 | C320 | C395 | C400,
       LowIntIREmissivity = C195 | C200 | C210,
@@ -143,8 +145,6 @@ namespace BESTEST_2023
                          | C270 | C280 | C290 | C300 | C310 | C320
                          | C395 | C400 | C410 | C420,
       NoWindow = C195 | C395,
-      HasHighConductanceWall = C210 | C215 | C220 | C230 | C240 | C250
-                             | C400 | C410 | C420 | C430 | C440 | C800,
       HasEWWindow = C300 | C310 | C620 | C630 | C920 | C930,
       HasSunShade = C290 | C310 | C610 | C630 | C910 | C930 | C990,
 
@@ -180,7 +180,7 @@ namespace BESTEST_2023
       bool hasEWWindow = (tCase & TestCase.HasEWWindow) == tCase;
       bool hasSunShade = (tCase & TestCase.HasSunShade) == tCase;
       bool hasHeatGain = (tCase & TestCase.HasHeatGain) == tCase;
-      bool hasOpaqueWindow = (tCase & TestCase.HasOpaqueWindow) == tCase;
+      bool hasHighConductanceWall = (tCase & TestCase.HasHighConductanceWall) == tCase;
       bool isLowIntIREmissivity = (tCase & TestCase.LowIntIREmissivity) == tCase;
       bool isLowExtIREmissivity = (tCase & TestCase.LowExtIREmissivity) == tCase;
       bool isLowIntSWEmissivity = (tCase & TestCase.LowIntSWEmissivity) == tCase;
@@ -227,7 +227,7 @@ namespace BESTEST_2023
       walls[3] = new Wall(hasEWWindow ? 6 * 2.7 - 6 : 6 * 2.7, exwL);        // 東外壁
       walls[4] = new Wall(hasEWWindow ? 6 * 2.7 - 6 : 6 * 2.7, exwL);        // 西外壁
       walls[5] = new Wall(
-          (noWindow || hasEWWindow) ? 8 * 2.7 : 8 * 2.7 - 6d - 6d, exwL);    // 南外壁
+          (noWindow || hasEWWindow) ? 8 * 2.7 : 8 * 2.7 - 6d - 6d, exwL);    // 南外壁 (HC 壁要素 / 透明窓を除く)
 
       // h_r ≈ 4εσT̄³ を T̄=20°C で線形化 (内側/外側それぞれ ε に応じて)
       double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
@@ -287,9 +287,17 @@ namespace BESTEST_2023
 
         for (int i = 0; i < 2; i++)
         {
-          if (hasOpaqueWindow)
+          if (hasHighConductanceWall)
           {
+            // High-Conductance Wall Element (Std 140-2023 Tables 7-35/7-36)
+            // = 旧 BESTEST「Opaque Window」。南面 12 m² の透明窓を高貫流壁要素で置換。
+            // Opaque panel: k=1.00 W/(m·K), 厚 3.048mm, R=0.00305 m²K/W ×2
+            // Air gap: k_eff=0.0625, 厚 12mm, R=0.19200 m²K/W (定数; T/p で変化させない)
+            // Total surface-to-surface U = 5.048 W/m²K (R=0.198)
             windows[i] = new Window(6, new[] { 0.0, 0.0 }, new[] { 1 - extswAbsorptance, 0.0 }, inc[i]);
+            windows[i].SetGlassResistance(0, 0.00305);
+            windows[i].SetGlassResistance(1, 0.00305);
+            windows[i].SetAirGapResistance(0, 0.192);
           }
           else if (isSinglePane)
           {
@@ -323,17 +331,19 @@ namespace BESTEST_2023
           }
           else
           {
-            // Case 600 等: 標準クリア二重窓 (Std 140-2023 §B6.1)。
+            // Case 600 等: 標準クリア二重窓 (Std 140-2023 Tables 7-10/7-11)。
             // Pane 法線入射 T=0.83446, R=0.0391 は Annex B6.2 の調整済単板値
             // (n=1.493, K=0.0337/mm, TH=3.048mm)。両 pane 同一材料。
-            // Pane R=0.003, AirGap R=0.1588 m²K/W。
+            // Glass pane: k=1.00, 厚 3.048mm → R=0.00305 m²K/W ×2
+            // Air gap (放射+対流の effective conductance hs=5.208 W/m²K) → R=0.19200 m²K/W
+            // Total air-to-air U = 2.10 W/m²K (h_o=17.8, h_i=4.5 込み)
             windows[i] = new Window(6,
                 new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 inc[i]);
-            windows[i].SetGlassResistance(0, 0.003);
-            windows[i].SetGlassResistance(1, 0.003);
-            windows[i].SetAirGapResistance(0, 0.1588);
+            windows[i].SetGlassResistance(0, 0.00305);
+            windows[i].SetGlassResistance(1, 0.00305);
+            windows[i].SetAirGapResistance(0, 0.192);
           }
 
           windows[i].LongWaveEmissivityF = extlwEmissivity;
