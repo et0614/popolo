@@ -565,5 +565,97 @@ namespace Popolo.Core.Tests.Building
     }
 
     #endregion
+
+    #region 熱水分同時移動テスト
+
+    /// <summary>
+    /// 熱水分同時移動が NaN / Inf 無く回り、物理的に妥当な範囲に収束する。
+    /// </summary>
+    /// <remarks>
+    /// 松本衛 博士論文 pp.8-10 の木質繊維板パラメータで 3 層 (各 6 mm) の
+    /// 単純壁を構成し、F 側 21 °C / 7.5 g/kg、B 側 20 °C / 7.5 g/kg、表面
+    /// 熱伝達率 4.8 W/(m²·K) の境界条件で 60 s × 240 step (4 時間) 走らせる。
+    ///
+    /// チェック項目:
+    ///   - moisture モードで Initialize / Update 中に例外が出ない
+    ///   - 全ノードの温度が NaN / Inf でなく [19, 22] °C に収まる
+    ///     (境界温度の囲み + マージン)
+    ///   - 全ノードの絶対湿度が NaN / Inf でなく [0, 0.030] kg/kg に収まる
+    ///   - moisture 有/無 の F 表面温度差が定常状態で 0.5 °C 以内
+    ///     (顕熱経路は両者で同一物性のため、潜熱の影響はマージナル)
+    /// </remarks>
+    [Fact]
+    public void HeatMoistureCoupled_WoodFiberBoard_StaysFinite()
+    {
+      WallLayer[] layersA = new WallLayer[3];
+      WallLayer[] layersB = new WallLayer[3];
+      for (int i = 0; i < 3; i++)
+      {
+        // 木質繊維板: λ=0.1116, c·ρ=585 kJ/(m³·K), λ'=4.694e-6, ν_void=0.788,
+        //             κ=3080, ν=1.715, 厚 6 mm (松本衛 博論 pp.8-10)
+        layersA[i] = new WallLayer("木繊維板", 0.1116, 585, 0.000004694, 0.788, 3080, 1.715, 0.006);
+        layersB[i] = new WallLayer("木繊維板", 0.1116, 585, 0.000004694, 0.788, 3080, 1.715, 0.006);
+      }
+
+      Wall wallA = new Wall(1.0, layersA, computeMoistureTransfer: true);
+      Wall wallB = new Wall(1.0, layersB, computeMoistureTransfer: false);
+
+      wallA.TimeStep = wallB.TimeStep = 60.0;
+
+      // 熱伝達係数は Initialize より前に設定 (Initialize→Update が
+      // 内部行列を構築する際の resS[0]/resS[end] に反映するため)
+      wallA.ConvectiveCoefficientF = wallB.ConvectiveCoefficientF = 4.8;
+      wallA.ConvectiveCoefficientB = wallB.ConvectiveCoefficientB = 1e-3; // 0 だと resS=Inf になるので微小値
+      wallA.RadiativeCoefficientF = wallB.RadiativeCoefficientF = 0.0;
+      wallA.RadiativeCoefficientB = wallB.RadiativeCoefficientB = 0.0;
+
+      wallA.Initialize(20.0, 0.0075);
+      wallB.Initialize(20.0);
+
+      wallA.SolAirTemperatureF = wallB.SolAirTemperatureF = 21.0;
+      wallA.SolAirTemperatureB = wallB.SolAirTemperatureB = 20.0;
+      wallA.HumidityRatioF = 0.0075;
+      wallA.HumidityRatioB = 0.0075;
+
+      const int steps = 240;
+      for (int i = 0; i < steps; i++)
+      {
+        wallA.Update();
+        wallB.Update();
+      }
+
+      // 全ノードの温度・湿度が有限値で物理的に妥当な範囲に収まる
+      int nNodes = wallA.NodeCount;
+      for (int n = 0; n < nNodes; n++)
+      {
+        double tA = wallA.Temperatures[n];
+        double tB = wallB.Temperatures[n];
+        double wA = wallA.Humidities[n];
+
+        Assert.True(!double.IsNaN(tA) && !double.IsInfinity(tA),
+            $"wallA.Temperatures[{n}] = {tA}");
+        Assert.True(!double.IsNaN(tB) && !double.IsInfinity(tB),
+            $"wallB.Temperatures[{n}] = {tB}");
+        Assert.True(!double.IsNaN(wA) && !double.IsInfinity(wA),
+            $"wallA.Humidities[{n}] = {wA}");
+
+        // F=21, B=20 の境界に対して内部温度は概ねその間に入る
+        // (定常への過渡応答中なので少し余裕を持たせる)
+        Assert.InRange(tA, 19.0, 22.0);
+        Assert.InRange(tB, 19.0, 22.0);
+
+        // 絶対湿度は 0〜30 g/kg の常識的範囲
+        Assert.InRange(wA, 0.0, 0.030);
+      }
+
+      // 顕熱経路は両者で同一物性のため、潜熱の影響を除けば概ね一致するはず。
+      // F 表面 (node 0) の温度差が 0.5 °C 以内であることで「潜熱結合の影響は
+      // 顕熱解を著しく揺るがす規模ではない」ことを確認。
+      double dT = Math.Abs(wallA.Temperatures[0] - wallB.Temperatures[0]);
+      Assert.True(dT < 0.5,
+          $"moisture 有/無 で F 表面温度が乖離: |Δ| = {dT:F3} °C (許容 < 0.5)");
+    }
+
+    #endregion
   }
 }
