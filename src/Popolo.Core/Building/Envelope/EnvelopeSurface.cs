@@ -397,6 +397,22 @@ namespace Popolo.Core.Building.Envelope
     public double DiffuseSolarIrradiance { get; set; }
 
     /// <summary>
+    /// Gets the short-wave (solar) heat flux [W/m²] absorbed at this surface
+    /// and treated as a boundary heat input by the upper-layer solver.
+    /// </summary>
+    /// <remarks>
+    /// Set by <see cref="SetIncidentSolarFlux(double)"/> from the solver each
+    /// time the per-surface short-wave distribution (<c>radToSurf_S</c>) is
+    /// rebuilt. The value depends on how the underlying component handles
+    /// short-wave: a wall absorbs the incident flux at its surface, while a
+    /// window dissipates it through per-layer absorption inside the assembly
+    /// and so contributes 0 here (its incident energy is consumed via
+    /// <see cref="Window.DirectSolarIncidentAbsorptance"/> /
+    /// <see cref="Window.DiffuseSolarIncidentAbsorptance"/> elsewhere).
+    /// </remarks>
+    public double AbsorbedSolarFlux { get; private set; }
+
+    /// <summary>
     /// Gets or sets the exterior solar shading object attached to this side
     /// of the envelope component.
     /// </summary>
@@ -419,6 +435,30 @@ namespace Popolo.Core.Building.Envelope
     /// </para>
     /// </remarks>
     public ISolarShading? Shading { get; set; }
+
+    #endregion
+
+    #region メソッド
+
+    /// <summary>
+    /// Notifies this surface of the short-wave radiation [W/m²] arriving from
+    /// the solver's per-surface distribution and updates
+    /// <see cref="AbsorbedSolarFlux"/> according to the component's behavior.
+    /// </summary>
+    /// <param name="incidentShortWaveFlux">
+    /// The short-wave heat flux [W/m²] reaching this surface (i.e. the
+    /// <c>radToSurf_S</c> entry for this surface).
+    /// </param>
+    /// <remarks>
+    /// Walls store the input as-is. Windows ignore it (store 0) because their
+    /// incident solar energy is handled per glass layer; the raw distribution
+    /// array remains in use only for the window's internal heat-resistance
+    /// path, not for the surface-level boundary heat balance.
+    /// </remarks>
+    public void SetIncidentSolarFlux(double incidentShortWaveFlux)
+    {
+      AbsorbedSolarFlux = (Component is Wall) ? incidentShortWaveFlux : 0.0;
+    }
 
     #endregion
 

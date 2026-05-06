@@ -436,11 +436,7 @@ namespace Popolo.Core.Building
             ws1.SolAirTemperature *= ws1.RadiativeCoefficient;
             ws1.SolAirTemperature += zones[rZones[i][j]].Temperature * ws1.ConvectiveCoefficient;
             ws1.SolAirTemperature += radToSurf_L[i];
-            // 壁体は表面で短波長を吸収するため SolAirTemperature に加算する。
-            // 窓は層別吸収率で別経路（DirectSolarIncidentAbsorptance 等）を通すので加算しない。
-            // TODO: 抽象化検討中 — EnvelopeSurface に AbsorbsShortWaveAtSurface 等の
-            // プロパティを設けて型分岐を撤去する案。
-            if (ws1.Component is Wall) ws1.SolAirTemperature += radToSurf_S[ws1.Index];
+            ws1.SolAirTemperature += ws1.AbsorbedSolarFlux;
             ws1.SolAirTemperature /= ws1.FilmCoefficient;
 
             //絶対湿度
@@ -605,16 +601,12 @@ namespace Popolo.Core.Building
             EnvelopeSurface ws1R = ws1.ReverseSideSurface;
 
             //ベクトルCを作成
-            // 壁体は表面で短波長を吸収する（radToSurf_S を含める）。窓は層別吸収率で別途扱う。
-            // TODO: AbsorbsShortWaveAtSurface 抽象化で型分岐撤去予定。
-            double rdsl;
-            if (ws1.Component is Wall) rdsl = (radToSurf_L[i] + radToSurf_S[s1]) / ws1.FilmCoefficient;
-            else rdsl = radToSurf_L[i] / ws1.FilmCoefficient;
+            double rdsl = (radToSurf_L[i] + ws1.AbsorbedSolarFlux) / ws1.FilmCoefficient;
             vecC[s1] = ws1.IF2 + ws1.FFS2 * rdsl;
             if (SolveMoistureTransferSimultaneously) vecC[s1 + nS] = ws1.IF3 + ws1.FFS3 * rdsl;
             if (!isSFboundary[s1])
             {
-              rdsl = (radToSurf_L[zones[ws1R.ZoneIndex].RoomIndex] + radToSurf_S[ws1R.Index]) / ws1R.FilmCoefficient;
+              rdsl = (radToSurf_L[zones[ws1R.ZoneIndex].RoomIndex] + ws1R.AbsorbedSolarFlux) / ws1R.FilmCoefficient;
               vecC[s1] += ws1.BFS2 * rdsl;
               if (SolveMoistureTransferSimultaneously) vecC[s1 + nS] += ws1.BFS3 * rdsl;
             }
@@ -759,6 +751,10 @@ namespace Popolo.Core.Building
         for (int i = 0; i < RoomCount; i++) radToSurf_L[i] = 0;
         DistributeShortwaveRad();
         DistributeLongwaveRad();
+
+        //各 surface に表面吸収日射熱流束を反映 (壁は radToSurf_S をそのまま、窓は 0)。
+        //radToSurf_S 配列自体は窓の内部経路 (SetOutsideWallState 等) でも参照されるため別途保持。
+        for (int i = 0; i < surfaces.Length; i++) surfaces[i].SetIncidentSolarFlux(radToSurf_S[i]);
 
         //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
         // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
