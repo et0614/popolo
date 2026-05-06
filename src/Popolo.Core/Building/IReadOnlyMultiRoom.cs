@@ -77,6 +77,9 @@ namespace Popolo.Core.Building
     /// <summary>Gets the array of window assemblies.</summary>
     IReadOnlyWindow[] Windows { get; }
 
+    /// <summary>Gets the array of all envelope components (walls, windows, etc.) in registration order.</summary>
+    IReadOnlyOpticalLayeredEnvelope[] Components { get; }
+
     /// <summary>Gets the outdoor dry-bulb temperature [°C].</summary>
     double OutdoorTemperature { get; }
 

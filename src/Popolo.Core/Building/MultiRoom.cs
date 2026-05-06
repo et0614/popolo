@@ -25,6 +25,7 @@ using Popolo.Core.Numerics;
 using Popolo.Core.Climate;
 using Popolo.Core.Climate.Weather;
 using Popolo.Core.Building.Envelope;
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building
@@ -50,13 +51,13 @@ namespace Popolo.Core.Building
     #region インスタンス変数
 
     /// <summary>Array of thermal zones.</summary>
-    private Zone[] zones;
+    private Zone[] zones = null!;
 
     /// <summary>Array of wall assemblies.</summary>
-    private Wall[] walls;
+    private Wall[] walls = null!;
 
     /// <summary>Array of window assemblies.</summary>
-    private Window[] windows;
+    private Window[] windows = null!;
 
     /// <summary>Flag indicating whether initialization is required.</summary>
     private bool needInitialize = true;
@@ -164,11 +165,25 @@ namespace Popolo.Core.Building
     /// <summary>Gets the array of zones in this multi-room system.</summary>
     public IReadOnlyZone[] Zones { get { return zones; } }
 
-    /// <summary>Gets the array of wall assemblies.</summary>
+    /// <summary>Gets the array of wall assemblies (filtered subset of <see cref="Components"/>).</summary>
     public IReadOnlyWall[] Walls { get { return walls; } }
 
-    /// <summary>Gets the array of window assemblies.</summary>
+    /// <summary>Gets the array of window assemblies (filtered subset of <see cref="Components"/>).</summary>
     public IReadOnlyWindow[] Windows { get { return windows; } }
+
+    /// <summary>
+    /// Gets the array of all envelope components (walls, windows, and any
+    /// future translucent walls) in the order they were registered.
+    /// </summary>
+    /// <remarks>
+    /// This is the canonical index space used by the unified-API methods
+    /// (<c>AddComponent</c>, <c>SetOutsideEnvelope</c>, etc., introduced in
+    /// Phase D-3). Element order matches the
+    /// <see cref="MultiRoom(int, Zone[], OpticalLayeredEnvelope[])"/>
+    /// constructor argument; for the legacy <see cref="MultiRoom(int, Zone[], Wall[], Window[])"/>
+    /// constructor, walls precede windows.
+    /// </remarks>
+    public IReadOnlyOpticalLayeredEnvelope[] Components { get { return components; } }
 
     /// <summary>
     /// Gets the current weather record. <c>null</c> until the first
@@ -284,13 +299,64 @@ namespace Popolo.Core.Building
     /// </remarks>
     public MultiRoom(int rmCount, Zone[] zones, Wall[] walls, Window[] windows)
     {
+      // 旧コンストラクタ: walls + windows を結合した components を構築し、
+      // 共通初期化ヘルパへ流す。components の順序は walls → windows の順。
+      var combined = new OpticalLayeredEnvelope[walls.Length + windows.Length];
+      for (int i = 0; i < walls.Length; i++) combined[i] = walls[i];
+      for (int i = 0; i < windows.Length; i++) combined[walls.Length + i] = windows[i];
+      InitializeFromComponents(rmCount, zones, combined);
+    }
+
+    /// <summary>Initializes a new multi-room thermal model with a unified envelope component array.</summary>
+    /// <param name="rmCount">Number of rooms.</param>
+    /// <param name="zones">Array of thermal zones.</param>
+    /// <param name="components">
+    /// Array of envelope components (walls, windows, future translucent walls
+    /// — anything inheriting <see cref="OpticalLayeredEnvelope"/>). Order is
+    /// preserved as the canonical component index used by
+    /// <c>AddComponent</c> / <c>SetOutsideEnvelope</c> / etc.
+    /// </param>
+    /// <remarks>
+    /// All zones are initially assigned to room 0 and all components are
+    /// unplaced; the caller is expected to finish model construction by
+    /// calling <see cref="AddZone(int,int)"/>, the zone-attachment APIs
+    /// (<see cref="AddWall(int,int,bool)"/> / <see cref="AddWindow(int,int)"/>
+    /// or, in Phase D-3, the unified <c>AddComponent</c>), and one of the
+    /// boundary setters. Call <see cref="InitializeAirState"/> after
+    /// configuration and before the first solver step.
+    /// </remarks>
+    public MultiRoom(int rmCount, Zone[] zones, OpticalLayeredEnvelope[] components)
+    {
+      InitializeFromComponents(rmCount, zones, components);
+    }
+
+    /// <summary>Common initialization shared by the legacy (Wall/Window) and unified constructors.</summary>
+    /// <remarks>
+    /// Validates that every component is a recognized concrete type
+    /// (<see cref="Wall"/> or <see cref="Window"/>) and populates the
+    /// internal <see cref="walls"/>, <see cref="windows"/>, and
+    /// <see cref="components"/> fields. The user-supplied <paramref name="components"/>
+    /// order is preserved in <see cref="components"/>; <see cref="walls"/>
+    /// and <see cref="windows"/> are filtered subsets in order of appearance.
+    /// </remarks>
+    private void InitializeFromComponents(int rmCount, Zone[] zones, OpticalLayeredEnvelope[] components)
+    {
+      var wallList = new List<Wall>();
+      var windowList = new List<Window>();
+      foreach (var c in components)
+      {
+        if (c is Wall w) wallList.Add(w);
+        else if (c is Window win) windowList.Add(win);
+        else throw new PopoloArgumentException(
+            $"Unsupported envelope component type: {(c == null ? "null" : c.GetType().Name)}.",
+            nameof(components));
+      }
+
       RoomCount = rmCount;
       ZoneCount = zones.Length;
-      this.walls = walls;
-      this.windows = windows;
-      this.components = new OpticalLayeredEnvelope[walls.Length + windows.Length];
-      for (int i = 0; i < walls.Length; i++) this.components[i] = walls[i];
-      for (int i = 0; i < windows.Length; i++) this.components[walls.Length + i] = windows[i];
+      this.walls = wallList.ToArray();
+      this.windows = windowList.ToArray();
+      this.components = components;
       this.zones = zones;
       formFactor = new IMatrix[RoomCount];
       rZones = new List<int>[RoomCount];
@@ -310,7 +376,7 @@ namespace Popolo.Core.Building
       }
 
       //熱水分同時移動判定//水分透過壁が1つでもあれば
-      foreach (Wall wl in walls)
+      foreach (Wall wl in this.walls)
       {
         if (wl.ComputeMoistureTransfer)
         {

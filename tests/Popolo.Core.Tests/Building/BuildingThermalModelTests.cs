@@ -818,6 +818,44 @@ namespace Popolo.Core.Tests.Building
           $"withCap (30 min)={tB_withcap_late:F3}, noCap 定常={tB_nocap_after:F3}");
     }
 
+    /// <summary>
+    /// 統合コンストラクタ <c>MultiRoom(int, Zone[], OpticalLayeredEnvelope[])</c>
+    /// に Wall と Window を混在で渡し、Walls / Windows / Components プロパティが
+    /// 期待通り分離・統合されることを確認する。
+    /// </summary>
+    [Fact]
+    public void UnifiedConstructor_AcceptsMixedComponents()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+
+      // Wall, Window, Wall, Window の順に並べた配列で渡す
+      var w0 = new Wall(10.0, new[] { new WallLayer("a", 0.5, 1000, 0.1) });
+      var win0 = new Window(2.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var w1 = new Wall(5.0, new[] { new WallLayer("b", 0.5, 1000, 0.1) });
+      var win1 = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var components = new OpticalLayeredEnvelope[] { w0, win0, w1, win1 };
+
+      var zones = new[] { new Zone("z", 100.0) };
+      var mRoom = new MultiRoom(1, zones, components);
+
+      // Components: 入力順を保持
+      Assert.Equal(4, mRoom.Components.Length);
+      Assert.Same(w0, mRoom.Components[0]);
+      Assert.Same(win0, mRoom.Components[1]);
+      Assert.Same(w1, mRoom.Components[2]);
+      Assert.Same(win1, mRoom.Components[3]);
+
+      // Walls: 出現順でフィルタ済み
+      Assert.Equal(2, mRoom.Walls.Length);
+      Assert.Same(w0, mRoom.Walls[0]);
+      Assert.Same(w1, mRoom.Walls[1]);
+
+      // Windows: 出現順でフィルタ済み
+      Assert.Equal(2, mRoom.Windows.Length);
+      Assert.Same(win0, mRoom.Windows[0]);
+      Assert.Same(win1, mRoom.Windows[1]);
+    }
+
     /// <summary>木質繊維板の moisture-aware 壁で構成した 3m 立方の単室モデル。</summary>
     private static BuildingThermalModel MakeMoistureAwareCubeModel()
     {
