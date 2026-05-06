@@ -74,10 +74,10 @@ namespace Popolo.Core.Building
     private EnvelopeSurface[] surfaces = null!;
 
     /// <summary>Floor surfaces that preferentially receive short-wave radiation from windows.</summary>
-    private Dictionary<Window, EnvelopeSurface> swDistFloor = null!;
+    private Dictionary<IEnvelopeComponent, EnvelopeSurface> swDistFloor = null!;
 
     /// <summary>Fraction of window short-wave radiation distributed to the floor.</summary>
-    private Dictionary<Window, double> swDistRate = null!;
+    private Dictionary<IEnvelopeComponent, double> swDistRate = null!;
 
     /// <summary>Flags indicating whether the reverse side of each surface is a boundary condition.</summary>
     private bool[] isSFboundary = null!;
@@ -297,8 +297,8 @@ namespace Popolo.Core.Building
       wSWEmissivity = new double[windows.Length];
       zoneTemp = new double[ZoneCount];
       zoneHumid = new double[ZoneCount];
-      swDistFloor = new Dictionary<Window, EnvelopeSurface>();
-      swDistRate = new Dictionary<Window, double>();
+      swDistFloor = new Dictionary<IEnvelopeComponent, EnvelopeSurface>();
+      swDistRate = new Dictionary<IEnvelopeComponent, double>();
       for (int i = 0; i < RoomCount; i++) rZones[i] = new List<int>();
       for (int i = 0; i < ZoneCount; i++)
       {
@@ -1355,83 +1355,63 @@ namespace Popolo.Core.Building
     }
 
     /// <summary>Distributes short-wave (solar) radiation among interior surfaces.</summary>
+    /// <remarks>
+    /// Each emitter component (currently windows; future translucent walls would
+    /// participate symmetrically) reports an indoor-side absorbed flux and a
+    /// transmitted power via <see cref="IEnvelopeComponent.EmitShortWaveToIndoor"/>.
+    /// The transmitted direct beam is optionally routed in part to a designated
+    /// floor; the remainder plus all transmitted diffuse is then redistributed
+    /// to interior surfaces by the Gebhart matrix, weighted at each receiving
+    /// surface by <see cref="IEnvelopeComponent.IndoorDiffuseAbsorptanceFactor"/>.
+    /// Opaque components return <see cref="ShortWaveEmission.Zero"/> and are
+    /// effectively skipped.
+    /// </remarks>
     private void DistributeShortwaveRad()
     {
-      //窓面からの日射を各表面に分配
       for (int i = 0; i < RoomCount; i++)
       {
         for (int j = 0; j < wsIndex[i].Length; j++)
         {
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            EnvelopeSurface ws1 = surfaces[wsIndex[i][j][k]];
-            if (ws1.Component is Window win)
-            {
-              int indx1 = wsIndex[i][j][k];
-              //窓からの透過・吸収日射を計算
-              double dir, dif;
-              if (IsSolarIrradianceGiven)
-              {
-                dir = win.OutsideSurface.DirectSolarIrradiance;
-                dif = win.OutsideSurface.DiffuseSolarIrradiance;
-              }
-              else
-              {
-                IReadOnlyIncline inc = win.OutsideIncline;
-                dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetDirectShadingRate(Sun, inc));
-                // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
-                //
-                // Note: Perez (1990) 異方性モデルでは sky diffuse は
-                //   ① isotropic dome
-                //   ② circumsolar (太陽近傍に集中)
-                //   ③ horizon brightening (地平線近傍)
-                // の 3 成分から成る。一律係数 (sky view factor 比) で全 sky diffuse に
-                // 掛ける現在の方式は ① には適切だが、② (太陽方向依存・遮蔽は二値的) と
-                // ③ (地平線高度に集中・庇では物理的に遮蔽されない) には不適切。
-                // 理論的に厳密化するには Perez 3 成分を分解し個別に減衰させる必要があるが、
-                // 現状は近似として全成分一律で扱う (TODO: Perez 分解の実装)。
-                double diffuseTotal = inc.GetDiffuseSolarIrradiance(Sun, Albedo);
-                double groundReflected = Albedo * inc.ConfigurationFactorToGround
-                                       * Sun.GlobalHorizontalRadiation;
-                double skyDiffuse = diffuseTotal - groundReflected;
-                if (skyDiffuse < 0) skyDiffuse = 0;
-                double skyShadingRate = win.SunShade.GetSkyDiffuseShadingRate(inc);
-                dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
-              }
-              radToSurf_S[indx1] +=
-                dir * win.DirectSolarIncidentAbsorptance + dif * win.DiffuseSolarIncidentAbsorptance;
-              //床に優先配分される短波長を計算
-              EnvelopeSurface? flr = null;
-              double dir2 = dir * win.DirectSolarIncidentTransmittance * win.Area;
-              double radFromFloor = 0.0;
-              if (swDistFloor.ContainsKey(win))
-              {
-                flr = swDistFloor[win];
-                double flRate = swDistRate[win];
-                radToSurf_S[flr.Index] += dir2 * flRate * flr.ShortWaveEmissivity / flr.Area;
-                radFromFloor = dir2 * flRate * (1.0 - flr.ShortWaveEmissivity);
-                dir2 *= (1 - flRate);
-              }
-              double rad = dir2 + dif * win.DiffuseSolarIncidentTransmittance * win.Area;
+            int indx1 = wsIndex[i][j][k];
+            EnvelopeSurface ws1 = surfaces[indx1];
 
-              //同じ室に属する壁表面に分配
-              if (0 < rad)
+            ShortWaveEmission emit = ws1.Component.EmitShortWaveToIndoor(
+              ws1, Sun, Albedo, IsSolarIrradianceGiven);
+            if (emit.IsZero) continue;
+
+            radToSurf_S[indx1] += emit.InsideAbsorbedFlux;
+
+            //床に優先配分される短波長を計算
+            EnvelopeSurface? flr = null;
+            double dir2 = emit.TransmittedDirectPower;
+            double radFromFloor = 0.0;
+            if (swDistFloor.TryGetValue(ws1.Component, out EnvelopeSurface? flrSurface))
+            {
+              flr = flrSurface;
+              double flRate = swDistRate[ws1.Component];
+              radToSurf_S[flr.Index] += dir2 * flRate * flr.ShortWaveEmissivity / flr.Area;
+              radFromFloor = dir2 * flRate * (1.0 - flr.ShortWaveEmissivity);
+              dir2 *= (1 - flRate);
+            }
+            double rad = dir2 + emit.TransmittedDiffusePower;
+
+            //同じ室に属する壁表面に分配
+            if (0 < rad)
+            {
+              for (int j2 = 0; j2 < wsIndex[i].Length; j2++)
               {
-                for (int j2 = 0; j2 < wsIndex[i].Length; j2++)
+                for (int k2 = 0; k2 < wsIndex[i][j2].Length; k2++)
                 {
-                  for (int k2 = 0; k2 < wsIndex[i][j2].Length; k2++)
-                  {
-                    int indx2 = wsIndex[i][j2][k2];
-                    EnvelopeSurface wsf2 = surfaces[indx2];
-                    double ibsw = gMatS[indx1, indx2] * rad;
-                    //床面からの放射を加算
-                    if (flr != null) ibsw += gMatS[flr.Index, indx2] * radFromFloor;
-                    ibsw /= wsf2.Area;
-                    if (wsf2.Component is Window win2)
-                      ibsw *= win2.DiffuseSolarIncidentAbsorptance
-                        / (1 - win2.DiffuseSolarIncidentReflectance);
-                    radToSurf_S[indx2] += ibsw;
-                  }
+                  int indx2 = wsIndex[i][j2][k2];
+                  EnvelopeSurface wsf2 = surfaces[indx2];
+                  double ibsw = gMatS[indx1, indx2] * rad;
+                  //床面からの放射を加算
+                  if (flr != null) ibsw += gMatS[flr.Index, indx2] * radFromFloor;
+                  ibsw /= wsf2.Area;
+                  ibsw *= wsf2.Component.IndoorDiffuseAbsorptanceFactor;
+                  radToSurf_S[indx2] += ibsw;
                 }
               }
             }

@@ -635,6 +635,27 @@ namespace Popolo.Core.Building.Envelope
       else return (SolAirTemperatureB - SurfaceB.SurfaceTemperature) * FilmCoefficientB;
     }
 
+    /// <summary>
+    /// Walls are opaque (transmittance = 0), so they emit no short-wave
+    /// radiation into the indoor space. Outdoor short-wave absorption is
+    /// already captured in the sol-air temperature on the outdoor face.
+    /// </summary>
+    /// <remarks>
+    /// Future translucent wall constructions can override this behavior by
+    /// returning a non-zero <see cref="ShortWaveEmission"/>.
+    /// </remarks>
+    public ShortWaveEmission EmitShortWaveToIndoor(
+      EnvelopeSurface indoorSurface,
+      Climate.IReadOnlySun sun,
+      double albedo,
+      bool useGivenIrradiance)
+    {
+      return ShortWaveEmission.Zero;
+    }
+
+    /// <summary>Opaque wall: all incident indoor diffuse short-wave is absorbed at first hit.</summary>
+    public double IndoorDiffuseAbsorptanceFactor => 1.0;
+
     #endregion
 
     #region 埋設配管関連の処理

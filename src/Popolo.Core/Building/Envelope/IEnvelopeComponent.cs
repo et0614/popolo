@@ -17,6 +17,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+using Popolo.Core.Climate;
+
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
@@ -55,5 +57,50 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the boundary surface element on the B side.</summary>
     EnvelopeSurface SurfaceB { get; }
+
+    /// <summary>
+    /// Computes this component's short-wave (solar) radiation contribution to
+    /// the indoor space at one time step, using its own optical model and the
+    /// solar state at its outdoor-facing surface.
+    /// </summary>
+    /// <param name="indoorSurface">
+    /// The indoor-facing <see cref="EnvelopeSurface"/> (one of <see cref="SurfaceF"/> /
+    /// <see cref="SurfaceB"/>) from which the room is observing this component.
+    /// </param>
+    /// <param name="sun">The current solar geometry / radiation state.</param>
+    /// <param name="albedo">Ground albedo [-].</param>
+    /// <param name="useGivenIrradiance">
+    /// If <c>true</c>, read the outdoor-side direct/diffuse irradiance from the
+    /// component's own outdoor-surface fields
+    /// (<see cref="EnvelopeSurface.DirectSolarIrradiance"/> /
+    /// <see cref="EnvelopeSurface.DiffuseSolarIrradiance"/>) instead of computing
+    /// them from <paramref name="sun"/> and the surface incline.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ShortWaveEmission"/> describing the flux absorbed at the
+    /// indoor surface and the power transmitted into the room. Opaque
+    /// components return <see cref="ShortWaveEmission.Zero"/>; their outdoor
+    /// short-wave absorption is folded into the sol-air temperature on the
+    /// outdoor face elsewhere.
+    /// </returns>
+    ShortWaveEmission EmitShortWaveToIndoor(
+      EnvelopeSurface indoorSurface,
+      IReadOnlySun sun,
+      double albedo,
+      bool useGivenIrradiance);
+
+    /// <summary>
+    /// Gets the effective absorptance [-] for indoor diffuse short-wave
+    /// arriving on this component's indoor-facing surface from interior
+    /// inter-reflection (the Gebhart-distributed remainder).
+    /// </summary>
+    /// <remarks>
+    /// Opaque components return 1.0 — all incident diffuse short-wave is
+    /// absorbed at first hit, and room-level multi-reflection is already
+    /// captured by the Gebhart matrix. Translucent components (windows)
+    /// return a factor that accounts for inter-layer back-and-forth
+    /// (typically <c>DiffuseAbsorptance / (1 − DiffuseReflectance)</c>).
+    /// </remarks>
+    double IndoorDiffuseAbsorptanceFactor { get; }
   }
 }
