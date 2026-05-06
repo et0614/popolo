@@ -71,12 +71,6 @@ namespace Popolo.Core.Building.Envelope
 
     #region インスタンス変数・publicプロパティ
 
-    /// <summary>Flag indicating whether the inverse matrix needs to be updated.</summary>
-    private bool needToUpdateUINVMatrix = true;
-
-    /// <summary>Flag indicating whether the coefficient matrix needs to be updated.</summary>
-    internal bool needToUpdateUMatrix = false;
-
     /// <summary>Array of wall layers.</summary>
     private WallLayer[] layers;
 
@@ -86,53 +80,17 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Dictionary of buried pipes keyed by node index.</summary>
     private Dictionary<int, BuriedPipe> bPipes = new Dictionary<int, BuriedPipe>();
 
-    /// <summary>Vector holding the temperature and humidity ratio distribution at each node.</summary>
-    private IVector tempAndHumid = null!;
-
-    /// <summary>Sensible heat resistance [m²·K/W] and heat capacity [J/(m²·K)] arrays.</summary>
-    /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
-    private double[] resS = null!, capS = null!;
-
-    /// <summary>Per-node short-wave (solar) absorption [W/m²] supplied externally as a body source.</summary>
-    /// <remarks>
-    /// Default zero. Set via <see cref="SetLayerSolarAbsorption(int, double)"/>.
-    /// Used when a translucent component (e.g., a window assembly modeled as a
-    /// stack of glass and air-gap layers, or a future translucent wall) needs
-    /// to feed the per-layer absorbed solar flux into the wall-style matrix
-    /// solver. For an opaque wall with absorption only at the outdoor face,
-    /// leave at zero — that contribution is folded into <c>SolAirTemperature</c>
-    /// upstream.
-    /// </remarks>
-    private double[] solarAbsorption = null!;
-
-    /// <summary>Per-node coefficient mapping <see cref="solarAbsorption"/> [W/m²] to its RHS contribution in <c>tempAndHumid2</c>.</summary>
-    /// <remarks>
-    /// For nodes with non-zero capacity: <c>Δt / capS[i]</c> (sensible-only)
-    /// or <c>cSLS · (capL[i] + cKappa[i])</c> (moisture mode), matching the
-    /// scaling used for boundary inputs in the same row. For zero-capacity
-    /// (steady-state) nodes the row is not time-integrated, so the coefficient
-    /// is the equivalent algebraic factor (<c>1.0</c> in sensible-only mode).
-    /// Computed alongside <c>uSF</c>/<c>uSB</c> in <c>UpdateUMatrix</c>.
-    /// </remarks>
-    private double[] qCoefS = null!;
-
     /// <summary>Moisture resistance [(kg/kg)·m²/(kg/s)] and moisture capacity [kg/m²] arrays (used only when ComputeMoistureTransfer is true).</summary>
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
     private double[] resL = null!, capL = null!, cNu = null!, cKappa = null!;
 
-    /// <summary>Working matrices for the implicit-Euler step solution of the wall thermal network.</summary>
-    /// <remarks>
-    /// <c>uMatrix</c> is the bare coefficient matrix <c>(I − Δt·A)</c>;
-    /// <c>umWithTubeEffect</c> is the same with embedded-pipe corrections applied;
-    /// <c>uxMatrix</c> is its inverse, used to advance nodal temperatures and to derive
-    /// the boundary-temperature sensitivity coefficients (FFS2/3, BFS2/3, FFL/BFL).
-    /// Pre-allocated to avoid repeated heap allocation during simulation.
-    /// </remarks>
-    private IMatrix uMatrix = null!, umWithTubeEffect = null!, uxMatrix = null!;
+    /// <summary>Pipe-augmented coefficient matrix <c>(I − Δt·A)</c> with embedded buried-pipe corrections applied; inverted into <c>uxMatrix</c> by <see cref="UpdateInverseMatrix"/>.</summary>
+    /// <remarks>Wall-specific extension of the base <c>uMatrix</c> for radiant floor / ceiling cases. Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
+    private IMatrix umWithTubeEffect = null!;
 
-    /// <summary>Working arrays for sensible heat balance and radiant floor/ceiling calculation.</summary>
+    /// <summary>Working arrays for embedded radiant pipe heat balance.</summary>
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
-    private double[] uSF = null!, uSB = null!, uP = null!, uPF = null!, uPM = null!, uPB = null!;
+    private double[] uP = null!, uPF = null!, uPM = null!, uPB = null!;
 
     /// <summary>Working arrays for coupled heat and moisture transfer analysis (used only when ComputeMoistureTransfer is true).</summary>
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
@@ -145,12 +103,8 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets a value indicating whether moisture transfer is solved.</summary>
     public bool ComputeMoistureTransfer { get; private set; }
 
-    /// <summary>Gets the number of nodes in the finite difference model.</summary>
-    public int NodeCount { get { return layers.Length + 1; } }
-
-    /// <summary>Gets the temperature distribution vector [°C].</summary>
-    public IVector Temperatures
-    { get { return new VectorView(tempAndHumid, 0, NodeCount); } }
+    /// <inheritdoc/>
+    public override int NodeCount { get { return layers.Length + 1; } }
 
     /// <summary>Gets the humidity ratio distribution vector [kg/kg].</summary>
     public IVector Humidities
@@ -158,21 +112,6 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets or sets the wall surface area [m²].</summary>
     public override double Area { get; set; } = 1.0d;
-
-    /// <summary>Calculation time step [s].</summary>
-    private double timeStep = 3600;
-
-    /// <summary>Gets or sets the calculation time step [s].</summary>
-    public double TimeStep
-    {
-      get { return timeStep; }
-      set
-      {
-        if (value <= 0 || timeStep == value) return;
-        timeStep = value;
-        needToUpdateUMatrix = true;
-      }
-    }
 
     /// <summary>Convective and radiative heat transfer coefficients on the F and B sides [W/(m²·K)].</summary>
     private double cCoefF, rCoefF, cCoefB, rCoefB;
@@ -286,35 +225,17 @@ namespace Popolo.Core.Building.Envelope
 
     #region internalプロパティ（多数室計算用）
 
-    /// <summary>Inverse-matrix–derived F-side temperature contribution to the next-step nodal solution.</summary>
-    internal double IF2_F { get; private set; }
-
-    /// <summary>Inverse-matrix–derived B-side temperature contribution to the next-step nodal solution.</summary>
-    internal double IF2_B { get; private set; }
-
     /// <summary>Inverse-matrix–derived F-side humidity contribution to the next-step nodal solution.</summary>
     internal double IF3_F { get; private set; }
 
     /// <summary>Inverse-matrix–derived B-side humidity contribution to the next-step nodal solution.</summary>
     internal double IF3_B { get; private set; }
 
-    /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (temperature row).</summary>
-    internal double FFS2_F { get; private set; }
-
-    /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (temperature row).</summary>
-    internal double FFS2_B { get; private set; }
-
     /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
     internal double FFS3_F { get; private set; }
 
     /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
     internal double FFS3_B { get; private set; }
-
-    /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (temperature row).</summary>
-    internal double BFS2_F { get; private set; }
-
-    /// <summary>Sensitivity of B-side surface sensible heat to B-side sol-air temperature (temperature row).</summary>
-    internal double BFS2_B { get; private set; }
 
     /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
     internal double BFS3_F { get; private set; }
@@ -457,7 +378,7 @@ namespace Popolo.Core.Building.Envelope
     /// fix cycle; external code normally does not call <see cref="Update"/>
     /// directly.
     /// </remarks>
-    public void Update()
+    public override void Update()
     {
       //逆行列を更新
       UpdateInverseMatrix();
@@ -611,7 +532,7 @@ namespace Popolo.Core.Building.Envelope
     /// <see cref="Initialize(double,double)"/> to reset both at once when
     /// moisture transfer is enabled.
     /// </remarks>
-    public void Initialize(double temperature)
+    public override void Initialize(double temperature)
     {
       VectorView temp = new VectorView(tempAndHumid, 0, layers.Length + 1);
       temp.Initialize(temperature);
@@ -652,31 +573,6 @@ namespace Popolo.Core.Building.Envelope
       // (sol-air − surface) × h: positive when the surface absorbs heat from the sol-air.
       if (isSideF) return (SolAirTemperatureF - SurfaceF.SurfaceTemperature) * FilmCoefficientF;
       else return (SolAirTemperatureB - SurfaceB.SurfaceTemperature) * FilmCoefficientB;
-    }
-
-    /// <summary>
-    /// Supplies a per-node short-wave absorption [W/m²] as a body source in the
-    /// next <see cref="Update"/>. Intended for translucent constructions
-    /// (e.g., window assemblies modeled as a glass/air-gap stack) whose
-    /// individual layers absorb a fraction of the incident solar.
-    /// </summary>
-    /// <param name="nodeIndex">Node index in <c>[0, NodeCount)</c>. Node 0 is the F-face surface, node <see cref="NodeCount"/>−1 is the B-face surface.</param>
-    /// <param name="qPerArea">Absorbed short-wave heat flux at the node [W/m²]. Treated as constant over the time step.</param>
-    /// <remarks>
-    /// Setting zero (the default) reproduces the standard sol-air-only
-    /// boundary heat balance. Successive calls overwrite the value at that
-    /// node — the wall does not accumulate; callers reset each time step.
-    /// Use <see cref="ClearLayerSolarAbsorption"/> to zero all nodes at once.
-    /// </remarks>
-    public void SetLayerSolarAbsorption(int nodeIndex, double qPerArea)
-    {
-      solarAbsorption[nodeIndex] = qPerArea;
-    }
-
-    /// <summary>Resets all per-node absorbed solar inputs to zero.</summary>
-    public void ClearLayerSolarAbsorption()
-    {
-      Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
     }
 
     /// <summary>
@@ -835,8 +731,30 @@ namespace Popolo.Core.Building.Envelope
 
     #region privateメソッド
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Provided to satisfy the abstract base contract; not invoked at present
+    /// because <see cref="UpdateUMatrix"/> is fully overridden by this class
+    /// (it inlines the population alongside the moisture / pipe extensions).
+    /// Kept aligned with that inline logic so a future refactor can route
+    /// through this hook without changing behavior.
+    /// </remarks>
+    protected override void PopulateSensibleProperties()
+    {
+      int mNum = layers.Length + 1;
+      for (int i = 0; i < mNum; i++)
+      {
+        capS[i] = 0;
+        if (i != 0) capS[i] += layers[i - 1].HeatCapacity_B;
+        if (i != mNum - 1) capS[i] += layers[i].HeatCapacity_F;
+        if (i != 0) resS[i] = 1 / layers[i - 1].HeatConductance;
+      }
+      resS[0] = 1 / FilmCoefficientF;
+      resS[resS.Length - 1] = 1 / FilmCoefficientB;
+    }
+
     /// <summary>Updates the coefficient matrix from the current layer properties and boundary conditions.</summary>
-    private void UpdateUMatrix()
+    protected override void UpdateUMatrix()
     {
       if (!needToUpdateUMatrix) return;
       needToUpdateUINVMatrix = true;

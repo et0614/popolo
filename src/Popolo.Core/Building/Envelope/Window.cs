@@ -541,6 +541,19 @@ namespace Popolo.Core.Building.Envelope
     /// </summary>
     public override void UpdateIFCoefficients() { }
 
+    /// <summary>
+    /// Number of finite-difference nodes. Returns 0 in the current resistive-only
+    /// model; will return the glass / air-gap node count after Phase C-2.
+    /// </summary>
+    public override int NodeCount => 0;
+
+    /// <summary>
+    /// No-op stub: the current resistive-only window model does not populate the
+    /// base-class <c>capS</c> / <c>resS</c> arrays. After Phase C-2, this will
+    /// fill them from the glass / air-gap stack.
+    /// </summary>
+    protected override void PopulateSensibleProperties() { }
+
     /// <summary>Computes the total optical properties from the individual layer properties.</summary>
     /// <param name="opPropF">Layer optical properties for F-side incidence.</param>
     /// <param name="opPropB">Layer optical properties for B-side incidence.</param>

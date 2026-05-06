@@ -17,7 +17,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+using System;
 using Popolo.Core.Climate;
+using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -52,16 +54,16 @@ namespace Popolo.Core.Building.Envelope
   /// a zone via <c>MultiRoom.AddWall(zoneIndex, wallIndex, isSideF)</c>.
   /// </para>
   /// <para>
-  /// Upper-layer code (<see cref="MultiRoom"/>, <see cref="Zone"/>) drives
-  /// the heat balance through this base type and the surfaces it exposes,
-  /// without needing to distinguish walls from windows. This base owns the
-  /// truly common F/B side state (sol-air temperatures, long-wave
-  /// emissivities, surfaces) and provides default no-op implementations of
-  /// the dynamic-response and optical-update hooks; subclasses override only
-  /// what is meaningful for them. Film-coefficient setters and storage stay
-  /// in each derived class because their side effects differ
-  /// (<see cref="Wall"/> flags its conduction matrix for rebuild;
-  /// <see cref="Window"/> recomputes its glass / air-gap resistance lookup).
+  /// This base owns the implicit-Euler matrix infrastructure shared by all
+  /// layered components: nodal state vector, capacity / resistance arrays,
+  /// per-node solar-absorption inputs, and a sensible-only matrix solver.
+  /// Subclasses implement <see cref="PopulateSensibleProperties"/> to fill
+  /// <see cref="capS"/> / <see cref="resS"/> from their own layer
+  /// representation, and may override <see cref="UpdateUMatrix"/>,
+  /// <see cref="UpdateInverseMatrix"/>, <see cref="UpdateIFCoefficients"/>,
+  /// <see cref="Update"/>, and <see cref="Initialize(double)"/> to add
+  /// component-specific behavior (Wall: coupled moisture transport, embedded
+  /// pipes, PCM layers; Window: glass-stack initialization).
   /// </para>
   /// </remarks>
   public abstract class OpticalLayeredEnvelope
@@ -142,10 +144,6 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public abstract double IndoorDiffuseAbsorptanceFactor { get; }
 
-    #endregion
-
-    #region 動的応答フック (default no-op)
-
     /// <summary>
     /// Refreshes optical properties for the current solar geometry. Opaque
     /// components are typically a no-op; translucent components (windows,
@@ -155,24 +153,244 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="sun">Current solar geometry / radiation state.</param>
     public virtual void UpdateOpticalProperties(IReadOnlySun sun) { }
 
-    /// <summary>
-    /// Refreshes the inverse step-coefficient matrix and the boundary-temperature
-    /// sensitivity coefficients (FFS / BFS). Called by <see cref="MultiRoom"/>
-    /// when surface heat-transfer coefficients change mid-step. No-op for
-    /// components without a dynamic conduction response (current
-    /// <see cref="Window"/>, until per-glass-layer heat capacity is added).
-    /// </summary>
-    public virtual void UpdateInverseMatrix() { }
+    #endregion
+
+    #region 行列ソルバ — 状態フィールド
+
+    /// <summary>True when the inverse step-coefficient matrix needs rebuilding.</summary>
+    protected bool needToUpdateUINVMatrix = true;
+
+    /// <summary>True when the implicit-Euler coefficient matrix needs rebuilding.</summary>
+    protected bool needToUpdateUMatrix = false;
+
+    /// <summary>Vector holding the nodal state (temperature, plus humidity in moisture-mode subclasses).</summary>
+    protected IVector tempAndHumid = null!;
+
+    /// <summary>Per-node sensible heat capacity [J/(m²·K)]. Index 0 = F-face surface node.</summary>
+    protected double[] capS = null!;
+
+    /// <summary>Inter-node sensible thermal resistance [m²·K/W]. <c>resS[0]</c> and <c>resS[NodeCount]</c> are the F/B film resistances.</summary>
+    protected double[] resS = null!;
+
+    /// <summary>Per-node short-wave (solar) absorption [W/m²] supplied externally as a body source. Default zero.</summary>
+    protected double[] solarAbsorption = null!;
+
+    /// <summary>Per-node coefficient mapping <see cref="solarAbsorption"/> to its RHS contribution.</summary>
+    /// <remarks>
+    /// For nodes with non-zero capacity: <c>Δt / capS[i]</c> (sensible-only)
+    /// or the equivalent moisture-mode factor; for zero-capacity steady-state
+    /// nodes: <c>1.0</c> in sensible-only mode. Computed in <see cref="UpdateUMatrix"/>.
+    /// </remarks>
+    protected double[] qCoefS = null!;
+
+    /// <summary>Implicit-Euler coefficient matrix <c>(I − Δt·A)</c>.</summary>
+    protected IMatrix uMatrix = null!;
+
+    /// <summary>Inverse of the matrix actually used for the step solve (= <see cref="uMatrix"/> for opaque resistive cases without pipes).</summary>
+    protected IMatrix uxMatrix = null!;
+
+    /// <summary>Per-node coefficient for the F-side boundary input contribution to the RHS.</summary>
+    protected double[] uSF = null!;
+
+    /// <summary>Per-node coefficient for the B-side boundary input contribution to the RHS.</summary>
+    protected double[] uSB = null!;
+
+    /// <summary>Calculation time step [s].</summary>
+    protected double timeStep = 3600;
+
+    #endregion
+
+    #region 行列ソルバ — public プロパティ
+
+    /// <summary>Gets or sets the calculation time step [s]. Setting a new value flags the matrix for rebuild.</summary>
+    public virtual double TimeStep
+    {
+      get { return timeStep; }
+      set
+      {
+        if (value <= 0 || timeStep == value) return;
+        timeStep = value;
+        needToUpdateUMatrix = true;
+      }
+    }
+
+    /// <summary>Gets the number of nodes in the finite-difference network.</summary>
+    public abstract int NodeCount { get; }
+
+    /// <summary>Gets the node temperature distribution [°C].</summary>
+    public IVector Temperatures
+    { get { return new VectorView(tempAndHumid, 0, NodeCount); } }
+
+    /// <summary>Sensitivity of the F-side surface temperature to the F-side sol-air temperature (sensible).</summary>
+    public double FFS2_F { get; protected set; }
+
+    /// <summary>Sensitivity of the B-side surface temperature to the F-side sol-air temperature (sensible).</summary>
+    public double FFS2_B { get; protected set; }
+
+    /// <summary>Sensitivity of the F-side surface temperature to the B-side sol-air temperature (sensible).</summary>
+    public double BFS2_F { get; protected set; }
+
+    /// <summary>Sensitivity of the B-side surface temperature to the B-side sol-air temperature (sensible).</summary>
+    public double BFS2_B { get; protected set; }
+
+    /// <summary>Initial-state contribution to the F-side surface temperature (sensible).</summary>
+    public double IF2_F { get; protected set; }
+
+    /// <summary>Initial-state contribution to the B-side surface temperature (sensible).</summary>
+    public double IF2_B { get; protected set; }
+
+    #endregion
+
+    #region 層別吸収日射 API
 
     /// <summary>
-    /// Refreshes the IF (current-state) coefficients from the component's
-    /// internal state, keeping them consistent with the latest inverse matrix.
-    /// Must accompany every <see cref="UpdateInverseMatrix"/> call so that
-    /// <c>MakeABMatrix</c> (FFS / BFS) and <c>MakeCVector</c> (IF) stay
-    /// mutually consistent. No-op for components without dynamic conduction
-    /// response.
+    /// Supplies a per-node short-wave absorption [W/m²] as a body source in
+    /// the next <see cref="Update"/>. Intended for translucent constructions
+    /// (e.g., a window assembly modeled as a glass / air-gap stack) whose
+    /// individual layers absorb a fraction of the incident solar.
     /// </summary>
-    public virtual void UpdateIFCoefficients() { }
+    /// <param name="nodeIndex">Node index in <c>[0, NodeCount)</c>. Node 0 is the F-face surface; node <see cref="NodeCount"/>−1 is the B-face surface.</param>
+    /// <param name="qPerArea">Absorbed short-wave heat flux at the node [W/m²]. Treated as constant over the time step.</param>
+    public void SetLayerSolarAbsorption(int nodeIndex, double qPerArea)
+    {
+      solarAbsorption[nodeIndex] = qPerArea;
+    }
+
+    /// <summary>Resets all per-node absorbed solar inputs to zero.</summary>
+    public void ClearLayerSolarAbsorption()
+    {
+      Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
+    }
+
+    #endregion
+
+    #region 行列ソルバ — sensible-only 経路 (subclass がフルバージョンを override 可能)
+
+    /// <summary>Subclass hook: populates <see cref="capS"/> and <see cref="resS"/> from the subclass's own layer representation.</summary>
+    /// <remarks>
+    /// Called by the default <see cref="UpdateUMatrix"/> before constructing
+    /// the matrix. For Wall, the implementation reads layer heat capacity
+    /// and conductance; for Window (Phase C-2), it reads glass and air-gap
+    /// resistances. Subclasses that fully override <see cref="UpdateUMatrix"/>
+    /// (e.g., Wall in moisture mode) may not invoke this hook.
+    /// </remarks>
+    protected abstract void PopulateSensibleProperties();
+
+    /// <summary>Rebuilds the implicit-Euler coefficient matrix when flagged.</summary>
+    /// <remarks>
+    /// The base implementation handles the sensible-only case with no embedded
+    /// pipes. Subclasses with moisture or pipe coupling override this to add
+    /// their extensions (and may bypass the base when the structure differs).
+    /// </remarks>
+    protected virtual void UpdateUMatrix()
+    {
+      if (!needToUpdateUMatrix) return;
+      needToUpdateUINVMatrix = true;
+
+      int mNum = NodeCount;
+      PopulateSensibleProperties();
+
+      uMatrix.Initialize(0);
+      for (int i = 0; i < mNum; i++)
+      {
+        if (capS[i] == 0)
+        {
+          uSF[i] = 1 / resS[i];
+          uSB[i] = 1 / resS[i + 1];
+          qCoefS[i] = 1.0;
+        }
+        else
+        {
+          uSF[i] = timeStep / (capS[i] * resS[i]);
+          uSB[i] = timeStep / (capS[i] * resS[i + 1]);
+          qCoefS[i] = timeStep / capS[i];
+        }
+        if (i != 0) uMatrix[i, i - 1] = -uSF[i];
+        if (i != mNum - 1) uMatrix[i, i + 1] = -uSB[i];
+        if (capS[i] == 0) uMatrix[i, i] = uSF[i] + uSB[i];
+        else uMatrix[i, i] = 1d + uSF[i] + uSB[i];
+      }
+      needToUpdateUMatrix = false;
+    }
+
+    /// <summary>Rebuilds <see cref="uxMatrix"/> from the (possibly extension-augmented) coefficient matrix.</summary>
+    /// <remarks>
+    /// The base implementation is the sensible-only no-pipe path:
+    /// <c>uxMatrix = inv(uMatrix)</c>. Subclasses with pipe coupling override
+    /// to invert a pipe-augmented matrix instead.
+    /// </remarks>
+    public virtual void UpdateInverseMatrix()
+    {
+      UpdateUMatrix();
+      if (needToUpdateUINVMatrix)
+      {
+        needToUpdateUINVMatrix = false;
+        LinearAlgebraOperations.GetInverse(uMatrix, uxMatrix);
+        int num = uxMatrix.Rows - 1;
+        FFS2_F = uxMatrix[0, 0] * uSF[0];
+        FFS2_B = uxMatrix[num, 0] * uSF[0];
+        BFS2_F = uxMatrix[0, num] * uSB[num];
+        BFS2_B = uxMatrix[num, num] * uSB[num];
+        InverseMatrixUpdated = true;
+      }
+    }
+
+    /// <summary>Refreshes the IF (current-state) coefficients from the latest nodal state and inverse matrix.</summary>
+    /// <remarks>
+    /// The base implementation is sensible-only. Subclasses with moisture or
+    /// pipe coupling override to add the corresponding contributions to the
+    /// per-node body-source term.
+    /// </remarks>
+    public virtual void UpdateIFCoefficients()
+    {
+      int num = uxMatrix.Rows - 1;
+      IF2_F = IF2_B = 0;
+      for (int i = 0; i <= num; i++)
+      {
+        double bf = tempAndHumid[i];
+        if (solarAbsorption[i] != 0) bf += qCoefS[i] * solarAbsorption[i];
+        IF2_F += uxMatrix[0, i] * bf;
+        IF2_B += uxMatrix[num, i] * bf;
+      }
+    }
+
+    /// <summary>Advances the nodal state by one time step using the current sol-air temperatures.</summary>
+    /// <remarks>
+    /// The base implementation is sensible-only with no embedded pipes.
+    /// Subclasses with moisture transport, pipes, or PCM layers override to
+    /// add their RHS contributions and any post-solve state adjustments.
+    /// </remarks>
+    public virtual void Update()
+    {
+      UpdateInverseMatrix();
+
+      int mNum = NodeCount;
+      int last = mNum - 1;
+      Vector tempAndHumid2 = new Vector(tempAndHumid.Length);
+      tempAndHumid2.Initialize(0);
+
+      tempAndHumid2[0] = uSF[0] * SolAirTemperatureF;
+      tempAndHumid2[last] = uSB[last] * SolAirTemperatureB;
+      for (int i = 0; i < tempAndHumid2.Length; i++)
+        if (capS[i] != 0) tempAndHumid2[i] += tempAndHumid[i];
+      for (int i = 0; i < mNum; i++)
+        if (solarAbsorption[i] != 0) tempAndHumid2[i] += qCoefS[i] * solarAbsorption[i];
+
+      LinearAlgebraOperations.Multiply(uxMatrix, tempAndHumid2, tempAndHumid, 1, 0);
+
+      UpdateIFCoefficients();
+    }
+
+    /// <summary>Resets the nodal temperature distribution to a uniform value and rebuilds.</summary>
+    /// <param name="temperature">Initial temperature [°C].</param>
+    public virtual void Initialize(double temperature)
+    {
+      VectorView temp = new VectorView(tempAndHumid, 0, NodeCount);
+      temp.Initialize(temperature);
+      SolAirTemperatureF = SolAirTemperatureB = temperature;
+      needToUpdateUMatrix = true;
+      Update();
+    }
 
     /// <summary>
     /// Solver-managed flag: <c>true</c> when this component's inverse matrix
