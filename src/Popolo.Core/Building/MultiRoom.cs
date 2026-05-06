@@ -398,6 +398,141 @@ namespace Popolo.Core.Building
 
     #endregion
 
+    #region 構成検証
+
+    /// <summary>Validates the multi-room configuration and returns any problems found.</summary>
+    /// <returns>List of human-readable error messages; empty when no problems are detected.</returns>
+    /// <remarks>
+    /// Catches misconfigurations that the per-method APIs cannot block at
+    /// call time (typically: missing pieces, cross-element inconsistencies,
+    /// out-of-range physical properties). Recommended usage is to call this
+    /// once after construction is complete and before the first solver step,
+    /// asserting that the returned list is empty. The check is read-only —
+    /// it does not mutate any internal state.
+    /// </remarks>
+    public IReadOnlyList<string> Validate()
+    {
+      var errors = new List<string>();
+
+      // 1. 全 Zone が Room に所属
+      for (int i = 0; i < ZoneCount; i++)
+      {
+        int rIdx = zones[i].RoomIndex;
+        if (rIdx < 0 || rIdx >= RoomCount)
+          errors.Add($"Zone[{i}] is not assigned to any room (RoomIndex={rIdx}).");
+      }
+
+      // 2. 全 Room に 1 つ以上の Zone
+      for (int r = 0; r < RoomCount; r++)
+      {
+        if (rZones[r].Count == 0)
+          errors.Add($"Room[{r}] has no zones.");
+      }
+
+      // 3. 全 Zone に有効表面 (面積>0) が 1 つ以上
+      for (int i = 0; i < ZoneCount; i++)
+      {
+        bool hasArea = false;
+        foreach (EnvelopeSurface sf in zones[i].Surfaces)
+          if (sf.Area > 0) { hasArea = true; break; }
+        if (!hasArea)
+          errors.Add($"Zone[{i}] has no interior surface with area > 0.");
+      }
+
+      // 4. 全 Component の F/B が 4 状態 (indoor/outdoor/ground/adjacent) に決定済み
+      // 5. F/B 両面屋外の Component が無い
+      // 6. 屋外面に Incline 設定済み
+      for (int i = 0; i < components.Length; i++)
+      {
+        var c = components[i];
+        SideKind fKind = ClassifySide(c.SurfaceF);
+        SideKind bKind = ClassifySide(c.SurfaceB);
+
+        if (fKind == SideKind.Unconfigured)
+          errors.Add($"Component[{i}] ({c.GetType().Name}) F side is not configured (indoor / outdoor / ground / adjacent).");
+        if (bKind == SideKind.Unconfigured)
+          errors.Add($"Component[{i}] ({c.GetType().Name}) B side is not configured (indoor / outdoor / ground / adjacent).");
+
+        if (fKind == SideKind.Outdoor && bKind == SideKind.Outdoor)
+          errors.Add($"Component[{i}] ({c.GetType().Name}) has both F and B sides facing outdoor.");
+
+        if (fKind == SideKind.Outdoor && c.SurfaceF.Incline == null)
+          errors.Add($"Component[{i}] outdoor F side has no Incline.");
+        if (bKind == SideKind.Outdoor && c.SurfaceB.Incline == null)
+          errors.Add($"Component[{i}] outdoor B side has no Incline.");
+      }
+
+      // 7. SW 分配先 Floor: 面積>0 かつ emitter と同 Room
+      foreach (var kv in swDistFloor)
+      {
+        var emitter = kv.Key;
+        var floor = kv.Value;
+        int eIdx = Array.IndexOf(components, emitter);
+
+        if (floor.Area <= 0)
+          errors.Add($"SW distribution floor for component[{eIdx}] has area ≤ 0.");
+
+        int floorZone = floor.ZoneIndex;
+        int emitterZone = emitter.SurfaceB.ZoneIndex >= 0
+            ? emitter.SurfaceB.ZoneIndex : emitter.SurfaceF.ZoneIndex;
+        if (floorZone >= 0 && emitterZone >= 0
+            && zones[floorZone].RoomIndex != zones[emitterZone].RoomIndex)
+          errors.Add($"SW distribution floor for component[{eIdx}] is in a different room "
+              + $"(emitter room={zones[emitterZone].RoomIndex}, floor room={zones[floorZone].RoomIndex}).");
+      }
+
+      // 8. SW 分配率 ∈ [0, 1]
+      foreach (var kv in swDistRate)
+      {
+        int eIdx = Array.IndexOf(components, kv.Key);
+        if (kv.Value < 0.0 || kv.Value > 1.0)
+          errors.Add($"SW distribution rate for component[{eIdx}] = {kv.Value}, must be in [0, 1].");
+      }
+
+      // 9. 物性値 ∈ [0, 1]
+      for (int i = 0; i < components.Length; i++)
+      {
+        var c = components[i];
+        foreach (var sf in new[] { c.SurfaceF, c.SurfaceB })
+        {
+          string side = sf.isSideF ? "F" : "B";
+          double lw = sf.LongWaveEmissivity;
+          double sw = sf.ShortWaveEmissivity;
+          if (lw < 0.0 || lw > 1.0)
+            errors.Add($"Component[{i}] {side} side long-wave emissivity = {lw}, must be in [0, 1].");
+          if (sw < 0.0 || sw > 1.0)
+            errors.Add($"Component[{i}] {side} side short-wave absorptance/emissivity = {sw}, must be in [0, 1].");
+          if (sf.AdjacentSpaceFactor >= 0.0 && sf.AdjacentSpaceFactor > 1.0)
+            errors.Add($"Component[{i}] {side} side adjacent-space factor = {sf.AdjacentSpaceFactor}, must be in [0, 1].");
+        }
+      }
+
+      return errors;
+    }
+
+    /// <summary>Classification of an envelope surface's boundary configuration. Used by <see cref="Validate"/>.</summary>
+    private enum SideKind { Unconfigured, Indoor, Outdoor, Ground, Adjacent }
+
+    /// <summary>Classifies how a surface side is currently bound to its environment.</summary>
+    private SideKind ClassifySide(EnvelopeSurface sf)
+    {
+      // 屋内 (Zone に所属)
+      for (int i = 0; i < ZoneCount; i++)
+        if (zones[i].Surfaces.Contains(sf)) return SideKind.Indoor;
+
+      // 境界面のいずれか
+      if (bndSurfaces.Contains(sf))
+      {
+        if (sf.IsGroundWall) return SideKind.Ground;
+        if (sf.AdjacentSpaceFactor >= 0.0) return SideKind.Adjacent;
+        return SideKind.Outdoor;
+      }
+
+      return SideKind.Unconfigured;
+    }
+
+    #endregion
+
     #region 熱平衡（熱水分同時移動対応）に関する処理
 
     /// <summary>Forecasts the future sensible heat balance state.</summary>
