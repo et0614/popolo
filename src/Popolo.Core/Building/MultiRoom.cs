@@ -92,7 +92,10 @@ namespace Popolo.Core.Building
     internal List<EnvelopeSurface> bndSurfaces = new List<EnvelopeSurface>();
 
     /// <summary>Short-wave emissivity values for each window.</summary>
-    private double[] wSWEmissivity = null!;
+    private double[] surfaceSWEmissivity = null!;
+
+    /// <summary>Concatenation of <see cref="walls"/> and <see cref="windows"/> as the abstract component view, for solver loops that don't care about the concrete type.</summary>
+    private IEnvelopeComponent[] components = null!;
 
     /// <summary>
     /// Per-interior-surface Gebhart self-absorption factor <c>bf = 1 − G[i,i]</c>, captured
@@ -288,13 +291,15 @@ namespace Popolo.Core.Building
       ZoneCount = zones.Length;
       this.walls = walls;
       this.windows = windows;
+      this.components = new IEnvelopeComponent[walls.Length + windows.Length];
+      for (int i = 0; i < walls.Length; i++) this.components[i] = walls[i];
+      for (int i = 0; i < windows.Length; i++) this.components[walls.Length + i] = windows[i];
       this.zones = zones;
       formFactor = new IMatrix[RoomCount];
       rZones = new List<int>[RoomCount];
       radToSurf_L = new double[RoomCount];
       wsIndex = new int[RoomCount][][];
       zoneVent = new double[ZoneCount, ZoneCount];
-      wSWEmissivity = new double[windows.Length];
       zoneTemp = new double[ZoneCount];
       zoneHumid = new double[ZoneCount];
       swDistFloor = new Dictionary<IEnvelopeComponent, EnvelopeSurface>();
@@ -465,9 +470,10 @@ namespace Popolo.Core.Building
     private void MakeABMatrix()
     {
       //AB行列の再計算の要否を確認
-      // (1) 全 surface (壁+窓) の境界係数変化フラグ — setter で立つ、即時反映用
-      // (2) Wall.invMatrixUpdated — 前 FixState の Update で逆行列が再計算された痕跡
-      //     (PCM 等の層プロパティ変化や埋設配管流量変化を反映)
+      // (1) 全 surface の境界係数変化フラグ — setter で立つ、即時反映用
+      // (2) コンポーネントの InverseMatrixUpdated — 前 FixState の Update で
+      //     逆行列が再計算された痕跡 (PCM・埋設配管流量変化など、または将来
+      //     窓に熱容量を持たせた際の glass 層プロパティ変化)
       bool needUpdateAB = false;
       for (int i = 0; i < surfaces.Length; i++)
       {
@@ -475,25 +481,25 @@ namespace Popolo.Core.Building
       }
       if (!needUpdateAB)
       {
-        for (int i = 0; i < walls.Length; i++)
+        for (int i = 0; i < components.Length; i++)
         {
-          if (walls[i].invMatrixUpdated) { needUpdateAB = true; break; }
+          if (components[i].InverseMatrixUpdated) { needUpdateAB = true; break; }
         }
       }
       if (!needUpdateAB) return;
 
-      // 境界係数が変わった Wall の逆行列を同タイムステップで最新化。
-      // uxMatrix を作り直したら IF2/3 も同じ uxMatrix と現 tempAndHumid から再計算
-      // しないと、AB 行列 (FFS/BFS 経由、新 uxMatrix) と C ベクトル (IF 経由、旧 uxMatrix)
-      // で整合性が崩れ、ピーク負荷などで誤差が出る。
-      // 窓は FFS 系を inverse 経由で持たないので追加処理不要。
-      for (int i = 0; i < walls.Length; i++)
+      // 境界係数が変わったコンポーネントの逆行列を同タイムステップで最新化。
+      // uxMatrix を作り直したら IF2/3 も同じ uxMatrix と現状態から再計算
+      // しないと、AB 行列 (FFS/BFS 経由、新 uxMatrix) と C ベクトル
+      // (IF 経由、旧 uxMatrix) で整合性が崩れ、ピーク負荷などで誤差が出る。
+      // 不透明な resistive-only モデル (現在の Window) は両メソッドが no-op。
+      for (int i = 0; i < components.Length; i++)
       {
-        if (walls[i].SurfaceF.BoundaryCoefficientChanged ||
-            walls[i].SurfaceB.BoundaryCoefficientChanged)
+        IEnvelopeComponent c = components[i];
+        if (c.SurfaceF.BoundaryCoefficientChanged || c.SurfaceB.BoundaryCoefficientChanged)
         {
-          walls[i].UpdateInverseMatrix();
-          walls[i].UpdateIFCoefficients();
+          c.UpdateInverseMatrix();
+          c.UpdateIFCoefficients();
         }
       }
 
@@ -744,7 +750,7 @@ namespace Popolo.Core.Building
         Initialize();
 
         //窓の光学特性を更新、ゲブハルト吸収率行列初期化
-        UpdateWindowOpticalProperties();
+        UpdateOpticalProperties();
 
         //長波長・短波長放射を分配
         for (int i = 0; i < radToSurf_S.Length; i++) radToSurf_S[i] = 0;
@@ -1007,6 +1013,7 @@ namespace Popolo.Core.Building
       isSFboundary = new bool[sNum];
       for (int i = 0; i < sfs.Count; i++) isSFboundary[i] = !sfs.Contains(sfs[i].ReverseSideSurface);
       radToSurf_S = new double[sNum];
+      surfaceSWEmissivity = new double[sNum];
       gMatL = new double[sNum, sNum];
       gebhartBF = new double[sNum];
       gMatS = new double[sNum, sNum];
@@ -1206,16 +1213,30 @@ namespace Popolo.Core.Building
       }
     }
 
-    /// <summary>Updates optical properties of all windows based on the current solar position.</summary>
-    private void UpdateWindowOpticalProperties()
+    /// <summary>
+    /// Refreshes the optical properties of every envelope component for the
+    /// current solar position, then rebuilds the Gebhart short-wave matrix if
+    /// any indoor-facing surface absorptance changed.
+    /// </summary>
+    /// <remarks>
+    /// Opaque components (current walls) report no-op updates and never
+    /// change their absorptance; only translucent components (windows, future
+    /// translucent walls) typically trigger the rebuild. Tracking is
+    /// generalized to per-surface so the same path captures any future
+    /// component whose indoor absorptance becomes solar-position-dependent.
+    /// </remarks>
+    private void UpdateOpticalProperties()
     {
+      for (int i = 0; i < components.Length; i++)
+        components[i].UpdateOpticalProperties(Sun);
+
       bool needUpdateGebhartMatrix = false;
-      for (int i = 0; i < windows.Length; i++)
+      for (int i = 0; i < surfaces.Length; i++)
       {
-        windows[i].UpdateOpticalProperties(Sun);
-        if (wSWEmissivity[i] != windows[i].ShortWaveEmissivityB)
+        double now = surfaces[i].ShortWaveEmissivity;
+        if (surfaceSWEmissivity[i] != now)
         {
-          wSWEmissivity[i] = windows[i].ShortWaveEmissivityB;
+          surfaceSWEmissivity[i] = now;
           needUpdateGebhartMatrix = true;
         }
       }

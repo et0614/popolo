@@ -568,6 +568,25 @@ namespace Popolo.Core.Building.Envelope
     public double IndoorDiffuseAbsorptanceFactor
         => DiffuseSolarIncidentAbsorptance / (1 - DiffuseSolarIncidentReflectance);
 
+    /// <summary>
+    /// Windows currently have no dynamic conduction model (response is purely
+    /// resistive via <see cref="GetResistance"/>), so there is no inverse
+    /// step-coefficient matrix to maintain. This will become non-trivial when
+    /// per-glass-layer heat capacity is added.
+    /// </summary>
+    public void UpdateInverseMatrix() { }
+
+    /// <summary>
+    /// Companion no-op to <see cref="UpdateInverseMatrix"/>; see remarks there.
+    /// </summary>
+    public void UpdateIFCoefficients() { }
+
+    /// <summary>
+    /// Solver-managed flag — <c>false</c> for the current resistive-only
+    /// window model. Reserved for the future heat-capacity model.
+    /// </summary>
+    public bool InverseMatrixUpdated { get; set; } = false;
+
     /// <summary>Computes the total optical properties from the individual layer properties.</summary>
     /// <param name="opPropF">Layer optical properties for F-side incidence.</param>
     /// <param name="opPropB">Layer optical properties for B-side incidence.</param>

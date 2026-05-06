@@ -364,7 +364,7 @@ namespace Popolo.Core.Building
       //壁の熱流を更新
       foreach (Wall wl in walls)
       {
-        wl.invMatrixUpdated = false;
+        wl.InverseMatrixUpdated = false;
         wl.Update();
       }
       isFirstForecast = true;

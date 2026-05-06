@@ -102,5 +102,41 @@ namespace Popolo.Core.Building.Envelope
     /// (typically <c>DiffuseAbsorptance / (1 − DiffuseReflectance)</c>).
     /// </remarks>
     double IndoorDiffuseAbsorptanceFactor { get; }
+
+    /// <summary>
+    /// Refreshes optical properties for the current solar geometry. Opaque
+    /// components are typically a no-op; translucent components (windows,
+    /// future translucent walls) recompute angle-dependent transmittance,
+    /// reflectance, and absorptance.
+    /// </summary>
+    /// <param name="sun">Current solar geometry / radiation state.</param>
+    void UpdateOpticalProperties(IReadOnlySun sun);
+
+    /// <summary>
+    /// Refreshes the inverse step-coefficient matrix and the boundary-temperature
+    /// sensitivity coefficients (FFS / BFS). Called by <see cref="MultiRoom"/>
+    /// when surface heat-transfer coefficients change mid-step. No-op for
+    /// components without a dynamic conduction response (current
+    /// <see cref="Window"/>, until per-glass-layer heat capacity is added).
+    /// </summary>
+    void UpdateInverseMatrix();
+
+    /// <summary>
+    /// Refreshes the IF (current-state) coefficients from the component's
+    /// internal state, keeping them consistent with the latest inverse matrix.
+    /// Must accompany every <see cref="UpdateInverseMatrix"/> call so that
+    /// <c>MakeABMatrix</c> (FFS / BFS) and <c>MakeCVector</c> (IF) stay
+    /// mutually consistent. No-op for components without dynamic conduction
+    /// response.
+    /// </summary>
+    void UpdateIFCoefficients();
+
+    /// <summary>
+    /// Solver-managed flag: <c>true</c> when this component's inverse matrix
+    /// has been recomputed since the last AB-matrix rebuild. Set by the
+    /// component's per-step Update path; the solver consumes the flag in
+    /// <c>MakeABMatrix</c> and clears it at the start of the next time step.
+    /// </summary>
+    bool InverseMatrixUpdated { get; set; }
   }
 }

@@ -341,8 +341,15 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
     internal double BFL3_B { get; private set; }
 
-    /// <summary>Gets or sets a value indicating whether the inverse matrix has been updated.</summary>
-    internal bool invMatrixUpdated { get; set; } = true;
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Exposed via <see cref="IEnvelopeComponent"/> so the solver
+    /// (<see cref="MultiRoom.MakeABMatrix"/>) can detect when this wall has
+    /// recomputed its inverse matrix mid-step and trigger an AB rebuild.
+    /// Cleared by <see cref="BuildingThermalModel.FixState"/> at the start of
+    /// each step. Initial value <c>true</c> guarantees the first AB build.
+    /// </remarks>
+    public bool InverseMatrixUpdated { get; set; } = true;
 
     #endregion
 
@@ -548,7 +555,7 @@ namespace Popolo.Core.Building.Envelope
     /// change, IF2/3 must be recomputed too — otherwise the C vector is inconsistent with
     /// the A/B matrix and the zone heat balance produces incorrect results.
     /// </remarks>
-    internal void UpdateIFCoefficients()
+    public void UpdateIFCoefficients()
     {
       if (ComputeMoistureTransfer)
       {
@@ -655,6 +662,13 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Opaque wall: all incident indoor diffuse short-wave is absorbed at first hit.</summary>
     public double IndoorDiffuseAbsorptanceFactor => 1.0;
+
+    /// <summary>
+    /// Opaque walls have static optical properties; no recomputation per
+    /// solar position is needed. Future translucent wall constructions can
+    /// override.
+    /// </summary>
+    public void UpdateOpticalProperties(Climate.IReadOnlySun sun) { }
 
     #endregion
 
@@ -925,7 +939,7 @@ namespace Popolo.Core.Building.Envelope
     /// responsibility, called once per step from <c>FixState</c>.
     /// </para>
     /// </remarks>
-    internal void UpdateInverseMatrix()
+    public void UpdateInverseMatrix()
     {
       //係数行列（配管の影響を除く）を更新
       UpdateUMatrix();
@@ -996,7 +1010,7 @@ namespace Popolo.Core.Building.Envelope
         }
 
         //逆行列変更フラグON
-        invMatrixUpdated = true;
+        InverseMatrixUpdated = true;
       }
     }
 
