@@ -386,30 +386,30 @@ namespace BESTEST_2023
       }
       else windows = new Window[0];
 
-      // 多数室
-      mRoom = new MultiRoom(1, zones, walls, windows);
+      // 多数室 (統合 API: walls + windows を OpticalLayeredEnvelope[] として渡す)
+      mRoom = new MultiRoom(1, zones, CombineComponents(walls, windows));
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
 
       // 屋外表面設定
       // Std140-2023 §7.2.1.5.1: raised floor は床下空気が外気温に等しい (slab-on-grade ではない)。
-      // F 側を OutsideWall (tilt=π, fs_to_sky=0) とし、§7.2.1.5.1.b で日射ゼロのため α_F=0。
+      // F 側を OutsideEnvelope (tilt=π, fs_to_sky=0) とし、§7.2.1.5.1.b で日射ゼロのため α_F=0。
       // 床下は風が当たらないので h_conv 動的更新の対象外 (Std140 が h_conv,floor=0.8 を規定)。
-      mRoom.SetOutsideWall(0, true, INC_F);
+      mRoom.SetOutsideEnvelope(0, INC_F);
       walls[0].ShortWaveAbsorptanceF = 0.0;
       walls[0].IsWindExposedF = false;
-      mRoom.SetOutsideWall(1, true, INC_H);
-      mRoom.SetOutsideWall(2, true, INC_N);
-      mRoom.SetOutsideWall(3, true, INC_E);
-      mRoom.SetOutsideWall(4, true, INC_W);
-      mRoom.SetOutsideWall(5, true, INC_S);
+      mRoom.SetOutsideEnvelope(1, INC_H);
+      mRoom.SetOutsideEnvelope(2, INC_N);
+      mRoom.SetOutsideEnvelope(3, INC_E);
+      mRoom.SetOutsideEnvelope(4, INC_W);
+      mRoom.SetOutsideEnvelope(5, INC_S);
 
-      // 壁・窓をゾーンに追加
-      for (int i = 0; i < walls.Length; i++) mRoom.AddWall(0, i, false);
+      // 壁・窓をゾーンに追加 (どちらも AddComponent に統一)
+      for (int i = 0; i < walls.Length; i++) mRoom.AddComponent(0, i);
       for (int i = 0; i < windows.Length; i++)
       {
-        mRoom.AddWindow(0, i);
+        mRoom.AddComponent(zones[0], windows[i]);
         // BESTEST では全日射がまず床に当たると仮定
         mRoom.SetSWDistributionRateToFloor(i, 0, false, 1.0);
       }
@@ -496,50 +496,50 @@ namespace BESTEST_2023
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
-      // 多数室 (2室)
-      mRoom = new MultiRoom(2, zones, walls, windows);
+      // 多数室 (2室、統合 API)
+      mRoom = new MultiRoom(2, zones, CombineComponents(walls, windows));
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
       mRoom.AddZone(1, 1);
 
       // 屋外表面設定 (Std140-2023 §7.2.1.5.1: raised floor は外気温、no solar、wind shelter)
-      mRoom.SetOutsideWall(0, true, INC_F);
-      mRoom.SetOutsideWall(1, true, INC_F);
+      mRoom.SetOutsideEnvelope(0, INC_F);
+      mRoom.SetOutsideEnvelope(1, INC_F);
       walls[0].ShortWaveAbsorptanceF = 0.0;
       walls[1].ShortWaveAbsorptanceF = 0.0;
       walls[0].IsWindExposedF = false;
       walls[1].IsWindExposedF = false;
-      mRoom.SetOutsideWall(2, true, INC_H);
-      mRoom.SetOutsideWall(3, true, INC_H);
-      mRoom.SetOutsideWall(4, true, INC_N);
-      mRoom.SetOutsideWall(5, true, INC_S);
-      mRoom.SetOutsideWall(6, true, INC_E);
-      mRoom.SetOutsideWall(7, true, INC_E);
-      mRoom.SetOutsideWall(8, true, INC_W);
-      mRoom.SetOutsideWall(9, true, INC_W);
+      mRoom.SetOutsideEnvelope(2, INC_H);
+      mRoom.SetOutsideEnvelope(3, INC_H);
+      mRoom.SetOutsideEnvelope(4, INC_N);
+      mRoom.SetOutsideEnvelope(5, INC_S);
+      mRoom.SetOutsideEnvelope(6, INC_E);
+      mRoom.SetOutsideEnvelope(7, INC_E);
+      mRoom.SetOutsideEnvelope(8, INC_W);
+      mRoom.SetOutsideEnvelope(9, INC_W);
 
       // SunZone に窓を追加
-      mRoom.AddWindow(1, 0);
-      mRoom.AddWindow(1, 1);
+      mRoom.AddComponent(zones[1], windows[0]);
+      mRoom.AddComponent(zones[1], windows[1]);
       mRoom.SetSWDistributionRateToFloor(0, 1, false, 1.0);
       mRoom.SetSWDistributionRateToFloor(1, 1, false, 1.0);
 
       // BackZone に壁を追加
-      mRoom.AddWall(0, 0, false);
-      mRoom.AddWall(0, 2, false);
-      mRoom.AddWall(0, 4, false);
-      mRoom.AddWall(0, 6, false);
-      mRoom.AddWall(0, 8, false);
-      mRoom.AddWall(0, 10, true);
+      mRoom.AddComponent(0, 0);
+      mRoom.AddComponent(0, 2);
+      mRoom.AddComponent(0, 4);
+      mRoom.AddComponent(0, 6);
+      mRoom.AddComponent(0, 8);
+      mRoom.AddComponent(0, 10, isSideF: true); // 共用壁: F=zone0 側
 
       // SunZone に壁を追加
-      mRoom.AddWall(1, 1, false);
-      mRoom.AddWall(1, 3, false);
-      mRoom.AddWall(1, 5, false);
-      mRoom.AddWall(1, 7, false);
-      mRoom.AddWall(1, 9, false);
-      mRoom.AddWall(1, 10, false);
+      mRoom.AddComponent(1, 1);
+      mRoom.AddComponent(1, 3);
+      mRoom.AddComponent(1, 5);
+      mRoom.AddComponent(1, 7);
+      mRoom.AddComponent(1, 9);
+      mRoom.AddComponent(1, 10);                // 共用壁: B=zone1 側
     }
 
     /// <summary>地中結合付き建物 (Case 990)。地下外壁を土壌層付き壁体で表現。</summary>
@@ -621,28 +621,41 @@ namespace BESTEST_2023
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
-      mRoom = new MultiRoom(1, zones, walls, windows);
+      mRoom = new MultiRoom(1, zones, CombineComponents(walls, windows));
       mRoom.TimeStep = 3600;
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
 
-      // 屋外表面設定
+      // 屋外表面設定 (SetGroundWall は Wall 専用 API のまま使用)
       mRoom.SetGroundWall(0, true, 10000);
-      mRoom.SetOutsideWall(1, true, INC_H);
-      mRoom.SetOutsideWall(2, true, INC_N);
+      mRoom.SetOutsideEnvelope(1, INC_H);
+      mRoom.SetOutsideEnvelope(2, INC_N);
       mRoom.SetGroundWall(3, true, 10000);
-      mRoom.SetOutsideWall(4, true, INC_E);
+      mRoom.SetOutsideEnvelope(4, INC_E);
       mRoom.SetGroundWall(5, true, 10000);
-      mRoom.SetOutsideWall(6, true, INC_W);
+      mRoom.SetOutsideEnvelope(6, INC_W);
       mRoom.SetGroundWall(7, true, 10000);
       mRoom.SetGroundWall(8, true, 10000);
 
       // 窓と壁をゾーンに追加
-      mRoom.AddWindow(0, 0);
-      mRoom.AddWindow(0, 1);
+      mRoom.AddComponent(zones[0], windows[0]);
+      mRoom.AddComponent(zones[0], windows[1]);
       mRoom.SetSWDistributionRateToFloor(0, 0, false, 1.0);
       mRoom.SetSWDistributionRateToFloor(1, 0, false, 1.0);
-      for (int i = 0; i < walls.Length; i++) mRoom.AddWall(0, i, false);
+      for (int i = 0; i < walls.Length; i++) mRoom.AddComponent(0, i);
+    }
+
+    /// <summary>
+    /// 統合 API 用の component 配列を構築するヘルパ。
+    /// walls を先頭に、windows を続けて並べた <see cref="OpticalLayeredEnvelope"/>[] を返す。
+    /// component index = wall index (前半) または walls.Length + window index (後半) になる。
+    /// </summary>
+    private static OpticalLayeredEnvelope[] CombineComponents(Wall[] walls, Window[] windows)
+    {
+      var components = new OpticalLayeredEnvelope[walls.Length + windows.Length];
+      Array.Copy(walls, 0, components, 0, walls.Length);
+      Array.Copy(windows, 0, components, walls.Length, windows.Length);
+      return components;
     }
 
     #endregion
