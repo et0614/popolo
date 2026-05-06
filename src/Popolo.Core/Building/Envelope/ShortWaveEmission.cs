@@ -27,7 +27,7 @@ namespace Popolo.Core.Building.Envelope
   /// <remarks>
   /// <para>
   /// Returned by
-  /// <see cref="IEnvelopeComponent.EmitShortWaveToIndoor(EnvelopeSurface, Climate.IReadOnlySun, double, bool)"/>.
+  /// <see cref="IEnvelopeComponent.EmitShortWaveToIndoor(EnvelopeSurface, Climate.IReadOnlySun, double)"/>.
   /// Opaque components (a typical wall) return <see cref="Zero"/> — they
   /// neither absorb nor transmit any short-wave at the indoor side, since
   /// outdoor solar absorption on opaque surfaces is already accounted for in

@@ -390,12 +390,6 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the radiative fraction of the combined heat transfer coefficient [-].</summary>
     public double RadiativeFraction { get { return 1 - ConvectiveFraction; } }
 
-    /// <summary>Gets or sets the direct solar irradiance on this surface [W/m²].</summary>
-    public double DirectSolarIrradiance { get; set; }
-
-    /// <summary>Gets or sets the diffuse solar irradiance on this surface [W/m²].</summary>
-    public double DiffuseSolarIrradiance { get; set; }
-
     /// <summary>
     /// Gets the short-wave (solar) heat flux [W/m²] absorbed at this surface
     /// and treated as a boundary heat input by the upper-layer solver.

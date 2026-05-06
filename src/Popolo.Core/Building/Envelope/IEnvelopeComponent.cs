@@ -69,13 +69,6 @@ namespace Popolo.Core.Building.Envelope
     /// </param>
     /// <param name="sun">The current solar geometry / radiation state.</param>
     /// <param name="albedo">Ground albedo [-].</param>
-    /// <param name="useGivenIrradiance">
-    /// If <c>true</c>, read the outdoor-side direct/diffuse irradiance from the
-    /// component's own outdoor-surface fields
-    /// (<see cref="EnvelopeSurface.DirectSolarIrradiance"/> /
-    /// <see cref="EnvelopeSurface.DiffuseSolarIrradiance"/>) instead of computing
-    /// them from <paramref name="sun"/> and the surface incline.
-    /// </param>
     /// <returns>
     /// A <see cref="ShortWaveEmission"/> describing the flux absorbed at the
     /// indoor surface and the power transmitted into the room. Opaque
@@ -86,8 +79,7 @@ namespace Popolo.Core.Building.Envelope
     ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       IReadOnlySun sun,
-      double albedo,
-      bool useGivenIrradiance);
+      double albedo);
 
     /// <summary>
     /// Gets the effective absorptance [-] for indoor diffuse short-wave

@@ -513,47 +513,32 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="indoorSurface">Ignored — windows hardcode F = outdoor, B = indoor.</param>
     /// <param name="sun">Solar geometry / radiation source.</param>
     /// <param name="albedo">Ground albedo [-].</param>
-    /// <param name="useGivenIrradiance">
-    /// If <c>true</c>, take direct/diffuse irradiance from
-    /// <see cref="OutsideSurface"/>'s pre-supplied fields instead of computing
-    /// from <paramref name="sun"/> and <see cref="OutsideIncline"/>.
-    /// </param>
     /// <returns>Indoor-side absorbed flux [W/m²] and transmitted power [W].</returns>
     public ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       Climate.IReadOnlySun sun,
-      double albedo,
-      bool useGivenIrradiance)
+      double albedo)
     {
-      double dir, dif;
-      if (useGivenIrradiance)
-      {
-        dir = OutsideSurface.DirectSolarIrradiance;
-        dif = OutsideSurface.DiffuseSolarIrradiance;
-      }
-      else
-      {
-        Climate.IReadOnlyIncline inc = OutsideIncline;
-        dir = inc.GetDirectSolarIrradiance(sun) * (1 - SunShade.GetDirectShadingRate(sun, inc));
-        // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
-        //
-        // Note: Perez (1990) 異方性モデルでは sky diffuse は
-        //   ① isotropic dome
-        //   ② circumsolar (太陽近傍に集中)
-        //   ③ horizon brightening (地平線近傍)
-        // の 3 成分から成る。一律係数 (sky view factor 比) で全 sky diffuse に
-        // 掛ける現在の方式は ① には適切だが、② (太陽方向依存・遮蔽は二値的) と
-        // ③ (地平線高度に集中・庇では物理的に遮蔽されない) には不適切。
-        // 理論的に厳密化するには Perez 3 成分を分解し個別に減衰させる必要があるが、
-        // 現状は近似として全成分一律で扱う (TODO: Perez 分解の実装)。
-        double diffuseTotal = inc.GetDiffuseSolarIrradiance(sun, albedo);
-        double groundReflected = albedo * inc.ConfigurationFactorToGround
-                               * sun.GlobalHorizontalRadiation;
-        double skyDiffuse = diffuseTotal - groundReflected;
-        if (skyDiffuse < 0) skyDiffuse = 0;
-        double skyShadingRate = SunShade.GetSkyDiffuseShadingRate(inc);
-        dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
-      }
+      Climate.IReadOnlyIncline inc = OutsideIncline;
+      double dir = inc.GetDirectSolarIrradiance(sun) * (1 - SunShade.GetDirectShadingRate(sun, inc));
+      // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
+      //
+      // Note: Perez (1990) 異方性モデルでは sky diffuse は
+      //   ① isotropic dome
+      //   ② circumsolar (太陽近傍に集中)
+      //   ③ horizon brightening (地平線近傍)
+      // の 3 成分から成る。一律係数 (sky view factor 比) で全 sky diffuse に
+      // 掛ける現在の方式は ① には適切だが、② (太陽方向依存・遮蔽は二値的) と
+      // ③ (地平線高度に集中・庇では物理的に遮蔽されない) には不適切。
+      // 理論的に厳密化するには Perez 3 成分を分解し個別に減衰させる必要があるが、
+      // 現状は近似として全成分一律で扱う (TODO: Perez 分解の実装)。
+      double diffuseTotal = inc.GetDiffuseSolarIrradiance(sun, albedo);
+      double groundReflected = albedo * inc.ConfigurationFactorToGround
+                             * sun.GlobalHorizontalRadiation;
+      double skyDiffuse = diffuseTotal - groundReflected;
+      if (skyDiffuse < 0) skyDiffuse = 0;
+      double skyShadingRate = SunShade.GetSkyDiffuseShadingRate(inc);
+      double dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
       double insideAbsorbedFlux = dir * DirectSolarIncidentAbsorptance + dif * DiffuseSolarIncidentAbsorptance;
       double transmittedDirect = dir * DirectSolarIncidentTransmittance * Area;
       double transmittedDiffuse = dif * DiffuseSolarIncidentTransmittance * Area;

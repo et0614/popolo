@@ -654,8 +654,7 @@ namespace Popolo.Core.Building.Envelope
     public ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       Climate.IReadOnlySun sun,
-      double albedo,
-      bool useGivenIrradiance)
+      double albedo)
     {
       return ShortWaveEmission.Zero;
     }

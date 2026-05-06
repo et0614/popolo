@@ -61,21 +61,6 @@ namespace Popolo.Core.Building
     /// <summary>Gets or sets the maximum degree of parallelism for parallel computation.</summary>
     public static int MaxDegreeOfParallelism { get; set; } = 4;
 
-    /// <summary>Gets or sets a value indicating whether tilted-surface solar irradiance is provided directly.</summary>
-    public bool IsSolarIrradianceGiven
-    {
-      get
-      {
-        if (mRooms.Length == 0) return false;
-        else return mRooms[0].IsSolarIrradianceGiven;
-      }
-      set
-      {
-        foreach (MultiRoom ml in mRooms) 
-          ml.IsSolarIrradianceGiven = value;
-      }
-    }
-
     #endregion
 
     #region インスタンス変数
@@ -782,22 +767,6 @@ namespace Popolo.Core.Building
     /// <param name="convectiveCoefficient">Convective heat transfer coefficient [W/(m²·K)].</param>
     public void SetConvectiveCoefficient(int mRoomIndex, int wallIndex, bool isSideF, double convectiveCoefficient)
     { mRooms[mRoomIndex].SetConvectiveCoefficient(wallIndex, isSideF, convectiveCoefficient); }
-
-    /// <summary>Sets the solar irradiance on the specified wall surface.</summary>
-    /// <param name="mRoomIndex">MultiRooms index.</param>
-    /// <param name="wallIndex">Wall index.</param>
-    /// <param name="directIrradiance">Direct solar irradiance [W/m²].</param>
-    /// <param name="diffuseIrradiance">Diffuse solar irradiance [W/m²].</param>
-    public void SetWallIrradiance(int mRoomIndex, int wallIndex, double directIrradiance, double diffuseIrradiance)
-    { mRooms[mRoomIndex].SetWallIrradiance(wallIndex, directIrradiance, diffuseIrradiance); }
-
-    /// <summary>Sets the solar irradiance on the specified window surface.</summary>
-    /// <param name="mRoomIndex">MultiRooms index.</param>
-    /// <param name="windowIndex">Window index.</param>
-    /// <param name="directIrradiance">Direct solar irradiance [W/m²].</param>
-    /// <param name="diffuseIrradiance">Diffuse solar irradiance [W/m²].</param>
-    public void SetWindowIrradiance(int mRoomIndex, int windowIndex, double directIrradiance, double diffuseIrradiance)
-    { mRooms[mRoomIndex].SetWindowIrradiance(windowIndex, directIrradiance, diffuseIrradiance); }
 
     #endregion
 

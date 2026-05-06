@@ -89,9 +89,6 @@ namespace Popolo.Core.Building
     /// <summary>Gets the ground surface albedo [-].</summary>
     double Albedo { get; }
 
-    /// <summary>Gets or sets a value indicating whether tilted-surface solar irradiance is provided directly.</summary>
-    bool IsSolarIrradianceGiven { set; }
-
     /// <summary>Gets the air flow rate from zone 1 to zone 2 [kg/s].</summary>
     /// <param name="zoneIndex1">Source zone index.</param>
     /// <param name="zoneIndex2">Destination zone index.</param>

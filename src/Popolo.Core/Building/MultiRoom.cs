@@ -215,9 +215,6 @@ namespace Popolo.Core.Building
     /// <summary>Gets or sets the ground surface albedo [-].</summary>
     public double Albedo { get; set; } = 0.4;
 
-    /// <summary>Gets or sets a value indicating whether tilted-surface solar irradiance is provided directly.</summary>
-    public bool IsSolarIrradianceGiven { get; set; } = false;
-
     /// <summary>
     /// When <c>true</c>, the indoor-side (B) radiative coefficient on every wall and window is
     /// recomputed each step from the area-weighted mean of the room's interior surface
@@ -712,9 +709,7 @@ namespace Popolo.Core.Building
           if (ws.AdjacentSpaceFactor < 0)
           {
             double fs = ws.Incline!.ConfigurationFactorToSky;
-            double rad;
-            if (IsSolarIrradianceGiven) rad = ws.DirectSolarIrradiance + ws.DiffuseSolarIrradiance;
-            else rad = ws.Incline.GetSolarIrradiance(Sun, Albedo);
+            double rad = ws.Incline.GetSolarIrradiance(Sun, Albedo);
             ws.SolAirTemperature = OutdoorTemperature
               + (ws.ShortWaveEmissivity * rad
               - ws.LongWaveEmissivity * fs * NocturnalRadiation) / ws.FilmCoefficient;
@@ -1398,8 +1393,7 @@ namespace Popolo.Core.Building
             int indx1 = wsIndex[i][j][k];
             EnvelopeSurface ws1 = surfaces[indx1];
 
-            ShortWaveEmission emit = ws1.Component.EmitShortWaveToIndoor(
-              ws1, Sun, Albedo, IsSolarIrradianceGiven);
+            ShortWaveEmission emit = ws1.Component.EmitShortWaveToIndoor(ws1, Sun, Albedo);
             if (emit.IsZero) continue;
 
             radToSurf_S[indx1] += emit.InsideAbsorbedFlux;
@@ -1665,47 +1659,6 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetBaseHeatGain(int zoneIndex, double convectiveHeatGain, double radiativeHeatGain, double moistureGain)
     { zones[zoneIndex].SetBaseHeatGain(convectiveHeatGain, radiativeHeatGain, moistureGain); }
-
-    /// <summary>Supplies externally computed solar irradiance on a wall surface.</summary>
-    /// <param name="wallIndex">Wall index.</param>
-    /// <param name="directIrradiance">Direct solar irradiance on the surface [W/m²].</param>
-    /// <param name="diffuseIrradiance">Diffuse solar irradiance on the surface [W/m²].</param>
-    /// <remarks>
-    /// Effective only when <see cref="IsSolarIrradianceGiven"/> is true.
-    /// In that mode, the solver skips its internal solar computation and uses
-    /// the values supplied here instead — useful when irradiance has been
-    /// precomputed by an external ray-tracer or measured on site. When
-    /// <see cref="IsSolarIrradianceGiven"/> is false (the default), values
-    /// set here are ignored; irradiance is derived from the current sun
-    /// state, the wall's outdoor <see cref="IReadOnlyIncline"/>, and the
-    /// ground <see cref="Albedo"/>.
-    /// </remarks>
-    public void SetWallIrradiance(int wallIndex, double directIrradiance, double diffuseIrradiance)
-    {
-      EnvelopeSurface wsF = walls[wallIndex].SurfaceF;
-      EnvelopeSurface wsB = walls[wallIndex].SurfaceB;
-      wsF.DirectSolarIrradiance = wsB.DirectSolarIrradiance = directIrradiance;
-      wsF.DiffuseSolarIrradiance = wsB.DiffuseSolarIrradiance = diffuseIrradiance;
-    }
-
-    /// <summary>Supplies externally computed solar irradiance on a window surface.</summary>
-    /// <param name="windowIndex">Window index.</param>
-    /// <param name="directIrradiance">Direct solar irradiance on the outdoor surface [W/m²].</param>
-    /// <param name="diffuseIrradiance">Diffuse solar irradiance on the outdoor surface [W/m²].</param>
-    /// <remarks>
-    /// Effective only when <see cref="IsSolarIrradianceGiven"/> is true;
-    /// see <see cref="SetWallIrradiance(int,double,double)"/> for the full
-    /// contract. The irradiance supplied here is the value on the window's
-    /// outdoor face — the glazing solver then resolves transmittance,
-    /// reflectance, and absorptance through each layer and any attached
-    /// shading devices.
-    /// </remarks>
-    public void SetWindowIrradiance(int windowIndex, double directIrradiance, double diffuseIrradiance)
-    {
-      EnvelopeSurface ws = windows[windowIndex].OutsideSurface;
-      ws.DirectSolarIrradiance = directIrradiance;
-      ws.DiffuseSolarIrradiance = diffuseIrradiance;
-    }
 
     #endregion
 
