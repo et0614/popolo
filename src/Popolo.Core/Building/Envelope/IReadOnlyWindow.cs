@@ -53,11 +53,8 @@ namespace Popolo.Core.Building.Envelope
   /// <see cref="GetShadingDevice"/>.
   /// </para>
   /// </remarks>
-  public interface IReadOnlyWindow
+  public interface IReadOnlyWindow : IReadOnlyOpticalLayeredEnvelope
   {
-    /// <summary>Gets the window surface area [m²].</summary>
-    double Area { get; }
-
     /// <summary>Gets the tilted surface orientation of the outdoor-facing side.</summary>
     IReadOnlyIncline OutsideIncline { get; }
 
@@ -94,47 +91,11 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the exterior solar shading device.</summary>
     SunShade SunShade { get; }
 
-    /// <summary>Gets the sol-air temperature on the F side (outdoor) [°C].</summary>
-    double SolAirTemperatureF { get; }
-
-    /// <summary>Gets the sol-air temperature on the B side (indoor) [°C].</summary>
-    double SolAirTemperatureB { get; }
-
-    /// <summary>Gets the convective heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    double ConvectiveCoefficientF { get; }
-
-    /// <summary>Gets the convective heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    double ConvectiveCoefficientB { get; }
-
-    /// <summary>Gets the radiative heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    double RadiativeCoefficientF { get; }
-
-    /// <summary>Gets the radiative heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    double RadiativeCoefficientB { get; }
-
-    /// <summary>Gets the combined heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    double FilmCoefficientF { get; }
-
-    /// <summary>Gets the combined heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    double FilmCoefficientB { get; }
-
     /// <summary>Gets the short-wave (solar) emissivity on the F side (outdoor) [-].</summary>
     double ShortWaveEmissivityF { get; }
 
-    /// <summary>Gets the long-wave (thermal) emissivity on the F side (outdoor) [-].</summary>
-    double LongWaveEmissivityF { get; }
-
     /// <summary>Gets the short-wave (solar) emissivity on the B side (indoor) [-].</summary>
     double ShortWaveEmissivityB { get; }
-
-    /// <summary>Gets the long-wave (thermal) emissivity on the B side (indoor) [-].</summary>
-    double LongWaveEmissivityB { get; }
-
-    /// <summary>Gets the surface temperature on the F side (outdoor) [°C].</summary>
-    double SurfaceTemperatureF { get; }
-
-    /// <summary>Gets the surface temperature on the B side (indoor) [°C].</summary>
-    double SurfaceTemperatureB { get; }
 
     /// <summary>Gets the shading device at the specified layer position.</summary>
     /// <param name="number">Layer index (0 = outdoor side, N+1 = indoor side).</param>

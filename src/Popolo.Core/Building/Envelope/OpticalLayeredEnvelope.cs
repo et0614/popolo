@@ -66,7 +66,7 @@ namespace Popolo.Core.Building.Envelope
   /// pipes, PCM layers; Window: glass-stack initialization).
   /// </para>
   /// </remarks>
-  public abstract class OpticalLayeredEnvelope
+  public abstract class OpticalLayeredEnvelope : IReadOnlyOpticalLayeredEnvelope
   {
 
     #region 共通 F/B 側状態
@@ -102,6 +102,45 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the boundary surface element on the B side.</summary>
     /// <remarks>Set by the subclass constructor when the surface objects are created.</remarks>
     public EnvelopeSurface SurfaceB { get; protected set; } = null!;
+
+    #endregion
+
+    #region F/B 側 表面熱伝達係数 (subclass で実装)
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Subclass-specific because the storage and side effects of the setter
+    /// differ between <see cref="Wall"/> (flags <c>needToUpdateUMatrix</c>)
+    /// and <see cref="Window"/> (calls <c>UpdateFilmCoefficient</c>).
+    /// </remarks>
+    public abstract double ConvectiveCoefficientF { get; set; }
+
+    /// <inheritdoc/>
+    public abstract double ConvectiveCoefficientB { get; set; }
+
+    /// <inheritdoc/>
+    public abstract double RadiativeCoefficientF { get; set; }
+
+    /// <inheritdoc/>
+    public abstract double RadiativeCoefficientB { get; set; }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// For <see cref="Wall"/>: <c>cCoef + rCoef</c>. For <see cref="Window"/>:
+    /// <c>1 / (2 × outermost air-gap resistance)</c>, encoding the film
+    /// resistance as half of the outer "gap" entry.
+    /// </remarks>
+    public abstract double FilmCoefficientF { get; }
+
+    /// <inheritdoc/>
+    public abstract double FilmCoefficientB { get; }
+
+    /// <inheritdoc/>
+    /// <remarks>The surface temperature is read from <see cref="SurfaceF"/> / <see cref="SurfaceB"/>'s response-factor formulation.</remarks>
+    public abstract double SurfaceTemperatureF { get; }
+
+    /// <inheritdoc/>
+    public abstract double SurfaceTemperatureB { get; }
 
     #endregion
 

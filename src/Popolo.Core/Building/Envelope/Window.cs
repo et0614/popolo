@@ -175,7 +175,7 @@ namespace Popolo.Core.Building.Envelope
     private double cCoefF, rCoefF, cCoefB, rCoefB;
 
     /// <summary>Gets or sets the convective heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    public double ConvectiveCoefficientF
+    public override double ConvectiveCoefficientF
     {
       get { return cCoefF; }
       set
@@ -187,7 +187,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets or sets the radiative heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    public double RadiativeCoefficientF
+    public override double RadiativeCoefficientF
     {
       get { return rCoefF; }
       set
@@ -199,7 +199,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the combined heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    public double FilmCoefficientF
+    public override double FilmCoefficientF
     { get { return 1d / (2 * agapRes[0]); } }
 
     /// <summary>Gets the short-wave (solar) emissivity on the F side (outdoor) [-].</summary>
@@ -220,10 +220,10 @@ namespace Popolo.Core.Building.Envelope
     public bool IsWindExposedF { get; set; } = true;
 
     /// <summary>Gets the surface temperature on the F side (outdoor) [°C].</summary>
-    public double SurfaceTemperatureF { get { return OutsideSurface.SurfaceTemperature; } }
+    public override double SurfaceTemperatureF { get { return OutsideSurface.SurfaceTemperature; } }
 
     /// <summary>Gets or sets the convective heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    public double ConvectiveCoefficientB
+    public override double ConvectiveCoefficientB
     {
       get { return cCoefB; }
       set
@@ -235,7 +235,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets or sets the radiative heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    public double RadiativeCoefficientB
+    public override double RadiativeCoefficientB
     {
       get { return rCoefB; }
       set
@@ -247,7 +247,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the combined heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    public double FilmCoefficientB
+    public override double FilmCoefficientB
     { get { return 1d / (2 * agapRes[agapRes.Length - 1]); } }
 
     /// <summary>Gets the short-wave (solar) emissivity on the B side (indoor) [-].</summary>
@@ -255,7 +255,7 @@ namespace Popolo.Core.Building.Envelope
     { get { return 1 - DiffuseSolarLostReflectance; } }
 
     /// <summary>Gets the surface temperature on the B side (indoor) [°C].</summary>
-    public double SurfaceTemperatureB { get { return InsideSurface.SurfaceTemperature; } }
+    public override double SurfaceTemperatureB { get { return InsideSurface.SurfaceTemperature; } }
 
     /// <summary>
     /// Gets the boundary surface element on the indoor (B) side.

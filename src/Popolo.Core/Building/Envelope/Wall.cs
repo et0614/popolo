@@ -117,10 +117,10 @@ namespace Popolo.Core.Building.Envelope
     private double cCoefF, rCoefF, cCoefB, rCoefB;
 
     /// <summary>Gets the combined heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    public double FilmCoefficientF { get { return cCoefF + rCoefF; } }
+    public override double FilmCoefficientF { get { return cCoefF + rCoefF; } }
 
     /// <summary>Gets or sets the convective heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    public double ConvectiveCoefficientF
+    public override double ConvectiveCoefficientF
     {
       get { return cCoefF; }
       set
@@ -133,7 +133,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets or sets the radiative heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    public double RadiativeCoefficientF
+    public override double RadiativeCoefficientF
     {
       get { return rCoefF; }
       set
@@ -166,10 +166,10 @@ namespace Popolo.Core.Building.Envelope
     public double HumidityRatioF { get; set; }
 
     /// <summary>Gets the combined heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    public double FilmCoefficientB { get { return cCoefB + rCoefB; } }
+    public override double FilmCoefficientB { get { return cCoefB + rCoefB; } }
 
     /// <summary>Gets or sets the convective heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    public double ConvectiveCoefficientB
+    public override double ConvectiveCoefficientB
     {
       get { return cCoefB; }
       set
@@ -182,7 +182,7 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets or sets the radiative heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    public double RadiativeCoefficientB
+    public override double RadiativeCoefficientB
     {
       get { return rCoefB; }
       set
@@ -216,10 +216,10 @@ namespace Popolo.Core.Building.Envelope
     public IReadOnlyWallLayer[] Layers { get { return layers; } }
 
     /// <summary>Gets the surface temperature on the F side [°C].</summary>
-    public double SurfaceTemperatureF { get { return SurfaceF.SurfaceTemperature; } }
+    public override double SurfaceTemperatureF { get { return SurfaceF.SurfaceTemperature; } }
 
     /// <summary>Gets the surface temperature on the B side [°C].</summary>
-    public double SurfaceTemperatureB { get { return SurfaceB.SurfaceTemperature; } }
+    public override double SurfaceTemperatureB { get { return SurfaceB.SurfaceTemperature; } }
 
     #endregion
 

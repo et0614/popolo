@@ -40,8 +40,8 @@ namespace Popolo.Core.Building.Envelope
   /// not encode indoor vs outdoor direction — that is determined by how the
   /// wall is placed within a <see cref="MultiRoom"/>. By convention, for
   /// external walls, F is the outdoor-facing side. Each side carries its own
-  /// combined film coefficient (<see cref="FilmCoefficientF"/> /
-  /// <see cref="FilmCoefficientB"/>), split into convective and radiative
+  /// combined film coefficient (<see cref="IReadOnlyOpticalLayeredEnvelope.FilmCoefficientF"/> /
+  /// <see cref="IReadOnlyOpticalLayeredEnvelope.FilmCoefficientB"/>), split into convective and radiative
   /// components, as well as short-wave absorptance, long-wave emissivity,
   /// sol-air temperature, and humidity ratio.
   /// </para>
@@ -56,7 +56,7 @@ namespace Popolo.Core.Building.Envelope
   /// stack; see <see cref="GetPipe"/> and <see cref="IReadOnlyBuriedPipe"/>.
   /// </para>
   /// </remarks>
-  public interface IReadOnlyWall
+  public interface IReadOnlyWall : IReadOnlyOpticalLayeredEnvelope
   {
     /// <summary>Gets the wall ID.</summary>
     int ID { get; }
@@ -64,29 +64,8 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets a value indicating whether moisture transfer is solved.</summary>
     bool ComputeMoistureTransfer { get; }
 
-    /// <summary>Gets the number of nodes in the finite difference model.</summary>
-    int NodeCount { get; }
-
-    /// <summary>Gets the temperature distribution vector [°C].</summary>
-    IVector Temperatures { get; }
-
     /// <summary>Gets the humidity ratio distribution vector [kg/kg].</summary>
     IVector Humidities { get; }
-
-    /// <summary>Gets the wall surface area [m²].</summary>
-    double Area { get; }
-
-    /// <summary>Gets the calculation time step [s].</summary>
-    double TimeStep { get; }
-
-    /// <summary>Gets the combined heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    double FilmCoefficientF { get; }
-
-    /// <summary>Gets the convective heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    double ConvectiveCoefficientF { get; }
-
-    /// <summary>Gets the radiative heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    double RadiativeCoefficientF { get; }
 
     /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)].</summary>
     double MoistureCoefficientF { get; }
@@ -94,35 +73,14 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the short-wave (solar) absorptance on the F side [-].</summary>
     double ShortWaveAbsorptanceF { get; }
 
-    /// <summary>Gets the long-wave (thermal) emissivity on the F side [-].</summary>
-    double LongWaveEmissivityF { get; }
-
-    /// <summary>Gets the sol-air temperature on the F side [°C].</summary>
-    double SolAirTemperatureF { get; }
-
     /// <summary>Gets the humidity ratio on the F side [kg/kg].</summary>
     double HumidityRatioF { get; }
-
-    /// <summary>Gets the combined heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    double FilmCoefficientB { get; }
-
-    /// <summary>Gets the convective heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    double ConvectiveCoefficientB { get; }
-
-    /// <summary>Gets the radiative heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    double RadiativeCoefficientB { get; }
 
     /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)].</summary>
     double MoistureCoefficientB { get; }
 
     /// <summary>Gets the short-wave (solar) absorptance on the B side [-].</summary>
     double ShortWaveAbsorptanceB { get; }
-
-    /// <summary>Gets the long-wave (thermal) emissivity on the B side [-].</summary>
-    double LongWaveEmissivityB { get; }
-
-    /// <summary>Gets the sol-air temperature on the B side [°C].</summary>
-    double SolAirTemperatureB { get; }
 
     /// <summary>Gets the humidity ratio on the B side [kg/kg].</summary>
     double HumidityRatioB { get; }
@@ -163,12 +121,5 @@ namespace Popolo.Core.Building.Envelope
     /// sol-air.
     /// </returns>
     double GetSurfaceHeatTransfer(bool isSideF);
-
-
-    /// <summary>Gets the surface temperature on the F side [°C].</summary>
-    double SurfaceTemperatureF { get; }
-
-    /// <summary>Gets the surface temperature on the B side [°C].</summary>
-    double SurfaceTemperatureB { get; }
   }
 }
