@@ -142,6 +142,36 @@ namespace Popolo.Core.Building.Envelope
     /// <inheritdoc/>
     public abstract double SurfaceTemperatureB { get; }
 
+    /// <summary>
+    /// Whether the F side is exposed to outdoor wind. Default <c>false</c>.
+    /// When <c>true</c>, the F-side convective coefficient participates in the
+    /// wind-speed-driven dynamic update (<see cref="MultiRoom.DynamicOutdoorConvectiveCoefficient"/>).
+    /// Subclasses may override the default; for example <see cref="Window"/> defaults to <c>true</c>
+    /// since its F side is by construction the outdoor face.
+    /// </summary>
+    public virtual bool IsWindExposedF { get; set; } = false;
+
+    /// <summary>
+    /// Whether the B side is exposed to outdoor wind. Default <c>false</c>.
+    /// When <c>true</c>, the B-side convective coefficient participates in the
+    /// wind-speed-driven dynamic update.
+    /// </summary>
+    public virtual bool IsWindExposedB { get; set; } = false;
+
+    /// <summary>
+    /// Returns the surface-to-air temperature difference [K] used by the
+    /// dynamic outdoor convective coefficient update on the requested side.
+    /// </summary>
+    /// <param name="isSideF">True for the F side; false for the B side.</param>
+    /// <param name="outdoorTemperature">Outdoor air temperature [°C].</param>
+    /// <remarks>
+    /// Default implementation returns <c>SurfaceTemperature − outdoorTemperature</c>.
+    /// <see cref="Window"/> currently overrides this to return 0 as a behavior-preserving
+    /// approximation pending a verified switch to the response-factor surface temperature.
+    /// </remarks>
+    internal virtual double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
+        => (isSideF ? SurfaceTemperatureF : SurfaceTemperatureB) - outdoorTemperature;
+
     #endregion
 
     #region 短波長放出 (層別光学モデル)

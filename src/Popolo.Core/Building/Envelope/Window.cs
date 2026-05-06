@@ -213,14 +213,28 @@ namespace Popolo.Core.Building.Envelope
     public double ShortWaveEmissivityF { get { return 0.0; } }
 
     /// <summary>
-    /// Whether the F (outdoor) side is exposed to outdoor wind (default <c>true</c>).
-    /// When <c>false</c>, the F-side convective coefficient is excluded from the
-    /// wind-speed-driven dynamic update and retains its user-set value.
+    /// Whether the F (outdoor) side is exposed to outdoor wind. Defaults to <c>true</c>
+    /// since a window's F side is by construction the outdoor face. When <c>false</c>,
+    /// the F-side convective coefficient is excluded from the wind-speed-driven
+    /// dynamic update and retains its user-set value.
     /// </summary>
-    public bool IsWindExposedF { get; set; } = true;
+    public override bool IsWindExposedF { get; set; } = true;
 
     /// <summary>Gets the surface temperature on the F side (outdoor) [°C].</summary>
     public override double SurfaceTemperatureF { get { return OutsideSurface.SurfaceTemperature; } }
+
+    /// <summary>
+    /// Returns 0 to preserve the legacy approximation of skipping the natural-convection
+    /// term in the windward MoWiTT correlation for the F (outdoor) side. The base
+    /// implementation would supply the actual surface-air temperature difference.
+    /// </summary>
+    /// <remarks>
+    /// TODO: Switch to the base implementation (real <see cref="SurfaceTemperatureF"/>)
+    /// once the BESTEST envelope impact has been measured separately from the
+    /// surface-roughness change.
+    /// </remarks>
+    internal override double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
+        => isSideF ? 0.0 : base.GetExteriorConvectionDeltaT(isSideF, outdoorTemperature);
 
     /// <summary>Gets or sets the convective heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
     public override double ConvectiveCoefficientB

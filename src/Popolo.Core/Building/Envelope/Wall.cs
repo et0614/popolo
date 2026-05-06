@@ -151,17 +151,6 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the short-wave (solar) absorptance on the F side [-].</summary>
     public double ShortWaveAbsorptanceF { get; set; } = 0.7;
 
-    /// <summary>
-    /// Whether the F side is exposed to outdoor wind. Default <c>false</c>; the side
-    /// is initialized to <c>true</c> when the F side is registered as an exterior
-    /// surface via <see cref="MultiRoom.SetOutsideWall(int, bool, Popolo.Core.Climate.IReadOnlyIncline)"/>.
-    /// Override to <c>false</c> after <c>SetOutsideWall</c> for sheltered exterior surfaces
-    /// (e.g., raised-floor undersides, attic-side roofs, surfaces under deep overhangs).
-    /// When <c>false</c>, the F-side convective coefficient is excluded from the
-    /// wind-speed-driven dynamic update and retains its user-set value.
-    /// </summary>
-    public bool IsWindExposedF { get; set; } = false;
-
     /// <summary>Gets or sets the humidity ratio on the F side [kg/kg].</summary>
     public double HumidityRatioF { get; set; }
 
@@ -199,15 +188,6 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets or sets the short-wave (solar) absorptance on the B side [-].</summary>
     public double ShortWaveAbsorptanceB { get; set; } = 0.7;
-
-    /// <summary>
-    /// Whether the B side is exposed to outdoor wind. Default <c>false</c>; the side
-    /// is initialized to <c>true</c> when the B side is registered as an exterior
-    /// surface via <see cref="MultiRoom.SetOutsideWall(int, bool, Popolo.Core.Climate.IReadOnlyIncline)"/>
-    /// (with <c>isSideF = false</c>). Override to <c>false</c> after <c>SetOutsideWall</c>
-    /// for sheltered exterior surfaces.
-    /// </summary>
-    public bool IsWindExposedB { get; set; } = false;
 
     /// <summary>Gets or sets the humidity ratio on the B side [kg/kg].</summary>
     public double HumidityRatioB { get; set; }

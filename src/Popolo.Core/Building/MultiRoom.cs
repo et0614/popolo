@@ -248,9 +248,10 @@ namespace Popolo.Core.Building
 
     /// <summary>
     /// When <c>true</c>, the outdoor-side convective coefficient on every wind-exposed
-    /// surface (<see cref="Wall.IsWindExposedF"/>, <see cref="Window.IsWindExposedF"/>) is
-    /// recomputed each step from <see cref="OutdoorWindSpeed"/> using the windward MoWiTT
-    /// correlation (<see cref="Sky.GetExteriorConvectiveCoefficient"/>). Default <c>false</c>.
+    /// surface (<see cref="OpticalLayeredEnvelope.IsWindExposedF"/>,
+    /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/>) is recomputed each step from
+    /// <see cref="OutdoorWindSpeed"/> using the windward MoWiTT correlation
+    /// (<see cref="Sky.GetExteriorConvectiveCoefficient"/>). Default <c>false</c>.
     /// </summary>
     public bool DynamicOutdoorConvectiveCoefficient { get; set; } = false;
 
@@ -1542,10 +1543,15 @@ namespace Popolo.Core.Building
     /// </summary>
     /// <remarks>
     /// Faces facing other zones (in the indoor <c>surfaces</c> array) and faces flagged with
-    /// <see cref="Wall.IsWindExposedF"/> / <see cref="Window.IsWindExposedF"/> = <c>false</c>
+    /// <see cref="OpticalLayeredEnvelope.IsWindExposedF"/> /
+    /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/> = <c>false</c>
     /// (e.g., raised-floor undersides) are skipped. The same windward correlation is applied
     /// to all exposed surfaces regardless of orientation; orientation-specific tuning is
-    /// outside the scope of the model's current inputs.
+    /// outside the scope of the model's current inputs. The surface-to-air ΔT used in
+    /// the natural-convection term is supplied by
+    /// <see cref="OpticalLayeredEnvelope.GetExteriorConvectionDeltaT"/>, which a subclass
+    /// may override (notably <see cref="Window"/> currently returns 0 on the F side as a
+    /// behavior-preserving approximation).
     /// </remarks>
     private void UpdateOutdoorConvectiveCoefficient()
     {
@@ -1554,26 +1560,18 @@ namespace Popolo.Core.Building
       double v = CurrentWeather.Value.WindSpeed;
       double Ta = OutdoorTemperature;
       HashSet<EnvelopeSurface> interiorSet = new HashSet<EnvelopeSurface>(surfaces);
-      foreach (Wall w in walls)
+      foreach (OpticalLayeredEnvelope c in components)
       {
-        if (w.IsWindExposedF && !interiorSet.Contains(w.SurfaceF) && !w.SurfaceF.IsGroundWall)
+        if (c.IsWindExposedF && !interiorSet.Contains(c.SurfaceF) && !c.SurfaceF.IsGroundWall)
         {
-          double dT = w.SurfaceTemperatureF - Ta;
-          w.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT);
+          double dT = c.GetExteriorConvectionDeltaT(true, Ta);
+          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT);
         }
-        if (w.IsWindExposedB && !interiorSet.Contains(w.SurfaceB) && !w.SurfaceB.IsGroundWall)
+        if (c.IsWindExposedB && !interiorSet.Contains(c.SurfaceB) && !c.SurfaceB.IsGroundWall)
         {
-          double dT = w.SurfaceTemperatureB - Ta;
-          w.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT);
+          double dT = c.GetExteriorConvectionDeltaT(false, Ta);
+          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT);
         }
-      }
-      // Window の F 側 SurfaceTemperature は応答係数モデル上未定義 (FFS2_F/B が無い)。
-      // 自然対流寄与は windward MoWiTT では小 (typical |ΔT|≈10K で 1.8 W/m²K) なので
-      // 風速のみで強制対流項を評価する近似を採用。
-      foreach (Window win in windows)
-      {
-        if (win.IsWindExposedF && !interiorSet.Contains(win.OutsideSurface))
-          win.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, 0.0);
       }
     }
 
