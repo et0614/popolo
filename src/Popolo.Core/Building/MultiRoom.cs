@@ -71,10 +71,10 @@ namespace Popolo.Core.Building
     private double[,] gMatL = null!, gMatS = null!;
 
     /// <summary>Array of boundary surface elements facing the interior.</summary>
-    private BoundarySurface[] surfaces = null!;
+    private EnvelopeSurface[] surfaces = null!;
 
     /// <summary>Floor surfaces that preferentially receive short-wave radiation from windows.</summary>
-    private Dictionary<Window, BoundarySurface> swDistFloor = null!;
+    private Dictionary<Window, EnvelopeSurface> swDistFloor = null!;
 
     /// <summary>Fraction of window short-wave radiation distributed to the floor.</summary>
     private Dictionary<Window, double> swDistRate = null!;
@@ -89,7 +89,7 @@ namespace Popolo.Core.Building
     private double[] radToSurf_L = null!;
 
     /// <summary>List of boundary condition surfaces (outdoor-facing or ground-contact).</summary>
-    internal List<BoundarySurface> bndSurfaces = new List<BoundarySurface>();
+    internal List<EnvelopeSurface> bndSurfaces = new List<EnvelopeSurface>();
 
     /// <summary>Short-wave emissivity values for each window.</summary>
     private double[] wSWEmissivity = null!;
@@ -297,7 +297,7 @@ namespace Popolo.Core.Building
       wSWEmissivity = new double[windows.Length];
       zoneTemp = new double[ZoneCount];
       zoneHumid = new double[ZoneCount];
-      swDistFloor = new Dictionary<Window, BoundarySurface>();
+      swDistFloor = new Dictionary<Window, EnvelopeSurface>();
       swDistRate = new Dictionary<Window, double>();
       for (int i = 0; i < RoomCount; i++) rZones[i] = new List<int>();
       for (int i = 0; i < ZoneCount; i++)
@@ -423,7 +423,7 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             //相当温度
-            BoundarySurface ws1 = surfaces[wsIndex[i][j][k]];
+            EnvelopeSurface ws1 = surfaces[wsIndex[i][j][k]];
             ws1.SolAirTemperature = 0;
             for (int m = 0; m < wsIndex[i].Length; m++)
             {
@@ -436,7 +436,11 @@ namespace Popolo.Core.Building
             ws1.SolAirTemperature *= ws1.RadiativeCoefficient;
             ws1.SolAirTemperature += zones[rZones[i][j]].Temperature * ws1.ConvectiveCoefficient;
             ws1.SolAirTemperature += radToSurf_L[i];
-            if (ws1.IsWall) ws1.SolAirTemperature += radToSurf_S[ws1.Index];
+            // 壁体は表面で短波長を吸収するため SolAirTemperature に加算する。
+            // 窓は層別吸収率で別経路（DirectSolarIncidentAbsorptance 等）を通すので加算しない。
+            // TODO: 抽象化検討中 — EnvelopeSurface に AbsorbsShortWaveAtSurface 等の
+            // プロパティを設けて型分岐を撤去する案。
+            if (ws1.Component is Wall) ws1.SolAirTemperature += radToSurf_S[ws1.Index];
             ws1.SolAirTemperature /= ws1.FilmCoefficient;
 
             //絶対湿度
@@ -457,7 +461,7 @@ namespace Popolo.Core.Building
     /// <remarks>
     /// Triggered when any boundary surface's convective or radiative heat transfer coefficient
     /// has changed since the last build (tracked per-side via
-    /// <see cref="BoundarySurface.BoundaryCoefficientChanged"/>). Both walls and windows are
+    /// <see cref="EnvelopeSurface.BoundaryCoefficientChanged"/>). Both walls and windows are
     /// scanned; for walls whose film coefficients have changed, the inverse step-coefficient
     /// matrix is refreshed via <see cref="Wall.UpdateInverseMatrix"/> so the boundary-temperature
     /// sensitivity coefficients (FFS2/3, BFS2/3) are up-to-date within the same time step.
@@ -507,8 +511,8 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             int s1 = wsIndex[i][j][k];
-            BoundarySurface ws1 = surfaces[s1];
-            BoundarySurface ws1R = ws1.ReverseSideSurface;
+            EnvelopeSurface ws1 = surfaces[s1];
+            EnvelopeSurface ws1R = ws1.ReverseSideSurface;
 
             //行列Aを作成
             //同一室
@@ -597,12 +601,14 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             int s1 = wsIndex[i][j][k];
-            BoundarySurface ws1 = surfaces[s1];
-            BoundarySurface ws1R = ws1.ReverseSideSurface;
+            EnvelopeSurface ws1 = surfaces[s1];
+            EnvelopeSurface ws1R = ws1.ReverseSideSurface;
 
             //ベクトルCを作成
+            // 壁体は表面で短波長を吸収する（radToSurf_S を含める）。窓は層別吸収率で別途扱う。
+            // TODO: AbsorbsShortWaveAtSurface 抽象化で型分岐撤去予定。
             double rdsl;
-            if (ws1.IsWall) rdsl = (radToSurf_L[i] + radToSurf_S[s1]) / ws1.FilmCoefficient;
+            if (ws1.Component is Wall) rdsl = (radToSurf_L[i] + radToSurf_S[s1]) / ws1.FilmCoefficient;
             else rdsl = radToSurf_L[i] / ws1.FilmCoefficient;
             vecC[s1] = ws1.IF2 + ws1.FFS2 * rdsl;
             if (SolveMoistureTransferSimultaneously) vecC[s1 + nS] = ws1.IF3 + ws1.FFS3 * rdsl;
@@ -648,7 +654,7 @@ namespace Popolo.Core.Building
             if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q1 + nQ] = bf + capLZN;
             for (int k = 0; k < zq1.Surfaces.Count; k++)
             {
-              BoundarySurface ws = zq1.Surfaces[k];
+              EnvelopeSurface ws = zq1.Surfaces[k];
               matD[q1, q1] += ws.Area * ws.ConvectiveCoefficient;
               if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q1 + nQ] += ws.Area * ws.MoistureCoefficient;
             }
@@ -675,7 +681,7 @@ namespace Popolo.Core.Building
         //行列Fを作成
         for (int k = 0; k < zq1.Surfaces.Count; k++)
         {
-          BoundarySurface ws = zq1.Surfaces[k];
+          EnvelopeSurface ws = zq1.Surfaces[k];
           matF[q1, ws.Index] = ws.Area * ws.ConvectiveCoefficient;
           if (SolveMoistureTransferSimultaneously) matF[q1 + nQ, ws.Index + nS] = ws.Area * ws.MoistureCoefficient;
         }
@@ -694,14 +700,14 @@ namespace Popolo.Core.Building
     {
       foreach (Window win in windows)
       {
-        BoundarySurface ws = win.OutsideSurface;
+        EnvelopeSurface ws = win.OutsideSurface;
         double fs = win.OutsideIncline.ConfigurationFactorToSky;
         ws.SolAirTemperature = OutdoorTemperature
           + radToSurf_S[win.InsideSurface.Index] * win.GetResistance()
           - ws.LongWaveEmissivity * fs * NocturnalRadiation / ws.FilmCoefficient;
       }
 
-      foreach (BoundarySurface ws in bndSurfaces)
+      foreach (EnvelopeSurface ws in bndSurfaces)
       {
         if (!ws.IsGroundWall)
         {
@@ -801,7 +807,7 @@ namespace Popolo.Core.Building
       Zone zone = zones[zoneIndex];
 
       wallSurfaces = 0;
-      foreach (BoundarySurface ws in zone.Surfaces)
+      foreach (EnvelopeSurface ws in zone.Surfaces)
         wallSurfaces += ws.Area * ws.ConvectiveCoefficient *
             (ws.SurfaceTemperature - zone.Temperature);
 
@@ -832,7 +838,7 @@ namespace Popolo.Core.Building
     public double GetWallConvectiveHeatFlow(int wallIndex, bool isSideF)
     {
       IReadOnlyWall wall = walls[wallIndex];
-      foreach (BoundarySurface ws in surfaces)
+      foreach (EnvelopeSurface ws in surfaces)
         if (ws.isSideF == isSideF && ws.Wall == wall)
           return ws.Area * ws.ConvectiveCoefficient
             * (ws.SurfaceTemperature - zones[ws.ZoneIndex].Temperature);
@@ -982,7 +988,7 @@ namespace Popolo.Core.Building
     /// <summary>Assigns serial indices to all interior boundary surfaces.</summary>
     private void MakeSerialNumber()
     {
-      List<BoundarySurface> sfs = new List<BoundarySurface>();
+      List<EnvelopeSurface> sfs = new List<EnvelopeSurface>();
       int wsIndex = 0;
       for (int i = 0; i < RoomCount; i++)
       {
@@ -1146,7 +1152,7 @@ namespace Popolo.Core.Building
         IMatrix ffRhoInv = new Matrix(wsn, wsn);
         for (int j = 0; j < wsn; j++)
         {
-          BoundarySurface ws = surfaces[wInd[j]];
+          EnvelopeSurface ws = surfaces[wInd[j]];
           for (int k = 0; k < wsn; k++)
           {
             ffRhoL[j, k] = -(1 - ws.LongWaveEmissivity) * formFactor[i][j, k];
@@ -1164,10 +1170,10 @@ namespace Popolo.Core.Building
         LinearAlgebraOperations.Multiply(formFactor[i], ffRhoInv, ffRhoS);
         for (int j = 0; j < wsn; j++)
         {
-          BoundarySurface ws1 = surfaces[wInd[j]];
+          EnvelopeSurface ws1 = surfaces[wInd[j]];
           for (int k = 0; k < wsn; k++)
           {
-            BoundarySurface ws2 = surfaces[wInd[k]];
+            EnvelopeSurface ws2 = surfaces[wInd[k]];
             gMatL[wInd[j], wInd[k]] = ffRhoL[j, k] * ws2.LongWaveEmissivity;
             gMatS[wInd[j], wInd[k]] = ffRhoS[j, k] * ws2.ShortWaveEmissivity;
           }
@@ -1246,7 +1252,7 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             int idx = wsIndex[i][j][k];
-            BoundarySurface ws = surfaces[idx];
+            EnvelopeSurface ws = surfaces[idx];
             atSum += ws.Area * ws.SurfaceTemperature;
             aSum  += ws.Area;
           }
@@ -1260,7 +1266,7 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
             int idx = wsIndex[i][j][k];
-            BoundarySurface ws = surfaces[idx];
+            EnvelopeSurface ws = surfaces[idx];
             ws.RadiativeCoefficient = gebhartBF[idx] * ws.LongWaveEmissivity * radCoef;
           }
         }
@@ -1292,7 +1298,7 @@ namespace Popolo.Core.Building
       const double SBC = PhysicsConstants.StefanBoltzmannConstant;
       double TkAir = PhysicsConstants.ToKelvin(OutdoorTemperature);
       double radCoefOut = 4 * SBC * TkAir * TkAir * TkAir;
-      HashSet<BoundarySurface> interiorSet = new HashSet<BoundarySurface>(surfaces);
+      HashSet<EnvelopeSurface> interiorSet = new HashSet<EnvelopeSurface>(surfaces);
       foreach (Wall w in walls)
       {
         if (!interiorSet.Contains(w.SurfaceF))
@@ -1328,7 +1334,7 @@ namespace Popolo.Core.Building
       if (!CurrentWeather.HasValue || !CurrentWeather.Value.Has(WeatherField.WindSpeed)) return;
       double v = CurrentWeather.Value.WindSpeed;
       double Ta = OutdoorTemperature;
-      HashSet<BoundarySurface> interiorSet = new HashSet<BoundarySurface>(surfaces);
+      HashSet<EnvelopeSurface> interiorSet = new HashSet<EnvelopeSurface>(surfaces);
       foreach (Wall w in walls)
       {
         if (w.IsWindExposedF && !interiorSet.Contains(w.SurfaceF) && !w.SurfaceF.IsGroundWall)
@@ -1362,12 +1368,11 @@ namespace Popolo.Core.Building
         {
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            BoundarySurface ws1 = surfaces[wsIndex[i][j][k]];
-            if (!ws1.IsWall)
+            EnvelopeSurface ws1 = surfaces[wsIndex[i][j][k]];
+            if (ws1.Component is Window win)
             {
               int indx1 = wsIndex[i][j][k];
               //窓からの透過・吸収日射を計算
-              Window win = ws1.Window;
               double dir, dif;
               if (IsSolarIrradianceGiven)
               {
@@ -1377,7 +1382,7 @@ namespace Popolo.Core.Building
               else
               {
                 IReadOnlyIncline inc = win.OutsideIncline;
-                dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetShadowRatio(Sun));
+                dir = inc.GetDirectSolarIrradiance(Sun) * (1 - win.SunShade.GetDirectShadingRate(Sun, inc));
                 // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
                 //
                 // Note: Perez (1990) 異方性モデルでは sky diffuse は
@@ -1394,13 +1399,13 @@ namespace Popolo.Core.Building
                                        * Sun.GlobalHorizontalRadiation;
                 double skyDiffuse = diffuseTotal - groundReflected;
                 if (skyDiffuse < 0) skyDiffuse = 0;
-                double attenuation = win.SunShade.GetSkyDiffuseAttenuation();
-                dif = skyDiffuse * attenuation + groundReflected;
+                double skyShadingRate = win.SunShade.GetSkyDiffuseShadingRate(inc);
+                dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
               }
               radToSurf_S[indx1] +=
                 dir * win.DirectSolarIncidentAbsorptance + dif * win.DiffuseSolarIncidentAbsorptance;
               //床に優先配分される短波長を計算
-              BoundarySurface? flr = null;
+              EnvelopeSurface? flr = null;
               double dir2 = dir * win.DirectSolarIncidentTransmittance * win.Area;
               double radFromFloor = 0.0;
               if (swDistFloor.ContainsKey(win))
@@ -1421,14 +1426,14 @@ namespace Popolo.Core.Building
                   for (int k2 = 0; k2 < wsIndex[i][j2].Length; k2++)
                   {
                     int indx2 = wsIndex[i][j2][k2];
-                    BoundarySurface wsf2 = surfaces[indx2];
+                    EnvelopeSurface wsf2 = surfaces[indx2];
                     double ibsw = gMatS[indx1, indx2] * rad;
                     //床面からの放射を加算
                     if (flr != null) ibsw += gMatS[flr.Index, indx2] * radFromFloor;
                     ibsw /= wsf2.Area;
-                    if (!wsf2.IsWall)
-                      ibsw *= wsf2.Window.DiffuseSolarIncidentAbsorptance
-                        / (1 - wsf2.Window.DiffuseSolarIncidentReflectance);
+                    if (wsf2.Component is Window win2)
+                      ibsw *= win2.DiffuseSolarIncidentAbsorptance
+                        / (1 - win2.DiffuseSolarIncidentReflectance);
                     radToSurf_S[indx2] += ibsw;
                   }
                 }
@@ -1508,7 +1513,7 @@ namespace Popolo.Core.Building
     /// <param name="groundTemperature">Ground temperature [°C].</param>
     public void SetGroundTemperature(int wallIndex, bool isSideF, double groundTemperature)
     {
-      BoundarySurface ws;
+      EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
       if (bndSurfaces.Contains(ws)) ws.SolAirTemperature = groundTemperature;
@@ -1518,7 +1523,7 @@ namespace Popolo.Core.Building
     /// <param name="groundTemperature">Ground temperature [°C].</param>
     public void SetGroundTemperature(double groundTemperature)
     {
-      foreach (BoundarySurface ws in bndSurfaces)
+      foreach (EnvelopeSurface ws in bndSurfaces)
         if (ws.IsGroundWall) ws.SolAirTemperature = groundTemperature;
     }
 
@@ -1608,7 +1613,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetSWDistributionRateToFloor(int windowIndex, int wallIndex, bool isSideF, double distRate)
     {
-      BoundarySurface ws;
+      EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
       swDistFloor[windows[windowIndex]] = ws;
@@ -1680,8 +1685,8 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetWallIrradiance(int wallIndex, double directIrradiance, double diffuseIrradiance)
     {
-      BoundarySurface wsF = walls[wallIndex].SurfaceF;
-      BoundarySurface wsB = walls[wallIndex].SurfaceB;
+      EnvelopeSurface wsF = walls[wallIndex].SurfaceF;
+      EnvelopeSurface wsB = walls[wallIndex].SurfaceB;
       wsF.DirectSolarIrradiance = wsB.DirectSolarIrradiance = directIrradiance;
       wsF.DiffuseSolarIrradiance = wsB.DiffuseSolarIrradiance = diffuseIrradiance;
     }
@@ -1700,7 +1705,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetWindowIrradiance(int windowIndex, double directIrradiance, double diffuseIrradiance)
     {
-      BoundarySurface ws = windows[windowIndex].OutsideSurface;
+      EnvelopeSurface ws = windows[windowIndex].OutsideSurface;
       ws.DirectSolarIrradiance = directIrradiance;
       ws.DiffuseSolarIrradiance = diffuseIrradiance;
     }
@@ -1767,7 +1772,7 @@ namespace Popolo.Core.Building
     public void AddWall(int zoneIndex, int wallIndex, bool isSideF)
     {
       needInitialize = true;
-      BoundarySurface sf;
+      EnvelopeSurface sf;
       if (isSideF) sf = walls[wallIndex].SurfaceF;
       else sf = walls[wallIndex].SurfaceB;
 
@@ -1845,7 +1850,7 @@ namespace Popolo.Core.Building
     {
       needInitialize = true;
       Wall w = walls[wallIndex];
-      BoundarySurface ws = isSideF ? w.SurfaceF : w.SurfaceB;
+      EnvelopeSurface ws = isSideF ? w.SurfaceF : w.SurfaceB;
 
       ws.AdjacentSpaceFactor = -1.0;
       ws.Incline = incline;
@@ -1885,7 +1890,7 @@ namespace Popolo.Core.Building
     public void SetGroundWall(int wallIndex, bool isSideF, double groundWallConductance)
     {
       needInitialize = true;
-      BoundarySurface ws;
+      EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
 
@@ -1922,7 +1927,7 @@ namespace Popolo.Core.Building
     public void UseAdjacentSpaceFactor(int wallIndex, bool isSideF, double adjacentSpaceFactor)
     {
       needInitialize = true;
-      BoundarySurface ws;
+      EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
 
@@ -1949,13 +1954,13 @@ namespace Popolo.Core.Building
     public OutsideWallReference[] GetOutsideWallReferences()
     {
       List<OutsideWallReference> result = new List<OutsideWallReference>();
-      foreach (BoundarySurface ws in bndSurfaces)
+      foreach (EnvelopeSurface ws in bndSurfaces)
       {
-        if (!ws.IsWall) continue;
+        if (ws.Component is not Wall wall) continue;
         if (ws.IsGroundWall) continue;
         if (ws.AdjacentSpaceFactor >= 0) continue;
         if (ws.Incline is null) continue; // 予防的チェック
-        result.Add(new OutsideWallReference(ws.Wall.ID, ws.isSideF, ws.Incline));
+        result.Add(new OutsideWallReference(wall.ID, ws.isSideF, ws.Incline));
       }
       return result.ToArray();
     }
@@ -1970,12 +1975,12 @@ namespace Popolo.Core.Building
     public GroundWallReference[] GetGroundWallReferences()
     {
       List<GroundWallReference> result = new List<GroundWallReference>();
-      foreach (BoundarySurface ws in bndSurfaces)
+      foreach (EnvelopeSurface ws in bndSurfaces)
       {
-        if (!ws.IsWall) continue;
+        if (ws.Component is not Wall wall) continue;
         if (!ws.IsGroundWall) continue;
         // SetGroundWall は ConvectiveCoefficient に conductance を入れる
-        result.Add(new GroundWallReference(ws.Wall.ID, ws.isSideF, ws.ConvectiveCoefficient));
+        result.Add(new GroundWallReference(wall.ID, ws.isSideF, ws.ConvectiveCoefficient));
       }
       return result.ToArray();
     }
@@ -1989,12 +1994,12 @@ namespace Popolo.Core.Building
     public AdjacentSpaceWallReference[] GetAdjacentSpaceWallReferences()
     {
       List<AdjacentSpaceWallReference> result = new List<AdjacentSpaceWallReference>();
-      foreach (BoundarySurface ws in bndSurfaces)
+      foreach (EnvelopeSurface ws in bndSurfaces)
       {
-        if (!ws.IsWall) continue;
+        if (ws.Component is not Wall wall) continue;
         if (ws.IsGroundWall) continue;
         if (ws.AdjacentSpaceFactor < 0) continue;
-        result.Add(new AdjacentSpaceWallReference(ws.Wall.ID, ws.isSideF, ws.AdjacentSpaceFactor));
+        result.Add(new AdjacentSpaceWallReference(wall.ID, ws.isSideF, ws.AdjacentSpaceFactor));
       }
       return result.ToArray();
     }
@@ -2046,7 +2051,7 @@ namespace Popolo.Core.Building
     public void SetOutsideConvectiveCoefficient(double convectiveCoefficient)
     {
       needInitialize = true;
-      foreach (BoundarySurface sf in bndSurfaces)
+      foreach (EnvelopeSurface sf in bndSurfaces)
       {
         if (!sf.IsGroundWall && sf.AdjacentSpaceFactor == -1)
           sf.ConvectiveCoefficient = convectiveCoefficient;
@@ -2082,11 +2087,11 @@ namespace Popolo.Core.Building
     /// <summary>Determines whether the specified surface is registered in this multi-room system.</summary>
     /// <param name="surface">Boundary surface.</param>
     /// <returns>True if the surface is registered; otherwise false.</returns>
-    internal bool HasSurface(BoundarySurface surface)
+    internal bool HasSurface(EnvelopeSurface surface)
     {
-      foreach (BoundarySurface sf in surfaces)
+      foreach (EnvelopeSurface sf in surfaces)
         if (surface == sf) return true;
-      foreach (BoundarySurface sf in bndSurfaces)
+      foreach (EnvelopeSurface sf in bndSurfaces)
         if (surface == sf) return true;
       return false;
     }

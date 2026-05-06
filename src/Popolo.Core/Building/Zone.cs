@@ -143,7 +143,7 @@ namespace Popolo.Core.Building
     #region internalプロパティ
 
     /// <summary>List of boundary surface elements facing this zone.</summary>
-    internal List<BoundarySurface> Surfaces { get; set; }
+    internal List<EnvelopeSurface> Surfaces { get; set; }
 
     /// <summary>Supply air flow rate from another zone [kg/s].</summary>
     internal double _supplyAirFlowRate2 { get; set; }
@@ -165,7 +165,7 @@ namespace Popolo.Core.Building
     {
       Name = name;
       AirMass = airMass;
-      Surfaces = new List<BoundarySurface>();
+      Surfaces = new List<EnvelopeSurface>();
     }
 
     /// <summary>Initializes a new zone with a specified air mass and floor area.</summary>
@@ -177,7 +177,7 @@ namespace Popolo.Core.Building
       Name = name;
       AirMass = airMass;
       FloorArea = floorArea;
-      Surfaces = new List<BoundarySurface>();
+      Surfaces = new List<EnvelopeSurface>();
     }
 
     #endregion
@@ -251,7 +251,7 @@ namespace Popolo.Core.Building
     {
       double tSum = 0;
       double sSum = 0;
-      foreach (BoundarySurface ws in Surfaces)
+      foreach (EnvelopeSurface ws in Surfaces)
       {
         double buff = ws.Area * ws.LongWaveEmissivity;
         tSum += ws.SurfaceTemperature * buff;
@@ -332,8 +332,8 @@ namespace Popolo.Core.Building
     public double GetTotalWindowArea()
     {
       double sum = 0;
-      foreach (BoundarySurface wsf in Surfaces)
-        if (!wsf.IsWall) sum += wsf.Area;
+      foreach (EnvelopeSurface wsf in Surfaces)
+        if (wsf.Component is Window) sum += wsf.Area;
       return sum;
     }
 
@@ -342,8 +342,8 @@ namespace Popolo.Core.Building
     public IReadOnlyWindow[] GetWindows()
     {
       List<IReadOnlyWindow> wins = new List<IReadOnlyWindow>();
-      foreach (BoundarySurface wsf in Surfaces)
-        if (!wsf.IsWall) wins.Add(wsf.Window);
+      foreach (EnvelopeSurface wsf in Surfaces)
+        if (wsf.Component is Window win) wins.Add(win);
       return wins.ToArray();
     }
 
@@ -358,8 +358,8 @@ namespace Popolo.Core.Building
     public WallSurfaceReference[] GetWallReferences()
     {
       List<WallSurfaceReference> refs = new List<WallSurfaceReference>();
-      foreach (BoundarySurface wsf in Surfaces)
-        if (wsf.IsWall) refs.Add(new WallSurfaceReference(wsf.Wall.ID, wsf.isSideF));
+      foreach (EnvelopeSurface wsf in Surfaces)
+        if (wsf.Component is Wall wall) refs.Add(new WallSurfaceReference(wall.ID, wsf.isSideF));
       return refs.ToArray();
     }
 

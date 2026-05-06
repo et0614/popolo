@@ -52,7 +52,7 @@ namespace Popolo.Core.Building.Envelope
   /// keeping the per-step cost low for steady conditions.
   /// </para>
   /// </remarks>
-  public class Window : IReadOnlyWindow
+  public class Window : IReadOnlyWindow, IEnvelopeComponent
   {
 
     #region 列挙型定義
@@ -252,11 +252,31 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the surface temperature on the B side (indoor) [°C].</summary>
     public double SurfaceTemperatureB { get { return InsideSurface.SurfaceTemperature; } }
 
-    /// <summary>Gets the boundary surface element on the indoor (B) side.</summary>
-    internal BoundarySurface InsideSurface { get; private set; } = null!;
+    /// <summary>
+    /// Gets the boundary surface element on the indoor (B) side.
+    /// </summary>
+    /// <remarks>Alias for <see cref="SurfaceB"/>.</remarks>
+    public EnvelopeSurface InsideSurface => SurfaceB;
 
-    /// <summary>Gets the boundary surface element on the outdoor (F) side.</summary>
-    internal BoundarySurface OutsideSurface { get; private set; } = null!;
+    /// <summary>
+    /// Gets the boundary surface element on the outdoor (F) side.
+    /// </summary>
+    /// <remarks>Alias for <see cref="SurfaceF"/>.</remarks>
+    public EnvelopeSurface OutsideSurface => SurfaceF;
+
+    /// <summary>Gets the boundary surface element on the F side.</summary>
+    /// <remarks>
+    /// For windows, F is conventionally the outdoor side; see also
+    /// <see cref="OutsideSurface"/> for the semantic alias.
+    /// </remarks>
+    public EnvelopeSurface SurfaceF { get; private set; } = null!;
+
+    /// <summary>Gets the boundary surface element on the B side.</summary>
+    /// <remarks>
+    /// For windows, B is conventionally the indoor side; see also
+    /// <see cref="InsideSurface"/> for the semantic alias.
+    /// </remarks>
+    public EnvelopeSurface SurfaceB { get; private set; } = null!;
 
     #endregion
 
@@ -324,8 +344,8 @@ namespace Popolo.Core.Building.Envelope
       for (int i = 0; i < glassRes.Length; i++) glassRes[i] = 0.006;
 
       //内外表面作成
-      OutsideSurface = new BoundarySurface(this, true);
-      InsideSurface = new BoundarySurface(this, false);
+      SurfaceF = new EnvelopeSurface(this, true);
+      SurfaceB = new EnvelopeSurface(this, false);
 
       //入射角特性を透明フロートガラスで初期化
       for (int i = 0; i < GlazingCount; i++) SetAngleDependence(i, GlassType.Transparent);

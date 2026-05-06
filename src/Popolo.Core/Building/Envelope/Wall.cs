@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
   /// to callers.
   /// </para>
   /// </remarks>
-  public class Wall : IReadOnlyWall
+  public class Wall : IReadOnlyWall, IEnvelopeComponent
   {
 
     #region 定数宣言
@@ -276,10 +276,10 @@ namespace Popolo.Core.Building.Envelope
     #region internalプロパティ（多数室計算用）
 
     /// <summary>Gets the boundary surface element on the F side.</summary>
-    internal BoundarySurface SurfaceF { get; private set; } = null!;
+    public EnvelopeSurface SurfaceF { get; private set; } = null!;
 
     /// <summary>Gets the boundary surface element on the B side.</summary>
-    internal BoundarySurface SurfaceB { get; private set; } = null!;
+    public EnvelopeSurface SurfaceB { get; private set; } = null!;
 
     /// <summary>Inverse-matrix–derived F-side temperature contribution to the next-step nodal solution.</summary>
     internal double IF2_F { get; private set; }
@@ -377,8 +377,8 @@ namespace Popolo.Core.Building.Envelope
       this.layers = new WallLayer[layers.Length];
       for (int i = 0; i < layers.Length; i++) this.layers[i] = (WallLayer)layers[i].Clone();
       ComputeMoistureTransfer = computeMoistureTransfer;
-      SurfaceF = new BoundarySurface(this, true);
-      SurfaceB = new BoundarySurface(this, false);
+      SurfaceF = new EnvelopeSurface(this, true);
+      SurfaceB = new EnvelopeSurface(this, false);
 
       //計算領域を確保
 

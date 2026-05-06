@@ -1,5 +1,5 @@
-﻿/* wallWindowSurface.cs
- * 
+﻿/* EnvelopeSurface.cs
+ *
  * Copyright (C) 2016 E.Togashi
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -23,12 +23,33 @@ using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building.Envelope
 {
-  /// <summary>Represents a single boundary surface element (wall or window side).</summary>
+  /// <summary>
+  /// Represents a single side of an envelope component (wall or window) — its
+  /// boundary surface as seen from one zone.
+  /// </summary>
   /// <remarks>
-  /// F and B denote the two opposing sides of the element without implying indoor/outdoor direction.
-  /// For external walls, F is conventionally the outdoor-facing side.
+  /// <para>
+  /// Each <see cref="Wall"/> and each <see cref="Window"/> exposes two
+  /// <see cref="EnvelopeSurface"/> instances, one per side. F and B denote
+  /// the two opposing sides without implying indoor / outdoor direction;
+  /// the user picks which side faces outdoors via
+  /// <c>MultiRoom.SetOutsideWall</c> etc.
+  /// </para>
+  /// <para>
+  /// This surface object is the single point of contact for upper-layer code
+  /// (<see cref="MultiRoom"/>, <see cref="Zone"/>) that needs to query or
+  /// update boundary state without caring whether the underlying envelope
+  /// component is a wall or a window. Heat-balance coefficients
+  /// (<c>FFS2</c>, <c>BFS2</c>, <c>FFL2</c>, <c>BFL2</c>, <c>IF2</c>, etc.)
+  /// are exposed uniformly here.
+  /// </para>
+  /// <para>
+  /// External shading objects (overhangs, fins, neighboring obstructions)
+  /// can be attached via <see cref="Shading"/>; F and B sides are
+  /// independent so either side can carry an exterior shading.
+  /// </para>
   /// </remarks>
-  internal class BoundarySurface
+  public class EnvelopeSurface
   {
 
     #region インスタンス変数・プロパティ
@@ -36,14 +57,41 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>True if this surface is the F side of the element.</summary>
     internal bool isSideF { get; private set; }
 
-    /// <summary>Gets a value indicating whether this surface belongs to a wall (true) or a window (false).</summary>
-    public bool IsWall { get; private set; }
+    /// <summary>Gets the envelope component (wall or window) this surface belongs to.</summary>
+    public IEnvelopeComponent Component { get; private set; } = null!;
 
-    /// <summary>Gets the wall this surface belongs to.</summary>
-    public Wall Wall { get; private set; } = null!;
+    /// <summary>
+    /// Gets a value indicating whether this surface belongs to a wall (true)
+    /// or a window (false).
+    /// </summary>
+    /// <remarks>
+    /// Convenience predicate; equivalent to <c>Component is Wall</c>. New
+    /// code should prefer pattern matching on <see cref="Component"/> for
+    /// type-specific access.
+    /// </remarks>
+    public bool IsWall => Component is Wall;
 
-    /// <summary>Gets the window this surface belongs to.</summary>
-    public Window Window { get; private set; } = null!;
+    /// <summary>
+    /// Gets the wall this surface belongs to, or <c>null</c> if the
+    /// underlying component is not a wall.
+    /// </summary>
+    /// <remarks>
+    /// Returned as a non-null reference for backward compatibility when
+    /// <see cref="IsWall"/> is true; otherwise the value is undefined.
+    /// New code should use <c>Component is Wall w</c> pattern matching.
+    /// </remarks>
+    public Wall Wall => (Component as Wall)!;
+
+    /// <summary>
+    /// Gets the window this surface belongs to, or <c>null</c> if the
+    /// underlying component is not a window.
+    /// </summary>
+    /// <remarks>
+    /// Returned as a non-null reference for backward compatibility when
+    /// <see cref="IsWall"/> is false; otherwise the value is undefined.
+    /// New code should use <c>Component is Window w</c> pattern matching.
+    /// </remarks>
+    public Window Window => (Component as Window)!;
 
     /// <summary>Gets or sets the surface index within the zone surface list.</summary>
     public int Index { get; set; }
@@ -70,26 +118,11 @@ namespace Popolo.Core.Building.Envelope
     public int ZoneIndex { get; set; }
 
     /// <summary>Gets the surface element on the opposite side of this wall or window.</summary>
-    public BoundarySurface ReverseSideSurface
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.SurfaceB;
-        else if (IsWall && !isSideF) return Wall.SurfaceF;
-        else if (!IsWall && isSideF) return Window.InsideSurface;
-        else return Window.OutsideSurface;
-      }
-    }
+    public EnvelopeSurface ReverseSideSurface
+        => isSideF ? Component.SurfaceB : Component.SurfaceF;
 
     /// <summary>Gets the surface area [m²].</summary>
-    public double Area
-    {
-      get
-      {
-        if (IsWall) return Wall.Area;
-        else return Window.Area;
-      }
-    }
+    public double Area => Component.Area;
 
     /// <summary>Gets the combined heat transfer coefficient [W/(m²·K)].</summary>
     public double FilmCoefficient
@@ -363,31 +396,53 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the diffuse solar irradiance on this surface [W/m²].</summary>
     public double DiffuseSolarIrradiance { get; set; }
 
+    /// <summary>
+    /// Gets or sets the exterior solar shading object attached to this side
+    /// of the envelope component.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the side-level placement of an external obstruction
+    /// (overhang, fin, louver, neighboring building, tree, ...) that casts
+    /// a shadow onto the surface and reduces incident direct, sky-diffuse,
+    /// and ground-diffuse solar radiation.
+    /// </para>
+    /// <para>
+    /// F and B sides hold independent shading; either side may be the
+    /// outdoor-facing one depending on the user's wall / window orientation
+    /// declaration. <c>null</c> means no exterior shading on this side.
+    /// </para>
+    /// <para>
+    /// For shading <i>inside</i> a window assembly (e.g., Venetian blinds
+    /// between glazing layers), use <see cref="IShadingDevice"/> on the
+    /// <see cref="Window"/> itself instead.
+    /// </para>
+    /// </remarks>
+    public ISolarShading? Shading { get; set; }
+
     #endregion
 
     #region コンストラクタ
 
-    /// <summary>Initializes a new wall surface element.</summary>
-    /// <param name="wall">The wall this surface belongs to.</param>
+    /// <summary>Initializes a new envelope surface element.</summary>
+    /// <param name="component">The envelope component this surface belongs to.</param>
     /// <param name="isSideF">True if this is the F side; false for the B side.</param>
-    public BoundarySurface(Wall wall, bool isSideF)
+    internal EnvelopeSurface(IEnvelopeComponent component, bool isSideF)
     {
-      IsWall = true;
-      Wall = wall;
+      Component = component;
       this.isSideF = isSideF;
       Index = -1;
     }
 
+    /// <summary>Initializes a new wall surface element.</summary>
+    /// <param name="wall">The wall this surface belongs to.</param>
+    /// <param name="isSideF">True if this is the F side; false for the B side.</param>
+    internal EnvelopeSurface(Wall wall, bool isSideF) : this((IEnvelopeComponent)wall, isSideF) { }
+
     /// <summary>Initializes a new window surface element.</summary>
     /// <param name="window">The window this surface belongs to.</param>
     /// <param name="isSideF">True if this is the F (outdoor) side; false for the B (indoor) side.</param>
-    public BoundarySurface(Window window, bool isSideF)
-    {
-      IsWall = false;
-      Window = window;
-      this.isSideF = isSideF;
-      Index = -1;
-    }
+    internal EnvelopeSurface(Window window, bool isSideF) : this((IEnvelopeComponent)window, isSideF) { }
 
     #endregion
 

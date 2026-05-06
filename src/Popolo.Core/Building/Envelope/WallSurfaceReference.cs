@@ -25,7 +25,9 @@ namespace Popolo.Core.Building.Envelope
   /// </summary>
   /// <remarks>
   /// Used primarily by zone-level APIs that need to report wall attachment
-  /// without exposing the internal <c>BoundarySurface</c> type. Consumers can
+  /// as a flat value reference (rather than via the per-side
+  /// <see cref="EnvelopeSurface"/> objects, which are part of the solver's
+  /// mutable state). Consumers can
   /// resolve the referenced wall by matching <see cref="WallId"/> against a
   /// wall collection.
   /// </remarks>

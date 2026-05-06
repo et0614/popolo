@@ -51,7 +51,7 @@ namespace Popolo.Core.Building.Envelope
   /// computed as the shadowed fraction of the window area.
   /// </para>
   /// </remarks>
-  public class SunShade
+  public class SunShade : ISolarShading
   {
 
     #region 列挙型
@@ -85,7 +85,20 @@ namespace Popolo.Core.Building.Envelope
 
     #region プロパティ
 
+    /// <summary>
+    /// Gets the discriminator identifying this <see cref="ISolarShading"/>
+    /// implementation. Always <c>"sunShade"</c>.
+    /// </summary>
+    public string Kind => "sunShade";
+
     /// <summary>Gets the tilted surface to which this shading device is attached.</summary>
+    /// <remarks>
+    /// Used by the legacy parameterless overloads (<see cref="GetShadowRatio"/>,
+    /// <see cref="GetSkyViewFactor"/>, <see cref="GetSkyDiffuseAttenuation"/>).
+    /// New code should access the shading via <see cref="ISolarShading"/> and
+    /// pass the surface's incline through the interface methods so that the
+    /// surface — not this object — is the source of truth for orientation.
+    /// </remarks>
     public IReadOnlyIncline Incline { get; internal set; }
 
     /// <summary>Gets the shape of the shading device.</summary>
@@ -212,9 +225,59 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public double GetSkyViewFactor()
     {
-      // Incline 未設定のときは安全側に「視野なし」扱い (caller 側で扱える)。
-      if (Incline == null) return 0;
-      double unobstructed = Incline.ConfigurationFactorToSky;
+      return computeSkyViewFactor(Incline);
+    }
+
+    /// <summary>
+    /// Gets the diffuse-sky attenuation factor [0, 1] caused by this shading
+    /// device. Multiply this by the unobstructed sky-diffuse irradiance on the
+    /// window to obtain the attenuated value. Returns 1 when the shape has no
+    /// implemented sky-blocking model or there is no shading.
+    /// </summary>
+    [Obsolete("Use ISolarShading.GetSkyDiffuseShadingRate(surfaceIncline) instead. The new method returns the shading rate (1 - attenuation) and uses the surface's incline rather than the SunShade's internal one.")]
+    public double GetSkyDiffuseAttenuation()
+    {
+      return computeSkyDiffuseAttenuation(Incline);
+    }
+
+    /// <summary>Gets the shadow area ratio [-] on the window for the given solar position.</summary>
+    /// <param name="sun">Solar state.</param>
+    /// <returns>Shadow area ratio [-] (0 = fully sunlit, 1 = fully shaded).</returns>
+    [Obsolete("Use ISolarShading.GetDirectShadingRate(sun, surfaceIncline) instead. The new method takes the surface's incline as a parameter rather than relying on the SunShade's internal one.")]
+    public double GetShadowRatio(IReadOnlySun sun)
+    {
+      return computeDirectShadingRate(sun, Incline);
+    }
+
+    /// <inheritdoc />
+    public double GetDirectShadingRate(IReadOnlySun sun, IReadOnlyIncline surfaceIncline)
+    {
+      return computeDirectShadingRate(sun, surfaceIncline);
+    }
+
+    /// <inheritdoc />
+    public double GetSkyDiffuseShadingRate(IReadOnlyIncline surfaceIncline)
+    {
+      double attenuation = computeSkyDiffuseAttenuation(surfaceIncline);
+      double rate = 1.0 - attenuation;
+      if (rate < 0) return 0;
+      if (rate > 1) return 1;
+      return rate;
+    }
+
+    #endregion
+
+    #region private 共通計算ヘルパー
+
+    /// <summary>
+    /// Shared implementation of <see cref="GetSkyViewFactor"/>: computes the
+    /// effective sky view factor for the given surface incline, accounting for
+    /// the shading geometry of this <see cref="SunShade"/>.
+    /// </summary>
+    private double computeSkyViewFactor(IReadOnlyIncline? incline)
+    {
+      if (incline == null) return 0;
+      double unobstructed = incline.ConfigurationFactorToSky;
       if (Shape == ShapeType.None) return unobstructed;
 
       double blocked = 0;
@@ -259,37 +322,41 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>
-    /// Gets the diffuse-sky attenuation factor [0, 1] caused by this shading
-    /// device. Multiply this by the unobstructed sky-diffuse irradiance on the
-    /// window to obtain the attenuated value. Returns 1 when the shape has no
-    /// implemented sky-blocking model or there is no shading.
+    /// Shared implementation of <see cref="GetSkyDiffuseAttenuation"/> and
+    /// <see cref="GetSkyDiffuseShadingRate"/>: returns the attenuation factor
+    /// (1 = unobstructed, 0 = fully obstructed) for the given surface incline.
     /// </summary>
-    public double GetSkyDiffuseAttenuation()
+    private double computeSkyDiffuseAttenuation(IReadOnlyIncline? incline)
     {
-      if (Shape == ShapeType.None || Incline == null) return 1.0;
-      double unobstructed = Incline.ConfigurationFactorToSky;
+      if (Shape == ShapeType.None || incline == null) return 1.0;
+      double unobstructed = incline.ConfigurationFactorToSky;
       if (unobstructed <= 0) return 1.0;
-      double sky = GetSkyViewFactor();
+      double sky = computeSkyViewFactor(incline);
       double attenuation = sky / unobstructed;
       if (attenuation < 0) return 0;
       if (attenuation > 1) return 1;
       return attenuation;
     }
 
-    /// <summary>Gets the shadow area ratio [-] on the window for the given solar position.</summary>
-    /// <param name="sun">Solar state.</param>
-    /// <returns>Shadow area ratio [-] (0 = fully sunlit, 1 = fully shaded).</returns>
-    public double GetShadowRatio(IReadOnlySun sun)
+    /// <summary>
+    /// Shared implementation of <see cref="GetShadowRatio"/> and
+    /// <see cref="GetDirectShadingRate"/>: returns the shadow area ratio
+    /// (0 = fully sunlit, 1 = fully shaded) for the given solar position and
+    /// surface incline.
+    /// </summary>
+    private double computeDirectShadingRate(IReadOnlySun sun, IReadOnlyIncline? incline)
     {
-      //日の出前と日没後はすべて影      
+      // 日の出前・日没後は完全遮蔽
       if (sun.Altitude <= 0) return 1;
-      //日除けが無ければ影は無し
+      // 日除けが無ければ影は無し
       if (Shape == ShapeType.None) return 0;
-      //太陽が裏面にある場合にはすべて影
-      if (Incline.GetDirectSolarRadiationRatio(sun) <= 0) return 1;
+      // Incline 未設定では幾何関係が定まらないため、安全側で完全遮蔽
+      if (incline == null) return 1;
+      // 太陽が裏面にある場合は完全遮蔽
+      if (incline.GetDirectSolarRadiationRatio(sun) <= 0) return 1;
 
-      double dpW = Overhang * Math.Tan(Incline.HorizontalAngle - sun.Azimuth);
-      double dpH = Overhang * Incline.GetTangentProfileAngle(sun);
+      double dpW = Overhang * Math.Tan(incline.HorizontalAngle - sun.Azimuth);
+      double dpH = Overhang * incline.GetTangentProfileAngle(sun);
       double sr = 0;
       switch (Shape)
       {

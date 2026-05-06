@@ -524,7 +524,7 @@ namespace BESTEST_2023
             double directIrr  = windows[0].OutsideIncline.GetDirectSolarIrradiance(sun);
             double diffuseIrr = windows[0].OutsideIncline.GetDiffuseSolarIrradiance(sun, mRoom.Albedo);
             double shadeFactor = windows[0].SunShade != null
-                ? (1.0 - windows[0].SunShade.GetShadowRatio(sun)) : 1.0;
+                ? (1.0 - windows[0].SunShade.GetDirectShadingRate(sun, windows[0].OutsideIncline)) : 1.0;
             transS = directIrr  * windows[0].DirectSolarIncidentTransmittance  * shadeFactor
                    + diffuseIrr * windows[0].DiffuseSolarIncidentTransmittance;
           }

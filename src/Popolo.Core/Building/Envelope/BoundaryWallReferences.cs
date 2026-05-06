@@ -34,8 +34,10 @@ namespace Popolo.Core.Building.Envelope
   /// </para>
   /// <para>
   /// Returned by <see cref="MultiRoom"/> when consumers need to enumerate
-  /// outdoor boundaries without exposing the internal <c>BoundarySurface</c>
-  /// type. Contrast with <see cref="GroundWallReference"/> (below-grade walls
+  /// outdoor boundaries as a flat list of value structs (rather than via the
+  /// per-side <see cref="EnvelopeSurface"/> objects, which are part of the
+  /// solver's mutable state).
+  /// Contrast with <see cref="GroundWallReference"/> (below-grade walls
   /// or floors in contact with soil) and <see cref="AdjacentSpaceWallReference"/>
   /// (walls facing unconditioned or otherwise un-simulated spaces).
   /// </para>
