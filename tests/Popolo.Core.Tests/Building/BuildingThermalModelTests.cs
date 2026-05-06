@@ -725,6 +725,99 @@ namespace Popolo.Core.Tests.Building
       Assert.InRange(finalZone.HumidityRatio, 0.005, 0.030);
     }
 
+    /// <summary>
+    /// ガラス熱容量を持つ窓が 1 次遅れ応答を示し、外気温の急変に対して
+    /// 内側ガラス温度の変化が遅延することを確認する。
+    /// </summary>
+    /// <remarks>
+    /// 単一ガラス窓 (3 mm 相当) を 2 つ並べ、片方には熱容量 6300 J/(m²·K)
+    /// を設定 (典型的なクリアフロート 3 mm 厚 = ρ × c × d ≈ 2500 × 840 × 0.003)、
+    /// もう片方は 0 (Phase C-2 互換、定常解)。両者を同じ境界条件 (室内
+    /// 20 °C、屋外を 0 °C → 30 °C のステップ変化) に晒し、ステップ直後の
+    /// 内側ガラス温度の応答を比較する。
+    ///
+    /// 検証:
+    ///   - 熱容量 0 の窓は瞬時に新定常状態に達する
+    ///   - 熱容量あり窓はステップ直後に旧状態に近い温度を保持し、
+    ///     時間と共に新定常へ漸近する (= 1 次遅れ応答)
+    /// </remarks>
+    [Fact]
+    public void GlassHeatCapacity_ProducesTimeLagResponse()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+
+      // 単板窓 ×2
+      var winNoCap = new Window(1.0, new[] { 0.83 }, new[] { 0.07 }, inc);
+      winNoCap.SetGlassResistance(0, 0.003);
+      // 表面熱伝達率を BESTEST 標準に
+      winNoCap.ConvectiveCoefficientF = 17.8;
+      winNoCap.ConvectiveCoefficientB = 4.5;
+      winNoCap.RadiativeCoefficientF = 0;
+      winNoCap.RadiativeCoefficientB = 0;
+
+      var winWithCap = new Window(1.0, new[] { 0.83 }, new[] { 0.07 }, inc);
+      winWithCap.SetGlassResistance(0, 0.003);
+      winWithCap.ConvectiveCoefficientF = 17.8;
+      winWithCap.ConvectiveCoefficientB = 4.5;
+      winWithCap.RadiativeCoefficientF = 0;
+      winWithCap.RadiativeCoefficientB = 0;
+      winWithCap.SetGlassHeatCapacity(0, 6300.0); // 3 mm クリアガラス相当
+
+      // 両者を同じ境界条件で更新する小さなヘルパ。
+      // SolAirTemperatureF はステップ後の屋外、SolAirTemperatureB は室内 20 °C 固定。
+      // 太陽日射は与えない (純粋な伝熱応答を見る)。
+      void DriveStep(Window w, double tOut, double tIn, double dt)
+      {
+        w.TimeStep = dt;
+        w.SolAirTemperatureF = tOut;
+        w.SolAirTemperatureB = tIn;
+        w.UpdateInverseMatrix();
+        w.UpdateIFCoefficients();
+        w.Update();
+      }
+
+      // 1) 屋外 0 °C / 室内 20 °C で 2 時間助走 → 定常状態
+      const double dt = 60.0; // 60 s
+      for (int i = 0; i < 120; i++)
+      {
+        DriveStep(winNoCap, 0.0, 20.0, dt);
+        DriveStep(winWithCap, 0.0, 20.0, dt);
+      }
+
+      // 助走終了時、両者の B 表面節点 (= 室内側ガラス表面) 温度はほぼ一致するはず
+      // (定常状態では熱容量の有無に依らない)
+      double tB_nocap_initial = winNoCap.Temperatures[winNoCap.NodeCount - 1];
+      double tB_withcap_initial = winWithCap.Temperatures[winWithCap.NodeCount - 1];
+      Assert.True(Math.Abs(tB_nocap_initial - tB_withcap_initial) < 0.05,
+          $"助走後の定常温度が乖離: noCap={tB_nocap_initial:F3}, withCap={tB_withcap_initial:F3}");
+
+      // 2) 屋外を 0 → 30 °C にステップ変化させ、直後 (1 ステップ = 60 s 後) の応答を比較
+      DriveStep(winNoCap, 30.0, 20.0, dt);
+      DriveStep(winWithCap, 30.0, 20.0, dt);
+      double tB_nocap_after = winNoCap.Temperatures[winNoCap.NodeCount - 1];
+      double tB_withcap_after = winWithCap.Temperatures[winWithCap.NodeCount - 1];
+
+      // 熱容量 0 の窓は 1 ステップで新定常に到達 → tB は大きく上昇
+      double riseNoCap = tB_nocap_after - tB_nocap_initial;
+      Assert.True(riseNoCap > 1.0,
+          $"熱容量 0 の窓は新定常へ即時到達するはずだが温度上昇が小さい: Δ = {riseNoCap:F3}");
+
+      // 熱容量ありの窓はステップ直後では旧状態を保持 → tB の上昇は noCap よりかなり小さい
+      double riseWithCap = tB_withcap_after - tB_withcap_initial;
+      Assert.True(riseWithCap < riseNoCap,
+          $"熱容量あり窓の応答が遅延しない: noCap上昇={riseNoCap:F3}, withCap上昇={riseWithCap:F3}");
+      Assert.True(riseWithCap < riseNoCap * 0.7,
+          $"熱容量あり窓の遅延が不十分 (noCap の {riseWithCap / riseNoCap * 100:F1} %): " +
+          $"noCap上昇={riseNoCap:F3}, withCap上昇={riseWithCap:F3}");
+
+      // 3) 30 分追加でステップ → withCap が新定常へ漸近していることを確認
+      for (int i = 0; i < 30; i++) DriveStep(winWithCap, 30.0, 20.0, dt);
+      double tB_withcap_late = winWithCap.Temperatures[winWithCap.NodeCount - 1];
+      Assert.True(Math.Abs(tB_withcap_late - tB_nocap_after) < 0.1,
+          $"熱容量あり窓が 30 分後に新定常へ収束していない: " +
+          $"withCap (30 min)={tB_withcap_late:F3}, noCap 定常={tB_nocap_after:F3}");
+    }
+
     /// <summary>木質繊維板の moisture-aware 壁で構成した 3m 立方の単室モデル。</summary>
     private static BuildingThermalModel MakeMoistureAwareCubeModel()
     {

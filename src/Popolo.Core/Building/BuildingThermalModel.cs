@@ -77,6 +77,11 @@ namespace Popolo.Core.Building
     /// <summary>All wall assemblies across all MultiRooms instances.</summary>
     internal List<Wall> walls;
 
+    /// <summary>All window assemblies across all MultiRooms instances.</summary>
+    /// <remarks>Iterated alongside <see cref="walls"/> in <see cref="FixState"/> so
+    /// that windows with non-zero glass heat capacity advance their nodal state per step.</remarks>
+    internal List<Window> windows;
+
     /// <summary>Array of multi-room systems.</summary>
     private MultiRoom[] mRooms;
 
@@ -213,6 +218,7 @@ namespace Popolo.Core.Building
       this.mRooms = mRooms;
       zoneVent = new InterZoneAirFlowCollection[mRooms.Length][];
       walls = new List<Wall>();
+      windows = new List<Window>();
       List<IReadOnlyZone> zns = new List<IReadOnlyZone>();
       List<IReadOnlyWindow> wins = new List<IReadOnlyWindow>();
       for (int i = 0; i < mRooms.Length; i++)
@@ -224,6 +230,9 @@ namespace Popolo.Core.Building
 
         foreach (Wall wl in mRooms[i].Walls)
           if (!walls.Contains(wl)) walls.Add(wl);
+
+        foreach (Window win in mRooms[i].Windows)
+          if (!windows.Contains(win)) windows.Add(win);
 
         //ゾーンの重複確認
         foreach (IReadOnlyZone zn in mRooms[i].Zones)
@@ -346,11 +355,19 @@ namespace Popolo.Core.Building
         mr.FixMoistureTransfer();
         hasHTChgd[mr] = hasWTChgd[mr] = true;
       }
-      //壁の熱流を更新
+      //壁の熱流を更新 (Wall は moisture+pipe+PCM 含むフルバージョン override)
       foreach (Wall wl in walls)
       {
         wl.InverseMatrixUpdated = false;
         wl.Update();
+      }
+      //窓の節点状態を更新 (ガラス熱容量 = 0 の場合は base.Update が steady-state
+      // 解を返すだけで実質 no-op、熱容量 > 0 の場合は時間進行に伴う tempAndHumid
+      // の遷移を扱う)
+      foreach (Window win in windows)
+      {
+        win.InverseMatrixUpdated = false;
+        win.Update();
       }
       isFirstForecast = true;
     }

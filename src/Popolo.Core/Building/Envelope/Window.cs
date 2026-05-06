@@ -84,6 +84,17 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Thermal resistance of each glazing layer [m²·K/W].</summary>
     private double[] glassRes = null!;
 
+    /// <summary>Heat capacity per unit area of each glazing layer [J/(m²·K)].</summary>
+    /// <remarks>
+    /// Default zero (resistive-only model — Phase C-2 behavior). Set via
+    /// <see cref="SetGlassHeatCapacity(int, double)"/> to introduce thermal
+    /// mass on a glass layer (e.g., 3 mm clear glass: ρ × c × d ≈
+    /// 2500 × 840 × 0.003 ≈ 6.3 kJ/(m²·K)). Half of the value is assigned
+    /// to each of the two surface nodes of the glass (F and B faces),
+    /// matching Wall's <c>HeatCapacity_F</c> / <c>HeatCapacity_B</c> split.
+    /// </remarks>
+    private double[] glassHeatCapacity = null!;
+
     /// <summary>Optical properties (transmittance, reflectance, absorptance) for each layer.
     /// First index: 0=transmittance, 1=reflectance, 2=absorptance.
     /// Suffixes: F=front side, B=back side, Dir=direct, Dif=diffuse.</summary>
@@ -294,6 +305,7 @@ namespace Popolo.Core.Building.Envelope
       absBDif = new double[GlazingCount * 2 + 1];
       agapRes = new double[GlazingCount * 2 + 2];
       glassRes = new double[GlazingCount];
+      glassHeatCapacity = new double[GlazingCount]; // 既定は熱容量 0 (Phase C-2 互換)
 
       //空の日射遮蔽で初期化
       sDevices = new IShadingDevice[GlazingCount + 1];
@@ -614,12 +626,15 @@ namespace Popolo.Core.Building.Envelope
     /// </summary>
     public override int NodeCount => 2 * GlazingCount;
 
-    /// <summary>Refreshes <see cref="UpdateIFCoefficients"/>'s IF coefficients.</summary>
+    /// <summary>Refreshes the IF (current-state) coefficients for the glazing matrix.</summary>
     /// <remarks>
-    /// All glass nodes have zero heat capacity in the current model, so the
-    /// previous-step nodal state carries no meaningful information across
-    /// time steps and is excluded from the IF formula. Only the per-glass
-    /// absorbed solar (a body source on each node) contributes.
+    /// Per-node body source <c>bf</c> is built from (i) the previous-step
+    /// nodal state for capacity-bearing nodes (only) and (ii) the absorbed
+    /// solar contribution. Capacity-zero nodes contribute purely from the
+    /// absorbed solar — their <c>tempAndHumid</c> entry is overwritten each
+    /// step by the matrix solve and carries no meaningful inter-step state,
+    /// so it must be excluded to keep the response-coefficient
+    /// decomposition consistent with <see cref="OpticalLayeredEnvelope.Update"/>.
     /// </remarks>
     public override void UpdateIFCoefficients()
     {
@@ -627,12 +642,11 @@ namespace Popolo.Core.Building.Envelope
       IF2_F = IF2_B = 0;
       for (int i = 0; i <= num; i++)
       {
-        if (solarAbsorption[i] != 0)
-        {
-          double bf = qCoefS[i] * solarAbsorption[i];
-          IF2_F += uxMatrix[0, i] * bf;
-          IF2_B += uxMatrix[num, i] * bf;
-        }
+        double bf = (capS[i] != 0) ? tempAndHumid[i] : 0;
+        if (solarAbsorption[i] != 0) bf += qCoefS[i] * solarAbsorption[i];
+        if (bf == 0) continue;
+        IF2_F += uxMatrix[0, i] * bf;
+        IF2_B += uxMatrix[num, i] * bf;
       }
     }
 
@@ -660,9 +674,16 @@ namespace Popolo.Core.Building.Envelope
     protected override void PopulateSensibleProperties()
     {
       int N = GlazingCount;
-      // Glass nodes: zero heat capacity (Phase C-2 — to be replaced with real
-      // per-layer capacity in a future phase).
+
+      // capS: 各ガラス層の熱容量を、その層の F・B 表面節点 (Wall 規約と同じ
+      // <c>HeatCapacity_F</c> / <c>HeatCapacity_B</c> の半分ずつ) に分配。
+      // エアギャップは熱容量 0 として扱う (実物理でも気層の熱容量は無視可能)。
       Array.Clear(capS, 0, capS.Length);
+      for (int k = 0; k < N; k++)
+      {
+        capS[2 * k]     += 0.5 * glassHeatCapacity[k];
+        capS[2 * k + 1] += 0.5 * glassHeatCapacity[k];
+      }
 
       // resS[0] = outer film; resS[2N] = inner film
       // resS[2k+1] = glass[k]; resS[2k+2] = air gap between glass[k] and glass[k+1]
@@ -771,6 +792,30 @@ namespace Popolo.Core.Building.Envelope
     /// <returns>Thermal resistance [m²·K/W].</returns>
     public double GetGlassResistance(int glazingIndex)
     { return glassRes[glazingIndex]; }
+
+    /// <summary>Sets the heat capacity of the specified glazing layer [J/(m²·K)].</summary>
+    /// <param name="glazingIndex">Glazing layer index.</param>
+    /// <param name="heatCapacity">Heat capacity per unit area [J/(m²·K)].</param>
+    /// <remarks>
+    /// Default 0 — resistive-only model. Set a non-zero value to give the
+    /// glass thermal mass; a typical 3 mm clear pane has
+    /// ρ × c × d ≈ 2500 × 840 × 0.003 ≈ 6300 J/(m²·K). The value is split
+    /// evenly between the layer's two surface nodes (F and B faces) when
+    /// the matrix is rebuilt. Triggers a matrix rebuild on the next
+    /// <see cref="OpticalLayeredEnvelope.Update"/> via
+    /// <c>needToUpdateUMatrix = true</c>.
+    /// </remarks>
+    public void SetGlassHeatCapacity(int glazingIndex, double heatCapacity)
+    {
+      glassHeatCapacity[glazingIndex] = heatCapacity;
+      needToUpdateUMatrix = true;
+    }
+
+    /// <summary>Gets the heat capacity per unit area of the specified glazing layer [J/(m²·K)].</summary>
+    /// <param name="glazingIndex">Glazing layer index.</param>
+    /// <returns>Heat capacity per unit area [J/(m²·K)].</returns>
+    public double GetGlassHeatCapacity(int glazingIndex)
+    { return glassHeatCapacity[glazingIndex]; }
 
     /// <summary>Sets the thermal resistance of the air gap to the indoor side of the specified glazing layer [m²·K/W].</summary>
     /// <param name="glazingIndex">Glazing layer index; the air gap <b>between this layer and the next glazing toward the indoor side</b> is targeted.</param>
