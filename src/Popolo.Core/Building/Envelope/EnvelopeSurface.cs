@@ -228,13 +228,22 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the surface temperature [°C] from the response factor model.</summary>
+    /// <remarks>
+    /// Both wall and window surface temperatures are computed uniformly:
+    /// <c>T = IF2 + FFS2·SolAir(this) + BFS2·SolAir(reverse) + (humidity terms when applicable)</c>.
+    /// The <see cref="IF2"/> term carries the layer-internal contribution
+    /// (zero for resistive-only configurations such as the current window
+    /// model with no thermal mass; non-zero once per-glass-layer absorbed
+    /// solar feeds in via <see cref="OpticalLayeredEnvelope.SetLayerSolarAbsorption"/>).
+    /// Moisture terms apply only to walls with coupled moisture transport.
+    /// </remarks>
     public double SurfaceTemperature
     {
       get
       {
         if (IsWall) return IF2 + FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature
             + FFL2 * HumidityRatio + BFL2 * ReverseSideSurface.HumidityRatio;
-        else return FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature;
+        else return IF2 + FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature;
       }
     }
 
@@ -255,16 +264,17 @@ namespace Popolo.Core.Building.Envelope
       }
     }
 
-    /// <summary>Gets the response factor coefficient for the F-side sol-air temperature (temperature term).</summary>
+    /// <summary>Gets the response factor coefficient for this side's sol-air temperature (sensible).</summary>
+    /// <remarks>
+    /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.FFS2_F"/> /
+    /// <see cref="OpticalLayeredEnvelope.BFS2_B"/> regardless of component type
+    /// — both walls and windows now share the matrix-derived response coefficients.
+    /// </remarks>
     public double FFS2
     {
       get
       {
-        if (IsWall && isSideF) return Wall.FFS2_F;
-        else if (IsWall && !isSideF) return Wall.BFS2_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 1 - 1d / (Window.GetResistance() * Window.FilmCoefficientB);
+        return isSideF ? Component.FFS2_F : Component.BFS2_B;
       }
     }
 
@@ -307,16 +317,16 @@ namespace Popolo.Core.Building.Envelope
       }
     }
 
-    /// <summary>Gets the response factor coefficient for the B-side sol-air temperature (temperature term).</summary>
+    /// <summary>Gets the response factor coefficient for the opposite side's sol-air temperature (sensible).</summary>
+    /// <remarks>
+    /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.BFS2_F"/> /
+    /// <see cref="OpticalLayeredEnvelope.FFS2_B"/> regardless of component type.
+    /// </remarks>
     public double BFS2
     {
       get
       {
-        if (IsWall && isSideF) return Wall.BFS2_F;
-        else if (IsWall && !isSideF) return Wall.FFS2_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 1d / (Window.GetResistance() * Window.FilmCoefficientB);
+        return isSideF ? Component.BFS2_F : Component.FFS2_B;
       }
     }
 
@@ -359,15 +369,16 @@ namespace Popolo.Core.Building.Envelope
       }
     }
 
-    /// <summary>Gets the response factor coefficient for the time-delay term (temperature).</summary>
+    /// <summary>Gets the response factor coefficient for the time-delay term (sensible).</summary>
+    /// <remarks>
+    /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.IF2_F"/> /
+    /// <see cref="OpticalLayeredEnvelope.IF2_B"/> regardless of component type.
+    /// </remarks>
     public double IF2
     {
       get
       {
-        if (IsWall && isSideF) return Wall.IF2_F;
-        else if (IsWall && !isSideF) return Wall.IF2_B;
-        else if (!IsWall && isSideF) return 0;
-        else return 0;
+        return isSideF ? Component.IF2_F : Component.IF2_B;
       }
     }
 
@@ -452,6 +463,7 @@ namespace Popolo.Core.Building.Envelope
     public void SetIncidentSolarFlux(double incidentShortWaveFlux)
     {
       AbsorbedSolarFlux = (Component is Wall) ? incidentShortWaveFlux : 0.0;
+      Component.OnIncidentSolarFlux(this, incidentShortWaveFlux);
     }
 
     #endregion

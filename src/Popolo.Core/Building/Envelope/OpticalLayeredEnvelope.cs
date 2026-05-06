@@ -262,6 +262,22 @@ namespace Popolo.Core.Building.Envelope
       Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
     }
 
+    /// <summary>
+    /// Hook called from <see cref="EnvelopeSurface.SetIncidentSolarFlux(double)"/>
+    /// after the surface-level absorbed flux has been recorded. Allows
+    /// translucent components to redistribute the indoor-side incident flux
+    /// onto their per-layer solar-absorption inputs (e.g., a window
+    /// re-absorbing inter-reflected diffuse from the room interior into its
+    /// glass layers).
+    /// </summary>
+    /// <param name="surface">The surface that received the flux.</param>
+    /// <param name="incidentShortWaveFlux">Indoor-incident short-wave flux at the surface [W/m²].</param>
+    /// <remarks>
+    /// Default no-op — opaque components rely on the surface-level
+    /// <see cref="EnvelopeSurface.AbsorbedSolarFlux"/> mechanism instead.
+    /// </remarks>
+    public virtual void OnIncidentSolarFlux(EnvelopeSurface surface, double incidentShortWaveFlux) { }
+
     #endregion
 
     #region 行列ソルバ — sensible-only 経路 (subclass がフルバージョンを override 可能)

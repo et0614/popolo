@@ -20,6 +20,7 @@
 using System;
 using Popolo.Core.Climate;
 using Popolo.Core.Exceptions;
+using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -191,9 +192,14 @@ namespace Popolo.Core.Building.Envelope
     { get { return 1d / (2 * agapRes[0]); } }
 
     /// <summary>Gets the short-wave (solar) emissivity on the F side (outdoor) [-].</summary>
-    public double ShortWaveEmissivityF
-    { get { throw new PopoloNotImplementedException(
-        $"{nameof(Window)}.{nameof(ShortWaveEmissivityF)}"); } }
+    /// <remarks>
+    /// Returns 0: in the matrix-based glazing model, outdoor-incident solar
+    /// is absorbed per glass layer (via <c>absFDir</c> / <c>absFDif</c> and
+    /// fed into the matrix as a body source), not at the outer surface. The
+    /// SolAir-temperature formula at the outer face therefore applies no
+    /// surface absorptance term (alpha × solar = 0).
+    /// </remarks>
+    public double ShortWaveEmissivityF { get { return 0.0; } }
 
     /// <summary>
     /// Whether the F (outdoor) side is exposed to outdoor wind (default <c>true</c>).
@@ -317,6 +323,19 @@ namespace Popolo.Core.Building.Envelope
       agapRes[agapRes.Length - 1] = agapRes[agapRes.Length - 2] = 0.5 * 1 / 6.7;
       for (int i = 2; i < agapRes.Length - 2; i++) agapRes[i] = 0.5 * 1 / 6.7;
       for (int i = 0; i < glassRes.Length; i++) glassRes[i] = 0.006;
+
+      //行列ソルバ用配列を確保 (capS は全て 0 = 熱容量なし、resS は glass+air-gap の連鎖)
+      int mNum = 2 * GlazingCount;
+      capS = new double[mNum];
+      resS = new double[mNum + 1];
+      solarAbsorption = new double[mNum];
+      qCoefS = new double[mNum];
+      uSF = new double[mNum];
+      uSB = new double[mNum];
+      tempAndHumid = new Vector(mNum);
+      uMatrix = new Matrix(mNum, mNum);
+      uxMatrix = new Matrix(mNum, mNum);
+      needToUpdateUMatrix = true; //初回 Update で逆行列を構築させる
 
       //内外表面作成
       SurfaceF = new EnvelopeSurface(this, true);
@@ -514,45 +533,147 @@ namespace Popolo.Core.Building.Envelope
       if (skyDiffuse < 0) skyDiffuse = 0;
       double skyShadingRate = SunShade.GetSkyDiffuseShadingRate(inc);
       double dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
-      double insideAbsorbedFlux = dir * DirectSolarIncidentAbsorptance + dif * DiffuseSolarIncidentAbsorptance;
+
+      // 各層の吸収日射 [W/m²] を per-node 体積熱源として行列ソルバに供給。
+      // absFDir / absFDif は 2N+1 長 (層境界毎、奇数 index = ガラス層中央、
+      // 偶数 index = エアギャップ / シェーディング位置)。
+      // 各 absorption 位置 i の吸収量を、その両隣の節点に半分ずつ分配する
+      // (端は片側のみ)。これによりガラス層・遮蔽位置の双方を統一的に扱う。
+      Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
+      int positions = absFDir.Length; // = 2N+1
+      int last = positions - 1;
+      for (int i = 0; i < positions; i++)
+      {
+        double q = dir * absFDir[i] + dif * absFDif[i];
+        if (q == 0) continue;
+        if (i == 0)
+        {
+          // 屋外側端の吸収 (例: 屋外側 ShadingDevice)。屋外面節点 (0) に集約。
+          solarAbsorption[0] += q;
+        }
+        else if (i == last)
+        {
+          // 室内側端の吸収。室内面節点 (mNum-1) に集約。
+          solarAbsorption[NodeCount - 1] += q;
+        }
+        else
+        {
+          // 中間位置: 両隣の節点に半分ずつ。
+          solarAbsorption[i - 1] += 0.5 * q;
+          solarAbsorption[i] += 0.5 * q;
+        }
+      }
+
+      // 室内側に到達する短波長は matrix が ガラス層温度を介して扱うため、
+      // 表面で吸収する成分 (InsideAbsorbedFlux) は 0 とする。
+      // 透過分は従来通り室内面間で再分配される。
       double transmittedDirect = dir * DirectSolarIncidentTransmittance * Area;
       double transmittedDiffuse = dif * DiffuseSolarIncidentTransmittance * Area;
-      return new ShortWaveEmission(insideAbsorbedFlux, transmittedDirect, transmittedDiffuse);
+      return new ShortWaveEmission(0.0, transmittedDirect, transmittedDiffuse);
     }
 
     /// <summary>
-    /// Diffuse-absorptance multiplier for indoor short-wave landing on this
-    /// window from interior inter-reflection: accounts for inter-glass
-    /// back-and-forth between layers.
+    /// Returns 1.0: the raw indoor-incident diffuse flux is accumulated into
+    /// the surface's <c>radToSurf_S</c> entry without re-weighting, and is
+    /// then redistributed onto the per-glass-layer absorption inputs by
+    /// <see cref="OnIncidentSolarFlux"/> using the indoor-side per-layer
+    /// diffuse absorptances (<c>absBDif</c>).
     /// </summary>
-    public override double IndoorDiffuseAbsorptanceFactor
-        => DiffuseSolarIncidentAbsorptance / (1 - DiffuseSolarIncidentReflectance);
+    public override double IndoorDiffuseAbsorptanceFactor => 1.0;
 
     /// <summary>
-    /// Windows currently have no dynamic conduction model (response is purely
-    /// resistive via <see cref="GetResistance"/>), so there is no inverse
-    /// step-coefficient matrix to maintain. This will become non-trivial when
-    /// per-glass-layer heat capacity is added.
+    /// Distributes indoor-side incident diffuse short-wave (from interior
+    /// inter-reflection) onto the per-glass-layer absorption inputs.
     /// </summary>
-    public override void UpdateInverseMatrix() { }
+    /// <param name="surface">Source surface; only the indoor (B) side is processed.</param>
+    /// <param name="incidentShortWaveFlux">Indoor-incident diffuse flux at the surface [W/m²].</param>
+    public override void OnIncidentSolarFlux(EnvelopeSurface surface, double incidentShortWaveFlux)
+    {
+      if (incidentShortWaveFlux == 0) return;
+      if (surface != InsideSurface) return; // outdoor-incident is set by EmitShortWaveToIndoor
+
+      int positions = absBDif.Length;
+      int last = positions - 1;
+      for (int i = 0; i < positions; i++)
+      {
+        double q = incidentShortWaveFlux * absBDif[i];
+        if (q == 0) continue;
+        if (i == 0) solarAbsorption[0] += q;
+        else if (i == last) solarAbsorption[NodeCount - 1] += q;
+        else
+        {
+          solarAbsorption[i - 1] += 0.5 * q;
+          solarAbsorption[i] += 0.5 * q;
+        }
+      }
+    }
 
     /// <summary>
-    /// Companion no-op to <see cref="UpdateInverseMatrix"/>; see remarks there.
+    /// Number of nodes in the glass / air-gap finite-difference network:
+    /// <c>2 * GlazingCount</c> (one node on each side of every glazing layer).
     /// </summary>
-    public override void UpdateIFCoefficients() { }
+    public override int NodeCount => 2 * GlazingCount;
+
+    /// <summary>Refreshes <see cref="UpdateIFCoefficients"/>'s IF coefficients.</summary>
+    /// <remarks>
+    /// All glass nodes have zero heat capacity in the current model, so the
+    /// previous-step nodal state carries no meaningful information across
+    /// time steps and is excluded from the IF formula. Only the per-glass
+    /// absorbed solar (a body source on each node) contributes.
+    /// </remarks>
+    public override void UpdateIFCoefficients()
+    {
+      int num = uxMatrix.Rows - 1;
+      IF2_F = IF2_B = 0;
+      for (int i = 0; i <= num; i++)
+      {
+        if (solarAbsorption[i] != 0)
+        {
+          double bf = qCoefS[i] * solarAbsorption[i];
+          IF2_F += uxMatrix[0, i] * bf;
+          IF2_B += uxMatrix[num, i] * bf;
+        }
+      }
+    }
 
     /// <summary>
-    /// Number of finite-difference nodes. Returns 0 in the current resistive-only
-    /// model; will return the glass / air-gap node count after Phase C-2.
+    /// Populates the base-class <c>capS</c> (all zeros) and <c>resS</c> (the
+    /// outer-film + glass + inter-glass-gap + inner-film resistance chain)
+    /// arrays from the window's glass / air-gap configuration.
     /// </summary>
-    public override int NodeCount => 0;
+    /// <remarks>
+    /// <para>
+    /// For an N-pane window the layer stack is: outer film → glass[0] →
+    /// air-gap[0] → glass[1] → … → glass[N-1] → inner film. This produces
+    /// 2N nodes (one each on the F and B faces of every glass layer) and
+    /// 2N+1 inter-node resistances. Glass <c>i</c> sits between nodes
+    /// <c>2i</c> and <c>2i+1</c>; the air gap to its indoor side sits
+    /// between nodes <c>2i+1</c> and <c>2(i+1)</c>.
+    /// </para>
+    /// <para>
+    /// The <c>agapRes</c> internal array stores each "physical" gap (and the
+    /// outer / inner film) as two equal halves — the full gap resistance
+    /// between two adjacent glass nodes is therefore the sum of two
+    /// successive <c>agapRes</c> entries.
+    /// </para>
+    /// </remarks>
+    protected override void PopulateSensibleProperties()
+    {
+      int N = GlazingCount;
+      // Glass nodes: zero heat capacity (Phase C-2 — to be replaced with real
+      // per-layer capacity in a future phase).
+      Array.Clear(capS, 0, capS.Length);
 
-    /// <summary>
-    /// No-op stub: the current resistive-only window model does not populate the
-    /// base-class <c>capS</c> / <c>resS</c> arrays. After Phase C-2, this will
-    /// fill them from the glass / air-gap stack.
-    /// </summary>
-    protected override void PopulateSensibleProperties() { }
+      // resS[0] = outer film; resS[2N] = inner film
+      // resS[2k+1] = glass[k]; resS[2k+2] = air gap between glass[k] and glass[k+1]
+      resS[0] = agapRes[0] + agapRes[1];
+      for (int k = 0; k < N; k++)
+      {
+        resS[2 * k + 1] = glassRes[k];
+        if (k < N - 1) resS[2 * k + 2] = agapRes[2 * k + 2] + agapRes[2 * k + 3];
+      }
+      resS[2 * N] = agapRes[2 * N] + agapRes[2 * N + 1];
+    }
 
     /// <summary>Computes the total optical properties from the individual layer properties.</summary>
     /// <param name="opPropF">Layer optical properties for F-side incidence.</param>
@@ -642,6 +763,7 @@ namespace Popolo.Core.Building.Envelope
     {
       glassRes[glazingIndex] = resistance;
       UpdateAbsorptance();
+      needToUpdateUMatrix = true;
     }
 
     /// <summary>Gets the thermal resistance of the specified glazing layer [m²·K/W].</summary>
@@ -664,6 +786,7 @@ namespace Popolo.Core.Building.Envelope
     {
       agapRes[2 * glazingIndex + 2] = agapRes[2 * glazingIndex + 3] = 0.5 * resistance;
       UpdateAbsorptance();
+      needToUpdateUMatrix = true;
     }
 
     /// <summary>Gets the thermal resistance of the specified air gap layer [m²·K/W].</summary>
@@ -679,6 +802,8 @@ namespace Popolo.Core.Building.Envelope
       agapRes[agapRes.Length - 1] =
         agapRes[agapRes.Length - 2] = 0.5 / (ConvectiveCoefficientB + RadiativeCoefficientB);
       UpdateAbsorptance();
+      // Film resistance changed → matrix's resS array stale; flag a rebuild.
+      needToUpdateUMatrix = true;
     }
 
     /// <summary>Updates the absorbed solar heat gain coefficients for each glazing layer.</summary>

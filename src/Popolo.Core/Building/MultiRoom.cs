@@ -690,18 +690,15 @@ namespace Popolo.Core.Building
     }
 
     /// <summary>Sets the outdoor air conditions (temperature, humidity, and nocturnal radiation).</summary>
-    /// <remarks>Must be called after window solar absorption has been calculated.</remarks>
+    /// <remarks>
+    /// Walls and windows are treated uniformly via the standard SolAir-temperature
+    /// formula. For windows the surface-level absorptance term auto-degenerates
+    /// to zero (<see cref="Window.ShortWaveEmissivityF"/> returns 0) — outdoor
+    /// solar absorption is captured per glass layer in the matrix solver via
+    /// <see cref="OpticalLayeredEnvelope.SetLayerSolarAbsorption(int, double)"/>.
+    /// </remarks>
     private void SetOutdoorAirState()
     {
-      foreach (Window win in windows)
-      {
-        EnvelopeSurface ws = win.OutsideSurface;
-        double fs = win.OutsideIncline.ConfigurationFactorToSky;
-        ws.SolAirTemperature = OutdoorTemperature
-          + radToSurf_S[win.InsideSurface.Index] * win.GetResistance()
-          - ws.LongWaveEmissivity * fs * NocturnalRadiation / ws.FilmCoefficient;
-      }
-
       foreach (EnvelopeSurface ws in bndSurfaces)
       {
         if (!ws.IsGroundWall)
@@ -753,9 +750,18 @@ namespace Popolo.Core.Building
         DistributeShortwaveRad();
         DistributeLongwaveRad();
 
-        //各 surface に表面吸収日射熱流束を反映 (壁は radToSurf_S をそのまま、窓は 0)。
-        //radToSurf_S 配列自体は窓の内部経路 (SetOutsideWallState 等) でも参照されるため別途保持。
+        //各 surface に表面吸収日射熱流束を反映。
+        //  - 壁: AbsorbedSolarFlux ← radToSurf_S (SolAirTemperature 経由で熱平衡へ)
+        //  - 窓: AbsorbedSolarFlux ← 0 + 各ガラス層の OnIncidentSolarFlux (室内側拡散の
+        //        per-glass 吸収) を solarAbsorption に積算
         for (int i = 0; i < surfaces.Length; i++) surfaces[i].SetIncidentSolarFlux(radToSurf_S[i]);
+
+        //層別吸収日射が更新されたので IF 係数を再計算。逆行列は flag-gated で no-op が通常。
+        for (int i = 0; i < components.Length; i++)
+        {
+          components[i].UpdateInverseMatrix();
+          components[i].UpdateIFCoefficients();
+        }
 
         //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
         // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
@@ -1964,6 +1970,15 @@ namespace Popolo.Core.Building
       for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(win.InsideSurface);
       zones[zoneIndex].Surfaces.Add(win.InsideSurface);
       win.InsideSurface.ZoneIndex = zoneIndex;
+
+      // 窓の屋外面は壁体の SetOutsideWall と同様に外気境界として扱う
+      // (matrix モデルで SolAir 駆動)。冪等にするため重複登録は避ける。
+      EnvelopeSurface outerSurface = win.OutsideSurface;
+      outerSurface.AdjacentSpaceFactor = -1.0;
+      outerSurface.Incline = win.OutsideIncline;
+      outerSurface.ZoneIndex = -1;
+      outerSurface.IsGroundWall = false;
+      if (!bndSurfaces.Contains(outerSurface)) bndSurfaces.Add(outerSurface);
     }
 
     /// <summary>Adds a window to the specified zone.</summary>
