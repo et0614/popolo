@@ -2053,6 +2053,205 @@ namespace Popolo.Core.Building
     public void AddWindow(IReadOnlyZone zone, IReadOnlyWindow window)
     { AddWindow(Array.IndexOf(zones, zone), Array.IndexOf(windows, window)); }
 
+    #endregion
+
+    #region 統合 API (Phase D-3)
+    // 設計方針:
+    //   - F=屋外を「原則」とする。1-引数 overload (isSideF を取らない) は
+    //     F=屋外 として動く。
+    //   - 2-引数 overload (isSideF 明示) で Wall は F・B どちらも屋外側に
+    //     設定できる。Window は per-layer 光学モデルが F=屋外 を前提とする
+    //     ため、isSideF が「F=室内」を意味する組合わせを渡すと例外を投げる。
+    //   - 旧 AddWall / AddWindow / SetOutsideWall などは互換のため残置。
+    //     Phase D-3 の段階では [Obsolete] は付けない。
+
+    /// <summary>Attaches the indoor side of an envelope component to a zone (F-side defaults to outdoor).</summary>
+    /// <param name="zoneIndex">Zone index that this component faces.</param>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <remarks>
+    /// Equivalent to <see cref="AddComponent(int,int,bool)"/> with
+    /// <c>isSideF = false</c> — i.e., the zone receives the B side (the F
+    /// side is left available for an outdoor / ground / adjacent-space
+    /// boundary). For a <see cref="Window"/> this is the only legal
+    /// arrangement, and the F-side is automatically registered as the
+    /// outdoor boundary (replacing the legacy <see cref="AddWindow(int,int)"/>
+    /// behavior).
+    /// </remarks>
+    public void AddComponent(int zoneIndex, int componentIndex)
+    {
+      AddComponent(zoneIndex, componentIndex, isSideF: false);
+    }
+
+    /// <summary>Attaches one side of an envelope component to a zone (explicit side).</summary>
+    /// <param name="zoneIndex">Zone index that this component faces.</param>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="isSideF">True if the F side of the component faces the zone (= B side is the outdoor / ground / adjacent boundary). False if the B side faces the zone (the canonical configuration).</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when the targeted component is a <see cref="Window"/> and
+    /// <paramref name="isSideF"/> is <c>true</c>: the per-layer optical model
+    /// requires F to be the outdoor side.
+    /// </exception>
+    public void AddComponent(int zoneIndex, int componentIndex, bool isSideF)
+    {
+      var c = components[componentIndex];
+      EnsureWindowFaceConvention(c, isSideF, indoorSideIsF: isSideF);
+
+      needInitialize = true;
+      EnvelopeSurface sf = isSideF ? c.SurfaceF : c.SurfaceB;
+
+      bndSurfaces.Remove(sf);
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(sf);
+      zones[zoneIndex].Surfaces.Add(sf);
+      sf.ZoneIndex = zoneIndex;
+
+      // Window の F=屋外 制約に対応し、屋外側 (= isSideF と逆の側) の
+      // EnvelopeSurface を bndSurfaces に登録する。Window では必ず F が
+      // 屋外なので OutsideSurface (= SurfaceF) を、Wall では必要に応じて
+      // ユーザーが SetOutsideEnvelope / SetGroundWall などで明示する。
+      if (c is Window win)
+      {
+        EnvelopeSurface outerSurface = win.OutsideSurface;
+        outerSurface.AdjacentSpaceFactor = -1.0;
+        outerSurface.Incline = win.OutsideIncline;
+        outerSurface.ZoneIndex = -1;
+        outerSurface.IsGroundWall = false;
+        if (!bndSurfaces.Contains(outerSurface)) bndSurfaces.Add(outerSurface);
+      }
+    }
+
+    /// <summary>Attaches an envelope component to a zone (reference-based).</summary>
+    public void AddComponent(IReadOnlyZone zone, IReadOnlyOpticalLayeredEnvelope component)
+    { AddComponent(Array.IndexOf(zones, zone), Array.IndexOf(components, (OpticalLayeredEnvelope)component)); }
+
+    /// <summary>Attaches an envelope component to a zone with explicit side selection (reference-based).</summary>
+    public void AddComponent(IReadOnlyZone zone, IReadOnlyOpticalLayeredEnvelope component, bool isSideF)
+    { AddComponent(Array.IndexOf(zones, zone), Array.IndexOf(components, (OpticalLayeredEnvelope)component), isSideF); }
+
+    /// <summary>Installs an interior envelope between two zones (F side faces <paramref name="zoneFIndex"/>, B side faces <paramref name="zoneBIndex"/>).</summary>
+    /// <param name="zoneFIndex">Zone on the F side of the component.</param>
+    /// <param name="zoneBIndex">Zone on the B side of the component.</param>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <exception cref="PopoloArgumentException">Thrown when the component is a <see cref="Window"/>: a window cannot serve as an interior partition between two zones.</exception>
+    public void AddComponent(int zoneFIndex, int zoneBIndex, int componentIndex)
+    {
+      if (components[componentIndex] is Window)
+        throw new PopoloArgumentException(
+            "A window cannot be placed as an interior partition between two zones; use a Wall.",
+            nameof(componentIndex));
+      AddComponent(zoneFIndex, componentIndex, isSideF: true);
+      AddComponent(zoneBIndex, componentIndex, isSideF: false);
+    }
+
+    /// <summary>Installs an interior envelope between two zones (reference-based).</summary>
+    public void AddComponent(IReadOnlyZone zoneF, IReadOnlyZone zoneB, IReadOnlyOpticalLayeredEnvelope component)
+    {
+      AddComponent(Array.IndexOf(zones, zoneF), Array.IndexOf(zones, zoneB), Array.IndexOf(components, (OpticalLayeredEnvelope)component));
+    }
+
+    /// <summary>Installs a closed-loop envelope (both sides facing the same zone, e.g., interior thermal mass).</summary>
+    /// <param name="zoneIndex">Zone index.</param>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <exception cref="PopoloArgumentException">Thrown when the component is a <see cref="Window"/>.</exception>
+    public void AddLoopComponent(int zoneIndex, int componentIndex)
+    {
+      if (components[componentIndex] is Window)
+        throw new PopoloArgumentException(
+            "A window cannot be placed as a loop partition; use a Wall.",
+            nameof(componentIndex));
+      AddComponent(zoneIndex, componentIndex, isSideF: true);
+      AddComponent(zoneIndex, componentIndex, isSideF: false);
+    }
+
+    /// <summary>Installs a closed-loop envelope (reference-based).</summary>
+    public void AddLoopComponent(IReadOnlyZone zone, IReadOnlyOpticalLayeredEnvelope component)
+    { AddLoopComponent(Array.IndexOf(zones, zone), Array.IndexOf(components, (OpticalLayeredEnvelope)component)); }
+
+    /// <summary>Marks the F (outdoor by convention) side of a component as the outdoor boundary.</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="incline">Outdoor-facing tilted surface orientation.</param>
+    /// <remarks>
+    /// Equivalent to <see cref="SetOutsideEnvelope(int,bool,IReadOnlyIncline)"/>
+    /// with <c>isSideF = true</c>. This is the canonical configuration:
+    /// F=outdoor for both walls and windows.
+    /// </remarks>
+    public void SetOutsideEnvelope(int componentIndex, IReadOnlyIncline incline)
+    {
+      SetOutsideEnvelope(componentIndex, isSideF: true, incline);
+    }
+
+    /// <summary>Marks one side of a component as the outdoor boundary (explicit side).</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="isSideF">True for the F side; false for the B side. Must be <c>true</c> for windows.</param>
+    /// <param name="incline">Outdoor-facing tilted surface orientation.</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when the component is a <see cref="Window"/> and <paramref name="isSideF"/>
+    /// is <c>false</c>: the per-layer optical model requires F to be the outdoor side.
+    /// </exception>
+    public void SetOutsideEnvelope(int componentIndex, bool isSideF, IReadOnlyIncline incline)
+    {
+      var c = components[componentIndex];
+      EnsureWindowFaceConvention(c, isSideF, indoorSideIsF: !isSideF);
+
+      needInitialize = true;
+      EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
+
+      ws.AdjacentSpaceFactor = -1.0;
+      ws.Incline = incline;
+      ws.ZoneIndex = -1;
+      ws.IsGroundWall = false;
+
+      // 風暴露フラグ: 屋外に登録された側は風に晒されると想定
+      if (c is Wall w)
+      {
+        if (isSideF) w.IsWindExposedF = true;
+        else         w.IsWindExposedB = true;
+      }
+      else if (c is Window winC)
+      {
+        winC.IsWindExposedF = true; // isSideF は必ず true (上のチェックで保証)
+      }
+
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
+      if (!bndSurfaces.Contains(ws)) bndSurfaces.Add(ws);
+    }
+
+    /// <summary>Marks the F side of a component as the outdoor boundary (reference-based).</summary>
+    public void SetOutsideEnvelope(IReadOnlyOpticalLayeredEnvelope component, IReadOnlyIncline incline)
+    { SetOutsideEnvelope(Array.IndexOf(components, (OpticalLayeredEnvelope)component), incline); }
+
+    /// <summary>Marks one side of a component as the outdoor boundary (reference-based, explicit side).</summary>
+    public void SetOutsideEnvelope(IReadOnlyOpticalLayeredEnvelope component, bool isSideF, IReadOnlyIncline incline)
+    { SetOutsideEnvelope(Array.IndexOf(components, (OpticalLayeredEnvelope)component), isSideF, incline); }
+
+    /// <summary>
+    /// Validates that a Window is being attached / oriented in a way consistent
+    /// with its F=outdoor optical convention. Walls have full F/B freedom and
+    /// pass through. Future translucent walls may opt in to the same check.
+    /// </summary>
+    /// <param name="c">The component being placed.</param>
+    /// <param name="isSideF">The <c>isSideF</c> argument supplied by the caller.</param>
+    /// <param name="indoorSideIsF">
+    /// <c>true</c> if the operation is treating the F side as indoor (i.e.,
+    /// F faces a zone for AddComponent, or B faces outdoor for SetOutsideEnvelope).
+    /// Windows must always have F=outdoor, so this parameter being <c>true</c>
+    /// for a Window is rejected.
+    /// </param>
+    private static void EnsureWindowFaceConvention(OpticalLayeredEnvelope c, bool isSideF, bool indoorSideIsF)
+    {
+      if (c is Window && indoorSideIsF)
+      {
+        throw new PopoloArgumentException(
+            "Window's F side must be the outdoor side because of its per-layer optical model. " +
+            "Either use the overload without the isSideF parameter (which assumes F=outdoor), " +
+            $"or pass isSideF in the orientation that keeps F=outdoor (got isSideF={isSideF}).",
+            nameof(isSideF));
+      }
+    }
+
+    #endregion
+
+    #region 内部熱源処理
+
     /// <summary>Adds a heat gain element to the specified zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
     /// <param name="heatGain">Heat gain element.</param>

@@ -856,6 +856,135 @@ namespace Popolo.Core.Tests.Building
       Assert.Same(win1, mRoom.Windows[1]);
     }
 
+    /// <summary>
+    /// 統合 API <c>AddComponent</c> + <c>SetOutsideEnvelope</c> で構築した
+    /// モデルが旧 API (<c>AddWall</c>+<c>SetOutsideWall</c>+<c>AddWindow</c>) で
+    /// 構築した同等モデルと同一の数値結果を出す。
+    /// </summary>
+    [Fact]
+    public void UnifiedApi_ProducesIdenticalResultsAsLegacyApi()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+
+      // 1 m × 1 m × 1 m の極小室を 4 壁 + 床 + 天井 + 1 窓で構成。窓は南壁に。
+      // (壁・窓の構成は同一物性で 2 通り構築する)
+      WallLayer[] MakeLs() => new[] { new WallLayer("c", 0.5, 1000, 0.05) };
+
+      // 旧 API
+      BuildingThermalModel BuildLegacy()
+      {
+        var walls = new Wall[6];
+        for (int i = 0; i < 6; i++) walls[i] = new Wall(1.0, MakeLs());
+        var win = new Window(0.5, new[] { 0.8 }, new[] { 0.07 }, inc);
+        var zones = new[] { new Zone("z", 1.2) };
+        var mr = new MultiRoom(1, zones, walls, new[] { win });
+        for (int i = 0; i < 6; i++)
+        {
+          mr.AddWall(0, i, true);
+          mr.SetOutsideWall(i, false, inc);
+        }
+        mr.AddWindow(0, 0);
+        return new BuildingThermalModel(new[] { mr });
+      }
+
+      // 新 API: 同じ構成を AddComponent + SetOutsideEnvelope で構築
+      BuildingThermalModel BuildUnified()
+      {
+        var components = new OpticalLayeredEnvelope[7];
+        for (int i = 0; i < 6; i++) components[i] = new Wall(1.0, MakeLs());
+        components[6] = new Window(0.5, new[] { 0.8 }, new[] { 0.07 }, inc);
+        var zones = new[] { new Zone("z", 1.2) };
+        var mr = new MultiRoom(1, zones, components);
+        for (int i = 0; i < 6; i++)
+        {
+          mr.AddComponent(0, i, isSideF: true);
+          mr.SetOutsideEnvelope(i, isSideF: false, inc);
+        }
+        // 窓: F=屋外既定 (Window のため必須)。AddComponent (isSideF=false) で
+        // 室内側 (B) を zone に attach、F は AddComponent 内部で自動 bndSurfaces 登録。
+        mr.AddComponent(0, 6);
+        return new BuildingThermalModel(new[] { mr });
+      }
+
+      var bA = BuildLegacy();
+      var bB = BuildUnified();
+
+      var sun = new Sun(Sun.City.Tokyo);
+      var dt = new DateTime(2001, 7, 20, 12, 0, 0);
+      sun.Update(dt);
+      sun.SeparateGlobalHorizontalRadiation(800, Sun.SeparationMethod.Erbs);
+
+      bA.UpdateOutdoorCondition(dt, sun, 30, 0.012, 0);
+      bB.UpdateOutdoorCondition(dt, sun, 30, 0.012, 0);
+      bA.ControlHeatSupply(0, 0, 0);
+      bB.ControlHeatSupply(0, 0, 0);
+      bA.ControlMoistureSupply(0, 0, 0);
+      bB.ControlMoistureSupply(0, 0, 0);
+      bA.ForecastHeatTransfer();
+      bB.ForecastHeatTransfer();
+      bA.FixState();
+      bB.FixState();
+
+      double tA = bA.MultiRoom[0].Zones[0].Temperature;
+      double tB = bB.MultiRoom[0].Zones[0].Temperature;
+      // 完全 byte-identical までは要求しない (内部処理順の違いで FP 微差は
+      // 出うる) が、極めて近い値であるべき。
+      Assert.True(Math.Abs(tA - tB) < 1e-9,
+          $"統合 API が旧 API と一致しない: legacy={tA:F12}, unified={tB:F12}");
+    }
+
+    /// <summary>Window で <c>SetOutsideEnvelope(idx, isSideF=false, ...)</c> を呼ぶと例外。</summary>
+    [Fact]
+    public void SetOutsideEnvelope_WindowWithBSideOutdoor_Throws()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var win = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var zones = new[] { new Zone("z", 1.0) };
+      var mr = new MultiRoom(1, zones, new OpticalLayeredEnvelope[] { win });
+
+      // F=屋外なら OK (1-引数 overload)
+      mr.SetOutsideEnvelope(0, inc);
+      // F=屋外を明示しても OK
+      mr.SetOutsideEnvelope(0, isSideF: true, inc);
+
+      // F=室内 (B=屋外) は Window では例外
+      var ex = Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetOutsideEnvelope(0, isSideF: false, inc));
+      Assert.Contains("Window", ex.Message);
+    }
+
+    /// <summary>Window で <c>AddComponent(zone, idx, isSideF=true)</c> を呼ぶと例外。</summary>
+    [Fact]
+    public void AddComponent_WindowWithFSideToZone_Throws()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var win = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var zones = new[] { new Zone("z", 1.0) };
+      var mr = new MultiRoom(1, zones, new OpticalLayeredEnvelope[] { win });
+
+      // 既定 (B 側を zone へ) は OK
+      mr.AddComponent(0, 0);
+      // F=屋内 (= isSideF=true) は Window では例外
+      var ex = Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.AddComponent(0, 0, isSideF: true));
+      Assert.Contains("Window", ex.Message);
+    }
+
+    /// <summary>Window を内部仕切壁として扱おうとすると例外。</summary>
+    [Fact]
+    public void AddComponent_WindowAsInteriorPartition_Throws()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var win = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var zones = new[] { new Zone("za", 1.0), new Zone("zb", 1.0) };
+      var mr = new MultiRoom(1, zones, new OpticalLayeredEnvelope[] { win });
+
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.AddComponent(0, 1, 0));
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.AddLoopComponent(0, 0));
+    }
+
     /// <summary>木質繊維板の moisture-aware 壁で構成した 3m 立方の単室モデル。</summary>
     private static BuildingThermalModel MakeMoistureAwareCubeModel()
     {
