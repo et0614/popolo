@@ -547,7 +547,7 @@ namespace BESTEST_2023
         out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
     {
       // 表面熱伝達率は Std 140-2023 Tables 7-7/7-9 の h_conv (定数はクラス冒頭で共有)。
-      // 地下外壁は SetGroundWall で F 側上書きされるので AO_WALL は実質バイパス。
+      // 地下外壁は SetGroundEnvelope で F 側上書きされるので AO_WALL は実質バイパス。
       const double extswEmissivity = 0.6;
       const double extlwEmissivity = 0.9;
       const double intswEmissivity = 0.6;
@@ -586,7 +586,7 @@ namespace BESTEST_2023
       // h_r 線形化 (T̄=20°C)
       double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
-      // walls[0]=床(slab), [1]=屋根, [2-8]=外壁(地上+地下混在、地下は SetGroundWall で F 側上書き)
+      // walls[0]=床(slab), [1]=屋根, [2-8]=外壁(地上+地下混在、地下は SetGroundEnvelope で F 側上書き)
       for (int i = 0; i < walls.Length; i++)
       {
         walls[i].ConvectiveCoefficientF = (i == 1) ? AO_ROOF : AO_WALL;  // 床(0)/地下壁は実質バイパス
@@ -626,16 +626,16 @@ namespace BESTEST_2023
       mRoom.Albedo = 0.2;
       mRoom.AddZone(0, 0);
 
-      // 屋外表面設定 (SetGroundWall は Wall 専用 API のまま使用)
-      mRoom.SetGroundWall(0, true, 10000);
+      // 屋外表面設定 (SetGroundEnvelope は Wall 専用 API のまま使用)
+      mRoom.SetGroundEnvelope(0, 10000);
       mRoom.SetOutsideEnvelope(1, INC_H);
       mRoom.SetOutsideEnvelope(2, INC_N);
-      mRoom.SetGroundWall(3, true, 10000);
+      mRoom.SetGroundEnvelope(3, 10000);
       mRoom.SetOutsideEnvelope(4, INC_E);
-      mRoom.SetGroundWall(5, true, 10000);
+      mRoom.SetGroundEnvelope(5, 10000);
       mRoom.SetOutsideEnvelope(6, INC_W);
-      mRoom.SetGroundWall(7, true, 10000);
-      mRoom.SetGroundWall(8, true, 10000);
+      mRoom.SetGroundEnvelope(7, 10000);
+      mRoom.SetGroundEnvelope(8, 10000);
 
       // 窓と壁をゾーンに追加
       mRoom.AddComponent(zones[0], windows[0]);

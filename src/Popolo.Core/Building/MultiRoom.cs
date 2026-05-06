@@ -2234,6 +2234,106 @@ namespace Popolo.Core.Building
     public void SetOutsideEnvelope(IReadOnlyOpticalLayeredEnvelope component, bool isSideF, IReadOnlyIncline incline)
     { SetOutsideEnvelope(Array.IndexOf(components, (OpticalLayeredEnvelope)component), isSideF, incline); }
 
+    /// <summary>Marks the F side of a component as a ground-contact boundary.</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="conductance">Soil-to-surface thermal conductance [W/(m²·K)].</param>
+    /// <remarks>
+    /// Equivalent to <see cref="SetGroundEnvelope(int,bool,double)"/> with
+    /// <c>isSideF = true</c>. The driving temperature on this side is the
+    /// ground temperature supplied via <see cref="SetGroundTemperature(int,bool,double)"/>;
+    /// solar and sky-radiation terms that apply to outdoor surfaces are skipped.
+    /// </remarks>
+    public void SetGroundEnvelope(int componentIndex, double conductance)
+    {
+      SetGroundEnvelope(componentIndex, isSideF: true, conductance);
+    }
+
+    /// <summary>Marks one side of a component as a ground-contact boundary (explicit side).</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="isSideF">True for the F side; false for the B side.</param>
+    /// <param name="conductance">Soil-to-surface thermal conductance [W/(m²·K)].</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when the component is a <see cref="Window"/>: a window in
+    /// ground contact is not a meaningful configuration.
+    /// </exception>
+    public void SetGroundEnvelope(int componentIndex, bool isSideF, double conductance)
+    {
+      var c = components[componentIndex];
+      if (c is Window)
+        throw new PopoloArgumentException(
+            "A window cannot be a ground-contact envelope.",
+            nameof(componentIndex));
+
+      needInitialize = true;
+      EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
+
+      ws.ZoneIndex = -1;
+      ws.IsGroundWall = true;
+      ws.ConvectiveCoefficient = conductance;
+      ws.RadiativeCoefficient = 0;
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
+      if (!bndSurfaces.Contains(ws)) bndSurfaces.Add(ws);
+    }
+
+    /// <summary>Marks the F side of a component as a ground-contact boundary (reference-based).</summary>
+    public void SetGroundEnvelope(IReadOnlyOpticalLayeredEnvelope component, double conductance)
+    { SetGroundEnvelope(Array.IndexOf(components, (OpticalLayeredEnvelope)component), conductance); }
+
+    /// <summary>Marks one side of a component as a ground-contact boundary (reference-based, explicit side).</summary>
+    public void SetGroundEnvelope(IReadOnlyOpticalLayeredEnvelope component, bool isSideF, double conductance)
+    { SetGroundEnvelope(Array.IndexOf(components, (OpticalLayeredEnvelope)component), isSideF, conductance); }
+
+    /// <summary>Marks the F side of a component as facing an adjacent, non-simulated space.</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="adjacentSpaceFactor">Temperature-difference factor [-] (0 = behaves like indoor, 1 = behaves like outdoor).</param>
+    /// <remarks>
+    /// Equivalent to <see cref="SetAdjacentSpaceFactor(int,bool,double)"/>
+    /// with <c>isSideF = true</c>. Use to model walls that face an
+    /// un-modeled neighboring space (a tenant unit, an unconditioned shaft,
+    /// an attic treated as a black box, etc.) without instantiating a second
+    /// <see cref="MultiRoom"/>.
+    /// </remarks>
+    public void SetAdjacentSpaceFactor(int componentIndex, double adjacentSpaceFactor)
+    {
+      SetAdjacentSpaceFactor(componentIndex, isSideF: true, adjacentSpaceFactor);
+    }
+
+    /// <summary>Marks one side of a component as facing an adjacent, non-simulated space (explicit side).</summary>
+    /// <param name="componentIndex">Component index within <see cref="Components"/>.</param>
+    /// <param name="isSideF">True for the F side; false for the B side.</param>
+    /// <param name="adjacentSpaceFactor">Temperature-difference factor [-] (0 = indoor-like, 1 = outdoor-like).</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when the component is a <see cref="Window"/>. While a window
+    /// could in principle face an unconditioned neighboring space, the
+    /// configuration is rare; the throw enforces conservative defaults and
+    /// can be relaxed in a future release if needed.
+    /// </exception>
+    public void SetAdjacentSpaceFactor(int componentIndex, bool isSideF, double adjacentSpaceFactor)
+    {
+      var c = components[componentIndex];
+      if (c is Window)
+        throw new PopoloArgumentException(
+            "A window cannot use an adjacent-space factor in the current model.",
+            nameof(componentIndex));
+
+      needInitialize = true;
+      EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
+
+      ws.AdjacentSpaceFactor = adjacentSpaceFactor;
+      ws.ZoneIndex = -1;
+      ws.IsGroundWall = false;
+      for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
+      if (!bndSurfaces.Contains(ws)) bndSurfaces.Add(ws);
+    }
+
+    /// <summary>Marks the F side of a component as facing an adjacent, non-simulated space (reference-based).</summary>
+    public void SetAdjacentSpaceFactor(IReadOnlyOpticalLayeredEnvelope component, double adjacentSpaceFactor)
+    { SetAdjacentSpaceFactor(Array.IndexOf(components, (OpticalLayeredEnvelope)component), adjacentSpaceFactor); }
+
+    /// <summary>Marks one side of a component as facing an adjacent, non-simulated space (reference-based, explicit side).</summary>
+    public void SetAdjacentSpaceFactor(IReadOnlyOpticalLayeredEnvelope component, bool isSideF, double adjacentSpaceFactor)
+    { SetAdjacentSpaceFactor(Array.IndexOf(components, (OpticalLayeredEnvelope)component), isSideF, adjacentSpaceFactor); }
+
     /// <summary>
     /// Validates that a Window is being attached / oriented in a way consistent
     /// with its F=outdoor optical convention. Walls have full F/B freedom and

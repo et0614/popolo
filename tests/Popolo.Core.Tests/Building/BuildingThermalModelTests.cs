@@ -970,6 +970,38 @@ namespace Popolo.Core.Tests.Building
       Assert.Contains("Window", ex.Message);
     }
 
+    /// <summary>Window で <c>SetGroundEnvelope</c> を呼ぶと例外。</summary>
+    [Fact]
+    public void SetGroundEnvelope_OnWindow_Throws()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var win = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var zones = new[] { new Zone("z", 1.0) };
+      var mr = new MultiRoom(1, zones, new OpticalLayeredEnvelope[] { win });
+
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetGroundEnvelope(0, 10000));
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetGroundEnvelope(0, isSideF: true, 10000));
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetGroundEnvelope(0, isSideF: false, 10000));
+    }
+
+    /// <summary>Window で <c>SetAdjacentSpaceFactor</c> を呼ぶと例外。</summary>
+    [Fact]
+    public void SetAdjacentSpaceFactor_OnWindow_Throws()
+    {
+      var inc = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var win = new Window(1.0, new[] { 0.8 }, new[] { 0.07 }, inc);
+      var zones = new[] { new Zone("z", 1.0) };
+      var mr = new MultiRoom(1, zones, new OpticalLayeredEnvelope[] { win });
+
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetAdjacentSpaceFactor(0, 0.5));
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => mr.SetAdjacentSpaceFactor(0, isSideF: true, 0.5));
+    }
+
     /// <summary>Window を内部仕切壁として扱おうとすると例外。</summary>
     [Fact]
     public void AddComponent_WindowAsInteriorPartition_Throws()
