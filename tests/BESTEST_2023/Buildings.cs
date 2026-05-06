@@ -410,8 +410,8 @@ namespace BESTEST_2023
       for (int i = 0; i < windows.Length; i++)
       {
         mRoom.AddComponent(zones[0], windows[i]);
-        // BESTEST では全日射がまず床に当たると仮定
-        mRoom.SetSWDistributionRateToFloor(i, 0, false, 1.0);
+        // BESTEST では全日射がまず床に当たると仮定 (emitter=window, floor=walls[0])
+        mRoom.SetSWDistributionRateToFloor(windows[i], walls[0], false, 1.0);
       }
     }
 
@@ -522,8 +522,8 @@ namespace BESTEST_2023
       // SunZone に窓を追加
       mRoom.AddComponent(zones[1], windows[0]);
       mRoom.AddComponent(zones[1], windows[1]);
-      mRoom.SetSWDistributionRateToFloor(0, 1, false, 1.0);
-      mRoom.SetSWDistributionRateToFloor(1, 1, false, 1.0);
+      mRoom.SetSWDistributionRateToFloor(windows[0], walls[1], false, 1.0); // SunZone 床は walls[1]
+      mRoom.SetSWDistributionRateToFloor(windows[1], walls[1], false, 1.0);
 
       // BackZone に壁を追加
       mRoom.AddComponent(0, 0);
@@ -640,8 +640,8 @@ namespace BESTEST_2023
       // 窓と壁をゾーンに追加
       mRoom.AddComponent(zones[0], windows[0]);
       mRoom.AddComponent(zones[0], windows[1]);
-      mRoom.SetSWDistributionRateToFloor(0, 0, false, 1.0);
-      mRoom.SetSWDistributionRateToFloor(1, 0, false, 1.0);
+      mRoom.SetSWDistributionRateToFloor(windows[0], walls[0], false, 1.0);
+      mRoom.SetSWDistributionRateToFloor(windows[1], walls[0], false, 1.0);
       for (int i = 0; i < walls.Length; i++) mRoom.AddComponent(0, i);
     }
 

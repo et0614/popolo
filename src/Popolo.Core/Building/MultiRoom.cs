@@ -1660,36 +1660,47 @@ namespace Popolo.Core.Building
     public void SetVentilationRate(IReadOnlyZone zone, double ventilationRate)
     { SetVentilationRate(Array.IndexOf(zones, zone), ventilationRate); }
 
-    /// <summary>Specifies which floor receives a preferential share of direct solar radiation entering through a window.</summary>
-    /// <param name="windowIndex">Window index.</param>
-    /// <param name="wallIndex">Wall (floor) index.</param>
+    /// <summary>Specifies which floor receives a preferential share of the direct solar radiation transmitted by a translucent envelope component.</summary>
+    /// <param name="emitterComponentIndex">
+    /// Component index of the emitter — i.e., the translucent component
+    /// (typically a window, possibly a future translucent wall) that
+    /// transmits direct solar into the indoor space.
+    /// </param>
+    /// <param name="floorComponentIndex">Component index of the floor that preferentially absorbs the direct solar.</param>
     /// <param name="isSideF">True for the F side; false for the B side of the floor.</param>
     /// <param name="distRate">Fraction of direct short-wave radiation that lands on this floor [0, 1]. The remainder is distributed to other interior surfaces by area/absorptance.</param>
     /// <remarks>
-    /// By default, direct solar radiation transmitted through a window is
-    /// distributed to all interior surfaces in proportion to their
-    /// area-absorptance product, which is a reasonable isotropic assumption
-    /// when the solar patch on the floor is not tracked explicitly. This
-    /// method lets the caller override that assumption for a specific window
-    /// to send a defined fraction directly to a chosen floor — useful when
-    /// measured or ray-traced data are available.
+    /// By default, direct solar radiation transmitted through a translucent
+    /// component is distributed to all interior surfaces in proportion to
+    /// their area-absorptance product, which is a reasonable isotropic
+    /// assumption when the solar patch on the floor is not tracked
+    /// explicitly. This method lets the caller override that assumption for
+    /// a specific emitter to send a defined fraction directly to a chosen
+    /// floor — useful when measured or ray-traced data are available.
+    /// Registering a fully opaque component as the emitter has no effect
+    /// (since its transmitted direct power is zero).
     /// </remarks>
-    public void SetSWDistributionRateToFloor(int windowIndex, int wallIndex, bool isSideF, double distRate)
+    public void SetSWDistributionRateToFloor(int emitterComponentIndex, int floorComponentIndex, bool isSideF, double distRate)
     {
-      EnvelopeSurface ws;
-      if (isSideF) ws = walls[wallIndex].SurfaceF;
-      else ws = walls[wallIndex].SurfaceB;
-      swDistFloor[windows[windowIndex]] = ws;
-      swDistRate[windows[windowIndex]] = distRate;
+      var floor = components[floorComponentIndex];
+      EnvelopeSurface ws = isSideF ? floor.SurfaceF : floor.SurfaceB;
+      var emitter = components[emitterComponentIndex];
+      swDistFloor[emitter] = ws;
+      swDistRate[emitter] = distRate;
     }
 
-    /// <summary>Sets the floor surface that preferentially receives direct short-wave radiation from the specified window.</summary>
-    /// <param name="window">Window.</param>
-    /// <param name="wall">Wall (floor).</param>
-    /// <param name="isSideF">True for the F side; false for the B side.</param>
+    /// <summary>Sets the floor surface that preferentially receives direct short-wave radiation transmitted by an envelope component (reference-based).</summary>
+    /// <param name="emitter">The translucent component that transmits direct solar (e.g., a window).</param>
+    /// <param name="floor">The component (typically a wall on the floor) that preferentially absorbs the direct solar.</param>
+    /// <param name="isSideF">True for the F side of the floor; false for the B side.</param>
     /// <param name="distRate">Direct short-wave distribution ratio to the floor [-].</param>
-    public void SetSWDistributionRateToFloor(IReadOnlyWindow window, IReadOnlyWall wall, bool isSideF, double distRate)
-    { SetSWDistributionRateToFloor(Array.IndexOf(windows, window), Array.IndexOf(walls, wall), isSideF, distRate); }
+    public void SetSWDistributionRateToFloor(IReadOnlyOpticalLayeredEnvelope emitter, IReadOnlyOpticalLayeredEnvelope floor, bool isSideF, double distRate)
+    {
+      SetSWDistributionRateToFloor(
+          Array.IndexOf(components, (OpticalLayeredEnvelope)emitter),
+          Array.IndexOf(components, (OpticalLayeredEnvelope)floor),
+          isSideF, distRate);
+    }
 
     /// <summary>Sets the water supply conditions for a buried pipe in the specified wall.</summary>
     /// <param name="wallIndex">Wall (floor) index that contains the pipe.</param>
