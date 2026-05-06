@@ -656,6 +656,124 @@ namespace Popolo.Core.Tests.Building
           $"moisture 有/無 で F 表面温度が乖離: |Δ| = {dT:F3} °C (許容 < 0.5)");
     }
 
+    /// <summary>
+    /// 木質繊維板の moisture-aware 壁を BuildingThermalModel に組み込んで
+    /// 動作することを確認する統合テスト。
+    /// </summary>
+    /// <remarks>
+    /// 3 m × 3 m × 3 m の単室を 6 面とも moisture-aware な木質繊維板で
+    /// 構成し、東京 7/20 の外気条件で 48 時間 (Free-Float、HVAC なし) 走らせて、
+    /// 室内温度・絶対湿度・各壁の節点温度/湿度がすべて NaN / Inf でなく、
+    /// 物理的に妥当な範囲に収まることを確認する。
+    /// 周期定常まで収束させるのではなく、過渡応答中の安定性
+    /// (ソルバが破綻しない) を主に確認する。
+    /// </remarks>
+    [Fact]
+    public void HeatMoistureCoupled_InBuildingModel_ProducesSaneOutputs()
+    {
+      var bModel = MakeMoistureAwareCubeModel();
+
+      var sun = new Sun(Sun.City.Tokyo);
+      var dTime = new DateTime(2001, 7, 20, 0, 0, 0);
+
+      // 48 時間: 24 h × 2。最初の 24 h で過渡応答、次の 24 h で安定性確認。
+      for (int day = 0; day < 2; day++)
+      {
+        for (int h = 0; h < 24; h++)
+        {
+          sun.Update(dTime.AddMinutes(30));
+          sun.SeparateGlobalHorizontalRadiation(
+              GlobalRad[0][h], Sun.SeparationMethod.Erbs);
+          bModel.UpdateOutdoorCondition(
+              dTime, sun, Dbt[0][h], Hrt[0][h] * 0.001, 0);
+
+          bModel.ControlHeatSupply(0, 0, 0);
+          bModel.ControlMoistureSupply(0, 0, 0);
+          bModel.ForecastHeatTransfer();
+          bModel.ForecastWaterTransfer();
+          bModel.FixState();
+
+          // 毎時刻、ゾーン状態と各壁の節点状態が有限であること
+          var zone = bModel.MultiRoom[0].Zones[0];
+          Assert.True(!double.IsNaN(zone.Temperature) && !double.IsInfinity(zone.Temperature),
+              $"day={day} h={h}: zone temperature = {zone.Temperature}");
+          Assert.True(!double.IsNaN(zone.HumidityRatio) && !double.IsInfinity(zone.HumidityRatio),
+              $"day={day} h={h}: zone humidity = {zone.HumidityRatio}");
+
+          foreach (var wall in bModel.MultiRoom[0].Walls)
+          {
+            for (int n = 0; n < wall.NodeCount; n++)
+            {
+              double t = wall.Temperatures[n];
+              double w = wall.Humidities[n];
+              Assert.True(!double.IsNaN(t) && !double.IsInfinity(t),
+                  $"day={day} h={h} wall.Temperatures[{n}] = {t}");
+              Assert.True(!double.IsNaN(w) && !double.IsInfinity(w),
+                  $"day={day} h={h} wall.Humidities[{n}] = {w}");
+            }
+          }
+
+          dTime = dTime.AddHours(1);
+        }
+      }
+
+      // 最終時刻の妥当性: 東京 7/20 (外気 24-32°C、絶対湿度 17-20 g/kg) なので
+      // 室内も近い帯域に収まる。木質繊維板は薄いため熱応答は早く屋外に
+      // 連動する。
+      var finalZone = bModel.MultiRoom[0].Zones[0];
+      Assert.InRange(finalZone.Temperature, 15.0, 50.0);
+      Assert.InRange(finalZone.HumidityRatio, 0.005, 0.030);
+    }
+
+    /// <summary>木質繊維板の moisture-aware 壁で構成した 3m 立方の単室モデル。</summary>
+    private static BuildingThermalModel MakeMoistureAwareCubeModel()
+    {
+      var incN = new Incline(Incline.Orientation.N, 0.5 * Math.PI);
+      var incE = new Incline(Incline.Orientation.E, 0.5 * Math.PI);
+      var incS = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
+      var incW = new Incline(Incline.Orientation.W, 0.5 * Math.PI);
+      var incH = new Incline(Incline.Orientation.N, 0);
+
+      // 木質繊維板 6 mm × 3 層 = 18 mm。松本衛 博論 pp.8-10。
+      // 同じインスタンスを共有しないよう wall ごとに新しい layer 配列を作る。
+      WallLayer[] MakeLayers()
+      {
+        var ls = new WallLayer[3];
+        for (int i = 0; i < 3; i++)
+          ls[i] = new WallLayer("WoodFiberBoard", 0.1116, 585, 0.000004694, 0.788, 3080, 1.715, 0.006);
+        return ls;
+      }
+
+      // 6 面: 北・東・南・西の側壁 (3 × 3 = 9 m²)、屋根・床 (3 × 3 = 9 m²)
+      var walls = new Wall[6];
+      for (int i = 0; i < 6; i++)
+      {
+        walls[i] = new Wall(9.0, MakeLayers(), computeMoistureTransfer: true);
+        walls[i].LongWaveEmissivityF = walls[i].LongWaveEmissivityB = 0.9;
+        walls[i].ShortWaveAbsorptanceF = walls[i].ShortWaveAbsorptanceB = 0.7;
+      }
+
+      const double airDensity = 1.2;
+      var zones = new[] { new Zone("Cube", 3 * 3 * 3 * airDensity) };
+      zones[0].VentilationRate = zones[0].AirMass / 3600.0 * 0.5;
+
+      var mRoom = new MultiRoom(1, zones, walls, new Window[0]);
+      mRoom.AddZone(0, 0);
+
+      mRoom.AddWall(0, 0, true); mRoom.SetOutsideWall(0, false, incN);
+      mRoom.AddWall(0, 1, true); mRoom.SetOutsideWall(1, false, incE);
+      mRoom.AddWall(0, 2, true); mRoom.SetOutsideWall(2, false, incS);
+      mRoom.AddWall(0, 3, true); mRoom.SetOutsideWall(3, false, incW);
+      mRoom.AddWall(0, 4, true); mRoom.SetOutsideWall(4, false, incH);
+      mRoom.AddWall(0, 5, true); mRoom.SetOutsideWall(5, false, incH);
+      mRoom.Albedo = 0.2;
+
+      var bModel = new BuildingThermalModel(new[] { mRoom });
+      bModel.SetInsideConvectiveCoefficient(0, 5.0);
+      bModel.SetOutsideConvectiveCoefficient(0, 15.0);
+      return bModel;
+    }
+
     #endregion
   }
 }
