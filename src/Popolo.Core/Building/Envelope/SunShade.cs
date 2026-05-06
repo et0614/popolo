@@ -93,11 +93,10 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the tilted surface to which this shading device is attached.</summary>
     /// <remarks>
-    /// Used by the legacy parameterless overloads (<see cref="GetShadowRatio"/>,
-    /// <see cref="GetSkyViewFactor"/>, <see cref="GetSkyDiffuseAttenuation"/>).
-    /// New code should access the shading via <see cref="ISolarShading"/> and
-    /// pass the surface's incline through the interface methods so that the
-    /// surface — not this object — is the source of truth for orientation.
+    /// Used by <see cref="GetSkyViewFactor"/>. The interface methods
+    /// (<see cref="GetDirectShadingRate"/>, <see cref="GetSkyDiffuseShadingRate"/>)
+    /// instead take the caller's incline so that the surface — not this object —
+    /// is the source of truth for orientation.
     /// </remarks>
     public IReadOnlyIncline Incline { get; internal set; }
 
@@ -228,27 +227,6 @@ namespace Popolo.Core.Building.Envelope
       return computeSkyViewFactor(Incline);
     }
 
-    /// <summary>
-    /// Gets the diffuse-sky attenuation factor [0, 1] caused by this shading
-    /// device. Multiply this by the unobstructed sky-diffuse irradiance on the
-    /// window to obtain the attenuated value. Returns 1 when the shape has no
-    /// implemented sky-blocking model or there is no shading.
-    /// </summary>
-    [Obsolete("Use ISolarShading.GetSkyDiffuseShadingRate(surfaceIncline) instead. The new method returns the shading rate (1 - attenuation) and uses the surface's incline rather than the SunShade's internal one.")]
-    public double GetSkyDiffuseAttenuation()
-    {
-      return computeSkyDiffuseAttenuation(Incline);
-    }
-
-    /// <summary>Gets the shadow area ratio [-] on the window for the given solar position.</summary>
-    /// <param name="sun">Solar state.</param>
-    /// <returns>Shadow area ratio [-] (0 = fully sunlit, 1 = fully shaded).</returns>
-    [Obsolete("Use ISolarShading.GetDirectShadingRate(sun, surfaceIncline) instead. The new method takes the surface's incline as a parameter rather than relying on the SunShade's internal one.")]
-    public double GetShadowRatio(IReadOnlySun sun)
-    {
-      return computeDirectShadingRate(sun, Incline);
-    }
-
     /// <inheritdoc />
     public double GetDirectShadingRate(IReadOnlySun sun, IReadOnlyIncline surfaceIncline)
     {
@@ -322,9 +300,9 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>
-    /// Shared implementation of <see cref="GetSkyDiffuseAttenuation"/> and
-    /// <see cref="GetSkyDiffuseShadingRate"/>: returns the attenuation factor
-    /// (1 = unobstructed, 0 = fully obstructed) for the given surface incline.
+    /// Shared implementation of <see cref="GetSkyDiffuseShadingRate"/>: returns
+    /// the attenuation factor (1 = unobstructed, 0 = fully obstructed) for the
+    /// given surface incline.
     /// </summary>
     private double computeSkyDiffuseAttenuation(IReadOnlyIncline? incline)
     {
@@ -339,10 +317,9 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>
-    /// Shared implementation of <see cref="GetShadowRatio"/> and
-    /// <see cref="GetDirectShadingRate"/>: returns the shadow area ratio
-    /// (0 = fully sunlit, 1 = fully shaded) for the given solar position and
-    /// surface incline.
+    /// Shared implementation of <see cref="GetDirectShadingRate"/>: returns the
+    /// shadow area ratio (0 = fully sunlit, 1 = fully shaded) for the given
+    /// solar position and surface incline.
     /// </summary>
     private double computeDirectShadingRate(IReadOnlySun sun, IReadOnlyIncline? incline)
     {

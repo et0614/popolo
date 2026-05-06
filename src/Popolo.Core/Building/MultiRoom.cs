@@ -2560,18 +2560,6 @@ namespace Popolo.Core.Building
       else walls[wallIndex].ConvectiveCoefficientB = convectiveCoefficient;
     }
 
-    /// <summary>Determines whether the specified surface is registered in this multi-room system.</summary>
-    /// <param name="surface">Boundary surface.</param>
-    /// <returns>True if the surface is registered; otherwise false.</returns>
-    internal bool HasSurface(EnvelopeSurface surface)
-    {
-      foreach (EnvelopeSurface sf in surfaces)
-        if (surface == sf) return true;
-      foreach (EnvelopeSurface sf in bndSurfaces)
-        if (surface == sf) return true;
-      return false;
-    }
-
     #endregion
 
     #region 制御関連の処理

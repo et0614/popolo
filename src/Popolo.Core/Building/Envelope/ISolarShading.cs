@@ -36,9 +36,9 @@ namespace Popolo.Core.Building.Envelope
   /// </para>
   /// <para>
   /// All methods follow the <b>shading-rate</b> convention (0 = no shading,
-  /// 1 = fully blocked), consistent with <see cref="SunShade.GetShadowRatio"/>.
-  /// The engine multiplies the unobstructed irradiance by <c>(1 - shadingRate)</c>
-  /// to obtain the effective irradiance reaching the surface.
+  /// 1 = fully blocked). The engine multiplies the unobstructed irradiance by
+  /// <c>(1 - shadingRate)</c> to obtain the effective irradiance reaching the
+  /// surface.
   /// </para>
   /// <para>
   /// Available implementations:
