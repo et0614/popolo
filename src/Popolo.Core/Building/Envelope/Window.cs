@@ -52,7 +52,7 @@ namespace Popolo.Core.Building.Envelope
   /// keeping the per-step cost low for steady conditions.
   /// </para>
   /// </remarks>
-  public class Window : IReadOnlyWindow, IEnvelopeComponent
+  public class Window : LayeredEnvelope, IReadOnlyWindow
   {
 
     #region 列挙型定義
@@ -103,8 +103,8 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Window surface area [m²].</summary>
     private double area = 1;
 
-    /// <summary>Gets or sets the window surface area [m²].</summary>
-    public double Area
+    /// <summary>Gets or sets the window surface area [m²]. Non-positive values are silently ignored.</summary>
+    public override double Area
     {
       set { if (0 < value) { area = value; } }
       get { return area; }
@@ -195,18 +195,12 @@ namespace Popolo.Core.Building.Envelope
     { get { throw new PopoloNotImplementedException(
         $"{nameof(Window)}.{nameof(ShortWaveEmissivityF)}"); } }
 
-    /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side (outdoor) [-].</summary>
-    public double LongWaveEmissivityF { get; set; } = 0.9;
-
     /// <summary>
     /// Whether the F (outdoor) side is exposed to outdoor wind (default <c>true</c>).
     /// When <c>false</c>, the F-side convective coefficient is excluded from the
     /// wind-speed-driven dynamic update and retains its user-set value.
     /// </summary>
     public bool IsWindExposedF { get; set; } = true;
-
-    /// <summary>Gets or sets the sol-air temperature on the F side (outdoor) [°C].</summary>
-    public double SolAirTemperatureF { get; set; }
 
     /// <summary>Gets the surface temperature on the F side (outdoor) [°C].</summary>
     public double SurfaceTemperatureF { get { return OutsideSurface.SurfaceTemperature; } }
@@ -243,40 +237,21 @@ namespace Popolo.Core.Building.Envelope
     public double ShortWaveEmissivityB
     { get { return 1 - DiffuseSolarLostReflectance; } }
 
-    /// <summary>Gets or sets the long-wave (thermal) emissivity on the B side (indoor) [-].</summary>
-    public double LongWaveEmissivityB { get; set; } = 0.9;
-
-    /// <summary>Gets or sets the sol-air temperature on the B side (indoor) [°C].</summary>
-    public double SolAirTemperatureB { get; set; }
-
     /// <summary>Gets the surface temperature on the B side (indoor) [°C].</summary>
     public double SurfaceTemperatureB { get { return InsideSurface.SurfaceTemperature; } }
 
     /// <summary>
     /// Gets the boundary surface element on the indoor (B) side.
     /// </summary>
-    /// <remarks>Alias for <see cref="SurfaceB"/>.</remarks>
+    /// <remarks>Alias for <see cref="LayeredEnvelope.SurfaceB"/>.</remarks>
     public EnvelopeSurface InsideSurface => SurfaceB;
 
     /// <summary>
     /// Gets the boundary surface element on the outdoor (F) side.
     /// </summary>
-    /// <remarks>Alias for <see cref="SurfaceF"/>.</remarks>
+    /// <remarks>Alias for <see cref="LayeredEnvelope.SurfaceF"/>.</remarks>
     public EnvelopeSurface OutsideSurface => SurfaceF;
 
-    /// <summary>Gets the boundary surface element on the F side.</summary>
-    /// <remarks>
-    /// For windows, F is conventionally the outdoor side; see also
-    /// <see cref="OutsideSurface"/> for the semantic alias.
-    /// </remarks>
-    public EnvelopeSurface SurfaceF { get; private set; } = null!;
-
-    /// <summary>Gets the boundary surface element on the B side.</summary>
-    /// <remarks>
-    /// For windows, B is conventionally the indoor side; see also
-    /// <see cref="InsideSurface"/> for the semantic alias.
-    /// </remarks>
-    public EnvelopeSurface SurfaceB { get; private set; } = null!;
 
     #endregion
 
@@ -380,7 +355,7 @@ namespace Popolo.Core.Building.Envelope
     /// <see cref="MultiRoom"/> during each solver step; external callers
     /// usually do not need to invoke it directly.
     /// </remarks>
-    public void UpdateOpticalProperties(IReadOnlySun sun)
+    public override void UpdateOpticalProperties(IReadOnlySun sun)
     {
       //ガラス・日射遮蔽物単体の光学特性の更新処理//////////////////////////////
       double cos = OutsideIncline.GetDirectSolarRadiationRatio(sun);
@@ -514,7 +489,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="sun">Solar geometry / radiation source.</param>
     /// <param name="albedo">Ground albedo [-].</param>
     /// <returns>Indoor-side absorbed flux [W/m²] and transmitted power [W].</returns>
-    public ShortWaveEmission EmitShortWaveToIndoor(
+    public override ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       Climate.IReadOnlySun sun,
       double albedo)
@@ -550,7 +525,7 @@ namespace Popolo.Core.Building.Envelope
     /// window from interior inter-reflection: accounts for inter-glass
     /// back-and-forth between layers.
     /// </summary>
-    public double IndoorDiffuseAbsorptanceFactor
+    public override double IndoorDiffuseAbsorptanceFactor
         => DiffuseSolarIncidentAbsorptance / (1 - DiffuseSolarIncidentReflectance);
 
     /// <summary>
@@ -559,18 +534,12 @@ namespace Popolo.Core.Building.Envelope
     /// step-coefficient matrix to maintain. This will become non-trivial when
     /// per-glass-layer heat capacity is added.
     /// </summary>
-    public void UpdateInverseMatrix() { }
+    public override void UpdateInverseMatrix() { }
 
     /// <summary>
     /// Companion no-op to <see cref="UpdateInverseMatrix"/>; see remarks there.
     /// </summary>
-    public void UpdateIFCoefficients() { }
-
-    /// <summary>
-    /// Solver-managed flag — <c>false</c> for the current resistive-only
-    /// window model. Reserved for the future heat-capacity model.
-    /// </summary>
-    public bool InverseMatrixUpdated { get; set; } = false;
+    public override void UpdateIFCoefficients() { }
 
     /// <summary>Computes the total optical properties from the individual layer properties.</summary>
     /// <param name="opPropF">Layer optical properties for F-side incidence.</param>

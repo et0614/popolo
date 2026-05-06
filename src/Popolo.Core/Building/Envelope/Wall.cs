@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
   /// to callers.
   /// </para>
   /// </remarks>
-  public class Wall : IReadOnlyWall, IEnvelopeComponent
+  public class Wall : LayeredEnvelope, IReadOnlyWall
   {
 
     #region 定数宣言
@@ -92,6 +92,29 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Sensible heat resistance [m²·K/W] and heat capacity [J/(m²·K)] arrays.</summary>
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
     private double[] resS = null!, capS = null!;
+
+    /// <summary>Per-node short-wave (solar) absorption [W/m²] supplied externally as a body source.</summary>
+    /// <remarks>
+    /// Default zero. Set via <see cref="SetLayerSolarAbsorption(int, double)"/>.
+    /// Used when a translucent component (e.g., a window assembly modeled as a
+    /// stack of glass and air-gap layers, or a future translucent wall) needs
+    /// to feed the per-layer absorbed solar flux into the wall-style matrix
+    /// solver. For an opaque wall with absorption only at the outdoor face,
+    /// leave at zero — that contribution is folded into <c>SolAirTemperature</c>
+    /// upstream.
+    /// </remarks>
+    private double[] solarAbsorption = null!;
+
+    /// <summary>Per-node coefficient mapping <see cref="solarAbsorption"/> [W/m²] to its RHS contribution in <c>tempAndHumid2</c>.</summary>
+    /// <remarks>
+    /// For nodes with non-zero capacity: <c>Δt / capS[i]</c> (sensible-only)
+    /// or <c>cSLS · (capL[i] + cKappa[i])</c> (moisture mode), matching the
+    /// scaling used for boundary inputs in the same row. For zero-capacity
+    /// (steady-state) nodes the row is not time-integrated, so the coefficient
+    /// is the equivalent algebraic factor (<c>1.0</c> in sensible-only mode).
+    /// Computed alongside <c>uSF</c>/<c>uSB</c> in <c>UpdateUMatrix</c>.
+    /// </remarks>
+    private double[] qCoefS = null!;
 
     /// <summary>Moisture resistance [(kg/kg)·m²/(kg/s)] and moisture capacity [kg/m²] arrays (used only when ComputeMoistureTransfer is true).</summary>
     /// <remarks>Pre-allocated to avoid repeated heap allocation during simulation.</remarks>
@@ -134,7 +157,7 @@ namespace Popolo.Core.Building.Envelope
     { get { return new VectorView(tempAndHumid, NodeCount, NodeCount); } }
 
     /// <summary>Gets or sets the wall surface area [m²].</summary>
-    public double Area { get; set; } = 1.0d;
+    public override double Area { get; set; } = 1.0d;
 
     /// <summary>Calculation time step [s].</summary>
     private double timeStep = 3600;
@@ -189,9 +212,6 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the short-wave (solar) absorptance on the F side [-].</summary>
     public double ShortWaveAbsorptanceF { get; set; } = 0.7;
 
-    /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side [-].</summary>
-    public double LongWaveEmissivityF { get; set; } = 0.9;
-
     /// <summary>
     /// Whether the F side is exposed to outdoor wind. Default <c>false</c>; the side
     /// is initialized to <c>true</c> when the F side is registered as an exterior
@@ -202,9 +222,6 @@ namespace Popolo.Core.Building.Envelope
     /// wind-speed-driven dynamic update and retains its user-set value.
     /// </summary>
     public bool IsWindExposedF { get; set; } = false;
-
-    /// <summary>Gets or sets the sol-air temperature on the F side [°C].</summary>
-    public double SolAirTemperatureF { get; set; }
 
     /// <summary>Gets or sets the humidity ratio on the F side [kg/kg].</summary>
     public double HumidityRatioF { get; set; }
@@ -244,9 +261,6 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets or sets the short-wave (solar) absorptance on the B side [-].</summary>
     public double ShortWaveAbsorptanceB { get; set; } = 0.7;
 
-    /// <summary>Gets or sets the long-wave (thermal) emissivity on the B side [-].</summary>
-    public double LongWaveEmissivityB { get; set; } = 0.9;
-
     /// <summary>
     /// Whether the B side is exposed to outdoor wind. Default <c>false</c>; the side
     /// is initialized to <c>true</c> when the B side is registered as an exterior
@@ -255,9 +269,6 @@ namespace Popolo.Core.Building.Envelope
     /// for sheltered exterior surfaces.
     /// </summary>
     public bool IsWindExposedB { get; set; } = false;
-
-    /// <summary>Gets or sets the sol-air temperature on the B side [°C].</summary>
-    public double SolAirTemperatureB { get; set; }
 
     /// <summary>Gets or sets the humidity ratio on the B side [kg/kg].</summary>
     public double HumidityRatioB { get; set; }
@@ -274,12 +285,6 @@ namespace Popolo.Core.Building.Envelope
     #endregion
 
     #region internalプロパティ（多数室計算用）
-
-    /// <summary>Gets the boundary surface element on the F side.</summary>
-    public EnvelopeSurface SurfaceF { get; private set; } = null!;
-
-    /// <summary>Gets the boundary surface element on the B side.</summary>
-    public EnvelopeSurface SurfaceB { get; private set; } = null!;
 
     /// <summary>Inverse-matrix–derived F-side temperature contribution to the next-step nodal solution.</summary>
     internal double IF2_F { get; private set; }
@@ -349,7 +354,7 @@ namespace Popolo.Core.Building.Envelope
     /// Cleared by <see cref="BuildingThermalModel.FixState"/> at the start of
     /// each step. Initial value <c>true</c> guarantees the first AB build.
     /// </remarks>
-    public bool InverseMatrixUpdated { get; set; } = true;
+    public override bool InverseMatrixUpdated { get; set; } = true;
 
     #endregion
 
@@ -392,6 +397,8 @@ namespace Popolo.Core.Building.Envelope
       int mNum = this.layers.Length + 1; //質点数
       capS = new double[mNum];
       resS = new double[mNum + 1];
+      solarAbsorption = new double[mNum];
+      qCoefS = new double[mNum];
       int ssNum = mNum; //未知変数の数
       if (ComputeMoistureTransfer)
       {
@@ -442,7 +449,7 @@ namespace Popolo.Core.Building.Envelope
     /// Per call, <see cref="Update"/>:
     /// <list type="bullet">
     ///   <item><description>rebuilds the inverse step-coefficient matrix if an input has changed (layer properties, pipe flow, film coefficients, time step);</description></item>
-    ///   <item><description>applies <see cref="SolAirTemperatureF"/> / <see cref="SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
+    ///   <item><description>applies <see cref="LayeredEnvelope.SolAirTemperatureF"/> / <see cref="LayeredEnvelope.SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
     ///   <item><description>calls <c>UpdateState</c> on variable-property layers (e.g., <see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/>) and, if any property changed, schedules a matrix rebuild for the next call;</description></item>
     ///   <item><description>refreshes the boundary-temperature sensitivity coefficients (IF2 / IF3) used by the zone solver.</description></item>
     /// </list>
@@ -486,6 +493,9 @@ namespace Popolo.Core.Building.Envelope
         if (key == last) tempAndHumid2[last] += uPB[last] * SolAirTemperatureB;
         tempAndHumid2[key] += uP[key] * bPipes[key].InletWaterTemperature;
       }
+      //層別吸収日射の影響を加える (sensible 行のみ)
+      for (int i = 0; i < mNum; i++)
+        if (solarAbsorption[i] != 0) tempAndHumid2[i] += qCoefS[i] * solarAbsorption[i];
       //逆行列で解を求める
       LinearAlgebraOperations.Multiply(uxMatrix, tempAndHumid2, tempAndHumid, 1, 0);
 
@@ -555,7 +565,7 @@ namespace Popolo.Core.Building.Envelope
     /// change, IF2/3 must be recomputed too — otherwise the C vector is inconsistent with
     /// the A/B matrix and the zone heat balance produces incorrect results.
     /// </remarks>
-    public void UpdateIFCoefficients()
+    public override void UpdateIFCoefficients()
     {
       if (ComputeMoistureTransfer)
       {
@@ -568,6 +578,7 @@ namespace Popolo.Core.Building.Envelope
           double bf = tempAndHumid[i];
           int ipn = i + nm1;
           if (bPipes.ContainsKey(i)) bf += uP[i] * bPipes[i].InletWaterTemperature;
+          if (solarAbsorption[i] != 0) bf += qCoefS[i] * solarAbsorption[i];
           IF2_F += uxMatrix[0, i] * bf + uxMatrix[0, ipn] * tempAndHumid[ipn];
           IF2_B += uxMatrix[nm, i] * bf + uxMatrix[nm, ipn] * tempAndHumid[ipn];
           IF3_F += uxMatrix[nm1, i] * bf + uxMatrix[nm1, ipn] * tempAndHumid[ipn];
@@ -582,6 +593,7 @@ namespace Popolo.Core.Building.Envelope
         {
           double bf = tempAndHumid[i];
           if (bPipes.ContainsKey(i)) bf += uP[i] * bPipes[i].InletWaterTemperature;
+          if (solarAbsorption[i] != 0) bf += qCoefS[i] * solarAbsorption[i];
           IF2_F += uxMatrix[0, i] * bf;
           IF2_B += uxMatrix[num, i] * bf;
         }
@@ -643,6 +655,31 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>
+    /// Supplies a per-node short-wave absorption [W/m²] as a body source in the
+    /// next <see cref="Update"/>. Intended for translucent constructions
+    /// (e.g., window assemblies modeled as a glass/air-gap stack) whose
+    /// individual layers absorb a fraction of the incident solar.
+    /// </summary>
+    /// <param name="nodeIndex">Node index in <c>[0, NodeCount)</c>. Node 0 is the F-face surface, node <see cref="NodeCount"/>−1 is the B-face surface.</param>
+    /// <param name="qPerArea">Absorbed short-wave heat flux at the node [W/m²]. Treated as constant over the time step.</param>
+    /// <remarks>
+    /// Setting zero (the default) reproduces the standard sol-air-only
+    /// boundary heat balance. Successive calls overwrite the value at that
+    /// node — the wall does not accumulate; callers reset each time step.
+    /// Use <see cref="ClearLayerSolarAbsorption"/> to zero all nodes at once.
+    /// </remarks>
+    public void SetLayerSolarAbsorption(int nodeIndex, double qPerArea)
+    {
+      solarAbsorption[nodeIndex] = qPerArea;
+    }
+
+    /// <summary>Resets all per-node absorbed solar inputs to zero.</summary>
+    public void ClearLayerSolarAbsorption()
+    {
+      Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
+    }
+
+    /// <summary>
     /// Walls are opaque (transmittance = 0), so they emit no short-wave
     /// radiation into the indoor space. Outdoor short-wave absorption is
     /// already captured in the sol-air temperature on the outdoor face.
@@ -651,7 +688,7 @@ namespace Popolo.Core.Building.Envelope
     /// Future translucent wall constructions can override this behavior by
     /// returning a non-zero <see cref="ShortWaveEmission"/>.
     /// </remarks>
-    public ShortWaveEmission EmitShortWaveToIndoor(
+    public override ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       Climate.IReadOnlySun sun,
       double albedo)
@@ -660,14 +697,14 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Opaque wall: all incident indoor diffuse short-wave is absorbed at first hit.</summary>
-    public double IndoorDiffuseAbsorptanceFactor => 1.0;
+    public override double IndoorDiffuseAbsorptanceFactor => 1.0;
 
     /// <summary>
     /// Opaque walls have static optical properties; no recomputation per
     /// solar position is needed. Future translucent wall constructions can
     /// override.
     /// </summary>
-    public void UpdateOpticalProperties(Climate.IReadOnlySun sun) { }
+    public override void UpdateOpticalProperties(Climate.IReadOnlySun sun) { }
 
     #endregion
 
@@ -856,6 +893,7 @@ namespace Popolo.Core.Building.Envelope
           double cSL = cS * (cL + cKappa[i]) + VAPORIZATION_LATENT_HEAT * cNu[i] * cL;
           double cSLS = dtS / cSL;
           double cSLL = dtL / cSL;
+          qCoefS[i] = cSLS * (cL + cKappa[i]);
           uSF2[i] = cSLS * (cL + cKappa[i]) / resS[i];
           uSB2[i] = cSLS * (cL + cKappa[i]) / resS[i + 1];
           uLF2[i] = cSLS * VAPORIZATION_LATENT_HEAT * cKappa[i] / resL[i];
@@ -896,11 +934,13 @@ namespace Popolo.Core.Building.Envelope
           {
             uSF[i] = 1 / resS[i];
             uSB[i] = 1 / resS[i + 1];
+            qCoefS[i] = 1.0;
           }
           else
           {
             uSF[i] = timeStep / (capS[i] * resS[i]);
             uSB[i] = timeStep / (capS[i] * resS[i + 1]);
+            qCoefS[i] = timeStep / capS[i];
           }
           if (i != 0) uMatrix[i, i - 1] = -uSF[i];
           if (i != mNum - 1) uMatrix[i, i + 1] = -uSB[i];
@@ -938,7 +978,7 @@ namespace Popolo.Core.Building.Envelope
     /// responsibility, called once per step from <c>FixState</c>.
     /// </para>
     /// </remarks>
-    public void UpdateInverseMatrix()
+    public override void UpdateInverseMatrix()
     {
       //係数行列（配管の影響を除く）を更新
       UpdateUMatrix();
@@ -1022,6 +1062,8 @@ namespace Popolo.Core.Building.Envelope
       int mNum = this.layers.Length + 1; //質点数
       capS = new double[mNum];
       resS = new double[mNum + 1];
+      solarAbsorption = new double[mNum];
+      qCoefS = new double[mNum];
       int ssNum = mNum; //未知変数の数
       if (ComputeMoistureTransfer)
       {
