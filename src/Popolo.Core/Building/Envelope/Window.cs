@@ -52,7 +52,7 @@ namespace Popolo.Core.Building.Envelope
   /// keeping the per-step cost low for steady conditions.
   /// </para>
   /// </remarks>
-  public class Window : LayeredEnvelope, IReadOnlyWindow
+  public class Window : OpticalLayeredEnvelope, IReadOnlyWindow
   {
 
     #region 列挙型定義
@@ -243,13 +243,13 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>
     /// Gets the boundary surface element on the indoor (B) side.
     /// </summary>
-    /// <remarks>Alias for <see cref="LayeredEnvelope.SurfaceB"/>.</remarks>
+    /// <remarks>Alias for <see cref="OpticalLayeredEnvelope.SurfaceB"/>.</remarks>
     public EnvelopeSurface InsideSurface => SurfaceB;
 
     /// <summary>
     /// Gets the boundary surface element on the outdoor (F) side.
     /// </summary>
-    /// <remarks>Alias for <see cref="LayeredEnvelope.SurfaceF"/>.</remarks>
+    /// <remarks>Alias for <see cref="OpticalLayeredEnvelope.SurfaceF"/>.</remarks>
     public EnvelopeSurface OutsideSurface => SurfaceF;
 
 

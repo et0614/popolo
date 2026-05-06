@@ -74,10 +74,10 @@ namespace Popolo.Core.Building
     private EnvelopeSurface[] surfaces = null!;
 
     /// <summary>Floor surfaces that preferentially receive short-wave radiation from windows.</summary>
-    private Dictionary<IEnvelopeComponent, EnvelopeSurface> swDistFloor = null!;
+    private Dictionary<OpticalLayeredEnvelope, EnvelopeSurface> swDistFloor = null!;
 
     /// <summary>Fraction of window short-wave radiation distributed to the floor.</summary>
-    private Dictionary<IEnvelopeComponent, double> swDistRate = null!;
+    private Dictionary<OpticalLayeredEnvelope, double> swDistRate = null!;
 
     /// <summary>Flags indicating whether the reverse side of each surface is a boundary condition.</summary>
     private bool[] isSFboundary = null!;
@@ -95,7 +95,7 @@ namespace Popolo.Core.Building
     private double[] surfaceSWEmissivity = null!;
 
     /// <summary>Concatenation of <see cref="walls"/> and <see cref="windows"/> as the abstract component view, for solver loops that don't care about the concrete type.</summary>
-    private IEnvelopeComponent[] components = null!;
+    private OpticalLayeredEnvelope[] components = null!;
 
     /// <summary>
     /// Per-interior-surface Gebhart self-absorption factor <c>bf = 1 − G[i,i]</c>, captured
@@ -288,7 +288,7 @@ namespace Popolo.Core.Building
       ZoneCount = zones.Length;
       this.walls = walls;
       this.windows = windows;
-      this.components = new IEnvelopeComponent[walls.Length + windows.Length];
+      this.components = new OpticalLayeredEnvelope[walls.Length + windows.Length];
       for (int i = 0; i < walls.Length; i++) this.components[i] = walls[i];
       for (int i = 0; i < windows.Length; i++) this.components[walls.Length + i] = windows[i];
       this.zones = zones;
@@ -299,8 +299,8 @@ namespace Popolo.Core.Building
       zoneVent = new double[ZoneCount, ZoneCount];
       zoneTemp = new double[ZoneCount];
       zoneHumid = new double[ZoneCount];
-      swDistFloor = new Dictionary<IEnvelopeComponent, EnvelopeSurface>();
-      swDistRate = new Dictionary<IEnvelopeComponent, double>();
+      swDistFloor = new Dictionary<OpticalLayeredEnvelope, EnvelopeSurface>();
+      swDistRate = new Dictionary<OpticalLayeredEnvelope, double>();
       for (int i = 0; i < RoomCount; i++) rZones[i] = new List<int>();
       for (int i = 0; i < ZoneCount; i++)
       {
@@ -492,7 +492,7 @@ namespace Popolo.Core.Building
       // 不透明な resistive-only モデル (現在の Window) は両メソッドが no-op。
       for (int i = 0; i < components.Length; i++)
       {
-        IEnvelopeComponent c = components[i];
+        OpticalLayeredEnvelope c = components[i];
         if (c.SurfaceF.BoundaryCoefficientChanged || c.SurfaceB.BoundaryCoefficientChanged)
         {
           c.UpdateInverseMatrix();
@@ -1374,11 +1374,11 @@ namespace Popolo.Core.Building
     /// <remarks>
     /// Each emitter component (currently windows; future translucent walls would
     /// participate symmetrically) reports an indoor-side absorbed flux and a
-    /// transmitted power via <see cref="IEnvelopeComponent.EmitShortWaveToIndoor"/>.
+    /// transmitted power via <see cref="OpticalLayeredEnvelope.EmitShortWaveToIndoor"/>.
     /// The transmitted direct beam is optionally routed in part to a designated
     /// floor; the remainder plus all transmitted diffuse is then redistributed
     /// to interior surfaces by the Gebhart matrix, weighted at each receiving
-    /// surface by <see cref="IEnvelopeComponent.IndoorDiffuseAbsorptanceFactor"/>.
+    /// surface by <see cref="OpticalLayeredEnvelope.IndoorDiffuseAbsorptanceFactor"/>.
     /// Opaque components return <see cref="ShortWaveEmission.Zero"/> and are
     /// effectively skipped.
     /// </remarks>

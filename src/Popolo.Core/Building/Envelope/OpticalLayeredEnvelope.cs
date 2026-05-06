@@ -1,6 +1,6 @@
-/* IEnvelopeComponent.cs
+/* OpticalLayeredEnvelope.cs
  *
- * Copyright (C) 2025 E.Togashi
+ * Copyright (C) 2026 E.Togashi
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,41 +22,88 @@ using Popolo.Core.Climate;
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
-  /// Abstract envelope component — a building shell element that separates
-  /// two zones (or a zone and an exterior boundary) and participates in the
-  /// multi-zone heat balance.
+  /// Abstract building envelope component composed of a stack of layers, each
+  /// of which can absorb, reflect, or transmit short-wave (solar) radiation.
   /// </summary>
   /// <remarks>
   /// <para>
   /// Concrete implementations include <see cref="Wall"/> (multi-layer
-  /// transient conduction with optional embedded radiant pipes and PCM
-  /// layers) and <see cref="Window"/> (multi-pane glazing with internal
-  /// shading devices and external sun-shading geometry).
+  /// transient conduction with optional embedded radiant pipes, PCM, and
+  /// coupled moisture transport — opaque by default with transmittance 0)
+  /// and <see cref="Window"/> (multi-pane glazing with internal shading
+  /// devices and external sun-shading geometry — translucent with non-zero
+  /// per-layer transmittance and absorptance). Both share the same notion
+  /// of two opposing boundary surfaces (F and B) carrying sol-air
+  /// temperatures, long-wave emissivities, convective and radiative film
+  /// coefficients, and a layered short-wave optical model.
   /// </para>
   /// <para>
-  /// Each component exposes two opposing <see cref="EnvelopeSurface"/>
-  /// instances (F and B). F and B are positional labels only — neither
-  /// is intrinsically "indoor" or "outdoor"; the user assigns orientation
-  /// by registering one side via <c>MultiRoom.SetOutsideWall</c> /
-  /// <c>SetGroundWall</c> and the other to a zone via
-  /// <c>MultiRoom.AddWall(zoneIndex, wallIndex, isSideF)</c>.
+  /// The "Optical" qualifier signals that the layer stack is designed to
+  /// handle solar transmission and absorption at every layer interface —
+  /// opaque components such as a typical wall are simply the degenerate case
+  /// where transmittance is zero and absorption happens at the outdoor face.
+  /// Future translucent walls fit naturally as a third concrete subclass
+  /// without disrupting the contract.
+  /// </para>
+  /// <para>
+  /// F and B are positional labels only — neither is intrinsically "indoor"
+  /// or "outdoor"; the user assigns orientation by registering one side via
+  /// <c>MultiRoom.SetOutsideWall</c> / <c>SetGroundWall</c> and the other to
+  /// a zone via <c>MultiRoom.AddWall(zoneIndex, wallIndex, isSideF)</c>.
   /// </para>
   /// <para>
   /// Upper-layer code (<see cref="MultiRoom"/>, <see cref="Zone"/>) drives
-  /// the heat balance through this interface and the surfaces it exposes,
-  /// without distinguishing walls from windows.
+  /// the heat balance through this base type and the surfaces it exposes,
+  /// without needing to distinguish walls from windows. This base owns the
+  /// truly common F/B side state (sol-air temperatures, long-wave
+  /// emissivities, surfaces) and provides default no-op implementations of
+  /// the dynamic-response and optical-update hooks; subclasses override only
+  /// what is meaningful for them. Film-coefficient setters and storage stay
+  /// in each derived class because their side effects differ
+  /// (<see cref="Wall"/> flags its conduction matrix for rebuild;
+  /// <see cref="Window"/> recomputes its glass / air-gap resistance lookup).
   /// </para>
   /// </remarks>
-  public interface IEnvelopeComponent
+  public abstract class OpticalLayeredEnvelope
   {
+
+    #region 共通 F/B 側状態
+
+    /// <summary>Gets or sets the sol-air temperature on the F side [°C].</summary>
+    public double SolAirTemperatureF { get; set; }
+
+    /// <summary>Gets or sets the sol-air temperature on the B side [°C].</summary>
+    public double SolAirTemperatureB { get; set; }
+
+    /// <summary>Gets or sets the long-wave (thermal) emissivity on the F side [-].</summary>
+    public double LongWaveEmissivityF { get; set; } = 0.9;
+
+    /// <summary>Gets or sets the long-wave (thermal) emissivity on the B side [-].</summary>
+    public double LongWaveEmissivityB { get; set; } = 0.9;
+
+    #endregion
+
+    #region 幾何 / 接続
+
     /// <summary>Gets the surface area [m²] of this envelope component.</summary>
-    double Area { get; }
+    /// <remarks>
+    /// Both get and set are abstract because <see cref="Wall"/> exposes a
+    /// trivial auto-property setter while <see cref="Window"/> validates the
+    /// value (rejects non-positive areas).
+    /// </remarks>
+    public abstract double Area { get; set; }
 
     /// <summary>Gets the boundary surface element on the F side.</summary>
-    EnvelopeSurface SurfaceF { get; }
+    /// <remarks>Set by the subclass constructor when the surface objects are created.</remarks>
+    public EnvelopeSurface SurfaceF { get; protected set; } = null!;
 
     /// <summary>Gets the boundary surface element on the B side.</summary>
-    EnvelopeSurface SurfaceB { get; }
+    /// <remarks>Set by the subclass constructor when the surface objects are created.</remarks>
+    public EnvelopeSurface SurfaceB { get; protected set; } = null!;
+
+    #endregion
+
+    #region 短波長放出 (層別光学モデル)
 
     /// <summary>
     /// Computes this component's short-wave (solar) radiation contribution to
@@ -76,7 +123,7 @@ namespace Popolo.Core.Building.Envelope
     /// short-wave absorption is folded into the sol-air temperature on the
     /// outdoor face elsewhere.
     /// </returns>
-    ShortWaveEmission EmitShortWaveToIndoor(
+    public abstract ShortWaveEmission EmitShortWaveToIndoor(
       EnvelopeSurface indoorSurface,
       IReadOnlySun sun,
       double albedo);
@@ -93,7 +140,11 @@ namespace Popolo.Core.Building.Envelope
     /// return a factor that accounts for inter-layer back-and-forth
     /// (typically <c>DiffuseAbsorptance / (1 − DiffuseReflectance)</c>).
     /// </remarks>
-    double IndoorDiffuseAbsorptanceFactor { get; }
+    public abstract double IndoorDiffuseAbsorptanceFactor { get; }
+
+    #endregion
+
+    #region 動的応答フック (default no-op)
 
     /// <summary>
     /// Refreshes optical properties for the current solar geometry. Opaque
@@ -102,7 +153,7 @@ namespace Popolo.Core.Building.Envelope
     /// reflectance, and absorptance.
     /// </summary>
     /// <param name="sun">Current solar geometry / radiation state.</param>
-    void UpdateOpticalProperties(IReadOnlySun sun);
+    public virtual void UpdateOpticalProperties(IReadOnlySun sun) { }
 
     /// <summary>
     /// Refreshes the inverse step-coefficient matrix and the boundary-temperature
@@ -111,7 +162,7 @@ namespace Popolo.Core.Building.Envelope
     /// components without a dynamic conduction response (current
     /// <see cref="Window"/>, until per-glass-layer heat capacity is added).
     /// </summary>
-    void UpdateInverseMatrix();
+    public virtual void UpdateInverseMatrix() { }
 
     /// <summary>
     /// Refreshes the IF (current-state) coefficients from the component's
@@ -121,7 +172,7 @@ namespace Popolo.Core.Building.Envelope
     /// mutually consistent. No-op for components without dynamic conduction
     /// response.
     /// </summary>
-    void UpdateIFCoefficients();
+    public virtual void UpdateIFCoefficients() { }
 
     /// <summary>
     /// Solver-managed flag: <c>true</c> when this component's inverse matrix
@@ -129,6 +180,15 @@ namespace Popolo.Core.Building.Envelope
     /// component's per-step Update path; the solver consumes the flag in
     /// <c>MakeABMatrix</c> and clears it at the start of the next time step.
     /// </summary>
-    bool InverseMatrixUpdated { get; set; }
+    /// <remarks>
+    /// Virtual so that <see cref="Wall"/> can override the initial value to
+    /// <c>true</c> (forcing the first AB-matrix build) without changing the
+    /// safer default of <c>false</c> for components whose inverse matrix is
+    /// not in active use.
+    /// </remarks>
+    public virtual bool InverseMatrixUpdated { get; set; }
+
+    #endregion
+
   }
 }

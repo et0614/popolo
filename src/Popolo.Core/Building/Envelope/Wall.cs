@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
   /// to callers.
   /// </para>
   /// </remarks>
-  public class Wall : LayeredEnvelope, IReadOnlyWall
+  public class Wall : OpticalLayeredEnvelope, IReadOnlyWall
   {
 
     #region 定数宣言
@@ -348,7 +348,7 @@ namespace Popolo.Core.Building.Envelope
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Exposed via <see cref="IEnvelopeComponent"/> so the solver
+    /// Exposed via <see cref="OpticalLayeredEnvelope"/> so the solver
     /// (<see cref="MultiRoom.MakeABMatrix"/>) can detect when this wall has
     /// recomputed its inverse matrix mid-step and trigger an AB rebuild.
     /// Cleared by <see cref="BuildingThermalModel.FixState"/> at the start of
@@ -449,7 +449,7 @@ namespace Popolo.Core.Building.Envelope
     /// Per call, <see cref="Update"/>:
     /// <list type="bullet">
     ///   <item><description>rebuilds the inverse step-coefficient matrix if an input has changed (layer properties, pipe flow, film coefficients, time step);</description></item>
-    ///   <item><description>applies <see cref="LayeredEnvelope.SolAirTemperatureF"/> / <see cref="LayeredEnvelope.SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
+    ///   <item><description>applies <see cref="OpticalLayeredEnvelope.SolAirTemperatureF"/> / <see cref="OpticalLayeredEnvelope.SolAirTemperatureB"/> (and the two humidity ratios in moisture mode) to obtain the new node temperatures and humidities;</description></item>
     ///   <item><description>calls <c>UpdateState</c> on variable-property layers (e.g., <see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/>) and, if any property changed, schedules a matrix rebuild for the next call;</description></item>
     ///   <item><description>refreshes the boundary-temperature sensitivity coefficients (IF2 / IF3) used by the zone solver.</description></item>
     /// </list>

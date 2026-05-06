@@ -58,7 +58,7 @@ namespace Popolo.Core.Building.Envelope
     internal bool isSideF { get; private set; }
 
     /// <summary>Gets the envelope component (wall or window) this surface belongs to.</summary>
-    public IEnvelopeComponent Component { get; private set; } = null!;
+    public OpticalLayeredEnvelope Component { get; private set; } = null!;
 
     /// <summary>
     /// Gets a value indicating whether this surface belongs to a wall (true)
@@ -461,22 +461,12 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Initializes a new envelope surface element.</summary>
     /// <param name="component">The envelope component this surface belongs to.</param>
     /// <param name="isSideF">True if this is the F side; false for the B side.</param>
-    internal EnvelopeSurface(IEnvelopeComponent component, bool isSideF)
+    internal EnvelopeSurface(OpticalLayeredEnvelope component, bool isSideF)
     {
       Component = component;
       this.isSideF = isSideF;
       Index = -1;
     }
-
-    /// <summary>Initializes a new wall surface element.</summary>
-    /// <param name="wall">The wall this surface belongs to.</param>
-    /// <param name="isSideF">True if this is the F side; false for the B side.</param>
-    internal EnvelopeSurface(Wall wall, bool isSideF) : this((IEnvelopeComponent)wall, isSideF) { }
-
-    /// <summary>Initializes a new window surface element.</summary>
-    /// <param name="window">The window this surface belongs to.</param>
-    /// <param name="isSideF">True if this is the F (outdoor) side; false for the B (indoor) side.</param>
-    internal EnvelopeSurface(Window window, bool isSideF) : this((IEnvelopeComponent)window, isSideF) { }
 
     #endregion
 

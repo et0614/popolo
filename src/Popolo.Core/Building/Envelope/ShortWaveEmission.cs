@@ -20,14 +20,14 @@
 namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
-  /// Describes how an <see cref="IEnvelopeComponent"/> contributes short-wave
+  /// Describes how an <see cref="OpticalLayeredEnvelope"/> contributes short-wave
   /// (solar) radiation to the indoor space at a single time step, given the
   /// solar irradiance on its outdoor-facing side.
   /// </summary>
   /// <remarks>
   /// <para>
   /// Returned by
-  /// <see cref="IEnvelopeComponent.EmitShortWaveToIndoor(EnvelopeSurface, Climate.IReadOnlySun, double)"/>.
+  /// <see cref="OpticalLayeredEnvelope.EmitShortWaveToIndoor(EnvelopeSurface, Climate.IReadOnlySun, double)"/>.
   /// Opaque components (a typical wall) return <see cref="Zero"/> — they
   /// neither absorb nor transmit any short-wave at the indoor side, since
   /// outdoor solar absorption on opaque surfaces is already accounted for in
