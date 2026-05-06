@@ -292,12 +292,18 @@ namespace BESTEST_2023
             // High-Conductance Wall Element (Std 140-2023 Tables 7-35/7-36)
             // = 旧 BESTEST「Opaque Window」。南面 12 m² の透明窓を高貫流壁要素で置換。
             // Opaque panel: k=1.00 W/(m·K), 厚 3.048mm, R=0.00305 m²K/W ×2
+            //   ρ=2470 kg/m³, cp=750 J/(kg·K) → C = 2470 × 750 × 0.003048 ≈ 5646.4 J/(m²·K)
             // Air gap: k_eff=0.0625, 厚 12mm, R=0.19200 m²K/W (定数; T/p で変化させない)
+            //   ρ=1.292, cp=1006 → C ≈ 15.6 J/(m²·K) (ガラス熱容量の 0.14% で無視)
             // Total surface-to-surface U = 5.048 W/m²K (R=0.198)
             windows[i] = new Window(6, new[] { 0.0, 0.0 }, new[] { 1 - extswAbsorptance, 0.0 }, inc[i]);
             windows[i].SetGlassResistance(0, 0.00305);
             windows[i].SetGlassResistance(1, 0.00305);
             windows[i].SetAirGapResistance(0, 0.192);
+            // Phase D で導入された層別熱容量を反映 (旧コードでは 0 のまま)。
+            const double hcwPanelHeatCapacity = 2470.0 * 750.0 * 0.003048; // 5646.426 J/(m²·K)
+            windows[i].SetGlassHeatCapacity(0, hcwPanelHeatCapacity);
+            windows[i].SetGlassHeatCapacity(1, hcwPanelHeatCapacity);
           }
           else if (isSinglePane)
           {
