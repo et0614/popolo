@@ -867,6 +867,30 @@ namespace Popolo.Core.Building
 
     #endregion
 
+    #region 構成検証
+
+    /// <summary>Validates the entire model by running <see cref="MultiRoom.Validate"/> on every MultiRoom.</summary>
+    /// <returns>List of human-readable error messages prefixed with the MultiRoom index; empty when no problems are detected.</returns>
+    /// <remarks>
+    /// Aggregates the per-MultiRoom validation results into a single flat list,
+    /// with each message prefixed as <c>"MultiRoom[i]: …"</c> so the caller
+    /// can identify which room produced which error. Recommended usage is to
+    /// call this once after model construction is complete and before the
+    /// first solver step.
+    /// </remarks>
+    public IReadOnlyList<string> Validate()
+    {
+      var errors = new List<string>();
+      for (int i = 0; i < mRooms.Length; i++)
+      {
+        foreach (var e in mRooms[i].Validate())
+          errors.Add($"MultiRoom[{i}]: {e}");
+      }
+      return errors;
+    }
+
+    #endregion
+
     #region その他の処理
 
     /// <summary>Gets all wall assemblies in the model across all MultiRooms.</summary>
