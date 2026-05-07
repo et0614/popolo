@@ -240,6 +240,15 @@ namespace BESTEST_2023
       double winIntLW = isLowIntIREmissivity ? 0.1 : (hasHighConductanceWall ? 0.9 : 0.84);
       double hrF_win = 4 * winExtLW * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       double hrB_win = 4 * winIntLW * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+
+      // LowIntIREmissivity ケース (C195/C200/C210) は Std 140-2023 仕様で
+      // 屋内側対流熱伝達率を以下の値で置換:
+      //   Walls 1.9, Ceiling 1.9, Raised floor 1.0, HCW (高貫流壁要素) 2.6
+      // (内側 IR=off で放射経路が消えるため自然対流側を仕様値に固定する処置)
+      double aiFloor   = isLowIntIREmissivity ? 1.0 : AI_FLOOR;
+      double aiCeiling = isLowIntIREmissivity ? 1.9 : AI_CEILING;
+      double aiWall    = isLowIntIREmissivity ? 1.9 : AI_WALL;
+      double aiWindow  = (isLowIntIREmissivity && hasHighConductanceWall) ? 2.6 : AI_WINDOW;
       for (int i = 0; i < walls.Length; i++)
       {
         walls[i].Initialize(25);
@@ -250,7 +259,7 @@ namespace BESTEST_2023
         walls[i].ShortWaveAbsorptanceF = extswAbsorptance;
         walls[i].LongWaveEmissivityF = extlwEmissivity;
         //屋内側
-        walls[i].ConvectiveCoefficientB = (i == 0) ? AI_FLOOR : (i == 1) ? AI_CEILING : AI_WALL;  // 屋根=ceiling, 他=walls/floor
+        walls[i].ConvectiveCoefficientB = (i == 0) ? aiFloor : (i == 1) ? aiCeiling : aiWall;  // 屋根=ceiling, 他=walls/floor
         walls[i].RadiativeCoefficientB = hrB;
         walls[i].ShortWaveAbsorptanceB = intswAbsorptance;
         walls[i].LongWaveEmissivityB = intlwEmissivity;
@@ -368,7 +377,7 @@ namespace BESTEST_2023
           windows[i].LongWaveEmissivityB = winIntLW;
           windows[i].ConvectiveCoefficientF = AO_WINDOW;
           windows[i].RadiativeCoefficientF = hrF_win;
-          windows[i].ConvectiveCoefficientB = AI_WINDOW;
+          windows[i].ConvectiveCoefficientB = aiWindow;
           windows[i].RadiativeCoefficientB = hrB_win;
           // BESTEST 仕様: 透明窓も HCW (高貫流壁要素) も金属/ガラス相当の Very Smooth (R_f=1.00)。
           // Window コンストラクタの既定と同値だが BESTEST 設定として明示する。
