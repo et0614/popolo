@@ -974,12 +974,20 @@ namespace Popolo.Core.Building.Envelope
       difCRF *= 2;
       difCRB *= 2;
 
-      //拡散日射の透過率と反射率を計算
+      // 拡散日射の透過率・反射率の解析積分による hemisphere 値計算。
+      // 多項式の正規化が T と R で異なる:
+      //   P_T(cos) = T(θ) / T_normal             (T は比)
+      //     ⇒ difCTF = ∫ P_T · 2 sin θ cos θ dθ = T_hemis / T_normal
+      //     ⇒ T_hemis = difCTF × T_normal                                 (line below)
+      //   P_R(cos) = (1 − R(θ)) / (1 − R_normal)  (R は (1−R) の比)
+      //     ⇒ difCRF = ∫ P_R · 2 sin θ cos θ dθ = (1 − R_hemis) / (1 − R_normal)
+      //     ⇒ R_hemis = 1 − (1 − R_normal) × difCRF                       (line below)
+      // (直達側 line 444 の P_R → R(θ) 復元と同じ式構造で対称)
       opFDif[2 * ln + 1, 0] = difCTF * taurhoF[ln, 0];
-      opFDif[2 * ln + 1, 1] = difCRF * taurhoF[ln, 1];
+      opFDif[2 * ln + 1, 1] = 1 - (1 - taurhoF[ln, 1]) * difCRF;
       opFDif[2 * ln + 1, 2] = 1 - (opFDif[2 * ln + 1, 0] + opFDif[2 * ln + 1, 1]);
       opBDif[2 * ln + 1, 0] = difCTB * taurhoB[ln, 0];
-      opBDif[2 * ln + 1, 1] = difCRB * taurhoB[ln, 1];
+      opBDif[2 * ln + 1, 1] = 1 - (1 - taurhoB[ln, 1]) * difCRB;
       opBDif[2 * ln + 1, 2] = 1 - (opBDif[2 * ln + 1, 0] + opBDif[2 * ln + 1, 1]);
 
       //拡散日射に関する総合特性を更新
