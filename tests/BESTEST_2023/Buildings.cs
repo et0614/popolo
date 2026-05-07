@@ -246,6 +246,10 @@ namespace BESTEST_2023
         walls[i].RadiativeCoefficientB = hrB;
         walls[i].ShortWaveAbsorptanceB = intswAbsorptance;
         walls[i].LongWaveEmissivityB = intlwEmissivity;
+        // BESTEST 仕様: 通常の Walls / Roof / Raised floor は Rough (R_f=1.67)。
+        // Wall コンストラクタの既定と同値だが BESTEST 設定として明示する。
+        walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
+        walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
       }
 
       // Cases 450/460/470: 表面熱伝達係数を一定値で上書き (Std 140-2023 Table 7-46)
@@ -358,6 +362,11 @@ namespace BESTEST_2023
           windows[i].RadiativeCoefficientF = hrF;
           windows[i].ConvectiveCoefficientB = AI_WINDOW;
           windows[i].RadiativeCoefficientB = hrB;
+          // BESTEST 仕様: 透明窓も HCW (高貫流壁要素) も金属/ガラス相当の Very Smooth (R_f=1.00)。
+          // Window コンストラクタの既定と同値だが BESTEST 設定として明示する。
+          // HCW がガラス窓と同じ仕上を持つ点を可視化することが本記述の主目的。
+          windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
+          windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
           SetBESTESTWindowAngleDependence(windows[i]);
 
           // Cases 450/470: 窓も外側を 17.8 W/m²K に固定 (Table 7-46)
@@ -475,6 +484,9 @@ namespace BESTEST_2023
         walls[i].LongWaveEmissivityB = intlwEmissivity;
         walls[i].ConvectiveCoefficientB = (i <= 1) ? AI_FLOOR : (i <= 3) ? AI_CEILING : AI_WALL;
         walls[i].RadiativeCoefficientB = hrB;
+        // BESTEST 仕様: Walls / Roof / Raised floor は Rough (R_f=1.67)
+        walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
+        walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
       }
       // 共用壁: 両側室内なので F も h_conv,int で
       walls[10].ConvectiveCoefficientF = AI_WALL;
@@ -499,6 +511,9 @@ namespace BESTEST_2023
         windows[i].RadiativeCoefficientF = hrF;
         windows[i].ConvectiveCoefficientB = AI_WINDOW;
         windows[i].RadiativeCoefficientB = hrB;
+        // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
+        windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
+        windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
@@ -604,6 +619,9 @@ namespace BESTEST_2023
         walls[i].LongWaveEmissivityB = intlwEmissivity;
         walls[i].ConvectiveCoefficientB = (i == 1) ? AI_CEILING : AI_WALL;
         walls[i].RadiativeCoefficientB = hrB;
+        // BESTEST 仕様: Walls / Roof は Rough (R_f=1.67)。地中接触面は風暴露なしのため R_f は実質無関係だが一様設定。
+        walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
+        walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
       }
 
       // 窓 (Case 990 用 clear double-pane、面積 5.4 m²)。
@@ -624,6 +642,9 @@ namespace BESTEST_2023
         windows[i].RadiativeCoefficientF = hrF;
         windows[i].ConvectiveCoefficientB = AI_WINDOW;
         windows[i].RadiativeCoefficientB = hrB;
+        // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
+        windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
+        windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
