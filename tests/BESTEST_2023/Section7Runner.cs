@@ -440,7 +440,7 @@ namespace BESTEST_2023
             else if (isSetBack)
             {
               if (zones[0].Temperature > 27) bModel.ControlDryBulbTemperature(0, 0, 27);
-              else if ((7 <= simTimeH.Hour && simTimeH.Hour < 23) && zones[0].Temperature < 20)
+              else if ((8 <= simTimeH.Hour && simTimeH.Hour < 23) && zones[0].Temperature < 20)
                 bModel.ControlDryBulbTemperature(0, 0, 20);
               else if (zones[0].Temperature < 10)
                 bModel.ControlDryBulbTemperature(0, 0, 10);

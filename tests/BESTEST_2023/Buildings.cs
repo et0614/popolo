@@ -333,9 +333,6 @@ namespace BESTEST_2023
           {
             // Case 670: 単板窓 (Std 140-2023 Table 7-21/22).
             // Pane conductance 328 W/m²K → R = 0.00305 m²K/W.
-            // 法線入射 trans=0.83446, refl=0.0391 は Annex B6.2 の調整済単板パラメータ
-            // (n=1.493, K=0.0337/mm, TH=3.048mm) から計算した値で、Case 600 と同一材料。
-            // GlazingCount=1 の真の単板として構築。
             windows[i] = new Window(6,
                 new[] { 0.834 }, new[] { 0.075 },
                 new[] { 0.834 }, new[] { 0.075 },
