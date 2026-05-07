@@ -251,7 +251,7 @@ namespace Popolo.Core.Building
     /// surface (<see cref="OpticalLayeredEnvelope.IsWindExposedF"/>,
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/>) is recomputed each step from
     /// <see cref="OutdoorWindSpeed"/> using the windward MoWiTT correlation
-    /// (<see cref="Sky.GetExteriorConvectiveCoefficient"/>). Default <c>false</c>.
+    /// (<see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double)"/>). Default <c>false</c>.
     /// </summary>
     public bool DynamicOutdoorConvectiveCoefficient { get; set; } = false;
 
@@ -1538,7 +1538,7 @@ namespace Popolo.Core.Building
     /// <summary>
     /// Refreshes the outdoor-side convective coefficient on every wind-exposed exterior
     /// surface using <see cref="OutdoorWindSpeed"/> and the previous-step surface-air
-    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient"/>
+    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double)"/>
     /// (windward MoWiTT).
     /// </summary>
     /// <remarks>
@@ -1565,12 +1565,12 @@ namespace Popolo.Core.Building
         if (c.IsWindExposedF && !interiorSet.Contains(c.SurfaceF) && !c.SurfaceF.IsGroundWall)
         {
           double dT = c.GetExteriorConvectionDeltaT(true, Ta);
-          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT);
+          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF);
         }
         if (c.IsWindExposedB && !interiorSet.Contains(c.SurfaceB) && !c.SurfaceB.IsGroundWall)
         {
           double dT = c.GetExteriorConvectionDeltaT(false, Ta);
-          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT);
+          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB);
         }
       }
     }

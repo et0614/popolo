@@ -257,6 +257,26 @@ namespace Popolo.Core.Climate
     /// </para>
     /// </remarks>
     public static double GetExteriorConvectiveCoefficient(double windSpeed, double surfaceAirDeltaT)
+        => GetExteriorConvectiveCoefficient(windSpeed, surfaceAirDeltaT, 1.0);
+
+    /// <summary>
+    /// Same as <see cref="GetExteriorConvectiveCoefficient(double, double)"/>
+    /// with an explicit surface-roughness multiplier R_f applied to the
+    /// forced-convection term, per ASHRAE Handbook — Fundamentals (2009)
+    /// Ch. 26 Table 4 (also adopted by EnergyPlus DOE-2 / MoWiTT model).
+    /// </summary>
+    /// <param name="windSpeed">Wind speed at the surface [m/s].</param>
+    /// <param name="surfaceAirDeltaT">Surface − outdoor air temperature difference [K].</param>
+    /// <param name="roughnessMultiplier">
+    /// Forced-convection roughness multiplier R_f [-]. 1.0 (default smooth glass) up to
+    /// 2.17 (very rough). See <see cref="Building.Envelope.SurfaceRoughness"/>.
+    /// </param>
+    /// <returns>Combined exterior convective heat transfer coefficient [W/(m²·K)].</returns>
+    /// <remarks>
+    /// <c>h_c = sqrt( h_n² + (R_f · h_glass_forced)² )</c> with the natural-convection
+    /// term unchanged. <c>R_f = 1.0</c> reproduces the original MoWiTT formulation.
+    /// </remarks>
+    public static double GetExteriorConvectiveCoefficient(double windSpeed, double surfaceAirDeltaT, double roughnessMultiplier)
     {
       const double Ct = 0.84;
       const double a = 3.26;
@@ -264,7 +284,7 @@ namespace Popolo.Core.Climate
       double v = windSpeed > 0 ? windSpeed : 0;
       double dT = Math.Abs(surfaceAirDeltaT);
       double natural = Ct * Math.Pow(dT, 1.0 / 3.0);
-      double forced = a * Math.Pow(v, b);
+      double forced = roughnessMultiplier * a * Math.Pow(v, b);
       return Math.Sqrt(natural * natural + forced * forced);
     }
 

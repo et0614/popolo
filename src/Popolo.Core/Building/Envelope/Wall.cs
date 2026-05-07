@@ -292,6 +292,10 @@ namespace Popolo.Core.Building.Envelope
       ComputeMoistureTransfer = computeMoistureTransfer;
       SurfaceF = new EnvelopeSurface(this, true);
       SurfaceB = new EnvelopeSurface(this, false);
+      // 既定は典型的なライトウェイト壁の外装 (Rough; R_f=1.67)。
+      // 屋外側のみ風暴露時に効くため B 側も同値で揃える (内装側でも consistent)。
+      SetSurfaceRoughnessF(SurfaceRoughness.Rough);
+      SetSurfaceRoughnessB(SurfaceRoughness.Rough);
 
       //計算領域を確保
 

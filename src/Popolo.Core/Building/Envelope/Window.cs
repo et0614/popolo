@@ -303,6 +303,9 @@ namespace Popolo.Core.Building.Envelope
       this.SunShade = SunShade.MakeEmptySunShade();
       this.OutsideIncline = outsideIncline;
       lstAlt = lstOri = -999;
+      // 窓ガラスは VerySmooth (R_f=1.00; MoWiTT 基準). 基底既定値と同じだが明示する。
+      SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
+      SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
 
       tau_CF = new double[GlazingCount][];
       tau_CB = new double[GlazingCount][];

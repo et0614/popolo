@@ -159,6 +159,34 @@ namespace Popolo.Core.Building.Envelope
     public virtual bool IsWindExposedB { get; set; } = false;
 
     /// <summary>
+    /// Forced-convection roughness multiplier R_f [-] applied to the windward
+    /// MoWiTT correlation on the F side. Default 1.0 (smooth glass — base
+    /// MoWiTT). Subclasses may seed this in their constructor; <see cref="Wall"/>
+    /// initializes it to <see cref="SurfaceRoughness.Rough"/>'s multiplier (1.67).
+    /// </summary>
+    /// <remarks>
+    /// Set numerically with the property setter or categorically via
+    /// <see cref="SetSurfaceRoughnessF"/>. Only consumed when
+    /// <see cref="MultiRoom.DynamicOutdoorConvectiveCoefficient"/> is enabled
+    /// for the side that is wind-exposed.
+    /// </remarks>
+    public double SurfaceRoughnessMultiplierF { get; set; } = 1.0;
+
+    /// <summary>
+    /// Forced-convection roughness multiplier R_f [-] applied to the windward
+    /// MoWiTT correlation on the B side. Default 1.0 (smooth glass).
+    /// </summary>
+    public double SurfaceRoughnessMultiplierB { get; set; } = 1.0;
+
+    /// <summary>Sets <see cref="SurfaceRoughnessMultiplierF"/> from a categorical roughness.</summary>
+    public void SetSurfaceRoughnessF(SurfaceRoughness roughness)
+        => SurfaceRoughnessMultiplierF = roughness.GetMultiplier();
+
+    /// <summary>Sets <see cref="SurfaceRoughnessMultiplierB"/> from a categorical roughness.</summary>
+    public void SetSurfaceRoughnessB(SurfaceRoughness roughness)
+        => SurfaceRoughnessMultiplierB = roughness.GetMultiplier();
+
+    /// <summary>
     /// Returns the surface-to-air temperature difference [K] used by the
     /// dynamic outdoor convective coefficient update on the requested side.
     /// </summary>
