@@ -80,6 +80,13 @@ namespace Popolo.Core.Building
     /// <summary>Fraction of window short-wave radiation distributed to the floor.</summary>
     private Dictionary<OpticalLayeredEnvelope, double> swDistRate = null!;
 
+    /// <summary>
+    /// Per-emitter user-prescribed absorption distribution of the transmitted
+    /// direct short-wave (final fractions, post multi-bounce). When set,
+    /// bypasses Gebhart for the direct beam. See <see cref="SetTransmittedDirectAbsorption(int, int, bool, double)"/>.
+    /// </summary>
+    private Dictionary<OpticalLayeredEnvelope, List<(EnvelopeSurface receiver, double fraction)>> directAbsorption = null!;
+
     /// <summary>Flags indicating whether the reverse side of each surface is a boundary condition.</summary>
     private bool[] isSFboundary = null!;
 
@@ -368,6 +375,7 @@ namespace Popolo.Core.Building
       zoneHumid = new double[ZoneCount];
       swDistFloor = new Dictionary<OpticalLayeredEnvelope, EnvelopeSurface>();
       swDistRate = new Dictionary<OpticalLayeredEnvelope, double>();
+      directAbsorption = new Dictionary<OpticalLayeredEnvelope, List<(EnvelopeSurface, double)>>();
       for (int i = 0; i < RoomCount; i++) rZones[i] = new List<int>();
       for (int i = 0; i < ZoneCount; i++)
       {
@@ -506,6 +514,30 @@ namespace Popolo.Core.Building
           if (sf.AdjacentSpaceFactor >= 0.0 && sf.AdjacentSpaceFactor > 1.0)
             errors.Add($"Component[{i}] {side} side adjacent-space factor = {sf.AdjacentSpaceFactor}, must be in [0, 1].");
         }
+      }
+
+      // 10. 透過直達日射の最終吸収比率テーブル: 各 fraction ∈ [0, 1]、emitter ごとの合計 ≤ 1、
+      //     receiver は emitter と同 Room
+      foreach (var kv in directAbsorption)
+      {
+        int eIdx = Array.IndexOf(components, kv.Key);
+        int emitterZone = kv.Key.SurfaceB.ZoneIndex >= 0
+            ? kv.Key.SurfaceB.ZoneIndex : kv.Key.SurfaceF.ZoneIndex;
+        double sum = 0.0;
+        foreach (var (recv, frac) in kv.Value)
+        {
+          if (frac < 0.0 || frac > 1.0)
+            errors.Add($"Transmitted-direct absorption fraction for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] = {frac}, must be in [0, 1].");
+          sum += frac;
+
+          int recvZone = recv.ZoneIndex;
+          if (emitterZone >= 0 && recvZone >= 0
+              && zones[emitterZone].RoomIndex != zones[recvZone].RoomIndex)
+            errors.Add($"Transmitted-direct absorption receiver for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] is in a different room "
+                + $"(emitter room={zones[emitterZone].RoomIndex}, receiver room={zones[recvZone].RoomIndex}).");
+        }
+        if (sum > 1.0 + 1e-9)
+          errors.Add($"Transmitted-direct absorption fractions for component[{eIdx}] sum to {sum:F4} > 1.");
       }
 
       return errors;
@@ -1601,13 +1633,24 @@ namespace Popolo.Core.Building
             ShortWaveEmission emit = ws1.Component.EmitShortWaveToIndoor(ws1, Sun, Albedo);
             if (emit.IsZero) continue;
 
+            // Step 0: emitter 自身の室内側面が吸収する分 (例: 窓 B 面ガラス) は常に直行
             radToSurf_S[indx1] += emit.InsideAbsorbedFlux;
 
-            //床に優先配分される短波長を計算
-            EnvelopeSurface? flr = null;
             double dir2 = emit.TransmittedDirectPower;
+            EnvelopeSurface? flr = null;
             double radFromFloor = 0.0;
-            if (swDistFloor.TryGetValue(ws1.Component, out EnvelopeSurface? flrSurface))
+
+            // Step 1: ユーザー指定の直達吸収比率テーブルがあれば最優先で適用 (Gebhart スキップ)。
+            //   各 receiver_i に dir2 × fraction_i を投入。Σfraction < 1 の不足分は窓からの損失。
+            //   設定された emitter は Step 2 (床優先) もスキップする。
+            if (directAbsorption.TryGetValue(ws1.Component, out var distribution))
+            {
+              foreach (var (recv, frac) in distribution)
+                radToSurf_S[recv.Index] += dir2 * frac / recv.Area;
+              dir2 = 0;  // 直達は全て本ルートで処理 (残り = 損失)
+            }
+            // Step 2: 床への優先配分 (既存挙動)。Step 1 が無い場合のみ動作。
+            else if (swDistFloor.TryGetValue(ws1.Component, out EnvelopeSurface? flrSurface))
             {
               flr = flrSurface;
               double flRate = swDistRate[ws1.Component];
@@ -1615,6 +1658,8 @@ namespace Popolo.Core.Building
               radFromFloor = dir2 * flRate * (1.0 - flr.ShortWaveAbsorptance);
               dir2 *= (1 - flRate);
             }
+
+            // Step 3: 残り直達 + 全拡散 + 床反射を Gebhart で各面に配分
             double rad = dir2 + emit.TransmittedDiffusePower;
 
             //同じ室に属する壁表面に分配
@@ -1834,6 +1879,110 @@ namespace Popolo.Core.Building
           Array.IndexOf(components, (OpticalLayeredEnvelope)floor),
           isSideF, distRate);
     }
+
+    #region 透過直達日射の最終吸収比率指定 (Gebhart スキップ経路)
+
+    /// <summary>
+    /// Adds or updates a single (receiver, fraction) entry in the
+    /// transmitted-direct absorption table for the given emitter. The fraction
+    /// is the final fraction of the emitter's transmitted direct beam that is
+    /// absorbed at <paramref name="receiverComponentIndex"/> after all
+    /// multi-bounce reflections — typically obtained from an external
+    /// ray-tracing or view-factor calculation.
+    /// </summary>
+    /// <param name="emitterComponentIndex">Index of the emitter (translucent component) within <see cref="Components"/>.</param>
+    /// <param name="receiverComponentIndex">Index of the receiver component within <see cref="Components"/>.</param>
+    /// <param name="isSideF">True for the F side of the receiver; false for the B side.</param>
+    /// <param name="fraction">Absorbed fraction in <c>[0, 1]</c>. May refer to the emitter itself when reflected light returns to its B side.</param>
+    /// <remarks>
+    /// <para>
+    /// When this table is set for an emitter, the solver routes the entire
+    /// transmitted-direct beam through it and bypasses the Gebhart matrix
+    /// (and the floor-priority path <see cref="SetSWDistributionRateToFloor(int, int, bool, double)"/>)
+    /// for that beam. Diffuse transmitted power continues through Gebhart
+    /// regardless. The shortfall <c>1 − Σfraction</c> is treated as loss back
+    /// out through the emitter, not redistributed.
+    /// </para>
+    /// <para>
+    /// Multiple calls with different receivers accumulate; calling again with
+    /// the same receiver overwrites the previous value. Call
+    /// <see cref="ClearTransmittedDirectAbsorption(int)"/> to reset the table
+    /// for a single emitter (useful for time-varying inputs).
+    /// </para>
+    /// </remarks>
+    public void SetTransmittedDirectAbsorption(int emitterComponentIndex, int receiverComponentIndex, bool isSideF, double fraction)
+    {
+      var emitter = components[emitterComponentIndex];
+      var receiver = components[receiverComponentIndex];
+      var receiverSurface = isSideF ? receiver.SurfaceF : receiver.SurfaceB;
+
+      if (!directAbsorption.TryGetValue(emitter, out var list))
+      {
+        list = new List<(EnvelopeSurface, double)>();
+        directAbsorption[emitter] = list;
+      }
+      // 同 receiver-surface の既存エントリは上書き
+      list.RemoveAll(e => ReferenceEquals(e.receiver, receiverSurface));
+      list.Add((receiverSurface, fraction));
+    }
+
+    /// <summary>Reference-based overload of <see cref="SetTransmittedDirectAbsorption(int, int, bool, double)"/>.</summary>
+    public void SetTransmittedDirectAbsorption(IReadOnlyOpticalLayeredEnvelope emitter, IReadOnlyOpticalLayeredEnvelope receiver, bool isSideF, double fraction)
+    {
+      SetTransmittedDirectAbsorption(
+          Array.IndexOf(components, (OpticalLayeredEnvelope)emitter),
+          Array.IndexOf(components, (OpticalLayeredEnvelope)receiver),
+          isSideF, fraction);
+    }
+
+    /// <summary>
+    /// Replaces the entire transmitted-direct absorption table for the
+    /// emitter with the given list. Equivalent to calling
+    /// <see cref="ClearTransmittedDirectAbsorption(int)"/> followed by one
+    /// <see cref="SetTransmittedDirectAbsorption(int, int, bool, double)"/>
+    /// per entry. Useful for resetting the full distribution per time step.
+    /// </summary>
+    /// <param name="emitterComponentIndex">Emitter index within <see cref="Components"/>.</param>
+    /// <param name="distribution">Sequence of (receiver index, side, fraction) tuples. Empty list clears the table.</param>
+    public void SetTransmittedDirectAbsorption(int emitterComponentIndex,
+        IEnumerable<(int receiverComponentIndex, bool isSideF, double fraction)> distribution)
+    {
+      ClearTransmittedDirectAbsorption(emitterComponentIndex);
+      foreach (var (recvIdx, isSideF, frac) in distribution)
+        SetTransmittedDirectAbsorption(emitterComponentIndex, recvIdx, isSideF, frac);
+    }
+
+    /// <summary>Reference-based bulk overload.</summary>
+    public void SetTransmittedDirectAbsorption(IReadOnlyOpticalLayeredEnvelope emitter,
+        IEnumerable<(IReadOnlyOpticalLayeredEnvelope receiver, bool isSideF, double fraction)> distribution)
+    {
+      int emitterIdx = Array.IndexOf(components, (OpticalLayeredEnvelope)emitter);
+      ClearTransmittedDirectAbsorption(emitterIdx);
+      foreach (var (recv, isSideF, frac) in distribution)
+        SetTransmittedDirectAbsorption(emitterIdx,
+            Array.IndexOf(components, (OpticalLayeredEnvelope)recv), isSideF, frac);
+    }
+
+    /// <summary>Clears the transmitted-direct absorption table for a single emitter.</summary>
+    /// <remarks>After clearing, the emitter falls back to the floor-priority path (if set) or pure Gebhart distribution.</remarks>
+    public void ClearTransmittedDirectAbsorption(int emitterComponentIndex)
+    {
+      directAbsorption.Remove(components[emitterComponentIndex]);
+    }
+
+    /// <summary>Reference-based overload of <see cref="ClearTransmittedDirectAbsorption(int)"/>.</summary>
+    public void ClearTransmittedDirectAbsorption(IReadOnlyOpticalLayeredEnvelope emitter)
+    {
+      ClearTransmittedDirectAbsorption(Array.IndexOf(components, (OpticalLayeredEnvelope)emitter));
+    }
+
+    /// <summary>Clears all transmitted-direct absorption tables (every emitter).</summary>
+    public void ClearAllTransmittedDirectAbsorption()
+    {
+      directAbsorption.Clear();
+    }
+
+    #endregion
 
     /// <summary>Sets the water supply conditions for a buried pipe in the specified wall.</summary>
     /// <param name="wallIndex">Wall (floor) index that contains the pipe.</param>
