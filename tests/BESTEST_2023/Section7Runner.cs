@@ -313,7 +313,6 @@ namespace BESTEST_2023
       bool isSetBack    = (tCase & Buildings.TestCase.ControlSetBack)  == tCase;
       bool isVenting    = (tCase & Buildings.TestCase.ControlVenting) == tCase;
       bool isFreeFloat  = (tCase & Buildings.TestCase.ControlNone)    == tCase;
-      bool isTight20    = (tCase & Buildings.TestCase.ControlTight20) == tCase;
       bool isC650Style  = tCase == Buildings.TestCase.C650 || tCase == Buildings.TestCase.C950;
       bool isC960       = tCase == Buildings.TestCase.C960;
       bool isC990       = tCase == Buildings.TestCase.C990;
@@ -433,7 +432,6 @@ namespace BESTEST_2023
             bModel.ControlHeatSupply(0, 0, 0);
             bModel.ForecastHeatTransfer();
             if      (isBangBang) bModel.ControlDryBulbTemperature(0, 0, 20);
-            else if (isTight20)  bModel.ControlDryBulbTemperature(0, 0, 20);
             else if (isDeadBand)
             {
               if      (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);
@@ -564,7 +562,6 @@ namespace BESTEST_2023
 
           // 制御適用
           if      (isBangBang) bModel.ControlDryBulbTemperature(0, 0, 20);
-          else if (isTight20)  bModel.ControlDryBulbTemperature(0, 0, 20);  // "20,20" Tstat
           else if (isDeadBand)
           {
             if      (zones[0].Temperature < 20) bModel.ControlDryBulbTemperature(0, 0, 20);

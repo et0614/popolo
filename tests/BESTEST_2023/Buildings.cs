@@ -112,8 +112,12 @@ namespace BESTEST_2023
       C470 = C460 * 2,      // 一定表面熱伝達係数 (外のみ, base = 600)
 
       // Composite flags (集合演算で差分仕様を引く)
+      // ControlBangBang: 単一 setpoint = 20°C の bang-bang 制御。
+      //   in-depth ケース (C195〜C310) と「20,20」Tstat ケース (C685/C985/C695/C995)
+      //   は仕様上は別表現だが制御挙動 (heat<20、cool>20) は完全同一のため同フラグに統合。
       ControlBangBang = C195 | C200 | C210 | C215 | C220 | C230 | C240 | C250
-                      | C270 | C280 | C290 | C300 | C310,
+                      | C270 | C280 | C290 | C300 | C310
+                      | C685 | C985 | C695 | C995,
       ControlDeadBand = C320 | C395 | C400 | C410 | C420 | C430 | C440
                       | C600 | C610 | C620 | C630
                       | C800 | C810 | C900 | C910 | C920 | C930 | C960 | C990
@@ -121,7 +125,6 @@ namespace BESTEST_2023
       ControlSetBack = C640 | C940,
       ControlVenting = C650 | C950 | C650FF | C950FF,
       ControlNone = C600FF | C650FF | C900FF | C950FF | C680FF | C980FF,
-      ControlTight20 = C685 | C985 | C695 | C995,    // "20,20" Tstat (heat<20, cool>20)
       HeavyWeight = C800 | C810 | C900 | C910 | C920 | C930 | C940 | C950
                   | C900FF | C950FF | C990
                   | C980 | C985 | C995 | C980FF,
