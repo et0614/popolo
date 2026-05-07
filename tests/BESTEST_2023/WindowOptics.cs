@@ -119,6 +119,42 @@ namespace BESTEST_2023
       return (t, r);
     });
 
+    /// <summary>
+    /// ASHRAE 140-2023 Case 660 outer Low-E pane の per-pane 角度依存係数と法線入射値。
+    /// </summary>
+    /// <remarks>
+    /// 仕様書 Table 7-18 footnote (i) は §B6.2 (Snell+Fresnel+Bouguer) では
+    /// coated glass を記述できないと明記。代わりに Table 7-19 (双板の角度依存値)
+    /// を Popolo の matrix model + inner pane モデルとの組合せ式から逆解析して
+    /// per-pane outer Low-E 角度依存値を導出し、5 次多項式に fit。
+    ///
+    /// 逆解析手順:
+    ///   双板組合せ:
+    ///     T_d   = T_o · T_i / (1 - R_o_B · R_i)
+    ///     R_F_d = R_o_F + T_o² · R_i / (1 - R_o_B · R_i)
+    ///     R_B_d = R_i + T_i² · R_o_B / (1 - R_o_B · R_i)
+    ///   inner pane (T_i, R_i) は Popolo の clear glass モデル (BESTESTClearGlass_C600
+    ///   多項式 + R_normal=0.075 spec input) で計算。
+    ///   各角度の (T_d, R_F_d, R_B_d) ∈ Table 7-19 から (T_o, R_o_F, R_o_B) を解析的に解く。
+    ///
+    /// 法線入射値: 逆解析結果を使用 (spec Table 7-17 値 0.452/0.359/0.397 とは
+    /// 1〜4% 程度乖離するが、Popolo matrix model 経由で Table 7-19 双板値を
+    /// 再現する整合性を優先)。Hemis T (= 拡散透過率) は仕様 0.329 と一致。
+    /// </remarks>
+    public static (double[] tauF, double[] tauB, double[] rhoF, double[] rhoB,
+                   double tauNormalF, double tauNormalB,
+                   double rhoNormalF, double rhoNormalB) BESTESTLowEGlass_C660_Outer => (
+        // T 多項式 (F/B 同値; Helmholtz 相反性)
+        tauF: new[] { 1.693537, 4.652851, -15.906382, 16.124045, -5.564052 },
+        tauB: new[] { 1.693537, 4.652851, -15.906382, 16.124045, -5.564052 },
+        // R 多項式 (F/B 非対称; Low-E coating の効果)
+        rhoF: new[] { 4.407546, -7.485958, 5.018595, 0.038946, -0.979129 },
+        rhoB: new[] { -3.359753, 35.594060, -83.480546, 79.550575, -27.304336 },
+        // 法線入射値 (逆解析結果)
+        tauNormalF: 0.45863, tauNormalB: 0.45863,
+        rhoNormalF: 0.36376, rhoNormalB: 0.38222
+    );
+
     #endregion
 
     #region §B6.2 単板計算 (Snell + Fresnel + Bouguer)

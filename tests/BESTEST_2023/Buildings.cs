@@ -344,13 +344,17 @@ namespace BESTEST_2023
             // Case 660: low-e Argon 窓 (Std 140-2023 Tables 7-17/18/19).
             // Pane: 外 (low-e) cond=314 W/m²K → R=0.00318, 内 (clear) cond=328 → R=0.00305.
             // Argon gap effective conductance hs=1.792 W/m²K → R=0.5581 m²K/W.
-            // 法線入射値: 外 low-e は Tables 7-17/18 由来 (F/B 反射が非対称)、
-            //   内 clear は Annex B6.2 値 (T=0.83446, R=0.0391) で Case 600 と同一。
-            // 角度依存: §B6.2 は coated glass に適用不可と仕様明記のため、簡易処置として
-            //   両層に clear glass 多項式を流用。低-e の正確な角度シェイプは未対応 (TODO)。
+            // 法線入射値:
+            //   外 low-e: Table 7-19 (双板) からの逆解析値 (T=0.4586, R_F=0.3638, R_B=0.3822)。
+            //     spec Table 7-17 単板入力値 (0.452/0.359/0.397) とは 1〜4% 乖離するが、
+            //     Popolo の matrix model 経由で双板 Table 7-19 値を再現する整合性を優先。
+            //   内 clear: Case 600 と同一 (T=0.83446, R=0.075、Table 7-10 spec input)
+            // 角度依存:
+            //   外 low-e: WindowOptics.BESTESTLowEGlass_C660_Outer (Table 7-19 逆解析 + 多項式 fit)
+            //   内 clear: BESTESTClearGlass_C600 (§B6.2 多項式)
             windows[i] = new Window(6,
-                new[] { 0.452, 0.834 }, new[] { 0.359, 0.075 },     // F側 (外向き入射)
-                new[] { 0.452, 0.834 }, new[] { 0.397, 0.075 },     // B側 (内向き入射、low-e は反射が異なる)
+                new[] { 0.4586, 0.83446 }, new[] { 0.3638, 0.075 },   // F側 (外向き入射)
+                new[] { 0.4586, 0.83446 }, new[] { 0.3822, 0.075 },   // B側 (内向き入射、low-e R 非対称)
                 inc[i]);
             windows[i].SetGlassResistance(0, 0.00318);   // 外 pane (3.180mm)
             windows[i].SetGlassResistance(1, 0.00305);   // 内 pane (3.048mm)
@@ -841,20 +845,22 @@ namespace BESTEST_2023
     ///     <see cref="Window.GlassType.LowEmissivity"/> の F/B 非対称な代表多項式を援用。</item>
     /// </list>
     ///
-    /// Low-e pane は法線入射 T_n=0.452 (外 pane の Tables 7-17/18 値) で識別する
-    /// — Case 600 両 pane や Case 670 単板はいずれも T_n=0.834 なので衝突しない。
+    /// Low-e pane は法線入射 T_n=0.4586 (Table 7-19 逆解析値) で識別する
+    /// — Case 600 両 pane や Case 670 単板はいずれも T_n=0.83446 なので衝突しない。
     /// </summary>
     public static void SetBESTESTWindowAngleDependence(Window win)
     {
-      var (tau, rho) = WindowOptics.BESTESTClearGlass_C600;
+      var (tauClear, rhoClear) = WindowOptics.BESTESTClearGlass_C600;
+      var lowE = WindowOptics.BESTESTLowEGlass_C660_Outer;
       for (int i = 0; i < win.GlazingCount; i++)
       {
+        // 法線入射 T で識別: ≈0.4586 → Low-E outer pane、≈0.834 → clear pane
         bool isLowECoatedPane =
-            Math.Abs(win.GetGlazingTransmittance(i, true) - 0.452) < 1e-3;
+            Math.Abs(win.GetGlazingTransmittance(i, true) - 0.4586) < 1e-3;
         if (isLowECoatedPane)
-          win.SetAngleDependence(i, Window.GlassType.LowEmissivity);
+          win.SetAngleDependence(i, lowE.tauF, lowE.tauB, lowE.rhoF, lowE.rhoB);
         else
-          win.SetAngleDependence(i, tau, tau, rho, rho);
+          win.SetAngleDependence(i, tauClear, tauClear, rhoClear, rhoClear);
       }
     }
 
