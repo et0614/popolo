@@ -232,6 +232,14 @@ namespace BESTEST_2023
       // h_r ≈ 4εσT̄³ を T̄=20°C で線形化 (内側/外側それぞれ ε に応じて)
       double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+
+      // 窓専用の長波長放射率と h_r。
+      // Std 140-2023: 透明窓ガラスは ε=0.84、HCW (金属パネル) は ε=0.9。
+      // IR-off ケースは仕様に従い 0.1 で上書きされ材質差は無効化。
+      double winExtLW = isLowExtIREmissivity ? 0.1 : (hasHighConductanceWall ? 0.9 : 0.84);
+      double winIntLW = isLowIntIREmissivity ? 0.1 : (hasHighConductanceWall ? 0.9 : 0.84);
+      double hrF_win = 4 * winExtLW * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB_win = 4 * winIntLW * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       for (int i = 0; i < walls.Length; i++)
       {
         walls[i].Initialize(25);
@@ -304,7 +312,7 @@ namespace BESTEST_2023
             windows[i].SetGlassResistance(0, 0.00305);
             windows[i].SetGlassResistance(1, 0.00305);
             windows[i].SetAirGapResistance(0, 0.192);
-            // Phase D で導入された層別熱容量を反映 (旧コードでは 0 のまま)。
+            //層別熱容量を反映 (旧コードでは 0 のまま)。
             const double hcwPanelHeatCapacity = 2470.0 * 750.0 * 0.003048; // 5646.426 J/(m²·K)
             windows[i].SetGlassHeatCapacity(0, hcwPanelHeatCapacity);
             windows[i].SetGlassHeatCapacity(1, hcwPanelHeatCapacity);
@@ -356,12 +364,12 @@ namespace BESTEST_2023
             windows[i].SetAirGapResistance(0, 0.192);
           }
 
-          windows[i].LongWaveEmissivityF = extlwEmissivity;
-          windows[i].LongWaveEmissivityB = intlwEmissivity;
+          windows[i].LongWaveEmissivityF = winExtLW;
+          windows[i].LongWaveEmissivityB = winIntLW;
           windows[i].ConvectiveCoefficientF = AO_WINDOW;
-          windows[i].RadiativeCoefficientF = hrF;
+          windows[i].RadiativeCoefficientF = hrF_win;
           windows[i].ConvectiveCoefficientB = AI_WINDOW;
-          windows[i].RadiativeCoefficientB = hrB;
+          windows[i].RadiativeCoefficientB = hrB_win;
           // BESTEST 仕様: 透明窓も HCW (高貫流壁要素) も金属/ガラス相当の Very Smooth (R_f=1.00)。
           // Window コンストラクタの既定と同値だが BESTEST 設定として明示する。
           // HCW がガラス窓と同じ仕上を持つ点を可視化することが本記述の主目的。
@@ -495,6 +503,10 @@ namespace BESTEST_2023
 
       // 窓 (Sun zone 用、Case 600 と同一の clear double-pane)。
       // 法線入射 T=0.83446, R=0.0391 は Annex B6.2 調整済単板値。
+      // BESTEST 仕様: 透明窓ガラスは ε=0.84 (壁の 0.9 と区別)。
+      const double winLwEmissivity = 0.84;
+      double hrF_win = 4 * winLwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB_win = hrF_win;
       windows = new Window[2];
       for (int i = 0; i < 2; i++)
       {
@@ -505,12 +517,12 @@ namespace BESTEST_2023
         windows[i].SetGlassResistance(0, 0.003);
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
-        windows[i].LongWaveEmissivityF = extlwEmissivity;
-        windows[i].LongWaveEmissivityB = intlwEmissivity;
+        windows[i].LongWaveEmissivityF = winLwEmissivity;
+        windows[i].LongWaveEmissivityB = winLwEmissivity;
         windows[i].ConvectiveCoefficientF = AO_WINDOW;
-        windows[i].RadiativeCoefficientF = hrF;
+        windows[i].RadiativeCoefficientF = hrF_win;
         windows[i].ConvectiveCoefficientB = AI_WINDOW;
-        windows[i].RadiativeCoefficientB = hrB;
+        windows[i].RadiativeCoefficientB = hrB_win;
         // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
         windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
         windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
@@ -626,6 +638,10 @@ namespace BESTEST_2023
 
       // 窓 (Case 990 用 clear double-pane、面積 5.4 m²)。
       // 法線入射 T=0.83446, R=0.0391 は Annex B6.2 調整済単板値。
+      // BESTEST 仕様: 透明窓ガラスは ε=0.84 (壁の 0.9 と区別)。
+      const double winLwEmissivity = 0.84;
+      double hrF_win = 4 * winLwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
+      double hrB_win = hrF_win;
       windows = new Window[2];
       for (int i = 0; i < 2; i++)
       {
@@ -636,12 +652,12 @@ namespace BESTEST_2023
         windows[i].SetGlassResistance(0, 0.003);
         windows[i].SetGlassResistance(1, 0.003);
         windows[i].SetAirGapResistance(0, 0.1588);
-        windows[i].LongWaveEmissivityF = extlwEmissivity;
-        windows[i].LongWaveEmissivityB = intlwEmissivity;
+        windows[i].LongWaveEmissivityF = winLwEmissivity;
+        windows[i].LongWaveEmissivityB = winLwEmissivity;
         windows[i].ConvectiveCoefficientF = AO_WINDOW;
-        windows[i].RadiativeCoefficientF = hrF;
+        windows[i].RadiativeCoefficientF = hrF_win;
         windows[i].ConvectiveCoefficientB = AI_WINDOW;
-        windows[i].RadiativeCoefficientB = hrB;
+        windows[i].RadiativeCoefficientB = hrB_win;
         // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
         windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
         windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
