@@ -56,41 +56,12 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>True if this surface is the F side of the element.</summary>
     internal bool isSideF { get; private set; }
 
-    /// <summary>Gets the envelope component (wall or window) this surface belongs to.</summary>
+    /// <summary>Gets the envelope component (wall, window, etc.) this surface belongs to.</summary>
+    /// <remarks>
+    /// To branch on the concrete type, use C# pattern matching:
+    /// <c>if (surface.Component is Wall w) { ... }</c>.
+    /// </remarks>
     public OpticalLayeredEnvelope Component { get; private set; } = null!;
-
-    /// <summary>
-    /// Gets a value indicating whether this surface belongs to a wall (true)
-    /// or a window (false).
-    /// </summary>
-    /// <remarks>
-    /// Convenience predicate; equivalent to <c>Component is Wall</c>. New
-    /// code should prefer pattern matching on <see cref="Component"/> for
-    /// type-specific access.
-    /// </remarks>
-    public bool IsWall => Component is Wall;
-
-    /// <summary>
-    /// Gets the wall this surface belongs to, or <c>null</c> if the
-    /// underlying component is not a wall.
-    /// </summary>
-    /// <remarks>
-    /// Returned as a non-null reference for backward compatibility when
-    /// <see cref="IsWall"/> is true; otherwise the value is undefined.
-    /// New code should use <c>Component is Wall w</c> pattern matching.
-    /// </remarks>
-    public Wall Wall => (Component as Wall)!;
-
-    /// <summary>
-    /// Gets the window this surface belongs to, or <c>null</c> if the
-    /// underlying component is not a window.
-    /// </summary>
-    /// <remarks>
-    /// Returned as a non-null reference for backward compatibility when
-    /// <see cref="IsWall"/> is false; otherwise the value is undefined.
-    /// New code should use <c>Component is Window w</c> pattern matching.
-    /// </remarks>
-    public Window Window => (Component as Window)!;
 
     /// <summary>Gets or sets the surface index within the zone surface list.</summary>
     public int Index { get; set; }
@@ -163,7 +134,7 @@ namespace Popolo.Core.Building.Envelope
             else         Component.SolAirTemperatureB = value; }
     }
 
-    /// <summary>Gets the surface temperature [°C] from the response factor model.</summary>
+    /// <summary>Gets the surface temperature [°C] reconstructed from the implicit-Euler step coefficients.</summary>
     /// <remarks>
     /// Computed uniformly for any <see cref="OpticalLayeredEnvelope"/> as
     /// <c>T = IF2 + FFS2·SolAir(this) + BFS2·SolAir(reverse) + FFL2·H(this) + BFL2·H(reverse)</c>.
@@ -186,72 +157,59 @@ namespace Popolo.Core.Building.Envelope
             else         Component.HumidityRatioB = value; }
     }
 
-    /// <summary>Gets the response factor coefficient for this side's sol-air temperature (sensible).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface temperature) / ∂(this-side sol-air temperature) for the sensible row.</summary>
     /// <remarks>
-    /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.FFS2_F"/> /
+    /// Derived from the inverse of the implicit-Euler coefficient matrix
+    /// <c>(I − Δt·A)</c>, not from a CTF / response-factor (z-domain)
+    /// formulation. Dispatches uniformly through
+    /// <see cref="OpticalLayeredEnvelope.FFS2_F"/> /
     /// <see cref="OpticalLayeredEnvelope.BFS2_B"/> regardless of component type
-    /// — both walls and windows now share the matrix-derived response coefficients.
+    /// — both walls and windows share the same matrix-derived step coefficients.
     /// </remarks>
-    public double FFS2
-    {
-      get
-      {
-        return isSideF ? Component.FFS2_F : Component.BFS2_B;
-      }
-    }
+    public double FFS2 => isSideF ? Component.FFS2_F : Component.BFS2_B;
 
-    /// <summary>Gets the response factor coefficient for the F-side sol-air temperature (humidity term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface humidity row) / ∂(this-side sol-air temperature).</summary>
     /// <remarks>0 for components without coupled moisture transport (Window etc.).</remarks>
     public double FFS3
         => isSideF ? Component.FFS3_F : Component.BFS3_B;
 
-    /// <summary>Gets the response factor coefficient for the F-side humidity ratio (temperature term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface temperature) / ∂(this-side humidity ratio).</summary>
     public double FFL2
         => isSideF ? Component.FFL2_F : Component.BFL2_B;
 
-    /// <summary>Gets the response factor coefficient for the F-side humidity ratio (humidity term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface humidity row) / ∂(this-side humidity ratio).</summary>
     public double FFL3
         => isSideF ? Component.FFL3_F : Component.BFL3_B;
 
-    /// <summary>Gets the response factor coefficient for the opposite side's sol-air temperature (sensible).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface temperature) / ∂(opposite-side sol-air temperature) for the sensible row.</summary>
     /// <remarks>
     /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.BFS2_F"/> /
     /// <see cref="OpticalLayeredEnvelope.FFS2_B"/> regardless of component type.
     /// </remarks>
-    public double BFS2
-    {
-      get
-      {
-        return isSideF ? Component.BFS2_F : Component.FFS2_B;
-      }
-    }
+    public double BFS2 => isSideF ? Component.BFS2_F : Component.FFS2_B;
 
-    /// <summary>Gets the response factor coefficient for the B-side sol-air temperature (humidity term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface humidity row) / ∂(opposite-side sol-air temperature).</summary>
     public double BFS3
         => isSideF ? Component.BFS3_F : Component.FFS3_B;
 
-    /// <summary>Gets the response factor coefficient for the B-side humidity ratio (temperature term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface temperature) / ∂(opposite-side humidity ratio).</summary>
     public double BFL2
         => isSideF ? Component.BFL2_F : Component.FFL2_B;
 
-    /// <summary>Gets the response factor coefficient for the B-side humidity ratio (humidity term).</summary>
+    /// <summary>Step coefficient: ∂(this-side surface humidity row) / ∂(opposite-side humidity ratio).</summary>
     public double BFL3
         => isSideF ? Component.BFL3_F : Component.FFL3_B;
 
-    /// <summary>Gets the response factor coefficient for the time-delay term (sensible).</summary>
+    /// <summary>Step coefficient: this-side surface temperature contribution from the current nodal state (sensible row).</summary>
     /// <remarks>
-    /// Dispatches uniformly through <see cref="OpticalLayeredEnvelope.IF2_F"/> /
-    /// <see cref="OpticalLayeredEnvelope.IF2_B"/> regardless of component type.
+    /// Carries the &quot;previous-step temperature × inverse-matrix&quot; term that
+    /// accumulates the layer's thermal mass history. Dispatches uniformly
+    /// through <see cref="OpticalLayeredEnvelope.IF2_F"/> /
+    /// <see cref="OpticalLayeredEnvelope.IF2_B"/>.
     /// </remarks>
-    public double IF2
-    {
-      get
-      {
-        return isSideF ? Component.IF2_F : Component.IF2_B;
-      }
-    }
+    public double IF2 => isSideF ? Component.IF2_F : Component.IF2_B;
 
-    /// <summary>Gets the response factor coefficient for the time-delay term (humidity row).</summary>
+    /// <summary>Step coefficient: this-side surface contribution from the current nodal state (humidity row).</summary>
     /// <remarks>0 for components without coupled moisture transport.</remarks>
     public double IF3
         => isSideF ? Component.IF3_F : Component.IF3_B;

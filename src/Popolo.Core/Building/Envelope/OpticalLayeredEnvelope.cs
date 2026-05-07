@@ -136,7 +136,7 @@ namespace Popolo.Core.Building.Envelope
     public abstract double FilmCoefficientB { get; }
 
     /// <inheritdoc/>
-    /// <remarks>The surface temperature is read from <see cref="SurfaceF"/> / <see cref="SurfaceB"/>'s response-factor formulation.</remarks>
+    /// <remarks>Reconstructed from <see cref="SurfaceF"/> / <see cref="SurfaceB"/>'s implicit-Euler step coefficients (FFS2/BFS2/IF2 + humidity terms when applicable).</remarks>
     public abstract double SurfaceTemperatureF { get; }
 
     /// <inheritdoc/>
@@ -281,7 +281,7 @@ namespace Popolo.Core.Building.Envelope
     /// <remarks>
     /// Default implementation returns <c>SurfaceTemperature − outdoorTemperature</c>.
     /// <see cref="Window"/> currently overrides this to return 0 as a behavior-preserving
-    /// approximation pending a verified switch to the response-factor surface temperature.
+    /// approximation pending a verified switch to the matrix-derived surface temperature.
     /// </remarks>
     internal virtual double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
         => (isSideF ? SurfaceTemperatureF : SurfaceTemperatureB) - outdoorTemperature;

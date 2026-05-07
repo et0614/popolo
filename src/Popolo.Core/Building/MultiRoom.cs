@@ -1843,7 +1843,7 @@ namespace Popolo.Core.Building
     /// <remarks>
     /// Updates the pipe's ε-NTU effectiveness via
     /// <see cref="IReadOnlyBuriedPipe"/> and invalidates the wall's cached
-    /// response-factor matrices so they are recomputed on the next solver
+    /// implicit-Euler step matrices so they are recomputed on the next solver
     /// step. The pipe must have been added to the wall beforehand (see the
     /// buried-pipe API on <see cref="Wall"/>); a node without a pipe is
     /// silently ignored.
@@ -1887,7 +1887,7 @@ namespace Popolo.Core.Building
     /// Call this after the model has been fully configured and before the first
     /// solver step. It resets every zone's air state and every wall's
     /// temperature/humidity distribution to a uniform value, which provides a
-    /// well-defined starting point for the response-factor solver. May also be
+    /// well-defined starting point for the implicit-Euler step solver. May also be
     /// called during a run to "re-seed" the state (e.g., at the start of a new
     /// simulation scenario).
     /// </remarks>

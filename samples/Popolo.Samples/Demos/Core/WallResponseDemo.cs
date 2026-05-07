@@ -29,7 +29,8 @@ namespace Popolo.Samples.Demos.Core
   /// indoor-facing surface temperatures.
   /// </summary>
   /// <remarks>
-  /// Demonstrates <see cref="Wall"/>'s periodic response-factor solver.
+  /// Demonstrates <see cref="Wall"/>'s implicit-Euler step solver under
+  /// periodic boundary conditions.
   /// The outdoor sol-air temperature varies as 30 ± 10 °C with its peak at
   /// 14:00. The indoor side is held at 25 °C. Film coefficients are set to
   /// common default values. Two full 24-hour cycles are simulated so the

@@ -255,8 +255,8 @@ namespace Popolo.Core.Building
     /// <para>
     /// Each solver step is a two-phase cycle:
     /// <list type="number">
-    ///   <item><description><b>Forecast</b> — call <see cref="ForecastHeatTransfer"/> (and <see cref="ForecastWaterTransfer"/> if moisture is tracked). Zone states are tentatively updated but wall response-factor histories are not yet advanced, so the call can be <b>repeated</b> with adjusted boundary conditions (e.g., modified inter-multi-room air flows) until the caller is satisfied.</description></item>
-    ///   <item><description><b>Fix</b> — call <see cref="FixState"/> once to commit the latest forecast. Wall response-factor histories advance by one time step; the next forecast starts from the committed state.</description></item>
+    ///   <item><description><b>Forecast</b> — call <see cref="ForecastHeatTransfer"/> (and <see cref="ForecastWaterTransfer"/> if moisture is tracked). Zone states are tentatively updated but wall nodal-state histories are not yet advanced, so the call can be <b>repeated</b> with adjusted boundary conditions (e.g., modified inter-multi-room air flows) until the caller is satisfied.</description></item>
+    ///   <item><description><b>Fix</b> — call <see cref="FixState"/> once to commit the latest forecast. Wall nodal-state histories advance by one time step; the next forecast starts from the committed state.</description></item>
     /// </list>
     /// To discard a forecast instead of committing, call
     /// <see cref="ResetAirState"/>, which reverts zone temperatures and
@@ -342,7 +342,7 @@ namespace Popolo.Core.Building
     /// Finalizes the latest <see cref="ForecastHeatTransfer"/> /
     /// <see cref="ForecastWaterTransfer"/> results: each multi-room's
     /// "has changed" flag is re-armed for the next cycle, and every wall's
-    /// response-factor history is rolled forward by one time step via
+    /// nodal-state history is rolled forward by one time step via
     /// <c>Wall.Update</c>. After this call, the building state reflects
     /// the end of the current time step and is ready for new boundary
     /// conditions and another forecast/fix cycle.
