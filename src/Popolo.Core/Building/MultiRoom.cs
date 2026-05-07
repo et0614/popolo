@@ -498,7 +498,7 @@ namespace Popolo.Core.Building
         {
           string side = sf.isSideF ? "F" : "B";
           double lw = sf.LongWaveEmissivity;
-          double sw = sf.ShortWaveEmissivity;
+          double sw = sf.ShortWaveAbsorptance;
           if (lw < 0.0 || lw > 1.0)
             errors.Add($"Component[{i}] {side} side long-wave emissivity = {lw}, must be in [0, 1].");
           if (sw < 0.0 || sw > 1.0)
@@ -895,7 +895,7 @@ namespace Popolo.Core.Building
     /// <remarks>
     /// Walls and windows are treated uniformly via the standard SolAir-temperature
     /// formula. For windows the surface-level absorptance term auto-degenerates
-    /// to zero (<see cref="Window.ShortWaveEmissivityF"/> returns 0) — outdoor
+    /// to zero (<see cref="Window.ShortWaveAbsorptanceF"/> returns 0) — outdoor
     /// solar absorption is captured per glass layer in the matrix solver via
     /// <see cref="OpticalLayeredEnvelope.SetLayerSolarAbsorption(int, double)"/>.
     /// </remarks>
@@ -910,7 +910,7 @@ namespace Popolo.Core.Building
             double fs = ws.Incline!.ConfigurationFactorToSky;
             double rad = ws.Incline.GetSolarIrradiance(Sun, Albedo);
             ws.SolAirTemperature = OutdoorTemperature
-              + (ws.ShortWaveEmissivity * rad
+              + (ws.ShortWaveAbsorptance * rad
               - ws.LongWaveEmissivity * fs * NocturnalRadiation) / ws.FilmCoefficient;
             ws.HumidityRatio = OutdoorHumidityRatio;
           }
@@ -1044,7 +1044,7 @@ namespace Popolo.Core.Building
     {
       IReadOnlyWall wall = walls[wallIndex];
       foreach (EnvelopeSurface ws in surfaces)
-        if (ws.isSideF == isSideF && ws.Wall == wall)
+        if (ws.isSideF == isSideF && ws.Component == wall)
           return ws.Area * ws.ConvectiveCoefficient
             * (ws.SurfaceTemperature - zones[ws.ZoneIndex].Temperature);
       return 0;
@@ -1362,7 +1362,7 @@ namespace Popolo.Core.Building
           for (int k = 0; k < wsn; k++)
           {
             ffRhoL[j, k] = -(1 - ws.LongWaveEmissivity) * formFactor[i][j, k];
-            ffRhoS[j, k] = -(1 - ws.ShortWaveEmissivity) * formFactor[i][j, k];
+            ffRhoS[j, k] = -(1 - ws.ShortWaveAbsorptance) * formFactor[i][j, k];
             if (j == k)
             {
               ffRhoL[j, k]++;
@@ -1381,7 +1381,7 @@ namespace Popolo.Core.Building
           {
             EnvelopeSurface ws2 = surfaces[wInd[k]];
             gMatL[wInd[j], wInd[k]] = ffRhoL[j, k] * ws2.LongWaveEmissivity;
-            gMatS[wInd[j], wInd[k]] = ffRhoS[j, k] * ws2.ShortWaveEmissivity;
+            gMatS[wInd[j], wInd[k]] = ffRhoS[j, k] * ws2.ShortWaveAbsorptance;
           }
           //長波長は基準化して放射熱伝達率を計算 (動的更新用に bf を保存)
           double bf = 1 - gMatL[wInd[j], wInd[j]];
@@ -1436,7 +1436,7 @@ namespace Popolo.Core.Building
       bool needUpdateGebhartMatrix = false;
       for (int i = 0; i < surfaces.Length; i++)
       {
-        double now = surfaces[i].ShortWaveEmissivity;
+        double now = surfaces[i].ShortWaveAbsorptance;
         if (surfaceSWEmissivity[i] != now)
         {
           surfaceSWEmissivity[i] = now;
@@ -1611,8 +1611,8 @@ namespace Popolo.Core.Building
             {
               flr = flrSurface;
               double flRate = swDistRate[ws1.Component];
-              radToSurf_S[flr.Index] += dir2 * flRate * flr.ShortWaveEmissivity / flr.Area;
-              radFromFloor = dir2 * flRate * (1.0 - flr.ShortWaveEmissivity);
+              radToSurf_S[flr.Index] += dir2 * flRate * flr.ShortWaveAbsorptance / flr.Area;
+              radFromFloor = dir2 * flRate * (1.0 - flr.ShortWaveAbsorptance);
               dir2 *= (1 - flRate);
             }
             double rad = dir2 + emit.TransmittedDiffusePower;

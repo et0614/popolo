@@ -19,7 +19,6 @@
 
 using System;
 using Popolo.Core.Climate;
-using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.Building.Envelope
 {
@@ -126,142 +125,65 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the combined heat transfer coefficient [W/(m²·K)].</summary>
     public double FilmCoefficient
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.FilmCoefficientF;
-        else if (IsWall && !isSideF) return Wall.FilmCoefficientB;
-        else if (!IsWall && isSideF) return Window.FilmCoefficientF;
-        else return Window.FilmCoefficientB;
-      }
-    }
+        => isSideF ? Component.FilmCoefficientF : Component.FilmCoefficientB;
 
     /// <summary>Gets or sets the radiative heat transfer coefficient [W/(m²·K)].</summary>
     public double RadiativeCoefficient
     {
-      get
-      {
-        if (IsWall && isSideF) return Wall.RadiativeCoefficientF;
-        else if (IsWall && !isSideF) return Wall.RadiativeCoefficientB;
-        else if (!IsWall && isSideF) return Window.RadiativeCoefficientF;
-        else return Window.RadiativeCoefficientB;
-      }
-      set
-      {
-        if (IsWall && isSideF) Wall.RadiativeCoefficientF = value;
-        else if (IsWall && !isSideF) Wall.RadiativeCoefficientB = value;
-        else if (!IsWall && isSideF) Window.RadiativeCoefficientF = value;
-        else Window.RadiativeCoefficientB = value;
-      }
+      get => isSideF ? Component.RadiativeCoefficientF : Component.RadiativeCoefficientB;
+      set { if (isSideF) Component.RadiativeCoefficientF = value;
+            else         Component.RadiativeCoefficientB = value; }
     }
 
     /// <summary>Gets or sets the convective heat transfer coefficient [W/(m²·K)].</summary>
     public double ConvectiveCoefficient
     {
-      get
-      {
-        if (IsWall && isSideF) return Wall.ConvectiveCoefficientF;
-        else if (IsWall && !isSideF) return Wall.ConvectiveCoefficientB;
-        else if (!IsWall && isSideF) return Window.ConvectiveCoefficientF;
-        else return Window.ConvectiveCoefficientB;
-      }
-      set
-      {
-        if (IsWall && isSideF) Wall.ConvectiveCoefficientF = value;
-        else if (IsWall && !isSideF) Wall.ConvectiveCoefficientB = value;
-        else if (!IsWall && isSideF) Window.ConvectiveCoefficientF = value;
-        else Window.ConvectiveCoefficientB = value;
-      }
+      get => isSideF ? Component.ConvectiveCoefficientF : Component.ConvectiveCoefficientB;
+      set { if (isSideF) Component.ConvectiveCoefficientF = value;
+            else         Component.ConvectiveCoefficientB = value; }
     }
 
     /// <summary>Gets the moisture transfer coefficient [(kg/s)/((kg/kg)·m²)].</summary>
     public double MoistureCoefficient
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.MoistureCoefficientF;
-        else if (IsWall && !isSideF) return Wall.MoistureCoefficientB;
-        else return 0;
-      }
-    }
+        => isSideF ? Component.MoistureCoefficientF : Component.MoistureCoefficientB;
 
     /// <summary>Gets the short-wave (solar) absorptance [-].</summary>
-    public double ShortWaveEmissivity
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.ShortWaveAbsorptanceF;
-        else if (IsWall && !isSideF) return Wall.ShortWaveAbsorptanceB;
-        else if (!IsWall && isSideF) return Window.ShortWaveEmissivityF;
-        else return Window.ShortWaveEmissivityB;
-      }
-    }
+    public double ShortWaveAbsorptance
+        => isSideF ? Component.ShortWaveAbsorptanceF : Component.ShortWaveAbsorptanceB;
 
     /// <summary>Gets the long-wave (thermal) emissivity [-].</summary>
-    public double LongWaveEmissivity {
-      get
-      {
-        if (IsWall && isSideF) return Wall.LongWaveEmissivityF;
-        else if (IsWall && !isSideF) return Wall.LongWaveEmissivityB;
-        else if (!IsWall && isSideF) return Window.LongWaveEmissivityF;
-        else return Window.LongWaveEmissivityB;
-      }
-    }
+    public double LongWaveEmissivity
+        => isSideF ? Component.LongWaveEmissivityF : Component.LongWaveEmissivityB;
 
     /// <summary>Gets or sets the sol-air temperature [°C].</summary>
     public double SolAirTemperature
     {
-      set
-      {
-        if (IsWall && isSideF) Wall.SolAirTemperatureF = value;
-        else if (IsWall && !isSideF) Wall.SolAirTemperatureB = value;
-        else if (!IsWall && isSideF) Window.SolAirTemperatureF = value;
-        else Window.SolAirTemperatureB = value;
-      }
-      get
-      {
-        if (IsWall && isSideF) return Wall.SolAirTemperatureF;
-        else if (IsWall && !isSideF) return Wall.SolAirTemperatureB;
-        else if (!IsWall && isSideF) return Window.SolAirTemperatureF;
-        else return Window.SolAirTemperatureB;
-      }
+      get => isSideF ? Component.SolAirTemperatureF : Component.SolAirTemperatureB;
+      set { if (isSideF) Component.SolAirTemperatureF = value;
+            else         Component.SolAirTemperatureB = value; }
     }
 
     /// <summary>Gets the surface temperature [°C] from the response factor model.</summary>
     /// <remarks>
-    /// Both wall and window surface temperatures are computed uniformly:
-    /// <c>T = IF2 + FFS2·SolAir(this) + BFS2·SolAir(reverse) + (humidity terms when applicable)</c>.
+    /// Computed uniformly for any <see cref="OpticalLayeredEnvelope"/> as
+    /// <c>T = IF2 + FFS2·SolAir(this) + BFS2·SolAir(reverse) + FFL2·H(this) + BFL2·H(reverse)</c>.
     /// The <see cref="IF2"/> term carries the layer-internal contribution
-    /// (zero for resistive-only configurations such as the current window
-    /// model with no thermal mass; non-zero once per-glass-layer absorbed
-    /// solar feeds in via <see cref="OpticalLayeredEnvelope.SetLayerSolarAbsorption"/>).
-    /// Moisture terms apply only to walls with coupled moisture transport.
+    /// (zero for resistive-only configurations such as the default window
+    /// model with no thermal mass). Humidity terms (FFL2/BFL2/HumidityRatio)
+    /// are 0 for components without coupled moisture transport so the same
+    /// formula collapses to the sensible-only form automatically.
     /// </remarks>
     public double SurfaceTemperature
-    {
-      get
-      {
-        if (IsWall) return IF2 + FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature
-            + FFL2 * HumidityRatio + BFL2 * ReverseSideSurface.HumidityRatio;
-        else return IF2 + FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature;
-      }
-    }
+        => IF2 + FFS2 * SolAirTemperature + BFS2 * ReverseSideSurface.SolAirTemperature
+              + FFL2 * HumidityRatio + BFL2 * ReverseSideSurface.HumidityRatio;
 
     /// <summary>Gets or sets the humidity ratio [kg/kg] at this surface.</summary>
+    /// <remarks>0 with no-op setter for components without coupled moisture transport.</remarks>
     public double HumidityRatio
     {
-      set
-      {
-        if (IsWall && isSideF) Wall.HumidityRatioF = value;
-        else if (IsWall && !isSideF) Wall.HumidityRatioB = value;
-        else return;
-      }
-      get
-      {
-        if (IsWall && isSideF) return Wall.HumidityRatioF;
-        else if (IsWall && !isSideF) return Wall.HumidityRatioB;
-        else return 0;
-      }
+      get => isSideF ? Component.HumidityRatioF : Component.HumidityRatioB;
+      set { if (isSideF) Component.HumidityRatioF = value;
+            else         Component.HumidityRatioB = value; }
     }
 
     /// <summary>Gets the response factor coefficient for this side's sol-air temperature (sensible).</summary>
@@ -279,43 +201,17 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the response factor coefficient for the F-side sol-air temperature (humidity term).</summary>
+    /// <remarks>0 for components without coupled moisture transport (Window etc.).</remarks>
     public double FFS3
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.FFS3_F;
-        else if (IsWall && !isSideF) return Wall.BFS3_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.FFS3_F : Component.BFS3_B;
 
     /// <summary>Gets the response factor coefficient for the F-side humidity ratio (temperature term).</summary>
     public double FFL2
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.FFL2_F;
-        else if (IsWall && !isSideF) return Wall.BFL2_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.FFL2_F : Component.BFL2_B;
 
     /// <summary>Gets the response factor coefficient for the F-side humidity ratio (humidity term).</summary>
     public double FFL3
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.FFL3_F;
-        else if (IsWall && !isSideF) return Wall.BFL3_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.FFL3_F : Component.BFL3_B;
 
     /// <summary>Gets the response factor coefficient for the opposite side's sol-air temperature (sensible).</summary>
     /// <remarks>
@@ -332,42 +228,15 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the response factor coefficient for the B-side sol-air temperature (humidity term).</summary>
     public double BFS3
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.BFS3_F;
-        else if (IsWall && !isSideF) return Wall.FFS3_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.BFS3_F : Component.FFS3_B;
 
     /// <summary>Gets the response factor coefficient for the B-side humidity ratio (temperature term).</summary>
     public double BFL2
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.BFL2_F;
-        else if (IsWall && !isSideF) return Wall.FFL2_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.BFL2_F : Component.FFL2_B;
 
     /// <summary>Gets the response factor coefficient for the B-side humidity ratio (humidity term).</summary>
     public double BFL3
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.BFL3_F;
-        else if (IsWall && !isSideF) return Wall.FFL3_B;
-        else if (!IsWall && isSideF) throw new PopoloNotImplementedException(
-          "Response factor coefficients for the front side of a window surface are not supported.");
-        else return 0;
-      }
-    }
+        => isSideF ? Component.BFL3_F : Component.FFL3_B;
 
     /// <summary>Gets the response factor coefficient for the time-delay term (sensible).</summary>
     /// <remarks>
@@ -382,17 +251,10 @@ namespace Popolo.Core.Building.Envelope
       }
     }
 
-    /// <summary>Gets the response factor coefficient for the time-delay term (temperature).</summary>
+    /// <summary>Gets the response factor coefficient for the time-delay term (humidity row).</summary>
+    /// <remarks>0 for components without coupled moisture transport.</remarks>
     public double IF3
-    {
-      get
-      {
-        if (IsWall && isSideF) return Wall.IF3_F;
-        else if (IsWall && !isSideF) return Wall.IF3_B;
-        else if (!IsWall && isSideF) return 0;
-        else return 0;
-      }
-    }
+        => isSideF ? Component.IF3_F : Component.IF3_B;
 
     /// <summary>Gets the convective fraction of the combined heat transfer coefficient [-].</summary>
     public double ConvectiveFraction
@@ -462,7 +324,7 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public void SetIncidentSolarFlux(double incidentShortWaveFlux)
     {
-      AbsorbedSolarFlux = (Component is Wall) ? incidentShortWaveFlux : 0.0;
+      AbsorbedSolarFlux = Component.AbsorbsShortWaveAtSurface ? incidentShortWaveFlux : 0.0;
       Component.OnIncidentSolarFlux(this, incidentShortWaveFlux);
     }
 

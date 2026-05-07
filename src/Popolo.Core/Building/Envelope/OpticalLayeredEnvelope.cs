@@ -142,6 +142,92 @@ namespace Popolo.Core.Building.Envelope
     /// <inheritdoc/>
     public abstract double SurfaceTemperatureB { get; }
 
+    /// <summary>Gets or sets the short-wave (solar) absorptance on the F side [-].</summary>
+    /// <remarks>
+    /// Concretely the fraction of incident short-wave that is absorbed AT the
+    /// surface. <see cref="Wall"/> overrides with a stored auto-property
+    /// (default 0.7); <see cref="Window"/> overrides with computed values
+    /// (F = 0; B = 1 − DiffuseSolarLostReflectance) and an ignored setter.
+    /// Default base implementation returns 0 with a no-op setter.
+    /// </remarks>
+    public virtual double ShortWaveAbsorptanceF { get => 0.0; set { } }
+
+    /// <summary>Gets or sets the short-wave (solar) absorptance on the B side [-].</summary>
+    public virtual double ShortWaveAbsorptanceB { get => 0.0; set { } }
+
+    /// <summary>
+    /// Whether short-wave (solar) flux incident on this component's interior
+    /// surface is absorbed at the surface (and therefore exposed via
+    /// <see cref="EnvelopeSurface.AbsorbedSolarFlux"/>) or dissipated by some
+    /// other path (e.g., per-layer absorption inside a glazing stack).
+    /// </summary>
+    /// <remarks>
+    /// Default <c>false</c>. <see cref="Wall"/> overrides to <c>true</c>;
+    /// <see cref="Window"/> keeps the default since absorbed solar is fed
+    /// into glass layers via <see cref="OnIncidentSolarFlux"/>.
+    /// </remarks>
+    public virtual bool AbsorbsShortWaveAtSurface => false;
+
+    /// <summary>Gets or sets the humidity ratio on the F side [kg/kg].</summary>
+    /// <remarks>
+    /// Default 0 with no-op setter. <see cref="Wall"/> overrides to provide
+    /// real storage when coupled moisture transport is active.
+    /// </remarks>
+    public virtual double HumidityRatioF { get => 0.0; set { } }
+
+    /// <summary>Gets or sets the humidity ratio on the B side [kg/kg].</summary>
+    public virtual double HumidityRatioB { get => 0.0; set { } }
+
+    /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)].</summary>
+    /// <remarks>Default 0; <see cref="Wall"/> overrides for moisture-active configurations.</remarks>
+    public virtual double MoistureCoefficientF => 0.0;
+
+    /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)].</summary>
+    public virtual double MoistureCoefficientB => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
+    /// <remarks>Default 0. Only <see cref="Wall"/> in moisture-active configuration provides a non-zero value.</remarks>
+    internal virtual double FFS3_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
+    internal virtual double FFS3_B => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
+    internal virtual double BFS3_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
+    internal virtual double BFS3_B => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
+    internal virtual double FFL2_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
+    internal virtual double FFL2_B => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
+    internal virtual double FFL3_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
+    internal virtual double FFL3_B => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
+    internal virtual double BFL2_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
+    internal virtual double BFL2_B => 0.0;
+
+    /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
+    internal virtual double BFL3_F => 0.0;
+
+    /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
+    internal virtual double BFL3_B => 0.0;
+
+    /// <summary>Inverse-matrix–derived F-side humidity contribution to the next-step nodal solution.</summary>
+    internal virtual double IF3_F => 0.0;
+
+    /// <summary>Inverse-matrix–derived B-side humidity contribution to the next-step nodal solution.</summary>
+    internal virtual double IF3_B => 0.0;
+
     /// <summary>
     /// Whether the F side is exposed to outdoor wind. Default <c>false</c>.
     /// When <c>true</c>, the F-side convective coefficient participates in the

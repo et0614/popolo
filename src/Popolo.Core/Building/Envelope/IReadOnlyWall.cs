@@ -67,23 +67,9 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the humidity ratio distribution vector [kg/kg].</summary>
     IVector Humidities { get; }
 
-    /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)].</summary>
-    double MoistureCoefficientF { get; }
-
-    /// <summary>Gets the short-wave (solar) absorptance on the F side [-].</summary>
-    double ShortWaveAbsorptanceF { get; }
-
-    /// <summary>Gets the humidity ratio on the F side [kg/kg].</summary>
-    double HumidityRatioF { get; }
-
-    /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)].</summary>
-    double MoistureCoefficientB { get; }
-
-    /// <summary>Gets the short-wave (solar) absorptance on the B side [-].</summary>
-    double ShortWaveAbsorptanceB { get; }
-
-    /// <summary>Gets the humidity ratio on the B side [kg/kg].</summary>
-    double HumidityRatioB { get; }
+    // MoistureCoefficientF/B, ShortWaveAbsorptanceF/B, HumidityRatioF/B は
+    // IReadOnlyOpticalLayeredEnvelope 側で公開されるため再宣言は不要
+    // (Wall 固有の意味付けは Wall 実装側のドキュメントを参照)。
 
     /// <summary>Gets the buried pipe at the specified node.</summary>
     /// <param name="node">The node index at which the pipe is embedded.</param>

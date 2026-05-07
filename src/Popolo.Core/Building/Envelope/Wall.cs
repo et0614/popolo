@@ -146,13 +146,13 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)].</summary>
-    public double MoistureCoefficientF { get { return 1.0d / resL[0]; } }
+    public override double MoistureCoefficientF { get { return 1.0d / resL[0]; } }
 
     /// <summary>Gets or sets the short-wave (solar) absorptance on the F side [-].</summary>
-    public double ShortWaveAbsorptanceF { get; set; } = 0.7;
+    public override double ShortWaveAbsorptanceF { get; set; } = 0.7;
 
     /// <summary>Gets or sets the humidity ratio on the F side [kg/kg].</summary>
-    public double HumidityRatioF { get; set; }
+    public override double HumidityRatioF { get; set; }
 
     /// <summary>Gets the combined heat transfer coefficient on the B side [W/(m²·K)].</summary>
     public override double FilmCoefficientB { get { return cCoefB + rCoefB; } }
@@ -184,13 +184,17 @@ namespace Popolo.Core.Building.Envelope
     }
 
     /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)].</summary>
-    public double MoistureCoefficientB { get { return 1.0d / resL[resL.Length - 1]; } }
+    public override double MoistureCoefficientB { get { return 1.0d / resL[resL.Length - 1]; } }
 
     /// <summary>Gets or sets the short-wave (solar) absorptance on the B side [-].</summary>
-    public double ShortWaveAbsorptanceB { get; set; } = 0.7;
+    public override double ShortWaveAbsorptanceB { get; set; } = 0.7;
 
     /// <summary>Gets or sets the humidity ratio on the B side [kg/kg].</summary>
-    public double HumidityRatioB { get; set; }
+    public override double HumidityRatioB { get; set; }
+
+    /// <inheritdoc/>
+    /// <remarks>Walls absorb incident short-wave at the surface (per ShortWaveAbsorptance F/B).</remarks>
+    public override bool AbsorbsShortWaveAtSurface => true;
 
     /// <summary>Gets the wall layer array.</summary>
     public IReadOnlyWallLayer[] Layers { get { return layers; } }
@@ -206,46 +210,46 @@ namespace Popolo.Core.Building.Envelope
     #region internalプロパティ（多数室計算用）
 
     /// <summary>Inverse-matrix–derived F-side humidity contribution to the next-step nodal solution.</summary>
-    internal double IF3_F { get; private set; }
+    internal override double IF3_F => _if3_F; private double _if3_F;
 
     /// <summary>Inverse-matrix–derived B-side humidity contribution to the next-step nodal solution.</summary>
-    internal double IF3_B { get; private set; }
+    internal override double IF3_B => _if3_B; private double _if3_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
-    internal double FFS3_F { get; private set; }
+    internal override double FFS3_F => _ffs3_F; private double _ffs3_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to F-side sol-air temperature (humidity row).</summary>
-    internal double FFS3_B { get; private set; }
+    internal override double FFS3_B => _ffs3_B; private double _ffs3_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
-    internal double BFS3_F { get; private set; }
+    internal override double BFS3_F => _bfs3_F; private double _bfs3_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to B-side sol-air temperature (humidity row).</summary>
-    internal double BFS3_B { get; private set; }
+    internal override double BFS3_B => _bfs3_B; private double _bfs3_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
-    internal double FFL2_F { get; private set; }
+    internal override double FFL2_F => _ffl2_F; private double _ffl2_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (temperature row).</summary>
-    internal double FFL2_B { get; private set; }
+    internal override double FFL2_B => _ffl2_B; private double _ffl2_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
-    internal double FFL3_F { get; private set; }
+    internal override double FFL3_F => _ffl3_F; private double _ffl3_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to F-side humidity ratio (humidity row).</summary>
-    internal double FFL3_B { get; private set; }
+    internal override double FFL3_B => _ffl3_B; private double _ffl3_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
-    internal double BFL2_F { get; private set; }
+    internal override double BFL2_F => _bfl2_F; private double _bfl2_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (temperature row).</summary>
-    internal double BFL2_B { get; private set; }
+    internal override double BFL2_B => _bfl2_B; private double _bfl2_B;
 
     /// <summary>Sensitivity of F-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
-    internal double BFL3_F { get; private set; }
+    internal override double BFL3_F => _bfl3_F; private double _bfl3_F;
 
     /// <summary>Sensitivity of B-side surface sensible heat to B-side humidity ratio (humidity row).</summary>
-    internal double BFL3_B { get; private set; }
+    internal override double BFL3_B => _bfl3_B; private double _bfl3_B;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -477,7 +481,8 @@ namespace Popolo.Core.Building.Envelope
         int nm = layers.Length;
         int nm1 = nm + 1;
         int nm2 = 2 * nm + 1;
-        IF2_F = IF2_B = IF3_F = IF3_B = 0;
+        IF2_F = IF2_B = 0;
+        _if3_F = _if3_B = 0;
         for (int i = 0; i <= nm; i++)
         {
           double bf = tempAndHumid[i];
@@ -486,8 +491,8 @@ namespace Popolo.Core.Building.Envelope
           if (solarAbsorption[i] != 0) bf += qCoefS[i] * solarAbsorption[i];
           IF2_F += uxMatrix[0, i] * bf + uxMatrix[0, ipn] * tempAndHumid[ipn];
           IF2_B += uxMatrix[nm, i] * bf + uxMatrix[nm, ipn] * tempAndHumid[ipn];
-          IF3_F += uxMatrix[nm1, i] * bf + uxMatrix[nm1, ipn] * tempAndHumid[ipn];
-          IF3_B += uxMatrix[nm2, i] * bf + uxMatrix[nm2, ipn] * tempAndHumid[ipn];
+          _if3_F += uxMatrix[nm1, i] * bf + uxMatrix[nm1, ipn] * tempAndHumid[ipn];
+          _if3_B += uxMatrix[nm2, i] * bf + uxMatrix[nm2, ipn] * tempAndHumid[ipn];
         }
       }
       else
@@ -926,20 +931,20 @@ namespace Popolo.Core.Building.Envelope
           int n2 = n0 * 2 + 1;
           FFS2_F = ux[0, 0] * (uSF2[0] + uPF[0]) + ux[0, n1] * uSF3[0];
           FFS2_B = ux[n0, 0] * (uSF2[0] + uPF[0]) + ux[n0, n1] * uSF3[0];
-          FFS3_F = ux[n1, 0] * (uSF2[0] + uPF[0]) + ux[n1, n1] * uSF3[0];
-          FFS3_B = ux[n2, 0] * (uSF2[0] + uPF[0]) + ux[n2, n1] * uSF3[0];
+          _ffs3_F = ux[n1, 0] * (uSF2[0] + uPF[0]) + ux[n1, n1] * uSF3[0];
+          _ffs3_B = ux[n2, 0] * (uSF2[0] + uPF[0]) + ux[n2, n1] * uSF3[0];
           BFS2_F = ux[0, n0] * (uSB2[n0] + uPB[n0]) + ux[0, n2] * uSB3[n0];
           BFS2_B = ux[n0, n0] * (uSB2[n0] + uPB[n0]) + ux[n0, n2] * uSB3[n0];
-          BFS3_F = ux[n1, n0] * (uSB2[n0] + uPB[n0]) + ux[n1, n2] * uSB3[n0];
-          BFS3_B = ux[n2, n0] * (uSB2[n0] + uPB[n0]) + ux[n2, n2] * uSB3[n0];
-          FFL2_F = ux[0, 0] * uLF2[0] + ux[0, n1] * uLF3[0];
-          FFL2_B = ux[n0, 0] * uLF2[0] + ux[n0, n1] * uLF3[0];
-          FFL3_F = ux[n1, 0] * uLF2[0] + ux[n1, n1] * uLF3[0];
-          FFL3_B = ux[n2, 0] * uLF2[0] + ux[n2, n1] * uLF3[0];
-          BFL2_F = ux[0, n0] * uLB2[n0] + ux[0, n2] * uLB3[n0];
-          BFL2_B = ux[n0, n0] * uLB2[n0] + ux[n0, n2] * uLB3[n0];
-          BFL3_F = ux[n1, n0] * uLB2[n0] + ux[n1, n2] * uLB3[n0];
-          BFL3_B = ux[n2, n0] * uLB2[n0] + ux[n2, n2] * uLB3[n0];
+          _bfs3_F = ux[n1, n0] * (uSB2[n0] + uPB[n0]) + ux[n1, n2] * uSB3[n0];
+          _bfs3_B = ux[n2, n0] * (uSB2[n0] + uPB[n0]) + ux[n2, n2] * uSB3[n0];
+          _ffl2_F = ux[0, 0] * uLF2[0] + ux[0, n1] * uLF3[0];
+          _ffl2_B = ux[n0, 0] * uLF2[0] + ux[n0, n1] * uLF3[0];
+          _ffl3_F = ux[n1, 0] * uLF2[0] + ux[n1, n1] * uLF3[0];
+          _ffl3_B = ux[n2, 0] * uLF2[0] + ux[n2, n1] * uLF3[0];
+          _bfl2_F = ux[0, n0] * uLB2[n0] + ux[0, n2] * uLB3[n0];
+          _bfl2_B = ux[n0, n0] * uLB2[n0] + ux[n0, n2] * uLB3[n0];
+          _bfl3_F = ux[n1, n0] * uLB2[n0] + ux[n1, n2] * uLB3[n0];
+          _bfl3_B = ux[n2, n0] * uLB2[n0] + ux[n2, n2] * uLB3[n0];
         }
         else
         {

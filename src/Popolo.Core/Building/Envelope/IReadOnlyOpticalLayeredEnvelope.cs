@@ -96,5 +96,23 @@ namespace Popolo.Core.Building.Envelope
 
     /// <summary>Gets the surface temperature on the B side [°C].</summary>
     double SurfaceTemperatureB { get; }
+
+    /// <summary>Gets the short-wave (solar) absorptance on the F side [-].</summary>
+    double ShortWaveAbsorptanceF { get; }
+
+    /// <summary>Gets the short-wave (solar) absorptance on the B side [-].</summary>
+    double ShortWaveAbsorptanceB { get; }
+
+    /// <summary>Gets the humidity ratio on the F side [kg/kg]. 0 for components without coupled moisture transport.</summary>
+    double HumidityRatioF { get; }
+
+    /// <summary>Gets the humidity ratio on the B side [kg/kg]. 0 for components without coupled moisture transport.</summary>
+    double HumidityRatioB { get; }
+
+    /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)]. 0 for components without coupled moisture transport.</summary>
+    double MoistureCoefficientF { get; }
+
+    /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)]. 0 for components without coupled moisture transport.</summary>
+    double MoistureCoefficientB { get; }
   }
 }

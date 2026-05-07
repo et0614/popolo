@@ -202,15 +202,15 @@ namespace Popolo.Core.Building.Envelope
     public override double FilmCoefficientF
     { get { return 1d / (2 * agapRes[0]); } }
 
-    /// <summary>Gets the short-wave (solar) emissivity on the F side (outdoor) [-].</summary>
+    /// <summary>Gets the short-wave (solar) absorptance on the F side (outdoor) [-].</summary>
     /// <remarks>
     /// Returns 0: in the matrix-based glazing model, outdoor-incident solar
     /// is absorbed per glass layer (via <c>absFDir</c> / <c>absFDif</c> and
     /// fed into the matrix as a body source), not at the outer surface. The
     /// SolAir-temperature formula at the outer face therefore applies no
-    /// surface absorptance term (alpha × solar = 0).
+    /// surface absorptance term (alpha × solar = 0). The setter is a no-op.
     /// </remarks>
-    public double ShortWaveEmissivityF { get { return 0.0; } }
+    public override double ShortWaveAbsorptanceF { get => 0.0; set { } }
 
     /// <summary>
     /// Whether the F (outdoor) side is exposed to outdoor wind. Defaults to <c>true</c>
@@ -264,9 +264,13 @@ namespace Popolo.Core.Building.Envelope
     public override double FilmCoefficientB
     { get { return 1d / (2 * agapRes[agapRes.Length - 1]); } }
 
-    /// <summary>Gets the short-wave (solar) emissivity on the B side (indoor) [-].</summary>
-    public double ShortWaveEmissivityB
-    { get { return 1 - DiffuseSolarLostReflectance; } }
+    /// <summary>Gets the short-wave (solar) absorptance on the B side (indoor) [-].</summary>
+    /// <remarks>
+    /// Computed as <c>1 − DiffuseSolarLostReflectance</c>: the fraction of
+    /// indoor-side incident short-wave that is not reflected back to the room.
+    /// The setter is a no-op since the value is derived from the optical state.
+    /// </remarks>
+    public override double ShortWaveAbsorptanceB { get => 1 - DiffuseSolarLostReflectance; set { } }
 
     /// <summary>Gets the surface temperature on the B side (indoor) [°C].</summary>
     public override double SurfaceTemperatureB { get { return InsideSurface.SurfaceTemperature; } }
