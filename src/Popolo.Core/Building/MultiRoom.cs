@@ -238,6 +238,36 @@ namespace Popolo.Core.Building
     public double Albedo { get; set; } = 0.4;
 
     /// <summary>
+    /// Metadata about the meteorological station that produced the wind
+    /// observations in <see cref="CurrentWeather"/>. Used together with
+    /// <see cref="SiteTerrainCategory"/> and each component's
+    /// <see cref="OpticalLayeredEnvelope.MidHeightAboveGround"/> to translate
+    /// the recorded wind speed to the wind speed at the wall surface via the
+    /// ASHRAE atmospheric boundary-layer power law.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> (the default) means the station metadata is unknown — the
+    /// raw <see cref="OutdoorWindSpeed"/> is then used without height
+    /// correction. Typically set once via
+    /// <see cref="BuildingThermalModel.SetWeatherStation"/> at simulation
+    /// setup time.
+    /// </remarks>
+    public WeatherStationInfo? WeatherStation { get; set; }
+
+    /// <summary>
+    /// Terrain category at the building site, used as the local-side terrain
+    /// in the ASHRAE two-terrain wind boundary-layer correction. <c>null</c>
+    /// (the default) means the site terrain is unknown — height correction is
+    /// then skipped even when <see cref="WeatherStation"/> is fully populated.
+    /// </summary>
+    /// <remarks>
+    /// Typically set once via
+    /// <see cref="BuildingThermalModel.SetSiteTerrainCategory"/> at simulation
+    /// setup time.
+    /// </remarks>
+    public TerrainCategory? SiteTerrainCategory { get; set; }
+
+    /// <summary>
     /// When <c>true</c>, the indoor-side (B) radiative coefficient on every wall and window is
     /// recomputed each step from the area-weighted mean of the room's interior surface
     /// temperatures (<c>h_r ≈ 4·ε·σ·T̄³</c>), preserving each surface's Gebhart self-absorption
@@ -1570,41 +1600,100 @@ namespace Popolo.Core.Building
     /// <summary>
     /// Refreshes the outdoor-side convective coefficient on every wind-exposed exterior
     /// surface using <see cref="OutdoorWindSpeed"/> and the previous-step surface-air
-    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double)"/>
-    /// (windward MoWiTT).
+    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double, WindOrientation)"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Faces facing other zones (in the indoor <c>surfaces</c> array) and faces flagged with
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedF"/> /
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/> = <c>false</c>
-    /// (e.g., raised-floor undersides) are skipped. The same windward correlation is applied
-    /// to all exposed surfaces regardless of orientation; orientation-specific tuning is
-    /// outside the scope of the model's current inputs. The surface-to-air ΔT used in
+    /// (e.g., raised-floor undersides) are skipped. The surface-to-air ΔT used in
     /// the natural-convection term is supplied by
     /// <see cref="OpticalLayeredEnvelope.GetExteriorConvectionDeltaT"/>, which a subclass
     /// may override (notably <see cref="Window"/> currently returns 0 on the F side as a
     /// behavior-preserving approximation).
+    /// </para>
+    /// <para>
+    /// Two optional refinements activate when sufficient inputs are present
+    /// (otherwise the raw recorded wind speed and the windward correlation
+    /// are used as the default):
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>
+    /// <b>Boundary-layer height correction</b>: applied per component when the
+    /// component carries an explicit <see cref="OpticalLayeredEnvelope.MidHeightAboveGround"/>,
+    /// the model carries a <see cref="WeatherStation"/> with both anemometer
+    /// height and station terrain populated, and a <see cref="SiteTerrainCategory"/> is set.
+    /// </description></item>
+    /// <item><description>
+    /// <b>Windward / leeward selection</b>: applied per side when the current
+    /// weather record carries <see cref="WeatherField.WindDirection"/> and the
+    /// surface has an associated <see cref="EnvelopeSurface.Incline"/>; the
+    /// projection of the wind vector onto the outward surface normal selects
+    /// the regime (positive ⇒ windward, non-positive ⇒ leeward).
+    /// </description></item>
+    /// </list>
     /// </remarks>
     private void UpdateOutdoorConvectiveCoefficient()
     {
       // 風速が記録されていなければ更新を見送り (ユーザ初期値を保持)。
       if (!CurrentWeather.HasValue || !CurrentWeather.Value.Has(WeatherField.WindSpeed)) return;
-      double v = CurrentWeather.Value.WindSpeed;
+      var rec = CurrentWeather.Value;
+      double vMeteo = rec.WindSpeed;
       double Ta = OutdoorTemperature;
+      bool hasWindDir = rec.Has(WeatherField.WindDirection);
+      double windDir = hasWindDir ? rec.WindDirection : 0.0;
+
+      bool stationReady = WeatherStation is { AnemometerHeight: not null, StationTerrain: not null }
+                       && SiteTerrainCategory.HasValue;
+      double meteoH = stationReady ? WeatherStation!.Value.AnemometerHeight!.Value : 0.0;
+      TerrainCategory meteoTerrain = stationReady ? WeatherStation!.Value.StationTerrain!.Value : default;
+      TerrainCategory localTerrain = stationReady ? SiteTerrainCategory!.Value : default;
+
       HashSet<EnvelopeSurface> interiorSet = new HashSet<EnvelopeSurface>(surfaces);
       foreach (OpticalLayeredEnvelope c in components)
       {
+        // 高さ補正: 部品ごとの MidHeight + 全体の station/site 情報が揃った場合のみ。
+        double v = vMeteo;
+        if (stationReady && c.MidHeightAboveGround is double localH && localH > 0)
+        {
+          v = Sky.CorrectWindSpeedForHeight(vMeteo, meteoH, meteoTerrain, localH, localTerrain);
+        }
+
         if (c.IsWindExposedF && !interiorSet.Contains(c.SurfaceF) && !c.SurfaceF.IsGroundWall)
         {
           double dT = c.GetExteriorConvectionDeltaT(true, Ta);
-          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF);
+          WindOrientation orient = ResolveWindOrientation(c.SurfaceF.Incline, hasWindDir, windDir);
+          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF, orient);
         }
         if (c.IsWindExposedB && !interiorSet.Contains(c.SurfaceB) && !c.SurfaceB.IsGroundWall)
         {
           double dT = c.GetExteriorConvectionDeltaT(false, Ta);
-          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB);
+          WindOrientation orient = ResolveWindOrientation(c.SurfaceB.Incline, hasWindDir, windDir);
+          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB, orient);
         }
       }
+    }
+
+    /// <summary>
+    /// Selects windward vs. leeward based on the projection of the wind vector
+    /// onto the outward surface normal. Falls back to <see cref="WindOrientation.Windward"/>
+    /// (the historical default) when the wind direction or surface incline is
+    /// unavailable. Horizontal surfaces (tilt &lt; 1° from horizontal) are also
+    /// treated as windward since the windward / leeward distinction is not
+    /// meaningful for the upward-facing roof case.
+    /// </summary>
+    private static WindOrientation ResolveWindOrientation(IReadOnlyIncline? incline, bool hasWindDir, double windDir)
+    {
+      if (!hasWindDir || incline == null) return WindOrientation.Windward;
+      // Treat near-horizontal surfaces as windward (no meaningful direction).
+      const double horizontalTiltThresholdRad = Math.PI / 180.0; // 1°
+      if (incline.VerticalAngle < horizontalTiltThresholdRad) return WindOrientation.Windward;
+      // Wind direction and surface azimuth share the same Incline convention
+      // (S = 0, E < 0, W > 0). cos(surfaceAz - windAz) > 0 ⇒ wind blows toward
+      // the surface (windward); ≤ 0 ⇒ leeward.
+      double cosAngle = Math.Cos(incline.HorizontalAngle - windDir);
+      return cosAngle > 0 ? WindOrientation.Windward : WindOrientation.Leeward;
     }
 
     /// <summary>Distributes short-wave (solar) radiation among interior surfaces.</summary>

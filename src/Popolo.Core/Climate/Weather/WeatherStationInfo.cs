@@ -20,8 +20,16 @@
 namespace Popolo.Core.Climate.Weather
 {
   /// <summary>
-  /// Geographic information about a weather observation location.
+  /// Geographic and instrumentation metadata for a weather observation
+  /// location.
   /// </summary>
+  /// <remarks>
+  /// <see cref="AnemometerHeight"/> and <see cref="StationTerrain"/> are
+  /// optional (nullable). When both are populated they enable the wind
+  /// boundary-layer height correction in
+  /// <see cref="Building.MultiRoom.UpdateOutdoorCondition(System.DateTime, IReadOnlySun, WeatherRecord)"/>;
+  /// when either is <c>null</c> the recorded wind speed is used as-is.
+  /// </remarks>
   public readonly struct WeatherStationInfo
   {
     /// <summary>Gets the human-readable station name.</summary>
@@ -37,18 +45,58 @@ namespace Popolo.Core.Climate.Weather
     public double Elevation { get; }
 
     /// <summary>
-    /// Initializes a new instance.
+    /// Anemometer height above ground at the station [m]. <c>null</c> when
+    /// unknown — the wind height correction is then skipped.
+    /// </summary>
+    /// <remarks>
+    /// The conventional World Meteorological Organization standard is 10 m,
+    /// but many sources deviate; only the value actually documented for the
+    /// data should be supplied here.
+    /// </remarks>
+    public double? AnemometerHeight { get; }
+
+    /// <summary>
+    /// Terrain category of the station's surroundings. <c>null</c> when
+    /// unknown — the wind height correction is then skipped.
+    /// </summary>
+    public TerrainCategory? StationTerrain { get; }
+
+    /// <summary>
+    /// Initializes a new instance with geographic data only.
+    /// <see cref="AnemometerHeight"/> and <see cref="StationTerrain"/> remain
+    /// <c>null</c>.
+    /// </summary>
+    public WeatherStationInfo(string name, double latitude, double longitude, double elevation)
+        : this(name, latitude, longitude, elevation, null, null) { }
+
+    /// <summary>
+    /// Initializes a new instance with full geographic and instrumentation
+    /// metadata.
     /// </summary>
     /// <param name="name">Station name.</param>
     /// <param name="latitude">Latitude [degree]. North is positive.</param>
     /// <param name="longitude">Longitude [degree]. East is positive.</param>
     /// <param name="elevation">Ground elevation above mean sea level [m].</param>
-    public WeatherStationInfo(string name, double latitude, double longitude, double elevation)
+    /// <param name="anemometerHeight">Anemometer height above ground [m], or <c>null</c> if unknown.</param>
+    /// <param name="stationTerrain">Terrain category of the station surroundings, or <c>null</c> if unknown.</param>
+    public WeatherStationInfo(string name, double latitude, double longitude, double elevation,
+        double? anemometerHeight, TerrainCategory? stationTerrain)
     {
       Name = name ?? string.Empty;
       Latitude = latitude;
       Longitude = longitude;
       Elevation = elevation;
+      AnemometerHeight = anemometerHeight;
+      StationTerrain = stationTerrain;
     }
+
+    /// <summary>
+    /// Returns a copy of this <see cref="WeatherStationInfo"/> with
+    /// <see cref="AnemometerHeight"/> and <see cref="StationTerrain"/>
+    /// replaced. Useful when a reader supplies only geographic data and the
+    /// instrumentation metadata is provided separately by the caller.
+    /// </summary>
+    public WeatherStationInfo WithAnemometer(double anemometerHeight, TerrainCategory stationTerrain)
+        => new WeatherStationInfo(Name, Latitude, Longitude, Elevation, anemometerHeight, stationTerrain);
   }
 }

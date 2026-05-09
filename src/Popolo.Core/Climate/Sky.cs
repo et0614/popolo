@@ -257,13 +257,15 @@ namespace Popolo.Core.Climate
     /// </para>
     /// </remarks>
     public static double GetExteriorConvectiveCoefficient(double windSpeed, double surfaceAirDeltaT)
-        => GetExteriorConvectiveCoefficient(windSpeed, surfaceAirDeltaT, 1.0);
+        => GetExteriorConvectiveCoefficient(windSpeed, surfaceAirDeltaT, 1.0, WindOrientation.Windward);
 
     /// <summary>
     /// Same as <see cref="GetExteriorConvectiveCoefficient(double, double)"/>
     /// with an explicit surface-roughness multiplier R_f applied to the
     /// forced-convection term, per ASHRAE Handbook — Fundamentals (2009)
     /// Ch. 26 Table 4 (also adopted by EnergyPlus DOE-2 / MoWiTT model).
+    /// Uses windward MoWiTT coefficients; for explicit windward/leeward
+    /// selection use the four-argument overload.
     /// </summary>
     /// <param name="windSpeed">Wind speed at the surface [m/s].</param>
     /// <param name="surfaceAirDeltaT">Surface − outdoor air temperature difference [K].</param>
@@ -272,20 +274,70 @@ namespace Popolo.Core.Climate
     /// 2.17 (very rough). See <see cref="Building.Envelope.SurfaceRoughness"/>.
     /// </param>
     /// <returns>Combined exterior convective heat transfer coefficient [W/(m²·K)].</returns>
-    /// <remarks>
-    /// <c>h_c = sqrt( h_n² + (R_f · h_glass_forced)² )</c> with the natural-convection
-    /// term unchanged. <c>R_f = 1.0</c> reproduces the original MoWiTT formulation.
-    /// </remarks>
     public static double GetExteriorConvectiveCoefficient(double windSpeed, double surfaceAirDeltaT, double roughnessMultiplier)
+        => GetExteriorConvectiveCoefficient(windSpeed, surfaceAirDeltaT, roughnessMultiplier, WindOrientation.Windward);
+
+    /// <summary>
+    /// Same as <see cref="GetExteriorConvectiveCoefficient(double, double, double)"/>
+    /// with explicit selection of the windward vs. leeward MoWiTT correlation.
+    /// </summary>
+    /// <param name="windSpeed">Wind speed at the surface [m/s].</param>
+    /// <param name="surfaceAirDeltaT">Surface − outdoor air temperature difference [K].</param>
+    /// <param name="roughnessMultiplier">Forced-convection roughness multiplier R_f [-].</param>
+    /// <param name="orientation">
+    /// Windward (wind blowing toward the surface) or leeward (wind blowing
+    /// away from the surface, i.e. surface in the wake). The two regimes use
+    /// different MoWiTT fitted constants reflecting the underlying flow
+    /// physics (impingement vs. recirculation).
+    /// </param>
+    /// <returns>Combined exterior convective heat transfer coefficient [W/(m²·K)].</returns>
+    /// <remarks>
+    /// <para>
+    /// <c>h_c = sqrt( h_n² + (R_f · h_glass_forced)² )</c> with the natural-convection
+    /// term unchanged. The forced term uses
+    /// <c>h_glass_forced = a · v^b</c> with windward
+    /// (<c>a = 3.26, b = 0.89</c>) or leeward (<c>a = 3.55, b = 0.617</c>)
+    /// coefficients per Yazdanian and Klems (1994).
+    /// </para>
+    /// <para>
+    /// Reference: Yazdanian, M., Klems, J. H., 1994. <i>Measurement of the exterior
+    /// convective film coefficient for windows in low-rise buildings.</i>
+    /// ASHRAE Transactions 100 (1).
+    /// </para>
+    /// </remarks>
+    public static double GetExteriorConvectiveCoefficient(
+        double windSpeed, double surfaceAirDeltaT, double roughnessMultiplier, WindOrientation orientation)
     {
       const double Ct = 0.84;
-      const double a = 3.26;
-      const double b = 0.89;
+      var (a, b) = orientation == WindOrientation.Windward ? (3.26, 0.89) : (3.55, 0.617);
       double v = windSpeed > 0 ? windSpeed : 0;
       double dT = Math.Abs(surfaceAirDeltaT);
       double natural = Ct * Math.Pow(dT, 1.0 / 3.0);
       double forced = roughnessMultiplier * a * Math.Pow(v, b);
       return Math.Sqrt(natural * natural + forced * forced);
+    }
+
+    /// <summary>
+    /// Adjusts a wind speed measured at one height/terrain to the equivalent
+    /// wind speed at another height/terrain using the ASHRAE two-terrain
+    /// power-law form (2021 Handbook—Fundamentals Ch. 24):
+    /// <c>V_local = V_meteo · (δ_meteo/H_meteo)^a_meteo · (H_local/δ_local)^a_local</c>.
+    /// </summary>
+    /// <param name="meteoWindSpeed">Wind speed at the source (meteorological station) [m/s].</param>
+    /// <param name="meteoHeight">Anemometer height at the station [m].</param>
+    /// <param name="meteoTerrain">Terrain category of the station surroundings.</param>
+    /// <param name="localHeight">Target (e.g., wall mid-) height above ground [m].</param>
+    /// <param name="localTerrain">Terrain category at the target site.</param>
+    /// <returns>Wind speed at the target height [m/s].</returns>
+    public static double CorrectWindSpeedForHeight(
+        double meteoWindSpeed, double meteoHeight, TerrainCategory meteoTerrain,
+        double localHeight, TerrainCategory localTerrain)
+    {
+      if (meteoWindSpeed <= 0 || meteoHeight <= 0 || localHeight <= 0) return meteoWindSpeed;
+      var (aMeteo, dMeteo) = meteoTerrain.GetParameters();
+      var (aLocal, dLocal) = localTerrain.GetParameters();
+      double factor = Math.Pow(dMeteo / meteoHeight, aMeteo) * Math.Pow(localHeight / dLocal, aLocal);
+      return meteoWindSpeed * factor;
     }
 
     #endregion

@@ -328,10 +328,20 @@ namespace BESTEST_2023
       // 動的表面熱伝達係数 (Std 140-2023 §7.2.1.9.3 (b) / §7.2.1.10.3 (b) 経路)
       //  - 室内側 h_r: 表面温度の面積加重平均で再線形化
       //  - 屋外側 h_r: 外気温で再線形化
-      //  - 屋外側 h_c: 風速依存 (MoWiTT)
+      //  - 屋外側 h_c: 風速依存 (MoWiTT, windward/leeward 切替 + 高さ補正)
       bModel.DynamicIndoorRadiativeCoefficient = !isConstIntCoeffs;
       bModel.DynamicOutdoorRadiativeCoefficient = !isConstExtCoeffs;
       bModel.DynamicOutdoorConvectiveCoefficient = !isConstExtCoeffs;
+
+      // Std 140-2023 §7.2.1.1.2: weather station tower top = 10 m, building floor
+      // is 10 m below tower top (= ground level). Both meteo and building site are
+      // open terrain (Terrain Category 3). 風速の境界層補正に必要な情報を設定。
+      bModel.SetWeatherStation(new WeatherStationInfo(
+          name: "BESTEST", latitude: site.Latitude, longitude: site.Longitude,
+          elevation: site.Elevation,
+          anemometerHeight: 10.0,
+          stationTerrain: TerrainCategory.OpenTerrain));
+      bModel.SetSiteTerrainCategory(TerrainCategory.OpenTerrain);
       var sun = new Sun(site.Latitude, site.Longitude, site.StdLongitude);
 
       // 5 面のサーフェス (§7.3.2.1, Case 600 用)

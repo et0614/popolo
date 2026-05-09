@@ -270,6 +270,10 @@ namespace BESTEST_2023
         // Wall コンストラクタの既定と同値だが BESTEST 設定として明示する。
         walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
         walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
+        // 表面中央高さ [m] (Std 140-2023 §7.2.1.1.2.4: floor = ground level、
+        // 建物高さ 2.7 m)。風速の境界層補正に使用。
+        //   walls[0]=床(下面=地面側), [1]=屋根(上面=高さ2.7m), [2]-[5]=外壁(中央1.35m)
+        walls[i].SetMidHeightAboveGround((i == 0) ? 0.0 : (i == 1) ? 2.7 : 1.35);
       }
 
       // Cases 450/460/470: 表面熱伝達係数を一定値で上書き (Std 140-2023 Table 7-46)
@@ -388,6 +392,8 @@ namespace BESTEST_2023
           // HCW がガラス窓と同じ仕上を持つ点を可視化することが本記述の主目的。
           windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
           windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
+          // 表面中央高さ [m]: 窓は南/E/W 壁中央に配置 (壁中央 1.35 m と同じ)
+          windows[i].SetMidHeightAboveGround(1.35);
           SetBESTESTWindowAngleDependence(windows[i]);
 
           // Cases 450/470: 窓の外側を 17.8 W/m²K に固定 (Table 7-46)
@@ -549,6 +555,8 @@ namespace BESTEST_2023
         // BESTEST 仕様: Walls / Roof / Raised floor は Rough (R_f=1.67)
         walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
         walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
+        // 表面中央高さ [m] (Sunspace: 床=0, 屋根=2.7, 外壁=1.35)。境界層補正用。
+        walls[i].SetMidHeightAboveGround((i <= 1) ? 0.0 : (i <= 3) ? 2.7 : 1.35);
       }
       // 共用壁: 両側室内なので F も h_conv,int で
       walls[10].ConvectiveCoefficientF = AI_WALL;
@@ -580,6 +588,7 @@ namespace BESTEST_2023
         // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
         windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
         windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
+        windows[i].SetMidHeightAboveGround(1.35);
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 
@@ -688,6 +697,12 @@ namespace BESTEST_2023
         // BESTEST 仕様: Walls / Roof は Rough (R_f=1.67)。地中接触面は風暴露なしのため R_f は実質無関係だが一様設定。
         walls[i].SetSurfaceRoughnessF(SurfaceRoughness.Rough);
         walls[i].SetSurfaceRoughnessB(SurfaceRoughness.Rough);
+        // C990 の建物は床がグレード面、地上部 1.35 m + 地下部 1.35 m。
+        // 屋根 = 1.35 m, 地上外壁 = 0.675 m (中央)、地下外壁・スラブ床は風暴露なしで未使用。
+        walls[i].SetMidHeightAboveGround(
+            i == 1 ? 1.35 :
+            (i == 2 || i == 4 || i == 6) ? 0.675 :
+            0.0);
       }
 
       // 窓 (Case 990 用 clear double-pane、面積 5.4 m²)。
@@ -715,6 +730,8 @@ namespace BESTEST_2023
         // BESTEST 仕様: 透明窓は Very Smooth (R_f=1.00)
         windows[i].SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
         windows[i].SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
+        // C990 の地上部は 1.35 m、窓は地上部の壁に位置 (中央 0.675 m)
+        windows[i].SetMidHeightAboveGround(0.675);
         SetBESTESTWindowAngleDependence(windows[i]);
       }
 

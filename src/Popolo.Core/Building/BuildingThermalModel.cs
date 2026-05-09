@@ -112,6 +112,48 @@ namespace Popolo.Core.Building
       }
     }
 
+    /// <summary>
+    /// Metadata about the meteorological station that produced the wind
+    /// observations in <see cref="CurrentWeather"/>. <c>null</c> (the default)
+    /// disables the wind boundary-layer height correction. Set via
+    /// <see cref="SetWeatherStation"/>; the value is propagated to every
+    /// child <see cref="MultiRoom"/>.
+    /// </summary>
+    public WeatherStationInfo? WeatherStation { get; private set; }
+
+    /// <summary>
+    /// Terrain category at the building site. <c>null</c> (the default)
+    /// disables the wind boundary-layer height correction. Set via
+    /// <see cref="SetSiteTerrainCategory"/>; the value is propagated to
+    /// every child <see cref="MultiRoom"/>.
+    /// </summary>
+    public TerrainCategory? SiteTerrainCategory { get; private set; }
+
+    /// <summary>
+    /// Sets <see cref="WeatherStation"/> and propagates the value to every
+    /// child <see cref="MultiRoom"/>. Pass a <see cref="WeatherStationInfo"/>
+    /// with both <see cref="WeatherStationInfo.AnemometerHeight"/> and
+    /// <see cref="WeatherStationInfo.StationTerrain"/> populated to enable
+    /// the wind height correction (also requires
+    /// <see cref="SiteTerrainCategory"/> and per-component
+    /// <see cref="Envelope.OpticalLayeredEnvelope.MidHeightAboveGround"/>).
+    /// </summary>
+    public void SetWeatherStation(WeatherStationInfo info)
+    {
+      WeatherStation = info;
+      foreach (MultiRoom mr in mRooms) mr.WeatherStation = info;
+    }
+
+    /// <summary>
+    /// Sets <see cref="SiteTerrainCategory"/> and propagates the value to
+    /// every child <see cref="MultiRoom"/>.
+    /// </summary>
+    public void SetSiteTerrainCategory(TerrainCategory category)
+    {
+      SiteTerrainCategory = category;
+      foreach (MultiRoom mr in mRooms) mr.SiteTerrainCategory = category;
+    }
+
     /// <summary>Gets the solar state.</summary>
     public IReadOnlySun Sun { get; private set; } = null!;
 

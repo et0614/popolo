@@ -273,6 +273,29 @@ namespace Popolo.Core.Building.Envelope
         => SurfaceRoughnessMultiplierB = roughness.GetMultiplier();
 
     /// <summary>
+    /// Mid-height above ground [m] of this component's exterior face. Used to
+    /// translate the recorded wind speed at the meteorological station to the
+    /// wind speed at this surface via the ASHRAE atmospheric boundary-layer
+    /// power law. <c>null</c> (the default) means the height is unknown — the
+    /// raw recorded wind speed is then used without correction.
+    /// </summary>
+    /// <remarks>
+    /// Set with <see cref="SetMidHeightAboveGround"/> /
+    /// <see cref="ClearMidHeightAboveGround"/>. Only consumed when
+    /// <see cref="MultiRoom.DynamicOutdoorConvectiveCoefficient"/> is enabled
+    /// AND the building model has been given valid weather-station metadata
+    /// (<see cref="MultiRoom.WeatherStation"/>) and a site terrain
+    /// (<see cref="MultiRoom.SiteTerrainCategory"/>).
+    /// </remarks>
+    public double? MidHeightAboveGround { get; private set; }
+
+    /// <summary>Sets <see cref="MidHeightAboveGround"/> to the given value [m].</summary>
+    public void SetMidHeightAboveGround(double height) => MidHeightAboveGround = height;
+
+    /// <summary>Clears <see cref="MidHeightAboveGround"/> back to <c>null</c> (unknown).</summary>
+    public void ClearMidHeightAboveGround() => MidHeightAboveGround = null;
+
+    /// <summary>
     /// Returns the surface-to-air temperature difference [K] used by the
     /// dynamic outdoor convective coefficient update on the requested side.
     /// </summary>
