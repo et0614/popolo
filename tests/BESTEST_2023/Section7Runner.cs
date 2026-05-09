@@ -519,12 +519,23 @@ namespace BESTEST_2023
           if (windows.Length > 0)
           {
             windows[0].UpdateOpticalProperties(sun);
-            double directIrr  = windows[0].OutsideIncline.GetDirectSolarIrradiance(sun);
-            double diffuseIrr = windows[0].OutsideIncline.GetDiffuseSolarIrradiance(sun, mRoom.Albedo);
-            double shadeFactor = windows[0].SunShade != null
-                ? (1.0 - windows[0].SunShade.GetDirectShadingRate(sun, windows[0].OutsideIncline)) : 1.0;
-            transS = directIrr  * windows[0].DirectSolarIncidentTransmittance  * shadeFactor
-                   + diffuseIrr * windows[0].DiffuseSolarIncidentTransmittance;
+            var inc = windows[0].OutsideIncline;
+            double directIrr  = inc.GetDirectSolarIrradiance(sun);
+            double diffuseTotal = inc.GetDiffuseSolarIrradiance(sun, mRoom.Albedo);
+            // 拡散日射: 実シミュレーション (Window.EmitShortWaveToIndoor) と同じく
+            // 天空成分のみ SunShade で減衰させる。
+            double groundReflected = mRoom.Albedo * inc.ConfigurationFactorToGround
+                                   * sun.GlobalHorizontalRadiation;
+            double skyDiffuse = diffuseTotal - groundReflected;
+            if (skyDiffuse < 0) skyDiffuse = 0;
+            double dirShade = windows[0].SunShade != null
+                ? windows[0].SunShade.GetDirectShadingRate(sun, inc) : 0.0;
+            double skyShade = windows[0].SunShade != null
+                ? windows[0].SunShade.GetSkyDiffuseShadingRate(inc) : 0.0;
+            double dirEff = directIrr * (1.0 - dirShade);
+            double difEff = skyDiffuse * (1.0 - skyShade) + groundReflected;
+            transS = dirEff * windows[0].DirectSolarIncidentTransmittance
+                   + difEff * windows[0].DiffuseSolarIncidentTransmittance;
           }
           sumTransSouth += transS;
 
@@ -570,7 +581,7 @@ namespace BESTEST_2023
           else if (isSetBack)
           {
             if (zones[0].Temperature > 27) bModel.ControlDryBulbTemperature(0, 0, 27);
-            else if ((7 <= simTime.Hour && simTime.Hour < 23) && zones[0].Temperature < 20)
+            else if ((8 <= simTime.Hour && simTime.Hour < 23) && zones[0].Temperature < 20)
               bModel.ControlDryBulbTemperature(0, 0, 20);
             else if (zones[0].Temperature < 10)
               bModel.ControlDryBulbTemperature(0, 0, 10);
