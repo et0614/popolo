@@ -416,8 +416,15 @@ namespace BESTEST_2023
         {
           if (hasEWWindow)
           {
-            windows[0].SunShade = SunShade.MakeGridSunShade(3, 2, 1, 0, 0, 0, 0, inc[0]);
-            windows[1].SunShade = SunShade.MakeGridSunShade(3, 2, 1, 0, 0, 0, 0, inc[1]);
+            // E/W grid (Std 140-2023 §7.2.2.1.3, Figs 7-5/7-6): 1 m overhang +
+            // 1 m fins each side. 建物 wall 2.7 m × window 2 m (中央配置) で
+            // 窓上部に 0.5 m の壁が残るため、tMargin=0.5 (= overhang は壁トップ
+            // に取付、窓トップから 0.5 m 上)。これは C610 (south overhang) の
+            // tMargin=0.5 と整合する。tMargin=0 にすると庇が窓トップ直上に
+            // なり、低太陽高度でも 100% 直達遮蔽が発生して年間透過日射が
+            // 仕様 (≈ 30% 遮蔽) より過小 (≈ 40% 遮蔽) となる。
+            windows[0].SunShade = SunShade.MakeGridSunShade(3, 2, 1, 0, 0, 0.5, 0, inc[0]);
+            windows[1].SunShade = SunShade.MakeGridSunShade(3, 2, 1, 0, 0, 0.5, 0, inc[1]);
           }
           else
           {
