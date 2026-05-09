@@ -420,9 +420,12 @@ namespace BESTEST_2023
 
             if (isVenting)
             {
+              // Std 140-2023 §7.2.2.1.5 + Table 7-16: 18:00–07:00 (Hours 19–7) で
+              // 0.5 ACH 背景 (§7.2.1.6) に加えて 1700 m³/h vent fan (高度補正済み
+              // 体積流量、Buildings.AIR_DNS が高度密度を提供)。日中はベース 0.5 ACH のみ。
               if (simTimeH.Hour < 7 || 18 <= simTimeH.Hour)
                 bModel.SetVentilationRate(0, 0,
-                    (mRoom.Zones[0].AirMass + 1400 * Buildings.AIR_DNS) / 3600.0);
+                    (mRoom.Zones[0].AirMass * 0.5 + 1700 * Buildings.AIR_DNS) / 3600.0);
               else
                 bModel.SetVentilationRate(0, 0, mRoom.Zones[0].AirMass * 0.5 / 3600.0);
             }
@@ -493,9 +496,10 @@ namespace BESTEST_2023
           // 換気量制御 (Venting ケース 650/950/650FF/950FF: 夜間ブースト, 7-18 時は通常)
           if (isVenting)
           {
+            // 仕様の補足は warmup ループ側コメント参照。
             if (simTime.Hour < 7 || 18 <= simTime.Hour)
               bModel.SetVentilationRate(0, 0,
-                  (mRoom.Zones[0].AirMass + 1400 * Buildings.AIR_DNS) / 3600.0);
+                  (mRoom.Zones[0].AirMass * 0.5 + 1700 * Buildings.AIR_DNS) / 3600.0);
             else
               bModel.SetVentilationRate(0, 0, mRoom.Zones[0].AirMass * 0.5 / 3600.0);
           }
