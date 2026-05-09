@@ -237,13 +237,21 @@ namespace BESTEST_2023
       walls[5] = new Wall(
           (noWindow || hasEWWindow) ? 8 * 2.7 : 8 * 2.7 - 6d - 6d, exwL);    // 南外壁 (HC 壁要素 / 透明窓を除く)
 
-      // h_r ≈ 4εσT̄³ を T̄=20°C で線形化 (内側/外側それぞれ ε に応じて)
+      // h_r ≈ 4εσT̄³ を T̄=10°C で線形化 (壁: 内側/外側それぞれ ε に応じて)。
+      // Note: bModel.DynamicIndoor/OutdoorRadiativeCoefficient=true のケースでは
+      //   MultiRoom.UpdateIndoor/OutdoorRadiativeCoefficient が毎ステップ
+      //   4εσT_air³ (室内側は表面平均温度)で上書きする。よってこの初期値は
+      //   Const(Int|Ext)Coeffs ケースでのみ有効。それらケースは LW 経路を
+      //   ConvectiveCoefficient に集約 (LongWaveEmissivity=0) するため、
+      //   この初期値も ε=0 で乗算されゼロ化する。実質的に全ケースで
+      //   無作用な記述だが、初期化忘れ防止と読みやすさのために残す。
       double hrF = 4 * extlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
       double hrB = 4 * intlwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
 
       // 窓専用の長波長放射率と h_r。
       // Std 140-2023: 透明窓ガラスは ε=0.84、HCW (金属パネル) は ε=0.9。
       // IR-off ケースは仕様に従い 0.1 で上書きされ材質差は無効化。
+      // (h_r 初期値の取扱は壁と同じく実質無作用 — 上記コメント参照)
       double winExtLW = isLowExtIREmissivity ? 0.1 : (hasHighConductanceWall ? 0.9 : 0.84);
       double winIntLW = isLowIntIREmissivity ? 0.1 : (hasHighConductanceWall ? 0.9 : 0.84);
       double hrF_win = 4 * winExtLW * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
