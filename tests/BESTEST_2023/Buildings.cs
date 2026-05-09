@@ -43,8 +43,13 @@ namespace BESTEST_2023
     const double AI_CEILING = 1.8;  // h_conv,int ceiling
 
 
-    /// <summary>BESTEST 標準条件における空気密度 [kg/m³]。</summary>
-    public const double AIR_DNS = PhysicsConstants.NominalMoistAirDensity * (1.0156 / 1.2255);
+    /// <summary>
+    /// BESTEST 高度 1650 m 地点の外気密度 [kg/m³]。Std 140-2023 §7.2.1.6 (Table 7-4)
+    /// および §7.2.2.1.5.2 (Table 7-16) で参照される値で、ISA 海面 1.2255 に高度
+    /// 1650 m への気圧減衰係数を掛けたもの。仕様の浸入・換気質量流量とゾーン
+    /// 空気質量を単一密度で一貫して計算するために使用。
+    /// </summary>
+    public const double AIR_DNS = 1.0156;
 
     #endregion
 
