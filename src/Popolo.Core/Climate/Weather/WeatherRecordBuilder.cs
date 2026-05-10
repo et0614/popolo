@@ -66,6 +66,7 @@ namespace Popolo.Core.Climate.Weather
     private double _cloudCover;
     private double _opaqueCloudCover;
     private double _ceilingHeight;
+    private double _dewPointTemperature;
     private WeatherField _recordedMask;
     private WeatherField _estimatedMask;
 
@@ -195,6 +196,14 @@ namespace Popolo.Core.Climate.Weather
       return this;
     }
 
+    /// <summary>Sets the dew-point temperature [°C] and marks it as recorded.</summary>
+    public WeatherRecordBuilder SetDewPointTemperature(double value)
+    {
+      _dewPointTemperature = value;
+      _recordedMask |= WeatherField.DewPointTemperature;
+      return this;
+    }
+
     /// <summary>
     /// Reclassifies the given fields from recorded to estimated.
     /// </summary>
@@ -232,6 +241,7 @@ namespace Popolo.Core.Climate.Weather
           _globalHorizontalRadiation, _directNormalRadiation, _diffuseHorizontalRadiation,
           _atmosphericRadiation, _windSpeed, _windDirection,
           _precipitation, _cloudCover, _opaqueCloudCover, _ceilingHeight,
+          _dewPointTemperature,
           _recordedMask, _estimatedMask);
     }
 

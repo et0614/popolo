@@ -138,6 +138,15 @@ namespace Popolo.Core.Climate.Weather
     public double CeilingHeight { get; }
 
     /// <summary>
+    /// Dew-point temperature [°C], when reported directly by the source.
+    /// Optional: only valid when <see cref="WeatherField.DewPointTemperature"/>
+    /// is set in <see cref="AvailableFields"/>. When absent, downstream
+    /// long-wave-radiation code falls back to recomputing T_dp from
+    /// <see cref="HumidityRatio"/> and <see cref="AtmosphericPressure"/>.
+    /// </summary>
+    public double DewPointTemperature { get; }
+
+    /// <summary>
     /// Bit mask of fields that were read verbatim from the source format.
     /// </summary>
     public WeatherField RecordedFields { get; }
@@ -181,6 +190,7 @@ namespace Popolo.Core.Climate.Weather
         double cloudCover,
         double opaqueCloudCover,
         double ceilingHeight,
+        double dewPointTemperature,
         WeatherField recordedFields,
         WeatherField estimatedFields)
     {
@@ -199,6 +209,7 @@ namespace Popolo.Core.Climate.Weather
       CloudCover = cloudCover;
       OpaqueCloudCover = opaqueCloudCover;
       CeilingHeight = ceilingHeight;
+      DewPointTemperature = dewPointTemperature;
       RecordedFields = recordedFields;
       EstimatedFields = estimatedFields;
     }

@@ -243,6 +243,14 @@ namespace Popolo.IO.Climate.Weather
             dbtSet = true;
           }
 
+          // [34] Dew-point [°C], 欠測: 99.9
+          // TMY3 ファイルは RH (col 37) と Tdp (col 34) を独立処理しており
+          // Magnus 式で完全には round-trip しない (典型 ±0.5°C、極端時 ±数°C)。
+          // ANSI/ASHRAE 140-2023 の Tsky-Informative は col 34 を直接使用するため
+          // long-wave 大気放射の計算では col 34 を優先する (WeatherCompleter 参照)。
+          if (TryParseDouble(f[34], ci, out double tdpRaw) && Math.Abs(tdpRaw) < 99.0)
+            builder.SetDewPointTemperature(tdpRaw);
+
           // [37] RHum [%], 欠測: 999
           double rh = double.NaN;
           if (TryParseDouble(f[37], ci, out double rhRaw) && rhRaw >= 0 && rhRaw <= 110)

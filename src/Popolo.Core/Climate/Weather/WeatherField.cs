@@ -82,5 +82,16 @@ namespace Popolo.Core.Climate.Weather
     /// is typically reported as a sentinel (e.g., 22000 m) by the source weather format.
     /// </summary>
     CeilingHeight = 1 << 12,
+
+    /// <summary>
+    /// Dew-point temperature [°C], when reported directly by the weather source.
+    /// Used preferentially over the humidity-ratio-derived value in
+    /// long-wave atmospheric radiation calculations
+    /// (e.g., <see cref="Popolo.Core.Climate.Sky.GetInfraredRadiationFromSky(double, double, double, double, double, double, int)"/>),
+    /// because some source formats (notably TMY3) report independently
+    /// processed RH and Tdp columns whose Magnus-style round-trip is not
+    /// internally consistent.
+    /// </summary>
+    DewPointTemperature = 1 << 13,
   }
 }

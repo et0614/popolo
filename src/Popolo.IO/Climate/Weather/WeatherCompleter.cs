@@ -339,14 +339,18 @@ namespace Popolo.IO.Climate.Weather
         var r = data.Records[i];
         if (r.Has(WeatherField.AtmosphericRadiation)) continue;
         if (!r.Has(WeatherField.DryBulbTemperature)) continue;
-        if (!r.Has(WeatherField.HumidityRatio)) continue;
+        // Martin-Berdahl は Tdp を、フォールバック式は HumidityRatio を要する。
+        // どちらも無ければ IR を求めるすべがないのでスキップ。
+        bool hasTdp = r.Has(WeatherField.DewPointTemperature);
+        bool hasW = r.Has(WeatherField.HumidityRatio);
+        if (!hasTdp && !hasW) continue;
 
         double pressure = r.Has(WeatherField.AtmosphericPressure)
             ? r.AtmosphericPressure
             : fallbackPressure;
 
         // 気象レコードの絶対湿度は [g/kg(DA)]、MoistAir は [kg/kg(DA)]
-        double wKgKg = r.HumidityRatio / 1000.0;
+        double wKgKg = hasW ? r.HumidityRatio / 1000.0 : 0.0;
 
         double atmRad;
         // 不透明雲量・シーリング高さ・雲量がそろっていれば Martin-Berdahl 1984 を使用
@@ -357,9 +361,15 @@ namespace Popolo.IO.Climate.Weather
             && r.Has(WeatherField.OpaqueCloudCover)
             && r.Has(WeatherField.CeilingHeight);
 
-        if (canUseMartinBerdahl)
+        if (canUseMartinBerdahl && (hasTdp || hasW))
         {
-          double tdp = MoistAir.GetDewPointTemperatureFromHumidityRatio(wKgKg, pressure);
+          // Tdp が weather record に直接記録されている場合 (例: TMY3 col 34) はそれを優先。
+          // 無ければ HumidityRatio 経由で再計算する。
+          // 理由: TMY3 等は RH と Tdp を独立処理しており Magnus round-trip しない時刻が
+          // あり、Std 140-2023 の Tsky-Informative は TMY3 Tdp 列を直接使用しているため。
+          double tdp = hasTdp
+              ? r.DewPointTemperature
+              : MoistAir.GetDewPointTemperatureFromHumidityRatio(wKgKg, pressure);
           // Std 140-2023 reference式は気圧 [mbar = hPa] を要求する。
           // Popolo の AtmosphericPressure は kPa なので 10 倍する。
           double pMbar = pressure * 10.0;
@@ -372,7 +382,7 @@ namespace Popolo.IO.Climate.Weather
               r.CeilingHeight,
               r.Time.Hour);
         }
-        else
+        else if (hasW)
         {
           double vaporPressure =
               MoistAir.GetWaterVaporPartialPressureFromHumidityRatio(wKgKg, pressure);
@@ -381,6 +391,12 @@ namespace Popolo.IO.Climate.Weather
               : 0;
           atmRad = Sky.GetInfraredRadiationFromSky(
               r.DryBulbTemperature, cloudIndex, vaporPressure);
+        }
+        else
+        {
+          // Tdp あるが Martin-Berdahl 必要列 (cloud/ceiling) が揃わず、
+          // HumidityRatio も無い → フォールバック式が使えないのでスキップ。
+          continue;
         }
 
         var updated = RebuildWith(r, b => b
