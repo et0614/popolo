@@ -556,7 +556,18 @@ namespace BESTEST_2023
       WallLayer[] exwL_L, flwL_L, rfwL_L, exwL_H, flwL_H, rfwL_H;
       MakeWallLayer(TestCase.C200, out exwL_L, out flwL_L, out rfwL_L); // 軽量系壁材
       MakeWallLayer(TestCase.C900, out exwL_H, out flwL_H, out rfwL_H); // 重量系壁材
-      WallLayer[] cwL = new[] { new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2) };
+      // 共通壁: spec Table 7-29 (k=0.510, t=0.20m, ρ=1400, cp=1000)。
+      // 透過熱の transient 応答を 1h timestep + implicit Euler で正確に捉えるため、
+      // 0.20 m を 4 サブレイヤーに分割 (Case 900 重量壁の Concrete Block が 0.1m を 3 分割
+      // するのと同様)。単層では F/B の 2 ノードしかなく、内部温度分布の表現が粗い。
+      // τ_half ≈ 7.6 hr, τ_full ≈ 30 hr の厚壁では特に重要。
+      WallLayer[] cwL = new WallLayer[]
+      {
+        new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2 / 4),
+        new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2 / 4),
+        new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2 / 4),
+        new WallLayer("CommonWall", 0.510, 1400d * 1000d / 1000d, 0.2 / 4),
+      };
 
       walls = new Wall[11];
       walls[0]  = new Wall(48,         flwL_L); // 床1
@@ -598,7 +609,10 @@ namespace BESTEST_2023
       walls[10].LongWaveEmissivityF = intlwEmissivity;
 
       // 窓 (Sun zone 用、Case 600 と同一の clear double-pane)。
+      // 仕様§7.2.2.2.7.3 c: "double-pane and have the same properties as the
+      // windows in Case 900" (= Case 600 と同じ仕様)。
       // 法線入射 T=0.83446, R=0.0391 は Annex B6.2 調整済単板値。
+      // Glass R=0.00305 (= 1/328 W/m²K), Air gap R=0.192 (= 1/5.208) は Case 600 と同一。
       // BESTEST 仕様: 透明窓ガラスは ε=0.84 (壁の 0.9 と区別)。
       const double winLwEmissivity = 0.84;
       double hrF_win = 4 * winLwEmissivity * PhysicsConstants.StefanBoltzmannConstant * Math.Pow(PhysicsConstants.ToKelvin(10), 3);
@@ -610,9 +624,9 @@ namespace BESTEST_2023
                 new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 new[] { 0.834, 0.834 }, new[] { 0.075, 0.075 },
                 INC_S);
-        windows[i].SetGlassResistance(0, 0.003);
-        windows[i].SetGlassResistance(1, 0.003);
-        windows[i].SetAirGapResistance(0, 0.1588);
+        windows[i].SetGlassResistance(0, 0.00305);
+        windows[i].SetGlassResistance(1, 0.00305);
+        windows[i].SetAirGapResistance(0, 0.192);
         windows[i].LongWaveEmissivityF = winLwEmissivity;
         windows[i].LongWaveEmissivityB = winLwEmissivity;
         windows[i].ConvectiveCoefficientF = AO_WINDOW;
@@ -669,8 +683,25 @@ namespace BESTEST_2023
       windows[1].InsideSurface.Incline = INC_N;
       mRoom.AddComponent(zones[1], windows[0]);
       mRoom.AddComponent(zones[1], windows[1]);
-      mRoom.SetSWDistributionRateToFloor(windows[0], walls[1], false, 1.0); // SunZone 床は walls[1]
-      mRoom.SetSWDistributionRateToFloor(windows[1], walls[1], false, 1.0);
+
+      // Std 140-2023 Table 7-30: Case 960 Sun Zone の固定室内日射分配比率。
+      //   Floor 0.6, Ceiling 0.05, E Wall 0.02, W Wall 0.02,
+      //   North Wall (= common wall) 0.2, South Wall 0.03, Solar lost out 0.08
+      // 旧実装: SetSWDistributionRateToFloor(window, floor, 1.0) + 内部 Gebhart で拡散反射分配
+      //         → spec 中央値 (Floor 0.6, North 0.2) と分配比が異なる可能性
+      // 新実装: SetTransmittedDirectAbsorption で各受面の最終吸収比率を spec 値に固定。
+      //         合計 0.92 (= 1 - 0.08 lost) で残り 0.08 は emitter 経由で外部に逃げる扱い。
+      //         拡散日射は Gebhart 維持。
+      foreach (var win in windows)
+      {
+        mRoom.SetTransmittedDirectAbsorption(win, walls[1],  false, 0.60);  // SunZone 床 (Floor)
+        mRoom.SetTransmittedDirectAbsorption(win, walls[3],  false, 0.05);  // SunZone 屋根 B 面 (Ceiling)
+        mRoom.SetTransmittedDirectAbsorption(win, walls[7],  false, 0.02);  // SunZone 東壁 (East Wall)
+        mRoom.SetTransmittedDirectAbsorption(win, walls[9],  false, 0.02);  // SunZone 西壁 (West Wall)
+        mRoom.SetTransmittedDirectAbsorption(win, walls[10], false, 0.20);  // 共通壁 SunZone 側 = North Wall
+        mRoom.SetTransmittedDirectAbsorption(win, walls[5],  false, 0.03);  // SunZone 南壁 (with window) (South Wall)
+        // 残り 0.08 は窓経由で外部に lost 扱い (Popolo の SetTransmittedDirectAbsorption 仕様)
+      }
 
       // BackZone に壁を追加
       mRoom.AddComponent(0, 0);
