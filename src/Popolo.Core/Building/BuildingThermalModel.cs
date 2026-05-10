@@ -946,23 +946,25 @@ namespace Popolo.Core.Building
     #region 構成検証
 
     /// <summary>Validates the entire model by running <see cref="MultiRoom.Validate"/> on every MultiRoom.</summary>
-    /// <returns>List of human-readable error messages prefixed with the MultiRoom index; empty when no problems are detected.</returns>
+    /// <returns>List of <see cref="ValidationMessage"/> entries (severity-tagged) prefixed
+    /// with the MultiRoom index; empty when no problems are detected.</returns>
     /// <remarks>
     /// Aggregates the per-MultiRoom validation results into a single flat list,
     /// with each message prefixed as <c>"MultiRoom[i]: …"</c> so the caller
-    /// can identify which room produced which error. Recommended usage is to
+    /// can identify which room produced which message. Recommended usage is to
     /// call this once after model construction is complete and before the
-    /// first solver step.
+    /// first solver step, asserting that no entry has
+    /// <see cref="ValidationSeverity.Error"/>.
     /// </remarks>
-    public IReadOnlyList<string> Validate()
+    public IReadOnlyList<ValidationMessage> Validate()
     {
-      var errors = new List<string>();
+      var msgs = new List<ValidationMessage>();
       for (int i = 0; i < mRooms.Length; i++)
       {
-        foreach (var e in mRooms[i].Validate())
-          errors.Add($"MultiRoom[{i}]: {e}");
+        foreach (var m in mRooms[i].Validate())
+          msgs.Add(new ValidationMessage(m.Severity, $"MultiRoom[{i}]: {m.Message}"));
       }
-      return errors;
+      return msgs;
     }
 
     #endregion

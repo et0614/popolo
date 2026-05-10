@@ -490,32 +490,38 @@ namespace Popolo.Core.Building
     #region 構成検証
 
     /// <summary>Validates the multi-room configuration and returns any problems found.</summary>
-    /// <returns>List of human-readable error messages; empty when no problems are detected.</returns>
+    /// <returns>List of <see cref="ValidationMessage"/> entries; empty when no problems are detected.
+    /// Each entry carries a <see cref="ValidationSeverity"/> distinguishing
+    /// <see cref="ValidationSeverity.Error"/> (broken configuration that must be fixed) from
+    /// <see cref="ValidationSeverity.Warning"/> (unusual setting that may still produce
+    /// physically valid results but is worth review).</returns>
     /// <remarks>
     /// Catches misconfigurations that the per-method APIs cannot block at
     /// call time (typically: missing pieces, cross-element inconsistencies,
     /// out-of-range physical properties). Recommended usage is to call this
     /// once after construction is complete and before the first solver step,
-    /// asserting that the returned list is empty. The check is read-only —
-    /// it does not mutate any internal state.
+    /// asserting that no <see cref="ValidationSeverity.Error"/> entry is present.
+    /// The check is read-only — it does not mutate any internal state.
     /// </remarks>
-    public IReadOnlyList<string> Validate()
+    public IReadOnlyList<ValidationMessage> Validate()
     {
-      var errors = new List<string>();
+      var msgs = new List<ValidationMessage>();
+      void error(string m) => msgs.Add(ValidationMessage.Error(m));
+      void warning(string m) => msgs.Add(ValidationMessage.Warning(m));
 
       // 1. 全 Zone が Room に所属
       for (int i = 0; i < ZoneCount; i++)
       {
         int rIdx = zones[i].RoomIndex;
         if (rIdx < 0 || rIdx >= RoomCount)
-          errors.Add($"Zone[{i}] is not assigned to any room (RoomIndex={rIdx}).");
+          error($"Zone[{i}] is not assigned to any room (RoomIndex={rIdx}).");
       }
 
       // 2. 全 Room に 1 つ以上の Zone
       for (int r = 0; r < RoomCount; r++)
       {
         if (rZones[r].Count == 0)
-          errors.Add($"Room[{r}] has no zones.");
+          error($"Room[{r}] has no zones.");
       }
 
       // 3. 全 Zone に有効表面 (面積>0) が 1 つ以上
@@ -525,12 +531,13 @@ namespace Popolo.Core.Building
         foreach (EnvelopeSurface sf in zones[i].Surfaces)
           if (sf.Area > 0) { hasArea = true; break; }
         if (!hasArea)
-          errors.Add($"Zone[{i}] has no interior surface with area > 0.");
+          error($"Zone[{i}] has no interior surface with area > 0.");
       }
 
       // 4. 全 Component の F/B が 4 状態 (indoor/outdoor/ground/adjacent) に決定済み
       // 5. F/B 両面屋外の Component が無い
       // 6. 屋外面に Incline 設定済み
+      // 7. F/B 両面 Incline がある場合、互いに逆向きである (整合警告)
       for (int i = 0; i < components.Length; i++)
       {
         var c = components[i];
@@ -538,20 +545,38 @@ namespace Popolo.Core.Building
         SideKind bKind = ClassifySide(c.SurfaceB);
 
         if (fKind == SideKind.Unconfigured)
-          errors.Add($"Component[{i}] ({c.GetType().Name}) F side is not configured (indoor / outdoor / ground / adjacent).");
+          error($"Component[{i}] ({c.GetType().Name}) F side is not configured (indoor / outdoor / ground / adjacent).");
         if (bKind == SideKind.Unconfigured)
-          errors.Add($"Component[{i}] ({c.GetType().Name}) B side is not configured (indoor / outdoor / ground / adjacent).");
+          error($"Component[{i}] ({c.GetType().Name}) B side is not configured (indoor / outdoor / ground / adjacent).");
 
         if (fKind == SideKind.Outdoor && bKind == SideKind.Outdoor)
-          errors.Add($"Component[{i}] ({c.GetType().Name}) has both F and B sides facing outdoor.");
+          error($"Component[{i}] ({c.GetType().Name}) has both F and B sides facing outdoor.");
 
         if (fKind == SideKind.Outdoor && c.SurfaceF.Incline == null)
-          errors.Add($"Component[{i}] outdoor F side has no Incline.");
+          error($"Component[{i}] outdoor F side has no Incline.");
         if (bKind == SideKind.Outdoor && c.SurfaceB.Incline == null)
-          errors.Add($"Component[{i}] outdoor B side has no Incline.");
+          error($"Component[{i}] outdoor B side has no Incline.");
+
+        // F/B 両面 Incline がある場合、向きが逆 (= 反対面方向を向いている) かチェック
+        if (c.SurfaceF.Incline != null && c.SurfaceB.Incline != null)
+        {
+          var inclF = c.SurfaceF.Incline;
+          var inclB = c.SurfaceB.Incline;
+          var revF  = inclF.MakeReverseIncline();
+          // 逆向きと B 側の方向を角度差で比較 (許容 1°)
+          const double tolRad = Math.PI / 180.0;
+          double dH = Math.Abs(inclB.HorizontalAngle - revF.HorizontalAngle);
+          if (dH > Math.PI) dH = 2 * Math.PI - dH;   // (-π, π] 周回距離
+          double dV = Math.Abs(inclB.VerticalAngle - revF.VerticalAngle);
+          if (dH > tolRad || dV > tolRad)
+            warning($"Component[{i}] F and B inclines are not opposite-facing "
+                  + $"(F: az={inclF.HorizontalAngle * 180 / Math.PI:F1}°/tilt={inclF.VerticalAngle * 180 / Math.PI:F1}°; "
+                  + $"B: az={inclB.HorizontalAngle * 180 / Math.PI:F1}°/tilt={inclB.VerticalAngle * 180 / Math.PI:F1}°). "
+                  + "Expected B = MakeReverseIncline(F) for a flat planar component.");
+        }
       }
 
-      // 7. SW 分配先 Floor: 面積>0 かつ emitter と同 Room
+      // 8. SW 分配先 Floor: 面積>0 かつ emitter と同 Room
       foreach (var kv in swDistFloor)
       {
         var emitter = kv.Key;
@@ -559,26 +584,26 @@ namespace Popolo.Core.Building
         int eIdx = Array.IndexOf(components, emitter);
 
         if (floor.Area <= 0)
-          errors.Add($"SW distribution floor for component[{eIdx}] has area ≤ 0.");
+          error($"SW distribution floor for component[{eIdx}] has area ≤ 0.");
 
         int floorZone = floor.ZoneIndex;
         int emitterZone = emitter.SurfaceB.ZoneIndex >= 0
             ? emitter.SurfaceB.ZoneIndex : emitter.SurfaceF.ZoneIndex;
         if (floorZone >= 0 && emitterZone >= 0
             && zones[floorZone].RoomIndex != zones[emitterZone].RoomIndex)
-          errors.Add($"SW distribution floor for component[{eIdx}] is in a different room "
+          error($"SW distribution floor for component[{eIdx}] is in a different room "
               + $"(emitter room={zones[emitterZone].RoomIndex}, floor room={zones[floorZone].RoomIndex}).");
       }
 
-      // 8. SW 分配率 ∈ [0, 1]
+      // 9. SW 分配率 ∈ [0, 1]
       foreach (var kv in swDistRate)
       {
         int eIdx = Array.IndexOf(components, kv.Key);
         if (kv.Value < 0.0 || kv.Value > 1.0)
-          errors.Add($"SW distribution rate for component[{eIdx}] = {kv.Value}, must be in [0, 1].");
+          error($"SW distribution rate for component[{eIdx}] = {kv.Value}, must be in [0, 1].");
       }
 
-      // 9. 物性値 ∈ [0, 1]
+      // 10. 物性値 ∈ [0, 1]
       for (int i = 0; i < components.Length; i++)
       {
         var c = components[i];
@@ -588,15 +613,15 @@ namespace Popolo.Core.Building
           double lw = sf.LongWaveEmissivity;
           double sw = sf.ShortWaveAbsorptance;
           if (lw < 0.0 || lw > 1.0)
-            errors.Add($"Component[{i}] {side} side long-wave emissivity = {lw}, must be in [0, 1].");
+            error($"Component[{i}] {side} side long-wave emissivity = {lw}, must be in [0, 1].");
           if (sw < 0.0 || sw > 1.0)
-            errors.Add($"Component[{i}] {side} side short-wave absorptance/emissivity = {sw}, must be in [0, 1].");
+            error($"Component[{i}] {side} side short-wave absorptance/emissivity = {sw}, must be in [0, 1].");
           if (sf.AdjacentSpaceFactor >= 0.0 && sf.AdjacentSpaceFactor > 1.0)
-            errors.Add($"Component[{i}] {side} side adjacent-space factor = {sf.AdjacentSpaceFactor}, must be in [0, 1].");
+            error($"Component[{i}] {side} side adjacent-space factor = {sf.AdjacentSpaceFactor}, must be in [0, 1].");
         }
       }
 
-      // 10. 透過直達日射の最終吸収比率テーブル: 各 fraction ∈ [0, 1]、emitter ごとの合計 ≤ 1、
+      // 11. 透過直達日射の最終吸収比率テーブル: 各 fraction ∈ [0, 1]、emitter ごとの合計 ≤ 1、
       //     receiver は emitter と同 Room
       foreach (var kv in directAbsorption)
       {
@@ -607,20 +632,20 @@ namespace Popolo.Core.Building
         foreach (var (recv, frac) in kv.Value)
         {
           if (frac < 0.0 || frac > 1.0)
-            errors.Add($"Transmitted-direct absorption fraction for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] = {frac}, must be in [0, 1].");
+            error($"Transmitted-direct absorption fraction for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] = {frac}, must be in [0, 1].");
           sum += frac;
 
           int recvZone = recv.ZoneIndex;
           if (emitterZone >= 0 && recvZone >= 0
               && zones[emitterZone].RoomIndex != zones[recvZone].RoomIndex)
-            errors.Add($"Transmitted-direct absorption receiver for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] is in a different room "
+            error($"Transmitted-direct absorption receiver for component[{eIdx}] → component[{Array.IndexOf(components, recv.Component)}] is in a different room "
                 + $"(emitter room={zones[emitterZone].RoomIndex}, receiver room={zones[recvZone].RoomIndex}).");
         }
         if (sum > 1.0 + 1e-9)
-          errors.Add($"Transmitted-direct absorption fractions for component[{eIdx}] sum to {sum:F4} > 1.");
+          error($"Transmitted-direct absorption fractions for component[{eIdx}] sum to {sum:F4} > 1.");
       }
 
-      return errors;
+      return msgs;
     }
 
     /// <summary>Classification of an envelope surface's boundary configuration. Used by <see cref="Validate"/>.</summary>

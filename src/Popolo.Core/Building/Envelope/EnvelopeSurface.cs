@@ -81,8 +81,37 @@ namespace Popolo.Core.Building.Envelope
     /// </summary>
     internal bool BoundaryCoefficientChanged { get; set; } = true;
 
-    /// <summary>Gets or sets the tilted surface orientation.</summary>
-    public IReadOnlyIncline? Incline { get; set; }
+    /// <summary>Backing field for <see cref="Incline"/>. Set via the property setter
+    /// (which triggers auto-propagation to the reverse side) or — internally only —
+    /// by another <see cref="EnvelopeSurface"/> propagating its own assignment.</summary>
+    private IReadOnlyIncline? _incline;
+
+    /// <summary>
+    /// Gets or sets the tilted surface orientation.
+    /// </summary>
+    /// <remarks>
+    /// Setting this property triggers a one-shot auto-propagation: if the opposite
+    /// side (<see cref="ReverseSideSurface"/>) currently has <c>Incline == null</c>,
+    /// it is automatically populated with the reverse-facing incline
+    /// (<see cref="IReadOnlyIncline.MakeReverseIncline"/>). If the opposite side is
+    /// already set, it is left unchanged. This convenience lets callers register
+    /// only one side of a wall whose two faces look in opposite directions
+    /// (the typical case for an exterior wall) without separately configuring the
+    /// indoor side.
+    /// </remarks>
+    public IReadOnlyIncline? Incline
+    {
+      get => _incline;
+      set
+      {
+        _incline = value;
+        if (value != null)
+        {
+          var rev = ReverseSideSurface;
+          if (rev._incline == null) rev._incline = value.MakeReverseIncline();
+        }
+      }
+    }
 
     /// <summary>Gets or sets the zone index to which this surface belongs.</summary>
     public int ZoneIndex { get; set; }
