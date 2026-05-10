@@ -379,6 +379,13 @@ namespace Popolo.Core.Building
           }
         }
       }
+      // 動的更新で内部的に上書きされた表面熱伝達係数を、ユーザーが設定した値に復元する。
+      // これにより、複数回の Forecast → 条件再設定 → 再 Forecast の運用において
+      // 各 Forecast 後にユーザーが係数を読み返すと自分の設定値が見える。
+      // FixState 側では FixHeatTransfer / Wall.Update が動的値を必要とするため、
+      // FixState 開始時に RecomputeDynamicCoefficients で再適用する。
+      foreach (Wall wl in walls) wl.RestoreUserCoefficients();
+      foreach (Window win in windows) win.RestoreUserCoefficients();
     }
 
     /// <summary>Computes a tentative new moisture state for every zone without committing it.</summary>
@@ -425,6 +432,11 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void FixState()
     {
+      // ForecastHeatTransfer 末尾で coefs はユーザー値に restore されている。
+      // FixHeatTransfer (= 表面温度の逆解) と Wall.Update / Window.Update は
+      // 直近の Forecast で matrix が用いた動的値で読む必要があるため、ここで再適用。
+      foreach (MultiRoom mr in mRooms) mr.RecomputeDynamicCoefficients();
+
       foreach (MultiRoom mr in mRooms)
       {
         mr.FixHeatTransfer();
@@ -445,9 +457,7 @@ namespace Popolo.Core.Building
         win.InverseMatrixUpdated = false;
         win.Update();
       }
-      // 動的更新で内部的に上書きされた表面熱伝達係数を、ユーザーが設定した値に復元する。
-      // これによりユーザーが (例えば bModel.MultiRoom[r].Walls[i].ConvectiveCoefficientF を
-      // 読み返したとき) 自分が最初に設定した値が見えるようになる。
+      // 内部的な動的値をユーザー設定値に再復元 (ユーザーが係数を読み返すと自分の値が見える)。
       foreach (Wall wl in walls) wl.RestoreUserCoefficients();
       foreach (Window win in windows) win.RestoreUserCoefficients();
       isFirstForecast = true;

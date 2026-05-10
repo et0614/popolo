@@ -742,6 +742,26 @@ namespace Popolo.Core.Building
       }
     }
 
+    /// <summary>
+    /// Re-applies the dynamic surface heat-transfer coefficient updates without
+    /// re-running the full <see cref="PrepareForHeatTransfer"/> sequence. Used by
+    /// <see cref="BuildingThermalModel.FixState"/> to put the coefficients back to
+    /// their dynamic values just before <see cref="FixHeatTransfer"/> reads them
+    /// for the surface-temperature back-substitution and before
+    /// <c>Wall.Update</c> / <c>Window.Update</c> advance the wall state — this is
+    /// needed because <see cref="BuildingThermalModel.ForecastHeatTransfer"/>
+    /// restores user coefficients at its end so that user-side reads between
+    /// forecast and fix see the user-set values, but the fix-state machinery
+    /// requires the same dynamic values that the matrix solve used.
+    /// </summary>
+    internal void RecomputeDynamicCoefficients()
+    {
+      if (DynamicIndoorRadiativeCoefficient)    UpdateIndoorRadiativeCoefficient();
+      if (DynamicOutdoorRadiativeCoefficient)   UpdateOutdoorRadiativeCoefficient();
+      if (DynamicIndoorConvectiveCoefficient)   UpdateIndoorConvectiveCoefficient();
+      if (DynamicOutdoorConvectiveCoefficient)  UpdateOutdoorConvectiveCoefficient();
+    }
+
     /// <summary>Commits the forecasted heat balance state and updates surface temperatures.</summary>
     internal void FixHeatTransfer()
     {
