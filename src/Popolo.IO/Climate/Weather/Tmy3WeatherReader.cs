@@ -275,14 +275,17 @@ namespace Popolo.IO.Climate.Weather
           if (TryParseDouble(f[46], ci, out double wsp) && wsp >= 0 && wsp < 99)
             builder.SetWindSpeed(wsp);
 
-          // [52] CeilHgt [m]、77777 = unlimited (=雲なし扱い), 99999 = missing
-          // 大気放射推定 (Martin-Berdahl 1984) で不透明雲の影響を補正するために用いる
+          // [52] CeilHgt [m]、77777 = unlimited (TMY3 sentinel), 99999 = missing
+          // 大気放射推定 (Martin-Berdahl 1984) で不透明雲の影響を補正するために用いる。
+          // Sky.GetInfraredRadiationFromSky が UnlimitedCeilingHeight (=77777) を
+          // Std 140-2023 の特別処理 (Γ_opaque = exp(2000/82000)) で扱うので、
+          // ここではセンチネル値をそのまま渡す。
           if (f.Length > 52 && TryParseDouble(f[52], ci, out double ceil))
           {
             if (ceil >= 0 && ceil < 77000)
               builder.SetCeilingHeight(ceil);
             else if ((int)ceil == 77777)
-              builder.SetCeilingHeight(22000);   // unlimited を 22 km 相当として扱う (Std140-2023 慣例)
+              builder.SetCeilingHeight(Popolo.Core.Climate.Sky.UnlimitedCeilingHeight);
             // 99999 (missing) は SetCeilingHeight 未呼出 → fallback
           }
 

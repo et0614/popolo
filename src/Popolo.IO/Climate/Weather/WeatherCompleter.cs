@@ -360,9 +360,13 @@ namespace Popolo.IO.Climate.Weather
         if (canUseMartinBerdahl)
         {
           double tdp = MoistAir.GetDewPointTemperatureFromHumidityRatio(wKgKg, pressure);
+          // Std 140-2023 reference式は気圧 [mbar = hPa] を要求する。
+          // Popolo の AtmosphericPressure は kPa なので 10 倍する。
+          double pMbar = pressure * 10.0;
           atmRad = Sky.GetInfraredRadiationFromSky(
               r.DryBulbTemperature,
               tdp,
+              pMbar,
               r.CloudCover,
               r.OpaqueCloudCover,
               r.CeilingHeight,

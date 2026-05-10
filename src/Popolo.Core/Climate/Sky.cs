@@ -115,28 +115,46 @@ namespace Popolo.Core.Climate
     }
 
     /// <summary>
+    /// TMY3 sentinel value for "unlimited ceiling" (no opaque cloud detected).
+    /// When passed as <c>ceilingHeight</c> to
+    /// <see cref="GetInfraredRadiationFromSky(double, double, double, double, double, double, int)"/>
+    /// the model substitutes the ANSI/ASHRAE 140-2023 reference value
+    /// <c>Γ_opaque = exp(2000/82000) ≈ 1.0247</c>, matching the convention in
+    /// the standard's Tsky-Informative spreadsheet.
+    /// </summary>
+    public const double UnlimitedCeilingHeight = 77777.0;
+
+    /// <summary>
     /// Gets the atmospheric (downwelling longwave) radiation from the sky [W/m²]
     /// using the Martin-Berdahl (1984) model with separate opaque and thin cloud
-    /// contributions and ceiling-height correction. This is the model used by
-    /// ANSI/ASHRAE Standard 140-2023 to generate the informative Tsky values for
-    /// the Section 7 BESTEST cases.
+    /// contributions, ceiling-height correction, and station-pressure correction.
+    /// This is the model used by ANSI/ASHRAE Standard 140-2023 to generate the
+    /// informative Tsky values for the Section 7 BESTEST cases.
     /// </summary>
     /// <param name="temperature">Outdoor dry-bulb temperature [°C].</param>
     /// <param name="dewPointTemperature">Outdoor dew-point temperature [°C].</param>
+    /// <param name="atmosphericPressure">Station atmospheric pressure [mbar = hPa].
+    /// 1 mbar = 0.1 kPa.</param>
     /// <param name="totalCloudCover">Total cloud cover [-] (0 = clear, 1 = fully covered).</param>
     /// <param name="opaqueCloudCover">
     /// Opaque cloud cover [-] (0 = clear, 1 = fully covered with opaque clouds).
     /// Always ≤ <paramref name="totalCloudCover"/>; the difference is treated as thin clouds.
     /// </param>
-    /// <param name="ceilingHeight">Ceiling height [m] (lowest opaque cloud base).</param>
+    /// <param name="ceilingHeight">Ceiling height [m] (lowest opaque cloud base).
+    /// Pass <see cref="UnlimitedCeilingHeight"/> (= 77777) when the source data
+    /// indicates "unlimited" / no detected ceiling — the model then uses
+    /// <c>Γ_opaque = exp(2000/82000)</c> per the Std 140-2023 reference convention.</param>
     /// <param name="hour">Hour of day [0–23] for the small diurnal correction.</param>
     /// <returns>Atmospheric infrared radiation [W/m²].</returns>
     /// <remarks>
     /// <para>Formulation (consistent with ASHRAE 140-2023 Tsky-Informative.xlsx):</para>
     /// <list type="bullet">
-    ///   <item><description><c>ε_clr = 0.711 + 0.56·(Tdp/100) + 0.73·(Tdp/100)² + 0.013·cos(2π·hr/24)</c></description></item>
-    ///   <item><description><c>Γ_opaque = exp(−CeilHgt/8200)</c> (cloud-attenuation function of ceiling height).</description></item>
-    ///   <item><description><c>C_opaque = OpqCld · Γ_opaque</c>, <c>C_thin = (TotCld − OpqCld) · 0.4 · exp(−8000/8200)</c></description></item>
+    ///   <item><description><c>ε_clr = 0.711 + 0.56·(Tdp/100) + 0.73·(Tdp/100)²
+    ///     + 0.013·cos(2π·hr/24) + 0.00012·(P − 1000)</c></description></item>
+    ///   <item><description><c>Γ_opaque = (CeilHgt = 77777) ? exp(2000/82000)
+    ///     : exp(−CeilHgt/8200)</c></description></item>
+    ///   <item><description><c>C_opaque = OpqCld · Γ_opaque</c>,
+    ///     <c>C_thin = (TotCld − OpqCld) · 0.4 · exp(−8000/8200)</c></description></item>
     ///   <item><description><c>ε_sky = ε_clr + (1 − ε_clr) · (C_opaque + C_thin)</c></description></item>
     ///   <item><description><c>R = ε_sky · σ · (T+273.15)⁴</c></description></item>
     /// </list>
@@ -144,6 +162,7 @@ namespace Popolo.Core.Climate
     public static double GetInfraredRadiationFromSky(
         double temperature,
         double dewPointTemperature,
+        double atmosphericPressure,
         double totalCloudCover,
         double opaqueCloudCover,
         double ceilingHeight,
@@ -151,11 +170,17 @@ namespace Popolo.Core.Climate
     {
       double tdp100 = dewPointTemperature / 100.0;
       double epsClear = 0.711
-                      + 0.56  * tdp100
-                      + 0.73  * tdp100 * tdp100
-                      + 0.013 * Math.Cos(2.0 * Math.PI * hour / 24.0);
+                      + 0.56    * tdp100
+                      + 0.73    * tdp100 * tdp100
+                      + 0.013   * Math.Cos(2.0 * Math.PI * hour / 24.0)
+                      + 0.00012 * (atmosphericPressure - 1000.0);
 
-      double gammaOpaque = Math.Exp(-ceilingHeight / 8200.0);
+      // Std 140-2023 Tsky-Informative の規約:
+      //   CeilHgt = 77777 (TMY3 "unlimited") のとき Γ_opaque = exp(2000/82000) ≈ 1.025
+      //   通常 Γ_opaque = exp(−CeilHgt/8200)
+      double gammaOpaque = (ceilingHeight == UnlimitedCeilingHeight)
+          ? Math.Exp(2000.0 / 82000.0)
+          : Math.Exp(-ceilingHeight / 8200.0);
       double thinFraction = Math.Max(0.0, totalCloudCover - opaqueCloudCover);
       double cOpaque = opaqueCloudCover * gammaOpaque;
       double cThin   = thinFraction * 0.4 * Math.Exp(-8000.0 / 8200.0);
@@ -167,6 +192,22 @@ namespace Popolo.Core.Climate
       if (epsSky > 1.0) epsSky = 1.0;
       return epsSky * BlackBodyRadiation(temperature);
     }
+
+    /// <summary>
+    /// Backward-compatible overload of
+    /// <see cref="GetInfraredRadiationFromSky(double, double, double, double, double, double, int)"/>
+    /// that omits the station-pressure correction (assumes P = 1000 mbar). Use
+    /// the seven-argument overload for full Std 140-2023 fidelity.
+    /// </summary>
+    public static double GetInfraredRadiationFromSky(
+        double temperature,
+        double dewPointTemperature,
+        double totalCloudCover,
+        double opaqueCloudCover,
+        double ceilingHeight,
+        int hour)
+        => GetInfraredRadiationFromSky(temperature, dewPointTemperature, 1000.0,
+            totalCloudCover, opaqueCloudCover, ceilingHeight, hour);
 
     /// <summary>
     /// Gets the cloud cover [-] from the atmospheric radiation, temperature,
