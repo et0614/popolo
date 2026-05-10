@@ -220,17 +220,20 @@ namespace Popolo.Core.Building.Envelope
     public override double SurfaceTemperatureF { get { return OutsideSurface.SurfaceTemperature; } }
 
     /// <summary>
-    /// Returns 0 to preserve the legacy approximation of skipping the natural-convection
-    /// term in the windward MoWiTT correlation for the F (outdoor) side. The base
-    /// implementation would supply the actual surface-air temperature difference.
+    /// Computes the outdoor-side convective heat transfer coefficient
+    /// [W/(m²·K)] for a glazing surface using the MoWiTT correlation
+    /// (Yazdanian–Klems 1994; <see cref="ExteriorConvection.GetMoWiTT"/>) —
+    /// the smooth-glass fit appropriate for window panes, in contrast with
+    /// the Walton TARP default used by opaque <see cref="Wall"/>.
     /// </summary>
-    /// <remarks>
-    /// TODO: Switch to the base implementation (real <see cref="SurfaceTemperatureF"/>)
-    /// once the BESTEST envelope impact has been measured separately from the
-    /// surface-roughness change.
-    /// </remarks>
-    internal override double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
-        => isSideF ? 0.0 : base.GetExteriorConvectionDeltaT(isSideF, outdoorTemperature);
+    internal override double ComputeExteriorConvectiveCoefficient(
+        bool isSideF, double windSpeed, double airTemperature, WindOrientation orientation)
+    {
+      double tSurf = isSideF ? SurfaceTemperatureF : SurfaceTemperatureB;
+      double rf = isSideF ? SurfaceRoughnessMultiplierF : SurfaceRoughnessMultiplierB;
+      double dT = tSurf - airTemperature;
+      return ExteriorConvection.GetMoWiTT(windSpeed, dT, rf, orientation);
+    }
 
     /// <inheritdoc/>
     protected override double GetConvectiveCoefficientBCore() => cCoefB;
@@ -491,15 +494,136 @@ namespace Popolo.Core.Building.Envelope
       if (sPropChanged) UpdateDiffuseTotalProperties();
     }
 
-    /// <summary>Updates total optical properties for diffuse solar irradiance.</summary>
+    /// <summary>
+    /// Gauss-Legendre 8-point quadrature for hemispherical Lambertian
+    /// integration over <c>x = cos θ ∈ [0, 1]</c>:
+    /// <c>∫_0^{π/2} f(θ) · 2 cos θ sin θ dθ = ∫_0^1 f(arccos x) · 2x dx
+    /// ≈ Σ_k w_k · 2x_k · f(arccos x_k)</c>.
+    /// Nodes mapped from the standard [-1, 1] form and weights halved.
+    /// </summary>
+    private static readonly double[] _hemisQuadX = {
+      0.019855071751231856, 0.101666761293186630, 0.237233795041835507, 0.408282678752175098,
+      0.591717321247824902, 0.762766204958164493, 0.898333238706813370, 0.980144928248768144
+    };
+    private static readonly double[] _hemisQuadW = {
+      0.050614268145188129, 0.111190517226687235, 0.156853322938943644, 0.181341891689180991,
+      0.181341891689180991, 0.156853322938943644, 0.111190517226687235, 0.050614268145188129
+    };
+
+    /// <summary>
+    /// Updates total optical properties for diffuse (hemispherical Lambertian)
+    /// solar irradiance by numerically integrating the at-angle multi-layer
+    /// transmittance over the hemisphere.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The straightforward "per-pane hemis → matrix combine" approach
+    /// systematically underestimates the system diffuse transmittance for a
+    /// multi-layer assembly: by Jensen's inequality, the matrix combination
+    /// formula <c>T_dbl = T_pane² / (1 − R_pane²)</c> evaluated at the
+    /// per-pane hemispherical means is <i>not</i> equal to the hemispherical
+    /// mean of the at-angle <c>T_dbl(θ)</c>, because the function is
+    /// non-linear in (T, R).
+    /// </para>
+    /// <para>
+    /// For non-scattering glazing each Lambertian ray traverses every pane at
+    /// the same incidence angle θ, so the physically correct integral is
+    /// <c>T_dbl_hemis = ∫ T_dbl(θ) · 2 cos θ sin θ dθ</c> with
+    /// <c>T_dbl(θ)</c> obtained by combining the at-angle per-pane values
+    /// through the same matrix recursion used for direct solar. The 8-point
+    /// Gauss-Legendre quadrature below evaluates this integral and replaces
+    /// the previous hemis-then-combine shortcut.
+    /// </para>
+    /// <para>
+    /// Shading-device layers (even-index slots) are treated as
+    /// angle-independent: their pre-integrated diffuse properties from
+    /// <see cref="opFDif"/> / <see cref="opBDif"/> are reused at every
+    /// quadrature angle. Only glass layers (odd-index slots) are evaluated
+    /// from the per-pane angular polynomial at each θ.
+    /// </para>
+    /// </remarks>
     private void UpdateDiffuseTotalProperties()
     {
-      ComputeTotalOProperties
-        (opFDif, opBDif, out double ttlTF, out double ttlRF, ref absFDif, out _, out _, ref absBDif);
-      DiffuseSolarIncidentTransmittance = ttlTF;
-      DiffuseSolarIncidentReflectance = ttlRF;
-      DiffuseSolarLostTransmittance = ttlTF;
-      DiffuseSolarLostReflectance = ttlRF;
+      int rowCount = opFDif.GetLength(0);
+      double[,] opFAt = new double[rowCount, 3];
+      double[,] opBAt = new double[rowCount, 3];
+      double[] absFAt = new double[rowCount];
+      double[] absBAt = new double[rowCount];
+
+      // Shading-device rows (even indices) are angle-independent in this model;
+      // copy their pre-integrated diffuse values once.
+      for (int i = 0; i < rowCount; i += 2)
+      {
+        opFAt[i, 0] = opFDif[i, 0]; opFAt[i, 1] = opFDif[i, 1]; opFAt[i, 2] = opFDif[i, 2];
+        opBAt[i, 0] = opBDif[i, 0]; opBAt[i, 1] = opBDif[i, 1]; opBAt[i, 2] = opBDif[i, 2];
+      }
+
+      double tDifF = 0.0, rDifF = 0.0, tDifB = 0.0, rDifB = 0.0;
+      for (int j = 0; j < absFDif.Length; j++) { absFDif[j] = 0.0; absBDif[j] = 0.0; }
+
+      for (int k = 0; k < _hemisQuadX.Length; k++)
+      {
+        double cos = _hemisQuadX[k];
+        double weight = _hemisQuadW[k] * 2.0 * cos;   // Lambertian: 2 cos θ sin θ dθ → 2x dx
+
+        // Glass rows (odd indices): evaluate per-pane T(θ), R(θ) from the
+        // angular polynomial at this quadrature point, exactly as
+        // UpdateOpticalProperties does for direct solar. During the
+        // constructor's initial SetAngleDependence loop the polynomials of
+        // later panes have not been assigned yet (tau_CF[i] == null); fall
+        // back to the per-pane diffuse values stored in opFDif / opBDif so
+        // that the system calc proceeds without a NullReferenceException.
+        for (int i = 0; i < GlazingCount; i++)
+        {
+          int row = 2 * i + 1;
+          if (tau_CF[i] == null)
+          {
+            opFAt[row, 0] = opFDif[row, 0]; opFAt[row, 1] = opFDif[row, 1]; opFAt[row, 2] = opFDif[row, 2];
+            opBAt[row, 0] = opBDif[row, 0]; opBAt[row, 1] = opBDif[row, 1]; opBAt[row, 2] = opBDif[row, 2];
+            continue;
+          }
+          double tauF = 0, tauB = 0, rhoF = 0, rhoB = 0;
+          int len = tau_CF[i].Length - 1;
+          for (int n = len; 0 <= n; n--)
+          {
+            tauF = cos * (tauF + tau_CF[i][n]);
+            tauB = cos * (tauB + tau_CB[i][n]);
+            rhoF = cos * (rhoF + rho_CF[i][n]);
+            rhoB = cos * (rhoB + rho_CB[i][n]);
+          }
+          opFAt[row, 0] = tauF * taurhoF[i, 0];
+          opFAt[row, 1] = 1 - (1 - taurhoF[i, 1]) * rhoF;
+          opFAt[row, 2] = 1 - (opFAt[row, 0] + opFAt[row, 1]);
+          opBAt[row, 0] = tauB * taurhoB[i, 0];
+          opBAt[row, 1] = 1 - (1 - taurhoB[i, 1]) * rhoB;
+          opBAt[row, 2] = 1 - (opBAt[row, 0] + opBAt[row, 1]);
+        }
+
+        // ComputeTotalOProperties accumulates into the absorption arrays
+        // via "+=", so they must be zeroed before each call.
+        for (int j = 0; j < absFAt.Length; j++) { absFAt[j] = 0.0; absBAt[j] = 0.0; }
+
+        // Combine via the same matrix recursion used for direct solar.
+        ComputeTotalOProperties(opFAt, opBAt,
+            out double ttlTF, out double ttlRF, ref absFAt,
+            out double ttlTB, out double ttlRB, ref absBAt);
+
+        // Lambertian-weighted accumulation.
+        tDifF += weight * ttlTF;
+        rDifF += weight * ttlRF;
+        tDifB += weight * ttlTB;
+        rDifB += weight * ttlRB;
+        for (int j = 0; j < absFDif.Length; j++)
+        {
+          absFDif[j] += weight * absFAt[j];
+          absBDif[j] += weight * absBAt[j];
+        }
+      }
+
+      DiffuseSolarIncidentTransmittance = tDifF;
+      DiffuseSolarIncidentReflectance = rDifF;
+      DiffuseSolarLostTransmittance = tDifB;
+      DiffuseSolarLostReflectance = rDifB;
       IntegrateAbsorption(absFDif, agapRes, glassRes, out _, out double adB);
       DiffuseSolarIncidentAbsorptance = adB;
       IntegrateAbsorption(absBDif, agapRes, glassRes, out _, out adB);

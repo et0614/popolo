@@ -21,8 +21,9 @@ namespace Popolo.Core.Climate
 {
   /// <summary>
   /// Orientation of an exterior surface relative to the local wind vector,
-  /// used to select the appropriate forced-convection correlation in
-  /// <see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double, WindOrientation)"/>.
+  /// used to select the appropriate forced-convection correlation in the
+  /// outdoor convective heat transfer coefficient calculations
+  /// (<c>Popolo.Core.Building.Envelope.ExteriorConvection</c>).
   /// </summary>
   /// <remarks>
   /// The two regimes correspond to fundamentally different boundary-layer

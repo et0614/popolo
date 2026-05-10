@@ -287,8 +287,10 @@ namespace Popolo.Core.Building
     /// When <c>true</c>, the outdoor-side convective coefficient on every wind-exposed
     /// surface (<see cref="OpticalLayeredEnvelope.IsWindExposedF"/>,
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/>) is recomputed each step from
-    /// <see cref="OutdoorWindSpeed"/> using the windward MoWiTT correlation
-    /// (<see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double)"/>). Default <c>false</c>.
+    /// <see cref="OutdoorWindSpeed"/> via
+    /// <see cref="OpticalLayeredEnvelope.ComputeExteriorConvectiveCoefficient"/>
+    /// (Walton TARP for opaque <see cref="Wall"/>; MoWiTT for <see cref="Window"/>).
+    /// Default <c>false</c>.
     /// </summary>
     public bool DynamicOutdoorConvectiveCoefficient { get; set; } = false;
 
@@ -1642,39 +1644,7 @@ namespace Popolo.Core.Building
     /// </para>
     /// </remarks>
     public static double GetIndoorConvectiveCoefficient(IReadOnlyIncline incline, double surfaceAirDeltaT)
-    {
-      const double horizontalTiltThreshold = 5.0 * Math.PI / 180.0;  // 5°
-      // TARP/EnergyPlus 既定の最小値: ΔT→0 で式が 0 に発散しないように
-      // 0.948 W/(m²·K) (= 1.31 × 0.43^(1/3) ≒ vertical 式が ΔT=0.43 K で出す値)
-      // を下限として常に適用。これは Walton 1983 / EnergyPlus TARP の慣行。
-      const double minH = 0.948;
-      double dT = Math.Abs(surfaceAirDeltaT);
-      double dT13 = Math.Pow(dT, 1.0 / 3.0);
-
-      double beta = incline.VerticalAngle;   // 0 = up, π/2 = vertical, π = down
-      bool isUpward   = beta < horizontalTiltThreshold;
-      bool isDownward = beta > Math.PI - horizontalTiltThreshold;
-
-      double h;
-      if (!isUpward && !isDownward)
-      {
-        // 垂直または傾斜面 (vertical correlation)
-        h = 1.31 * dT13;
-      }
-      else
-      {
-        // 水平面: surface-air ΔT 符号と上下向きで stable/unstable 判定
-        //   isUpward (上向): ΔT>0 (T_surf>T_air, 暖面下に冷気) → UNSTABLE
-        //   isDownward (下向): ΔT<0 (T_surf<T_air, 冷面上に暖気) → UNSTABLE
-        //   それ以外は STABLE
-        bool unstable = (isUpward && surfaceAirDeltaT > 0)
-                     || (isDownward && surfaceAirDeltaT < 0);
-        h = unstable
-            ? 1.52 * dT13
-            : 0.76 * Math.Pow(dT, 0.25);
-      }
-      return h < minH ? minH : h;
-    }
+        => ExteriorConvection.GetWaltonTarpNatural(incline, surfaceAirDeltaT);
 
     /// <summary>
     /// Refreshes the indoor-side convective coefficient on every interior surface that
@@ -1801,18 +1771,18 @@ namespace Popolo.Core.Building
     /// <summary>
     /// Refreshes the outdoor-side convective coefficient on every wind-exposed exterior
     /// surface using <see cref="OutdoorWindSpeed"/> and the previous-step surface-air
-    /// temperature difference, via <see cref="Sky.GetExteriorConvectiveCoefficient(double, double, double, WindOrientation)"/>.
+    /// temperature difference, via
+    /// <see cref="OpticalLayeredEnvelope.ComputeExteriorConvectiveCoefficient"/>
+    /// (Walton TARP for opaque <see cref="Wall"/>; MoWiTT for <see cref="Window"/>).
     /// </summary>
     /// <remarks>
     /// <para>
     /// Faces facing other zones (in the indoor <c>surfaces</c> array) and faces flagged with
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedF"/> /
     /// <see cref="OpticalLayeredEnvelope.IsWindExposedB"/> = <c>false</c>
-    /// (e.g., raised-floor undersides) are skipped. The surface-to-air ΔT used in
-    /// the natural-convection term is supplied by
-    /// <see cref="OpticalLayeredEnvelope.GetExteriorConvectionDeltaT"/>, which a subclass
-    /// may override (notably <see cref="Window"/> currently returns 0 on the F side as a
-    /// behavior-preserving approximation).
+    /// (e.g., raised-floor undersides) are skipped. Each component reads its own
+    /// surface temperature, surface-roughness multiplier and surface incline from
+    /// its own state.
     /// </para>
     /// <para>
     /// Two optional refinements activate when sufficient inputs are present
@@ -1858,20 +1828,18 @@ namespace Popolo.Core.Building
         double v = vMeteo;
         if (stationReady && c.MidHeightAboveGround is double localH && localH > 0)
         {
-          v = Sky.CorrectWindSpeedForHeight(vMeteo, meteoH, meteoTerrain, localH, localTerrain);
+          v = WindProfile.CorrectForHeight(vMeteo, meteoH, meteoTerrain, localH, localTerrain);
         }
 
         if (c.IsWindExposedF && !interiorSet.Contains(c.SurfaceF) && !c.SurfaceF.IsGroundWall)
         {
-          double dT = c.GetExteriorConvectionDeltaT(true, Ta);
           WindOrientation orient = ResolveWindOrientation(c.SurfaceF.Incline, hasWindDir, windDir);
-          c.SetConvectiveCoefficientFInternal(Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF, orient));
+          c.SetConvectiveCoefficientFInternal(c.ComputeExteriorConvectiveCoefficient(true, v, Ta, orient));
         }
         if (c.IsWindExposedB && !interiorSet.Contains(c.SurfaceB) && !c.SurfaceB.IsGroundWall)
         {
-          double dT = c.GetExteriorConvectionDeltaT(false, Ta);
           WindOrientation orient = ResolveWindOrientation(c.SurfaceB.Incline, hasWindDir, windDir);
-          c.SetConvectiveCoefficientBInternal(Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB, orient));
+          c.SetConvectiveCoefficientBInternal(c.ComputeExteriorConvectiveCoefficient(false, v, Ta, orient));
         }
       }
     }

@@ -23,14 +23,15 @@ namespace Popolo.Core.Building.Envelope
 {
   /// <summary>
   /// Categorical surface roughness used to scale the forced-convection term of
-  /// the windward MoWiTT exterior film coefficient correlation.
+  /// the exterior film coefficient correlations (MoWiTT for glass, Walton TARP
+  /// for opaque surfaces).
   /// </summary>
   /// <remarks>
   /// <para>
   /// The numeric multiplier <c>R_f</c> is applied to the forced-convection
-  /// component of the MoWiTT correlation
-  /// (<see cref="Popolo.Core.Climate.Sky.GetExteriorConvectiveCoefficient(double, double, double)"/>):
-  /// surfaces rougher than smooth glass enhance the wind-driven heat transfer.
+  /// component of the exterior convective coefficient
+  /// (see <see cref="ExteriorConvection"/>): surfaces rougher than smooth glass
+  /// enhance the wind-driven heat transfer.
   /// </para>
   /// <para>
   /// Values follow ASHRAE Handbook — Fundamentals (2009), Ch. 26 Table 4 and

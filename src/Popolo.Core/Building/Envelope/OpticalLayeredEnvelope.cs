@@ -374,18 +374,44 @@ namespace Popolo.Core.Building.Envelope
     public void ClearMidHeightAboveGround() => MidHeightAboveGround = null;
 
     /// <summary>
-    /// Returns the surface-to-air temperature difference [K] used by the
-    /// dynamic outdoor convective coefficient update on the requested side.
+    /// Computes the outdoor-side convective heat transfer coefficient
+    /// [W/(m²·K)] on the requested side from the local wind speed and the
+    /// outdoor air temperature. The base implementation uses the Walton TARP
+    /// correlation (<see cref="ExteriorConvection.GetWaltonTarp"/>) — the
+    /// engineering norm for opaque rough surfaces such as a typical wall or
+    /// roof. <see cref="Window"/> overrides this to use the smooth-glass
+    /// MoWiTT correlation instead.
     /// </summary>
     /// <param name="isSideF">True for the F side; false for the B side.</param>
-    /// <param name="outdoorTemperature">Outdoor air temperature [°C].</param>
+    /// <param name="windSpeed">Local wind speed at the surface [m/s].</param>
+    /// <param name="airTemperature">Outdoor air temperature [°C].</param>
+    /// <param name="orientation">Windward / leeward, selecting the fitted
+    /// forced-convection constants.</param>
     /// <remarks>
-    /// Default implementation returns <c>SurfaceTemperature − outdoorTemperature</c>.
-    /// <see cref="Window"/> currently overrides this to return 0 as a behavior-preserving
-    /// approximation pending a verified switch to the matrix-derived surface temperature.
+    /// Pulls every other input — surface temperature, surface roughness
+    /// multiplier and surface incline — from the component's own state, so
+    /// subclasses can fully customize the correlation without expanding the
+    /// parameter list. Used by
+    /// <see cref="MultiRoom.UpdateOutdoorConvectiveCoefficient"/>.
     /// </remarks>
-    internal virtual double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
-        => (isSideF ? SurfaceTemperatureF : SurfaceTemperatureB) - outdoorTemperature;
+    internal virtual double ComputeExteriorConvectiveCoefficient(
+        bool isSideF, double windSpeed, double airTemperature, WindOrientation orientation)
+    {
+      double tSurf = isSideF ? SurfaceTemperatureF : SurfaceTemperatureB;
+      double rf = isSideF ? SurfaceRoughnessMultiplierF : SurfaceRoughnessMultiplierB;
+      IReadOnlyIncline? incline = isSideF ? SurfaceF.Incline : SurfaceB.Incline;
+      double dT = tSurf - airTemperature;
+      // Incline 未指定時は垂直面相当として扱う (TARP 自然対流 = 1.31|ΔT|^(1/3))。
+      // Walton 元式は傾斜→垂直の連続線形補間も提案するが、未指定 = "幾何不明"
+      // を意味するため、もっとも一般的な垂直壁にフォールバックする。
+      if (incline == null)
+        return ExteriorConvection.GetWaltonTarp(_verticalIncline, windSpeed, dT, rf, orientation);
+      return ExteriorConvection.GetWaltonTarp(incline, windSpeed, dT, rf, orientation);
+    }
+
+    /// <summary>幾何未指定時のフォールバック垂直面 (Walton TARP 用)。</summary>
+    private static readonly Incline _verticalIncline =
+        new Incline(Incline.Orientation.S, 0.5 * Math.PI);
 
     #endregion
 
