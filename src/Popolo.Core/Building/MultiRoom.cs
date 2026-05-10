@@ -1095,20 +1095,25 @@ namespace Popolo.Core.Building
         //        per-glass 吸収) を solarAbsorption に積算
         for (int i = 0; i < surfaces.Length; i++) surfaces[i].SetIncidentSolarFlux(radToSurf_S[i]);
 
-        //層別吸収日射が更新されたので IF 係数を再計算。逆行列は flag-gated で no-op が通常。
+        //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
+        // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
+        // 必ず動的更新の後に呼ぶ。また下の UpdateInverseMatrix は表面熱伝達率を
+        // 入力に取るので、動的更新後の値で逆行列が組まれるよう順序を整える。
+        if (DynamicIndoorRadiativeCoefficient)    UpdateIndoorRadiativeCoefficient();
+        if (DynamicOutdoorRadiativeCoefficient)   UpdateOutdoorRadiativeCoefficient();
+        if (DynamicIndoorConvectiveCoefficient)   UpdateIndoorConvectiveCoefficient();
+        if (DynamicOutdoorConvectiveCoefficient)  UpdateOutdoorConvectiveCoefficient();
+
+        //層別吸収日射と表面熱伝達率が更新されたので IF 係数と逆行列を再計算。
+        //動的更新後に呼ぶことで、逆行列と AB 行列が同じ表面熱伝達率に基づくよう保つ
+        //(この順を逆にすると、FixState 末尾で BuildingThermalModel が
+        // RestoreUserCoefficients を呼んで動的値をユーザー値に戻した後、
+        // 次回 Prepare 開始時に逆行列がユーザー値で組まれてしまい一貫性が崩れる)。
         for (int i = 0; i < components.Length; i++)
         {
           components[i].UpdateInverseMatrix();
           components[i].UpdateIFCoefficients();
         }
-
-        //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
-        // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
-        // 必ず動的更新の後に呼ぶ。
-        if (DynamicIndoorRadiativeCoefficient)    UpdateIndoorRadiativeCoefficient();
-        if (DynamicOutdoorRadiativeCoefficient)   UpdateOutdoorRadiativeCoefficient();
-        if (DynamicIndoorConvectiveCoefficient)   UpdateIndoorConvectiveCoefficient();
-        if (DynamicOutdoorConvectiveCoefficient)  UpdateOutdoorConvectiveCoefficient();
 
         //屋外側相当温度を設定
         SetOutdoorAirState();
@@ -1678,7 +1683,7 @@ namespace Popolo.Core.Building
             EnvelopeSurface ws = surfaces[idx];
             if (ws.Incline == null) continue;   // 未設定の面は静的値を維持
             double dT = ws.SurfaceTemperature - tAir;
-            ws.ConvectiveCoefficient = GetIndoorConvectiveCoefficient(ws.Incline, dT);
+            ws.SetConvectiveCoefficientInternal(GetIndoorConvectiveCoefficient(ws.Incline, dT));
           }
         }
       }
@@ -1725,7 +1730,7 @@ namespace Popolo.Core.Building
           {
             int idx = wsIndex[i][j][k];
             EnvelopeSurface ws = surfaces[idx];
-            ws.RadiativeCoefficient = gebhartBF[idx] * ws.LongWaveEmissivity * radCoef;
+            ws.SetRadiativeCoefficientInternal(gebhartBF[idx] * ws.LongWaveEmissivity * radCoef);
           }
         }
       }
@@ -1760,16 +1765,16 @@ namespace Popolo.Core.Building
       foreach (Wall w in walls)
       {
         if (!interiorSet.Contains(w.SurfaceF))
-          w.RadiativeCoefficientF = w.LongWaveEmissivityF * radCoefOut;
+          w.SetRadiativeCoefficientFInternal(w.LongWaveEmissivityF * radCoefOut);
         if (!interiorSet.Contains(w.SurfaceB))
-          w.RadiativeCoefficientB = w.LongWaveEmissivityB * radCoefOut;
+          w.SetRadiativeCoefficientBInternal(w.LongWaveEmissivityB * radCoefOut);
       }
       foreach (Window win in windows)
       {
         if (!interiorSet.Contains(win.OutsideSurface))
-          win.RadiativeCoefficientF = win.LongWaveEmissivityF * radCoefOut;
+          win.SetRadiativeCoefficientFInternal(win.LongWaveEmissivityF * radCoefOut);
         if (!interiorSet.Contains(win.InsideSurface))
-          win.RadiativeCoefficientB = win.LongWaveEmissivityB * radCoefOut;
+          win.SetRadiativeCoefficientBInternal(win.LongWaveEmissivityB * radCoefOut);
       }
     }
 
@@ -1840,13 +1845,13 @@ namespace Popolo.Core.Building
         {
           double dT = c.GetExteriorConvectionDeltaT(true, Ta);
           WindOrientation orient = ResolveWindOrientation(c.SurfaceF.Incline, hasWindDir, windDir);
-          c.ConvectiveCoefficientF = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF, orient);
+          c.SetConvectiveCoefficientFInternal(Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierF, orient));
         }
         if (c.IsWindExposedB && !interiorSet.Contains(c.SurfaceB) && !c.SurfaceB.IsGroundWall)
         {
           double dT = c.GetExteriorConvectionDeltaT(false, Ta);
           WindOrientation orient = ResolveWindOrientation(c.SurfaceB.Incline, hasWindDir, windDir);
-          c.ConvectiveCoefficientB = Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB, orient);
+          c.SetConvectiveCoefficientBInternal(Sky.GetExteriorConvectiveCoefficient(v, dT, c.SurfaceRoughnessMultiplierB, orient));
         }
       }
     }

@@ -135,12 +135,30 @@ namespace Popolo.Core.Building.Envelope
             else         Component.RadiativeCoefficientB = value; }
     }
 
+    /// <summary>Internal (non-user) setter for <see cref="RadiativeCoefficient"/>.
+    /// Updates the working value used by the solver but does NOT touch the user
+    /// backup. See <see cref="OpticalLayeredEnvelope.RestoreUserCoefficients"/>.</summary>
+    internal void SetRadiativeCoefficientInternal(double value)
+    {
+      if (isSideF) Component.SetRadiativeCoefficientFInternal(value);
+      else         Component.SetRadiativeCoefficientBInternal(value);
+    }
+
     /// <summary>Gets or sets the convective heat transfer coefficient [W/(m²·K)].</summary>
     public double ConvectiveCoefficient
     {
       get => isSideF ? Component.ConvectiveCoefficientF : Component.ConvectiveCoefficientB;
       set { if (isSideF) Component.ConvectiveCoefficientF = value;
             else         Component.ConvectiveCoefficientB = value; }
+    }
+
+    /// <summary>Internal (non-user) setter for <see cref="ConvectiveCoefficient"/>.
+    /// Updates the working value used by the solver but does NOT touch the user
+    /// backup. See <see cref="OpticalLayeredEnvelope.RestoreUserCoefficients"/>.</summary>
+    internal void SetConvectiveCoefficientInternal(double value)
+    {
+      if (isSideF) Component.SetConvectiveCoefficientFInternal(value);
+      else         Component.SetConvectiveCoefficientBInternal(value);
     }
 
     /// <summary>Gets the moisture transfer coefficient [(kg/s)/((kg/kg)·m²)].</summary>

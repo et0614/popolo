@@ -119,30 +119,26 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the combined heat transfer coefficient on the F side [W/(m²·K)].</summary>
     public override double FilmCoefficientF { get { return cCoefF + rCoefF; } }
 
-    /// <summary>Gets or sets the convective heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    public override double ConvectiveCoefficientF
+    /// <inheritdoc/>
+    protected override double GetConvectiveCoefficientFCore() => cCoefF;
+    /// <inheritdoc/>
+    protected override void SetConvectiveCoefficientFCore(double value)
     {
-      get { return cCoefF; }
-      set
-      {
-        if (cCoefF == value) return;
-        needToUpdateUMatrix = true;
-        cCoefF = value;
-        if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
-      }
+      if (cCoefF == value) return;
+      needToUpdateUMatrix = true;
+      cCoefF = value;
+      if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
     }
 
-    /// <summary>Gets or sets the radiative heat transfer coefficient on the F side [W/(m²·K)].</summary>
-    public override double RadiativeCoefficientF
+    /// <inheritdoc/>
+    protected override double GetRadiativeCoefficientFCore() => rCoefF;
+    /// <inheritdoc/>
+    protected override void SetRadiativeCoefficientFCore(double value)
     {
-      get { return rCoefF; }
-      set
-      {
-        if (rCoefF == value) return;
-        needToUpdateUMatrix = true;
-        rCoefF = value;
-        if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
-      }
+      if (rCoefF == value) return;
+      needToUpdateUMatrix = true;
+      rCoefF = value;
+      if (SurfaceF != null) SurfaceF.BoundaryCoefficientChanged = true;
     }
 
     /// <summary>Gets the moisture transfer coefficient on the F side [(kg/s)/((kg/kg)·m²)].</summary>
@@ -157,30 +153,26 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the combined heat transfer coefficient on the B side [W/(m²·K)].</summary>
     public override double FilmCoefficientB { get { return cCoefB + rCoefB; } }
 
-    /// <summary>Gets or sets the convective heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    public override double ConvectiveCoefficientB
+    /// <inheritdoc/>
+    protected override double GetConvectiveCoefficientBCore() => cCoefB;
+    /// <inheritdoc/>
+    protected override void SetConvectiveCoefficientBCore(double value)
     {
-      get { return cCoefB; }
-      set
-      {
-        if (cCoefB == value) return;
-        needToUpdateUMatrix = true;
-        cCoefB = value;
-        if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
-      }
+      if (cCoefB == value) return;
+      needToUpdateUMatrix = true;
+      cCoefB = value;
+      if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
     }
 
-    /// <summary>Gets or sets the radiative heat transfer coefficient on the B side [W/(m²·K)].</summary>
-    public override double RadiativeCoefficientB
+    /// <inheritdoc/>
+    protected override double GetRadiativeCoefficientBCore() => rCoefB;
+    /// <inheritdoc/>
+    protected override void SetRadiativeCoefficientBCore(double value)
     {
-      get { return rCoefB; }
-      set
-      {
-        if (rCoefB == value) return;
-        needToUpdateUMatrix = true;
-        rCoefB = value;
-        if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
-      }
+      if (rCoefB == value) return;
+      needToUpdateUMatrix = true;
+      rCoefB = value;
+      if (SurfaceB != null) SurfaceB.BoundaryCoefficientChanged = true;
     }
 
     /// <summary>Gets the moisture transfer coefficient on the B side [(kg/s)/((kg/kg)·m²)].</summary>

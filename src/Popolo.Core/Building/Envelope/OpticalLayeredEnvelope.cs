@@ -105,24 +105,102 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region F/B 側 表面熱伝達係数 (subclass で実装)
+    #region F/B 側 表面熱伝達係数 (基底でユーザー値バックアップ + subclass 実装の振分)
+
+    // ユーザー設定値の控え。setter (公開プロパティ) 経由の代入は値を _userBackup 群
+    // にも書き、SetXxxInternal (内部経由、動的更新用) は _userBackup を変更しない。
+    // RestoreUserCoefficients() で _userBackup の値を SetXxxCore 経由で書き戻すと、
+    // ユーザーが直接設定した値がいつでも復元される。
+    private double _convF_userBackup, _convB_userBackup;
+    private double _radF_userBackup,  _radB_userBackup;
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Subclass-specific because the storage and side effects of the setter
-    /// differ between <see cref="Wall"/> (flags <c>needToUpdateUMatrix</c>)
-    /// and <see cref="Window"/> (calls <c>UpdateFilmCoefficient</c>).
+    /// 値を設定すると同時にユーザー設定値として記憶する。
+    /// 後段の動的更新で内部的に上書きされた場合でも
+    /// <see cref="RestoreUserCoefficients"/> でこの値に戻る。
     /// </remarks>
-    public abstract double ConvectiveCoefficientF { get; set; }
+    public double ConvectiveCoefficientF
+    {
+      get => GetConvectiveCoefficientFCore();
+      set { _convF_userBackup = value; SetConvectiveCoefficientFCore(value); }
+    }
 
     /// <inheritdoc/>
-    public abstract double ConvectiveCoefficientB { get; set; }
+    public double ConvectiveCoefficientB
+    {
+      get => GetConvectiveCoefficientBCore();
+      set { _convB_userBackup = value; SetConvectiveCoefficientBCore(value); }
+    }
 
     /// <inheritdoc/>
-    public abstract double RadiativeCoefficientF { get; set; }
+    public double RadiativeCoefficientF
+    {
+      get => GetRadiativeCoefficientFCore();
+      set { _radF_userBackup = value; SetRadiativeCoefficientFCore(value); }
+    }
 
     /// <inheritdoc/>
-    public abstract double RadiativeCoefficientB { get; set; }
+    public double RadiativeCoefficientB
+    {
+      get => GetRadiativeCoefficientBCore();
+      set { _radB_userBackup = value; SetRadiativeCoefficientBCore(value); }
+    }
+
+    /// <summary>Subclass storage accessor for the F-side convective coefficient.</summary>
+    /// <remarks>
+    /// <see cref="Wall"/> / <see cref="Window"/> override these protected
+    /// pairs to provide their own per-side storage and side effects
+    /// (e.g., <c>needToUpdateUMatrix</c>, <c>UpdateFilmCoefficient</c>,
+    /// <c>BoundaryCoefficientChanged</c>). The base class wraps them with
+    /// the user-backup logic so the subclass remains free of that concern.
+    /// </remarks>
+    protected abstract double GetConvectiveCoefficientFCore();
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract void   SetConvectiveCoefficientFCore(double value);
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract double GetConvectiveCoefficientBCore();
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract void   SetConvectiveCoefficientBCore(double value);
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract double GetRadiativeCoefficientFCore();
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract void   SetRadiativeCoefficientFCore(double value);
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract double GetRadiativeCoefficientBCore();
+    /// <inheritdoc cref="GetConvectiveCoefficientFCore"/>
+    protected abstract void   SetRadiativeCoefficientBCore(double value);
+
+    /// <summary>
+    /// Internal (non-user) setter used by dynamic coefficient updates in
+    /// <see cref="MultiRoom"/>. Updates the working value used by the
+    /// solver but does NOT touch the user-backup. After the simulation
+    /// step commits, <see cref="RestoreUserCoefficients"/> brings the
+    /// working value back to whatever the user had set.
+    /// </summary>
+    internal void SetConvectiveCoefficientFInternal(double value) => SetConvectiveCoefficientFCore(value);
+    /// <inheritdoc cref="SetConvectiveCoefficientFInternal"/>
+    internal void SetConvectiveCoefficientBInternal(double value) => SetConvectiveCoefficientBCore(value);
+    /// <inheritdoc cref="SetConvectiveCoefficientFInternal"/>
+    internal void SetRadiativeCoefficientFInternal(double value)  => SetRadiativeCoefficientFCore(value);
+    /// <inheritdoc cref="SetConvectiveCoefficientFInternal"/>
+    internal void SetRadiativeCoefficientBInternal(double value)  => SetRadiativeCoefficientBCore(value);
+
+    /// <summary>
+    /// Restores the convective and radiative heat transfer coefficients
+    /// (both F and B) to the values that the user most recently set via the
+    /// public property setters. Called by <see cref="MultiRoom"/> at the end
+    /// of <c>FixHeatTransfer</c> to undo any dynamic-update overrides
+    /// performed during the solve, so user-facing reads after one
+    /// forecast/fix cycle always show the user's original values.
+    /// </summary>
+    public void RestoreUserCoefficients()
+    {
+      SetConvectiveCoefficientFCore(_convF_userBackup);
+      SetConvectiveCoefficientBCore(_convB_userBackup);
+      SetRadiativeCoefficientFCore(_radF_userBackup);
+      SetRadiativeCoefficientBCore(_radB_userBackup);
+    }
 
     /// <inheritdoc/>
     /// <remarks>

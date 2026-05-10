@@ -174,28 +174,24 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Convective and radiative heat transfer coefficients on the F and B sides [W/(m²·K)].</summary>
     private double cCoefF, rCoefF, cCoefB, rCoefB;
 
-    /// <summary>Gets or sets the convective heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    public override double ConvectiveCoefficientF
+    /// <inheritdoc/>
+    protected override double GetConvectiveCoefficientFCore() => cCoefF;
+    /// <inheritdoc/>
+    protected override void SetConvectiveCoefficientFCore(double value)
     {
-      get { return cCoefF; }
-      set
-      {
-        cCoefF = value;
-        UpdateFilmCoefficient();
-        if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
-      }
+      cCoefF = value;
+      UpdateFilmCoefficient();
+      if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
     }
 
-    /// <summary>Gets or sets the radiative heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
-    public override double RadiativeCoefficientF
+    /// <inheritdoc/>
+    protected override double GetRadiativeCoefficientFCore() => rCoefF;
+    /// <inheritdoc/>
+    protected override void SetRadiativeCoefficientFCore(double value)
     {
-      get { return rCoefF; }
-      set
-      {
-        rCoefF = value;
-        UpdateFilmCoefficient();
-        if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
-      }
+      rCoefF = value;
+      UpdateFilmCoefficient();
+      if (OutsideSurface != null) OutsideSurface.BoundaryCoefficientChanged = true;
     }
 
     /// <summary>Gets the combined heat transfer coefficient on the F side (outdoor) [W/(m²·K)].</summary>
@@ -236,28 +232,24 @@ namespace Popolo.Core.Building.Envelope
     internal override double GetExteriorConvectionDeltaT(bool isSideF, double outdoorTemperature)
         => isSideF ? 0.0 : base.GetExteriorConvectionDeltaT(isSideF, outdoorTemperature);
 
-    /// <summary>Gets or sets the convective heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    public override double ConvectiveCoefficientB
+    /// <inheritdoc/>
+    protected override double GetConvectiveCoefficientBCore() => cCoefB;
+    /// <inheritdoc/>
+    protected override void SetConvectiveCoefficientBCore(double value)
     {
-      get { return cCoefB; }
-      set
-      {
-        cCoefB = value;
-        UpdateFilmCoefficient();
-        if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
-      }
+      cCoefB = value;
+      UpdateFilmCoefficient();
+      if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
     }
 
-    /// <summary>Gets or sets the radiative heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>
-    public override double RadiativeCoefficientB
+    /// <inheritdoc/>
+    protected override double GetRadiativeCoefficientBCore() => rCoefB;
+    /// <inheritdoc/>
+    protected override void SetRadiativeCoefficientBCore(double value)
     {
-      get { return rCoefB; }
-      set
-      {
-        rCoefB = value;
-        UpdateFilmCoefficient();
-        if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
-      }
+      rCoefB = value;
+      UpdateFilmCoefficient();
+      if (InsideSurface != null) InsideSurface.BoundaryCoefficientChanged = true;
     }
 
     /// <summary>Gets the combined heat transfer coefficient on the B side (indoor) [W/(m²·K)].</summary>

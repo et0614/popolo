@@ -445,6 +445,11 @@ namespace Popolo.Core.Building
         win.InverseMatrixUpdated = false;
         win.Update();
       }
+      // 動的更新で内部的に上書きされた表面熱伝達係数を、ユーザーが設定した値に復元する。
+      // これによりユーザーが (例えば bModel.MultiRoom[r].Walls[i].ConvectiveCoefficientF を
+      // 読み返したとき) 自分が最初に設定した値が見えるようになる。
+      foreach (Wall wl in walls) wl.RestoreUserCoefficients();
+      foreach (Window win in windows) win.RestoreUserCoefficients();
       isFirstForecast = true;
     }
 
