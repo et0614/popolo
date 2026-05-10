@@ -275,18 +275,22 @@ namespace Popolo.IO.Climate.Weather
           if (TryParseDouble(f[46], ci, out double wsp) && wsp >= 0 && wsp < 99)
             builder.SetWindSpeed(wsp);
 
-          // [52] CeilHgt [m]、77777 = unlimited (TMY3 sentinel), 99999 = missing
-          // 大気放射推定 (Martin-Berdahl 1984) で不透明雲の影響を補正するために用いる。
-          // Sky.GetInfraredRadiationFromSky が UnlimitedCeilingHeight (=77777) を
-          // Std 140-2023 の特別処理 (Γ_opaque = exp(2000/82000)) で扱うので、
-          // ここではセンチネル値をそのまま渡す。
+          // [52] CeilHgt [m]: 0..77000 が通常値、77777 = unlimited (TMY3 sentinel:
+          // ceilometer が天井を検出しなかった、すなわち雲底が測定不能), 99999 = missing.
+          //
+          // 77777 は「天井不明」という抽象的意味を担う TMY3 固有のセンチネル値。
+          // 物理モデル (Sky.GetInfraredRadiationFromSky) には NaN として渡し、
+          // Sky 側で Martin-Berdahl 規約 (天井不明 → Γ_opaque = exp(2000/82000))
+          // を適用する。Reader 側は TMY3 固有の数値コードを抽象表現に翻訳する責務を担う。
+          //
+          // 99999 (missing) は SetCeilingHeight 未呼出 → 上位は cloud cover ベースの
+          // フォールバックモデルへ。
           if (f.Length > 52 && TryParseDouble(f[52], ci, out double ceil))
           {
             if (ceil >= 0 && ceil < 77000)
               builder.SetCeilingHeight(ceil);
             else if ((int)ceil == 77777)
-              builder.SetCeilingHeight(Popolo.Core.Climate.Sky.UnlimitedCeilingHeight);
-            // 99999 (missing) は SetCeilingHeight 未呼出 → fallback
+              builder.SetCeilingHeight(double.NaN);   // 「天井不明」を抽象的に表現
           }
 
           // [64] Lprecip depth [mm], 欠測値は -9900 等の負値や 99 (TMY3 仕様)。

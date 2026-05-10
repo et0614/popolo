@@ -115,16 +115,6 @@ namespace Popolo.Core.Climate
     }
 
     /// <summary>
-    /// TMY3 sentinel value for "unlimited ceiling" (no opaque cloud detected).
-    /// When passed as <c>ceilingHeight</c> to
-    /// <see cref="GetInfraredRadiationFromSky(double, double, double, double, double, double, int)"/>
-    /// the model substitutes the ANSI/ASHRAE 140-2023 reference value
-    /// <c>Γ_opaque = exp(2000/82000) ≈ 1.0247</c>, matching the convention in
-    /// the standard's Tsky-Informative spreadsheet.
-    /// </summary>
-    public const double UnlimitedCeilingHeight = 77777.0;
-
-    /// <summary>
     /// Gets the atmospheric (downwelling longwave) radiation from the sky [W/m²]
     /// using the Martin-Berdahl (1984) model with separate opaque and thin cloud
     /// contributions, ceiling-height correction, and station-pressure correction.
@@ -141,9 +131,13 @@ namespace Popolo.Core.Climate
     /// Always ≤ <paramref name="totalCloudCover"/>; the difference is treated as thin clouds.
     /// </param>
     /// <param name="ceilingHeight">Ceiling height [m] (lowest opaque cloud base).
-    /// Pass <see cref="UnlimitedCeilingHeight"/> (= 77777) when the source data
-    /// indicates "unlimited" / no detected ceiling — the model then uses
-    /// <c>Γ_opaque = exp(2000/82000)</c> per the Std 140-2023 reference convention.</param>
+    /// Pass <see cref="double.NaN"/> when the source data reports clouds without
+    /// a measurable ceiling base (e.g., when the ceilometer detects no ceiling
+    /// despite reported opaque cover) — the Martin-Berdahl convention then sets
+    /// <c>Γ_opaque = exp(2000/82000) ≈ 1.025</c>, treating the unmeasured base
+    /// as effectively very low. Source-format-specific sentinel values (e.g.,
+    /// TMY3 77777) should be normalised to <see cref="double.NaN"/> by the
+    /// reader before calling this method.</param>
     /// <param name="hour">Hour of day [0–23] for the small diurnal correction.</param>
     /// <returns>Atmospheric infrared radiation [W/m²].</returns>
     /// <remarks>
@@ -151,7 +145,7 @@ namespace Popolo.Core.Climate
     /// <list type="bullet">
     ///   <item><description><c>ε_clr = 0.711 + 0.56·(Tdp/100) + 0.73·(Tdp/100)²
     ///     + 0.013·cos(2π·hr/24) + 0.00012·(P − 1000)</c></description></item>
-    ///   <item><description><c>Γ_opaque = (CeilHgt = 77777) ? exp(2000/82000)
+    ///   <item><description><c>Γ_opaque = isNaN(CeilHgt) ? exp(2000/82000)
     ///     : exp(−CeilHgt/8200)</c></description></item>
     ///   <item><description><c>C_opaque = OpqCld · Γ_opaque</c>,
     ///     <c>C_thin = (TotCld − OpqCld) · 0.4 · exp(−8000/8200)</c></description></item>
@@ -175,10 +169,11 @@ namespace Popolo.Core.Climate
                       + 0.013   * Math.Cos(2.0 * Math.PI * hour / 24.0)
                       + 0.00012 * (atmosphericPressure - 1000.0);
 
-      // Std 140-2023 Tsky-Informative の規約:
-      //   CeilHgt = 77777 (TMY3 "unlimited") のとき Γ_opaque = exp(2000/82000) ≈ 1.025
-      //   通常 Γ_opaque = exp(−CeilHgt/8200)
-      double gammaOpaque = (ceilingHeight == UnlimitedCeilingHeight)
+      // Martin-Berdahl 規約:
+      //   通常: Γ_opaque = exp(−CeilHgt/8200)
+      //   天井未測 (NaN, 例: 雲は報告されているがその底面が測定不能): exp(2000/82000) ≈ 1.025
+      //     (= 雲底を非常に低い高さとして扱う近似)
+      double gammaOpaque = double.IsNaN(ceilingHeight)
           ? Math.Exp(2000.0 / 82000.0)
           : Math.Exp(-ceilingHeight / 8200.0);
       double thinFraction = Math.Max(0.0, totalCloudCover - opaqueCloudCover);
