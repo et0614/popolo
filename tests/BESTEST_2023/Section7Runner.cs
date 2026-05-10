@@ -332,6 +332,12 @@ namespace BESTEST_2023
       bModel.DynamicIndoorRadiativeCoefficient = !isConstIntCoeffs;
       bModel.DynamicOutdoorRadiativeCoefficient = !isConstExtCoeffs;
       bModel.DynamicOutdoorConvectiveCoefficient = !isConstExtCoeffs;
+      // 屋内側 h_c (TARP) は実装あり (DynamicIndoorConvectiveCoefficient) だが BESTEST では
+      // 無効化する。理由: Std 140-2023 Table B4-1 の静的値はリファレンスシミュレータの
+      // TARP 動的計算結果の年間平均として導出されており、Popolo で TARP を per-step で
+      // 再計算すると spec 範囲内に収まる多くのケースが境界外へ移動する (+13 件 below)
+      // 一方で恩恵は C950 (+8.6%→+0.9%) のみ。トータル in-env が減るためトレードオフ不利。
+      // 動的 h_c API は他用途のため保持。
 
       // Std 140-2023 §7.2.1.1.2: weather station tower top = 10 m, building floor
       // is 10 m below tower top (= ground level). Both meteo and building site are

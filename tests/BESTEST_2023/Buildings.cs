@@ -467,10 +467,24 @@ namespace BESTEST_2023
       mRoom.SetOutsideEnvelope(4, INC_W);
       mRoom.SetOutsideEnvelope(5, INC_S);
 
+      // 屋内側 Incline (DynamicIndoorConvectiveCoefficient 用):
+      //   床 indoor 面は上向き (= INC_H)、屋根 indoor 面は下向き (= INC_F)、
+      //   外壁 indoor 面は垂直 (azimuth は自然対流に無関係)。
+      walls[0].SurfaceB.Incline = INC_H;   // 床 indoor (向上)
+      walls[1].SurfaceB.Incline = INC_F;   // 屋根 indoor (向下)
+      walls[2].SurfaceB.Incline = INC_S;   // N壁 indoor — 垂直
+      walls[3].SurfaceB.Incline = INC_W;   // E壁 indoor — 垂直
+      walls[4].SurfaceB.Incline = INC_E;   // W壁 indoor — 垂直
+      walls[5].SurfaceB.Incline = INC_N;   // S壁 indoor — 垂直
+
       // 壁・窓をゾーンに追加 (どちらも AddComponent に統一)
       for (int i = 0; i < walls.Length; i++) mRoom.AddComponent(0, i);
       for (int i = 0; i < windows.Length; i++)
+      {
+        // 窓 indoor 面 (B 側) も垂直に設定
+        windows[i].InsideSurface.Incline = INC_N;   // 垂直 (azimuth 任意)
         mRoom.AddComponent(zones[0], windows[i]);
+      }
 
       // Std 140-2023 Table B7-1 の「固定室内日射分配比率」を直達日射に適用。
       // HCW ケースは透過ゼロのため対象外、NoWindow も windows 空のため自動的にスキップ。
@@ -635,7 +649,24 @@ namespace BESTEST_2023
       mRoom.SetOutsideEnvelope(8, INC_W);
       mRoom.SetOutsideEnvelope(9, INC_W);
 
+      // 屋内側 Incline (Sunspace 用): 床=上向, 屋根=下向, 外壁/共用壁=垂直。
+      walls[0].SurfaceB.Incline = INC_H;   // BackZone 床 indoor
+      walls[1].SurfaceB.Incline = INC_H;   // SunZone 床 indoor
+      walls[2].SurfaceB.Incline = INC_F;   // BackZone 屋根 indoor
+      walls[3].SurfaceB.Incline = INC_F;   // SunZone 屋根 indoor
+      walls[4].SurfaceB.Incline = INC_S;   // BackZone 北壁 indoor
+      walls[5].SurfaceB.Incline = INC_N;   // SunZone 南壁 indoor
+      walls[6].SurfaceB.Incline = INC_W;   // BackZone 東壁 indoor
+      walls[7].SurfaceB.Incline = INC_W;   // SunZone 東壁 indoor
+      walls[8].SurfaceB.Incline = INC_E;   // BackZone 西壁 indoor
+      walls[9].SurfaceB.Incline = INC_E;   // SunZone 西壁 indoor
+      // 共用壁 (両側 indoor、垂直)
+      walls[10].SurfaceF.Incline = INC_S;  // BackZone 側
+      walls[10].SurfaceB.Incline = INC_N;  // SunZone 側
+
       // SunZone に窓を追加
+      windows[0].InsideSurface.Incline = INC_N;   // 垂直
+      windows[1].InsideSurface.Incline = INC_N;
       mRoom.AddComponent(zones[1], windows[0]);
       mRoom.AddComponent(zones[1], windows[1]);
       mRoom.SetSWDistributionRateToFloor(windows[0], walls[1], false, 1.0); // SunZone 床は walls[1]
@@ -771,7 +802,20 @@ namespace BESTEST_2023
       mRoom.SetGroundEnvelope(7, 10000);
       mRoom.SetGroundEnvelope(8, 10000);
 
+      // 屋内側 Incline (C990): 床=上向, 屋根=下向, 地上外壁/地下外壁=垂直。
+      walls[0].SurfaceB.Incline = INC_H;   // スラブ床 indoor
+      walls[1].SurfaceB.Incline = INC_F;   // 屋根 indoor
+      walls[2].SurfaceB.Incline = INC_S;   // 北壁地上 indoor
+      walls[3].SurfaceB.Incline = INC_S;   // 北壁地下 indoor
+      walls[4].SurfaceB.Incline = INC_W;   // 東壁地上 indoor
+      walls[5].SurfaceB.Incline = INC_W;   // 東壁地下 indoor
+      walls[6].SurfaceB.Incline = INC_E;   // 西壁地上 indoor
+      walls[7].SurfaceB.Incline = INC_E;   // 西壁地下 indoor
+      walls[8].SurfaceB.Incline = INC_N;   // 南壁地下 indoor (地上窓位置に窓あり)
+
       // 窓と壁をゾーンに追加
+      windows[0].InsideSurface.Incline = INC_N;   // 垂直
+      windows[1].InsideSurface.Incline = INC_N;
       mRoom.AddComponent(zones[0], windows[0]);
       mRoom.AddComponent(zones[0], windows[1]);
       mRoom.SetSWDistributionRateToFloor(windows[0], walls[0], false, 1.0);

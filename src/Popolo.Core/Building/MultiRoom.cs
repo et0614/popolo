@@ -293,6 +293,18 @@ namespace Popolo.Core.Building
     public bool DynamicOutdoorConvectiveCoefficient { get; set; } = false;
 
     /// <summary>
+    /// When <c>true</c>, the indoor-side (B) convective coefficient on every wall and window
+    /// is recomputed each step from the previous-step surface-air temperature difference and
+    /// the surface's <see cref="EnvelopeSurface.Incline"/>, using the natural-convection
+    /// correlations of Walton (1983) TARP — see
+    /// <see cref="GetIndoorConvectiveCoefficient(IReadOnlyIncline, double)"/>.
+    /// Surfaces whose <c>Incline</c> is <c>null</c> are skipped (the user-set static value
+    /// is preserved), so enabling this flag is non-destructive for surfaces that do not
+    /// carry orientation information. Default <c>false</c>.
+    /// </summary>
+    public bool DynamicIndoorConvectiveCoefficient { get; set; } = false;
+
+    /// <summary>
     /// Compound switch covering both <see cref="DynamicIndoorRadiativeCoefficient"/> and
     /// <see cref="DynamicOutdoorRadiativeCoefficient"/>. Provided for backward compatibility
     /// with prior single-switch API; the getter returns <c>true</c> only when both sub-flags
@@ -311,6 +323,44 @@ namespace Popolo.Core.Building
       {
         DynamicIndoorRadiativeCoefficient = value;
         DynamicOutdoorRadiativeCoefficient = value;
+      }
+    }
+
+    /// <summary>
+    /// Compound switch covering both <see cref="DynamicIndoorConvectiveCoefficient"/> and
+    /// <see cref="DynamicOutdoorConvectiveCoefficient"/>. Getter returns <c>true</c> only
+    /// when both sub-flags are <c>true</c>; setter sets both.
+    /// </summary>
+    public bool DynamicConvectiveCoefficient
+    {
+      get => DynamicIndoorConvectiveCoefficient && DynamicOutdoorConvectiveCoefficient;
+      set
+      {
+        DynamicIndoorConvectiveCoefficient = value;
+        DynamicOutdoorConvectiveCoefficient = value;
+      }
+    }
+
+    /// <summary>
+    /// Master switch covering all four dynamic coefficient updates
+    /// (<see cref="DynamicIndoorRadiativeCoefficient"/>,
+    /// <see cref="DynamicOutdoorRadiativeCoefficient"/>,
+    /// <see cref="DynamicIndoorConvectiveCoefficient"/>,
+    /// <see cref="DynamicOutdoorConvectiveCoefficient"/>). Getter returns <c>true</c>
+    /// only when all four sub-flags are <c>true</c>; setter sets all four.
+    /// </summary>
+    public bool DynamicCoefficient
+    {
+      get => DynamicIndoorRadiativeCoefficient
+          && DynamicOutdoorRadiativeCoefficient
+          && DynamicIndoorConvectiveCoefficient
+          && DynamicOutdoorConvectiveCoefficient;
+      set
+      {
+        DynamicIndoorRadiativeCoefficient = value;
+        DynamicOutdoorRadiativeCoefficient = value;
+        DynamicIndoorConvectiveCoefficient = value;
+        DynamicOutdoorConvectiveCoefficient = value;
       }
     }
 
@@ -1030,9 +1080,10 @@ namespace Popolo.Core.Building
         //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
         // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
         // 必ず動的更新の後に呼ぶ。
-        if (DynamicIndoorRadiativeCoefficient)   UpdateIndoorRadiativeCoefficient();
-        if (DynamicOutdoorRadiativeCoefficient)  UpdateOutdoorRadiativeCoefficient();
-        if (DynamicOutdoorConvectiveCoefficient) UpdateOutdoorConvectiveCoefficient();
+        if (DynamicIndoorRadiativeCoefficient)    UpdateIndoorRadiativeCoefficient();
+        if (DynamicOutdoorRadiativeCoefficient)   UpdateOutdoorRadiativeCoefficient();
+        if (DynamicIndoorConvectiveCoefficient)   UpdateIndoorConvectiveCoefficient();
+        if (DynamicOutdoorConvectiveCoefficient)  UpdateOutdoorConvectiveCoefficient();
 
         //屋外側相当温度を設定
         SetOutdoorAirState();
@@ -1506,6 +1557,106 @@ namespace Popolo.Core.Building
         }
       }
       if (needUpdateGebhartMatrix) ComputeGebhartMatrix();
+    }
+
+    /// <summary>
+    /// Returns the natural-convection coefficient [W/(m²·K)] for an indoor surface
+    /// from its tilt and the surface-air temperature difference, using the
+    /// Walton (1983) TARP correlations referenced by ANSI/ASHRAE Std 140-2023 §B-12.
+    /// </summary>
+    /// <param name="incline">Surface incline. The <see cref="IReadOnlyIncline.VerticalAngle"/>
+    /// (β, in radians, 0 = horizontal facing up, π = horizontal facing down,
+    /// π/2 = vertical) selects the correlation regime.</param>
+    /// <param name="surfaceAirDeltaT">T_surface − T_air [K]. The sign together with the
+    /// surface tilt selects stable vs. unstable horizontal regime; absolute value drives
+    /// the magnitude.</param>
+    /// <returns>Natural convective coefficient h_c [W/(m²·K)].</returns>
+    /// <remarks>
+    /// <para>Three regimes (Walton 1983 §III.I.1):</para>
+    /// <list type="bullet">
+    ///   <item><description><b>Vertical</b> (|β−π/2| ≤ 5°):
+    ///     <c>h = 1.31 · |ΔT|^(1/3)</c></description></item>
+    ///   <item><description><b>Horizontal UNSTABLE</b> (warm surface below cool air,
+    ///     i.e. β &lt; π/2 ∧ ΔT &gt; 0, or β &gt; π/2 ∧ ΔT &lt; 0):
+    ///     <c>h = 1.52 · |ΔT|^(1/3)</c></description></item>
+    ///   <item><description><b>Horizontal STABLE</b> (warm surface above cool air,
+    ///     opposite of unstable):
+    ///     <c>h = 0.76 · |ΔT|^(1/4)</c> (smaller exponent reflects suppressed
+    ///     buoyancy in the stable stratification limit; the form is retained
+    ///     down to ΔT → 0 to encode residual conduction-dominated transport)</description></item>
+    /// </list>
+    /// <para>
+    /// For tilted surfaces between vertical and horizontal the vertical correlation
+    /// is used (a simple approximation that is exact at β = π/2). A small lower bound
+    /// of 0.1 W/(m²·K) is applied to the result to avoid degenerate values at ΔT → 0.
+    /// </para>
+    /// </remarks>
+    public static double GetIndoorConvectiveCoefficient(IReadOnlyIncline incline, double surfaceAirDeltaT)
+    {
+      const double horizontalTiltThreshold = 5.0 * Math.PI / 180.0;  // 5°
+      // TARP/EnergyPlus 既定の最小値: ΔT→0 で式が 0 に発散しないように
+      // 0.948 W/(m²·K) (= 1.31 × 0.43^(1/3) ≒ vertical 式が ΔT=0.43 K で出す値)
+      // を下限として常に適用。これは Walton 1983 / EnergyPlus TARP の慣行。
+      const double minH = 0.948;
+      double dT = Math.Abs(surfaceAirDeltaT);
+      double dT13 = Math.Pow(dT, 1.0 / 3.0);
+
+      double beta = incline.VerticalAngle;   // 0 = up, π/2 = vertical, π = down
+      bool isUpward   = beta < horizontalTiltThreshold;
+      bool isDownward = beta > Math.PI - horizontalTiltThreshold;
+
+      double h;
+      if (!isUpward && !isDownward)
+      {
+        // 垂直または傾斜面 (vertical correlation)
+        h = 1.31 * dT13;
+      }
+      else
+      {
+        // 水平面: surface-air ΔT 符号と上下向きで stable/unstable 判定
+        //   isUpward (上向): ΔT>0 (T_surf>T_air, 暖面下に冷気) → UNSTABLE
+        //   isDownward (下向): ΔT<0 (T_surf<T_air, 冷面上に暖気) → UNSTABLE
+        //   それ以外は STABLE
+        bool unstable = (isUpward && surfaceAirDeltaT > 0)
+                     || (isDownward && surfaceAirDeltaT < 0);
+        h = unstable
+            ? 1.52 * dT13
+            : 0.76 * Math.Pow(dT, 0.25);
+      }
+      return h < minH ? minH : h;
+    }
+
+    /// <summary>
+    /// Refreshes the indoor-side convective coefficient on every interior surface that
+    /// carries a non-null <see cref="EnvelopeSurface.Incline"/>, using
+    /// <see cref="GetIndoorConvectiveCoefficient(IReadOnlyIncline, double)"/>.
+    /// Surfaces without an incline are skipped (their existing static coefficient is
+    /// preserved), so enabling
+    /// <see cref="DynamicIndoorConvectiveCoefficient"/> on a model whose surfaces have
+    /// not been geometrically annotated is a safe no-op for those surfaces.
+    /// </summary>
+    /// <remarks>
+    /// Uses the previous-step <see cref="EnvelopeSurface.SurfaceTemperature"/> and the
+    /// previous-step zone air <see cref="Zone.Temperature"/> to evaluate ΔT, consistent
+    /// with the one-step lag used by the other dynamic coefficient updates.
+    /// </remarks>
+    private void UpdateIndoorConvectiveCoefficient()
+    {
+      for (int i = 0; i < RoomCount; i++)
+      {
+        for (int j = 0; j < wsIndex[i].Length; j++)
+        {
+          double tAir = zones[rZones[i][j]].Temperature;
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
+          {
+            int idx = wsIndex[i][j][k];
+            EnvelopeSurface ws = surfaces[idx];
+            if (ws.Incline == null) continue;   // 未設定の面は静的値を維持
+            double dT = ws.SurfaceTemperature - tAir;
+            ws.ConvectiveCoefficient = GetIndoorConvectiveCoefficient(ws.Incline, dT);
+          }
+        }
+      }
     }
 
     /// <summary>

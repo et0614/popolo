@@ -219,20 +219,54 @@ namespace Popolo.Core.Building
     }
 
     /// <summary>
+    /// When <c>true</c>, the indoor-side convective coefficient is refreshed each step from
+    /// the previous-step surface-air temperature difference and the surface incline (Walton
+    /// 1983 TARP correlations) on every interior surface that carries a non-null
+    /// <see cref="Envelope.EnvelopeSurface.Incline"/> across all contained
+    /// <see cref="MultiRoom"/>.
+    /// </summary>
+    public bool DynamicIndoorConvectiveCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicIndoorConvectiveCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicIndoorConvectiveCoefficient = value; }
+    }
+
+    /// <summary>
     /// Compound switch covering both <see cref="DynamicIndoorRadiativeCoefficient"/> and
     /// <see cref="DynamicOutdoorRadiativeCoefficient"/>. Provided for backward compatibility;
     /// the getter returns <c>true</c> only when both sub-flags are <c>true</c>.
     /// </summary>
     /// <remarks>
-    /// Recommended for ANSI/ASHRAE 140-2023 BESTEST validation. Setting this property
-    /// propagates to every contained <see cref="MultiRoom"/>. Use the per-axis flags above
-    /// when only one of indoor/outdoor needs to vary, or when convective dynamics are
-    /// also required.
+    /// Setting this property propagates to every contained <see cref="MultiRoom"/>. Use the
+    /// per-axis flags above when only one of indoor/outdoor needs to vary.
     /// </remarks>
     public bool DynamicRadiativeCoefficient
     {
       get { return mRooms.Length > 0 && mRooms[0].DynamicRadiativeCoefficient; }
       set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicRadiativeCoefficient = value; }
+    }
+
+    /// <summary>
+    /// Compound switch covering both <see cref="DynamicIndoorConvectiveCoefficient"/> and
+    /// <see cref="DynamicOutdoorConvectiveCoefficient"/>. Getter returns <c>true</c> only
+    /// when both sub-flags are <c>true</c>; setter sets both on every contained MultiRoom.
+    /// </summary>
+    public bool DynamicConvectiveCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicConvectiveCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicConvectiveCoefficient = value; }
+    }
+
+    /// <summary>
+    /// Master switch covering all four dynamic coefficient updates (indoor / outdoor ×
+    /// radiative / convective). Recommended for ANSI/ASHRAE 140-2023 BESTEST validation.
+    /// Getter returns <c>true</c> only when all four sub-flags are <c>true</c>; setter
+    /// propagates to every contained <see cref="MultiRoom"/>.
+    /// </summary>
+    public bool DynamicCoefficient
+    {
+      get { return mRooms.Length > 0 && mRooms[0].DynamicCoefficient; }
+      set { for (int i = 0; i < mRooms.Length; i++) mRooms[i].DynamicCoefficient = value; }
     }
 
     #endregion
