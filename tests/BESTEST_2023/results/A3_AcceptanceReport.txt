@@ -1,0 +1,70 @@
+========================================================================
+ ANSI/ASHRAE Standard 140-2023 Annex A3 (Normative)
+ Software Acceptance Criteria — Thermal Fabric (Section 7)
+ Generated: 2026-05-11 13:34:00
+========================================================================
+
+ Comparison tolerance (B12.2): rel 1% OR abs 1e-4 (whichever larger)
+ Pass threshold (B12.4): 90% of range cases per test group
+
+--- Table A3-1: Low Mass Annual Heating Load [MWh/yr] ---
+  Range Case                    Lower      Upper     Popolo   Result
+  Case 600                     3.7500     4.9800     4.4374   PASS
+  Case 610 − Case 600         -0.1400     0.2900     0.0943   PASS
+  Case 620 − Case 600         -0.0800     0.4000     0.2480   PASS
+  Case 630 − Case 620          0.0200     0.7400     0.4047   PASS
+  Case 640 − Case 600         -2.1700    -1.2200    -2.0157   PASS
+  Case 660 − Case 600         -1.0700    -0.1600    -0.5004   PASS
+  Case 670 − Case 600          0.2500     2.9800     1.4615   PASS
+  Case 680 − Case 600         -2.5400    -1.9000    -2.2261   PASS
+  Case 685 − Case 600          0.3300     0.7700     0.5909   PASS
+  Case 695 − Case 685         -2.3800    -1.9400    -2.1395   PASS
+
+--- Table A3-2: Low Mass Annual Cooling Load [MWh/yr] ---
+  Range Case                    Lower      Upper     Popolo   Result
+  Case 600                     5.0000     6.8300     5.8531   PASS
+  Case 610 − Case 600         -2.2600    -0.8000    -1.4934   PASS
+  Case 620 − Case 600         -2.2400    -1.6400    -1.8911   PASS
+  Case 630 − Case 620         -1.6800    -0.7700    -1.2389   PASS
+  Case 640 − Case 600         -0.5600     0.0300    -0.3805   PASS
+  Case 650 − Case 600         -1.5400    -0.9500    -1.1707   PASS
+  Case 660 − Case 600         -3.0900    -2.5000    -2.6972   PASS
+  Case 670 − Case 600          0.0500     0.8400     0.1815   PASS
+  Case 680 − Case 600          0.1300     0.8700     0.6175   PASS
+  Case 685 − Case 600          2.7000     3.3100     3.0170   PASS
+  Case 695 − Case 685         -0.2100     0.4400     0.3135   PASS
+
+--- Table A3-3: High Mass Annual Heating Load [MWh/yr] ---
+  Range Case                    Lower      Upper     Popolo   Result
+  Case 900                     1.0400     2.2800     1.7452   PASS
+  Case 900 − Case 910         -0.5200    -0.0200    -0.3120   PASS
+  Case 920 − Case 900          1.5100     1.9200     1.7928   PASS
+  Case 930 − Case 920          0.2000     1.1500     0.7605   PASS
+  Case 940 − Case 900         -0.8200    -0.3700    -0.6867   PASS
+  Case 960 − Case 900          0.9600     1.1200     1.1884   NG   (above upper by +0.0684)
+  Case 980 − Case 900         -1.6500    -1.0000    -1.3461   PASS
+  Case 985 − Case 900          0.6400     0.8100     0.7855   PASS
+  Case 995 − Case 985         -1.8300    -1.0700    -1.5156   PASS
+
+--- Table A3-4: High Mass Annual Cooling Load [MWh/yr] ---
+  Range Case                    Lower      Upper     Popolo   Result
+  Case 900                     2.3500     2.6000     2.5152   PASS
+  Case 900 − Case 910          0.3500     1.7400     1.0316   PASS
+  Case 920 − Case 900          0.0800     0.4800     0.1717   PASS
+  Case 930 − Case 920         -1.1900    -0.4400    -0.8736   PASS
+  Case 940 − Case 900         -0.1900     0.0600    -0.0859   PASS
+  Case 950 − Case 900         -2.0000    -1.5600    -1.7405   PASS
+  Case 960 − Case 900         -1.8100    -1.2700    -1.6453   PASS
+  Case 980 − Case 900          1.0900     1.4100     1.3461   PASS
+  Case 985 − Case 900          3.5200     4.1800     3.8781   PASS
+  Case 995 − Case 985          0.6300     1.1500     0.9227   PASS
+
+========================================================================
+ Test Group Summary
+========================================================================
+  Test Group                       Result     Required   Status
+  Thermal Fabric Low Mass          21/21       ≥ 18/21     PASS
+  Thermal Fabric High Mass         18/19       ≥ 17/19     PASS
+
+  OVERALL: PASS — Software meets ANSI/ASHRAE Standard 140-2023 Annex A3 acceptance criteria
+========================================================================

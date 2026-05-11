@@ -294,6 +294,16 @@ namespace BESTEST_2023
         Console.WriteLine();
         CompareWithReference(allResults, refPath);
       }
+
+      // Std 140-2023 Annex A3 (Normative) Software Acceptance Criteria 判定
+      Console.WriteLine();
+      var caseValues = new Dictionary<string, (double AH, double AC)>();
+      foreach (var r in allResults)
+      {
+        caseValues[r.Case.ToString()] = (r.AnnualHeating_MWh, r.AnnualCooling_MWh);
+      }
+      string a3ReportPath = Path.Combine(resultsDir, "A3_AcceptanceReport.txt");
+      A3Evaluator.EvaluateAndReport(caseValues, a3ReportPath);
     }
 
     #endregion
