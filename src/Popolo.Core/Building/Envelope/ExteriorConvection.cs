@@ -173,7 +173,7 @@ namespace Popolo.Core.Building.Envelope
         //   下向 + 表面が冷 (ΔT<0) → 下降プルーム → UNSTABLE
         bool unstable = (isUpward && surfaceAirDeltaT > 0)
                      || (isDownward && surfaceAirDeltaT < 0);
-        h = unstable ? 1.52 * dT13 : 0.76 * Math.Pow(dT, 0.25);
+        h = unstable ? 1.52 * dT13 : 0.76 * dT13;
       }
       return h < minH ? minH : h;
     }
