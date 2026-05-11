@@ -226,9 +226,6 @@ formal acceptance criteria"; they are provided for diagnostic comparison
 only. Out-of-envelope cases reflect legitimate modeling differences (per
 Annex B11.1.4) and do not affect the Annex A3 compliance status above.
 
-Earlier `tests/BESTEST/` runs an older Std 140-2017–era subset of the same
-test suite and is kept for regression purposes.
-
 ---
 
 ## Exception Hierarchy
@@ -277,7 +274,6 @@ tests/
   Popolo.Webpro.Tests/    # Unit tests for the WEBPRO integration
   BESTEST_2023/           # ANSI/ASHRAE Standard 140-2023 validation runner
                           # (formal Annex A3 compliance + Annex B8 envelope check)
-  BESTEST/                # Legacy ASHRAE 140 (older) validation runner
 
 samples/
   Popolo.Samples/         # Runnable usage examples

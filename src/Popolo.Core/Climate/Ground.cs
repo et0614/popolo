@@ -265,8 +265,8 @@ namespace Popolo.Core.Climate
     /// Taking daily extremes before monthly averaging (rather than averaging
     /// all hourly readings first) preserves the diurnal swing, so the
     /// resulting range reflects the seasonal envelope rather than a
-    /// symmetric mean. See the reference implementation in
-    /// <c>tests/BESTEST/Program.cs</c>.
+    /// symmetric mean. See the reference usage in
+    /// <c>tests/BESTEST_2023/Section7Runner.cs</c> (Case C990 ground-coupling).
     /// </para>
     /// </remarks>
     public static Ground FromWeatherData(IReadOnlyWeatherData data)
