@@ -491,6 +491,15 @@ namespace BESTEST_2023
       // walls index: 0=床, 1=屋根(天井), 2=北, 3=東, 4=西, 5=南。
       if (!hasHighConductanceWall && windows.Length > 0)
         ApplyBESTESTSolarDistribution(mRoom, windows, walls, tCase, hasEWWindow, isHighIntSWEmissivity, isLowIntSWEmissivity);
+
+      // 解析的形態係数 (parallel/perpendicular rectangles) を設定し、自動 Matsuo 法をバイパス。
+      // 単室・8m×6m×2.7m 直方体の標準レイアウト用 (walls index: 0=床, 1=天井, 2=N, 3=E, 4=W, 5=S)。
+      // SetFormFactor 後に構造変更すると user 指定は破棄されるため、ここを model 構築の最終段に置く。
+      double[,] roomFF = AnalyticalFormFactor.ComputeBoxRoomFormFactor(
+          mRoom.GetRoomSurfaces(0),
+          AnalyticalFormFactor.StandardLayoutClassifier(walls, windows),
+          Lx: 8.0, Ly: 6.0, Lz: 2.7);
+      mRoom.SetFormFactor(0, roomFF);
     }
 
     /// <summary>
@@ -718,6 +727,50 @@ namespace BESTEST_2023
       mRoom.AddComponent(1, 7);
       mRoom.AddComponent(1, 9);
       mRoom.AddComponent(1, 10);                // 共用壁: B=zone1 側
+
+      // 解析的形態係数を 2 room それぞれに設定。SetFormFactor 後の構造変更で
+      // user 指定は破棄されるため、本ファクトリの最終段に置く。
+      // ラムダで out パラメータを直接捕捉できないため、ローカル変数に複写。
+      Wall[] wallsLocal = walls;
+      Window[] windowsLocal = windows;
+      //
+      // BackZone (Room 0): 8m × 6m × 2.7m 直方体
+      //   床=walls[0]B, 天井=walls[2]B, N=walls[4]B, E=walls[6]B, W=walls[8]B,
+      //   S=walls[10]F (共用壁 BackZone 側 = BackZone から見て南面)
+      Func<EnvelopeSurface, int> classifyBack = s =>
+      {
+        if (s == wallsLocal[0].SurfaceB)  return AnalyticalFormFactor.PL_FLOOR;
+        if (s == wallsLocal[2].SurfaceB)  return AnalyticalFormFactor.PL_CEILING;
+        if (s == wallsLocal[4].SurfaceB)  return AnalyticalFormFactor.PL_N;
+        if (s == wallsLocal[6].SurfaceB)  return AnalyticalFormFactor.PL_E;
+        if (s == wallsLocal[8].SurfaceB)  return AnalyticalFormFactor.PL_W;
+        if (s == wallsLocal[10].SurfaceF) return AnalyticalFormFactor.PL_S;
+        throw new InvalidOperationException("Unexpected surface in BackZone classifier.");
+      };
+      double[,] ffBack = AnalyticalFormFactor.ComputeBoxRoomFormFactor(
+          mRoom.GetRoomSurfaces(0), classifyBack,
+          Lx: 8.0, Ly: 6.0, Lz: 2.7);
+      mRoom.SetFormFactor(0, ffBack);
+
+      // SunZone (Room 1): 8m × 2m × 2.7m 直方体
+      //   床=walls[1]B, 天井=walls[3]B, S=walls[5]B + 2 windows (12 m² 込み 21.6 m² 南面),
+      //   E=walls[7]B, W=walls[9]B, N=walls[10]B (共用壁 SunZone 側 = SunZone から見て北面)
+      Func<EnvelopeSurface, int> classifySun = s =>
+      {
+        if (s == wallsLocal[1].SurfaceB)         return AnalyticalFormFactor.PL_FLOOR;
+        if (s == wallsLocal[3].SurfaceB)         return AnalyticalFormFactor.PL_CEILING;
+        if (s == wallsLocal[10].SurfaceB)        return AnalyticalFormFactor.PL_N;
+        if (s == wallsLocal[7].SurfaceB)         return AnalyticalFormFactor.PL_E;
+        if (s == wallsLocal[9].SurfaceB)         return AnalyticalFormFactor.PL_W;
+        if (s == wallsLocal[5].SurfaceB)         return AnalyticalFormFactor.PL_S;
+        if (s == windowsLocal[0].InsideSurface)  return AnalyticalFormFactor.PL_S;
+        if (s == windowsLocal[1].InsideSurface)  return AnalyticalFormFactor.PL_S;
+        throw new InvalidOperationException("Unexpected surface in SunZone classifier.");
+      };
+      double[,] ffSun = AnalyticalFormFactor.ComputeBoxRoomFormFactor(
+          mRoom.GetRoomSurfaces(1), classifySun,
+          Lx: 8.0, Ly: 2.0, Lz: 2.7);
+      mRoom.SetFormFactor(1, ffSun);
     }
 
     /// <summary>地中結合付き建物 (Case 990)。地下外壁を土壌層付き壁体で表現。</summary>
