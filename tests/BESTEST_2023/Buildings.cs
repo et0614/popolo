@@ -502,45 +502,6 @@ namespace BESTEST_2023
       mRoom.SetFormFactor(0, roomFF);
     }
 
-    /// <summary>
-    /// Std 140-2023 Annex B7 (Table B7-1) の固定室内日射分配比率を各窓に
-    /// SetTransmittedDirectAbsorption で適用する。直達光のみ対象 (拡散は Gebhart 維持)。
-    /// </summary>
-    /// <remarks>
-    /// 8 カラム (窓向き × 室内 SW 吸収率の組合せ) のいずれかを emitter-flag から選択。
-    /// HCW / NoWindow ケースは呼び出し側で除外する前提。Sunspace (C960) と
-    /// GroundCoupling (C990) は専用ファクトリ側で別途設定。
-    /// 各窓に同テーブルを与えるため、合計透過 × frac が各 receiver の最終吸収となる。
-    /// </remarks>
-    private static void ApplyBESTESTSolarDistribution(
-        MultiRoom mRoom, Window[] windows, Wall[] walls,
-        TestCase tCase, bool hasEWWindow, bool isHighIntSWEmissivity, bool isLowIntSWEmissivity)
-    {
-      bool isLowE = (tCase == TestCase.C660);
-      bool isSinglePane = (tCase == TestCase.C670);
-
-      // (Floor, Ceiling, East, West, North, South) — Table B7-1 の値
-      double fl, ce, ea, we, no, so;
-      if (isLowE)                          { fl=0.645; ce=0.170; ea=0.039;  we=0.039;  no=0.054; so=0.026; }
-      else if (isSinglePane)               { fl=0.641; ce=0.166; ea=0.038;  we=0.038;  no=0.052; so=0.025; }
-      else if (isLowIntSWEmissivity)       { fl=0.243; ce=0.191; ea=0.057;  we=0.057;  no=0.077; so=0.063; }
-      else if (isHighIntSWEmissivity && hasEWWindow) { fl=0.903; ce=0.050; ea=0.0065; we=0.0065; no=0.014; so=0.014; }
-      else if (isHighIntSWEmissivity)      { fl=0.903; ce=0.050; ea=0.010;  we=0.010;  no=0.014; so=0.007; }
-      else if (hasEWWindow)                { fl=0.642; ce=0.167; ea=0.025;  we=0.025;  no=0.053; so=0.053; }
-      else                                 { fl=0.642; ce=0.167; ea=0.038;  we=0.038;  no=0.053; so=0.027; }
-
-      // 全窓に同じテーブルを適用 (合計 Σ frac × T_per_window = frac × T_total)
-      foreach (var win in windows)
-      {
-        mRoom.SetTransmittedDirectAbsorption(win, walls[0], false, fl);  // 床
-        mRoom.SetTransmittedDirectAbsorption(win, walls[1], false, ce);  // 天井 (屋根 B 面)
-        mRoom.SetTransmittedDirectAbsorption(win, walls[2], false, no);  // 北
-        mRoom.SetTransmittedDirectAbsorption(win, walls[3], false, ea);  // 東
-        mRoom.SetTransmittedDirectAbsorption(win, walls[4], false, we);  // 西
-        mRoom.SetTransmittedDirectAbsorption(win, walls[5], false, so);  // 南
-      }
-    }
-
     /// <summary>Sun Zone 付き2室建物 (Case 960)。</summary>
     public static void MakeSunZoneBuilding(
         out MultiRoom mRoom, out Zone[] zones, out Wall[] walls, out Window[] windows)
@@ -887,13 +848,12 @@ namespace BESTEST_2023
       walls[7].SurfaceB.Incline = INC_E;   // 西壁地下 indoor
       walls[8].SurfaceB.Incline = INC_N;   // 南壁地下 indoor (地上窓位置に窓あり)
 
-      // 窓と壁をゾーンに追加
+      // 窓と壁をゾーンに追加。室内日射分配は C600 系・C960 と同じく
+      // Popolo 内部の Gebhart に委ねる (固定分配は使用しない)。
       windows[0].InsideSurface.Incline = INC_N;   // 垂直
       windows[1].InsideSurface.Incline = INC_N;
       mRoom.AddComponent(zones[0], windows[0]);
       mRoom.AddComponent(zones[0], windows[1]);
-      mRoom.SetSWDistributionRateToFloor(windows[0], walls[0], false, 1.0);
-      mRoom.SetSWDistributionRateToFloor(windows[1], walls[0], false, 1.0);
       for (int i = 0; i < walls.Length; i++) mRoom.AddComponent(0, i);
     }
 

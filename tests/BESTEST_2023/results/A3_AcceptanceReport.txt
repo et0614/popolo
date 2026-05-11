@@ -1,7 +1,7 @@
 ========================================================================
  ANSI/ASHRAE Standard 140-2023 Annex A3 (Normative)
  Software Acceptance Criteria — Thermal Fabric (Section 7)
- Generated: 2026-05-11 14:13:16
+ Generated: 2026-05-11 14:44:17
 ========================================================================
 
  Comparison tolerance (B12.2): rel 1% OR abs 1e-4 (whichever larger)
