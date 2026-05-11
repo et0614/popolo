@@ -59,8 +59,22 @@ namespace Popolo.Core.Building
     /// <summary>Array of window assemblies.</summary>
     private Window[] windows = null!;
 
-    /// <summary>Flag indicating whether initialization is required.</summary>
-    private bool needInitialize = true;
+    /// <summary>Flag indicating whether the surface-index serialization (<see cref="MakeSerialNumber"/>)
+    /// is required. Set when the room/zone/surface structure changes.</summary>
+    private bool needSerialize = true;
+
+    /// <summary>Flag indicating whether form factor and Gebhart matrices need to be (re)computed.
+    /// Set when the structure changes OR when a user form factor matrix is set/cleared.</summary>
+    private bool needFormFactorGebhart = true;
+
+    /// <summary>User-specified view factor matrices per room (null = use automatic estimation).
+    /// Allocated on first <see cref="SetFormFactor"/> call; per-element null indicates that room
+    /// uses the automatic Matsuo-method estimation.</summary>
+    private double[][,]? userFormFactor = null;
+
+    /// <summary>Tracks whether structural changes have discarded a previously set user form factor.
+    /// Reported as a Warning by <see cref="Validate"/>.</summary>
+    private bool userFormFactorDiscarded = false;
 
     /// <summary>Inter-zone air flow rates [kg/s].</summary>
     private double[,] zoneVent = null!;
@@ -646,6 +660,13 @@ namespace Popolo.Core.Building
         if (sum > 1.0 + 1e-9)
           error($"Transmitted-direct absorption fractions for component[{eIdx}] sum to {sum:F4} > 1.");
       }
+
+      // 9. ユーザ指定の形態係数が構造変更で破棄された場合に警告
+      if (userFormFactorDiscarded)
+        warning("User-specified form factor matrix was discarded due to a structural change "
+            + "(AddZone / AddWall / AddWindow / SetOutsideWall / SetGroundWall / etc.). "
+            + "Form factors must be set as the LAST step of model setup; re-call SetFormFactor "
+            + "on each affected room after the structure stabilizes.");
 
       return msgs;
     }
@@ -1332,27 +1353,88 @@ namespace Popolo.Core.Building
 
     #region 初期化処理
 
+    /// <summary>Marks the model as requiring structural re-serialization and form-factor / Gebhart
+    /// re-computation. Also discards any user-specified form factor matrices since the structure
+    /// (surface count or ordering) may have changed.</summary>
+    /// <remarks>
+    /// Called by every structural-change API (AddZone / AddWall / AddWindow / SetOutsideWall /
+    /// SetGroundWall / etc.). User form factors must be set as the LAST step of model setup;
+    /// any subsequent structural change clears them and reverts to automatic estimation.
+    /// </remarks>
+    private void MarkStructuralChange()
+    {
+      needSerialize = true;
+      needFormFactorGebhart = true;
+      if (userFormFactor != null)
+      {
+        bool anyCleared = false;
+        for (int i = 0; i < userFormFactor.Length; i++)
+        {
+          if (userFormFactor[i] != null) { userFormFactor[i] = null!; anyCleared = true; }
+        }
+        if (anyCleared) userFormFactorDiscarded = true;
+      }
+    }
+
+    /// <summary>Ensures surface indexing (<see cref="MakeSerialNumber"/>) is up to date.
+    /// Lightweight; safe to call eagerly from public APIs that need <c>wsIndex</c> /
+    /// <see cref="surfaces"/> before <see cref="Initialize"/> has been triggered by the solver.</summary>
+    private void EnsureSerialized()
+    {
+      if (!needSerialize) return;
+      MakeSerialNumber();
+      needSerialize = false;
+      needFormFactorGebhart = true;   // 構造が変わったので FF/Gebhart も再計算要
+    }
+
     /// <summary>Initializes internal data structures, form factors, and Gebhart matrices.</summary>
+    /// <remarks>
+    /// Two-phase: (1) <see cref="EnsureSerialized"/> rebuilds the surface index and allocates
+    /// the matrices; (2) form factors and Gebhart matrices are (re)computed. Phase (2) uses any
+    /// user-specified form factor matrices (from <see cref="SetFormFactor"/>) for the rooms that
+    /// have them, and falls back to the automatic Matsuo-method estimation for the others. If
+    /// the stored user matrix dimensions no longer match the room's surface count (defensive
+    /// fallback against a missed structural-change hook), the user matrix is discarded and the
+    /// automatic estimation is used.
+    /// </remarks>
     private void Initialize()
     {
-      if (needInitialize)
+      EnsureSerialized();
+      if (!needFormFactorGebhart) return;
+
+      for (int i = 0; i < RoomCount; i++)
       {
-        MakeSerialNumber(); //通し番号付与
+        List<double> area = new List<double>();
+        for (int j = 0; j < wsIndex[i].Length; j++)
+          for (int k = 0; k < wsIndex[i][j].Length; k++)
+            area.Add(surfaces[wsIndex[i][j][k]].Area);
+        int N = area.Count;
 
-        //形態係数の計算（自動推定）
-        for (int i = 0; i < RoomCount; i++)
+        double[,]? userMat = userFormFactor != null ? userFormFactor[i] : null;
+        if (userMat != null
+            && userMat.GetLength(0) == N && userMat.GetLength(1) == N)
         {
-          List<double> area = new List<double>();
-          for (int j = 0; j < wsIndex[i].Length; j++)
-            for (int k = 0; k < wsIndex[i][j].Length; k++)
-              area.Add(surfaces[wsIndex[i][j][k]].Area);
-
+          //ユーザ指定の形態係数を採用 (Matsuo 法をスキップ)
+          IMatrix mat = new Matrix(N, N);
+          for (int j = 0; j < N; j++)
+            for (int k = 0; k < N; k++)
+              mat[j, k] = userMat[j, k];
+          formFactor[i] = mat;
+        }
+        else
+        {
+          //保険: 次元不一致なら user 指定を破棄してから自動推定 (Matsuo)
+          if (userMat != null && userFormFactor != null)
+          {
+            userFormFactor[i] = null!;
+            userFormFactorDiscarded = true;
+          }
           formFactor[i] = ComputeFormFactor(area.ToArray());
         }
-        //ゲブハルトの吸収率行列更新
-        ComputeGebhartMatrix();
-        needInitialize = false;
       }
+      //ゲブハルトの吸収率行列更新
+      ComputeGebhartMatrix();
+      needFormFactorGebhart = false;
     }
 
     /// <summary>Assigns serial indices to all interior boundary surfaces.</summary>
@@ -1585,6 +1667,161 @@ namespace Popolo.Core.Building
           }
         }
       }
+    }
+
+    /// <summary>
+    /// Provides a user-specified view factor matrix for the given room, bypassing the automatic
+    /// Matsuo-method estimation. The matrix must be N×N where N is the number of envelope
+    /// surfaces in the room (see <see cref="GetRoomSurfaces"/> for the ordering); closure
+    /// (each row sums to 1) and reciprocity (F_ij·A_i = F_ji·A_j) must hold within a 10⁻³
+    /// tolerance; negative entries are rejected. The diagonal is not constrained (typically
+    /// 0 for convex enclosures).
+    /// </summary>
+    /// <param name="roomIndex">Zero-based room index.</param>
+    /// <param name="formFactor">N×N view factor matrix in the ordering of <see cref="GetRoomSurfaces"/>.</param>
+    /// <remarks>
+    /// <para>
+    /// Form factors must be the LAST step of model setup. Any subsequent structural change
+    /// (<see cref="AddZone(int,int)"/>, <see cref="AddWall(int,int,bool)"/>,
+    /// <see cref="AddWindow(int,int)"/>, <see cref="SetOutsideWall(int,bool,IReadOnlyIncline)"/>,
+    /// <see cref="SetGroundWall(int,bool,double)"/>, etc.) clears ALL rooms' user-specified form
+    /// factors and reverts to automatic estimation. Re-call <see cref="SetFormFactor"/> on
+    /// each affected room after the structure stabilizes; <see cref="Validate"/> will issue
+    /// a Warning when a structural change has discarded user-set matrices.
+    /// </para>
+    /// <para>
+    /// The matrix is copied; the caller may freely modify the source after the call.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">roomIndex is not a valid room index.</exception>
+    /// <exception cref="ArgumentNullException">formFactor is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// formFactor dimensions do not match the room's surface count, or any of closure, reciprocity,
+    /// or non-negativity is violated beyond the 10⁻³ tolerance.
+    /// </exception>
+    public void SetFormFactor(int roomIndex, double[,] formFactor)
+    {
+      if (formFactor == null) throw new ArgumentNullException(nameof(formFactor));
+      EnsureSerialized();
+      if (roomIndex < 0 || roomIndex >= RoomCount)
+        throw new ArgumentOutOfRangeException(nameof(roomIndex),
+            $"roomIndex must be in [0, {RoomCount}); got {roomIndex}.");
+
+      //Room 内の surface 数と面積列を取得
+      List<double> areas = new List<double>();
+      for (int j = 0; j < wsIndex[roomIndex].Length; j++)
+        for (int k = 0; k < wsIndex[roomIndex][j].Length; k++)
+          areas.Add(surfaces[wsIndex[roomIndex][j][k]].Area);
+      int N = areas.Count;
+
+      //次元チェック
+      if (formFactor.GetLength(0) != N || formFactor.GetLength(1) != N)
+        throw new ArgumentException(
+            $"Form factor matrix must be {N}×{N} for room {roomIndex}; got "
+            + $"{formFactor.GetLength(0)}×{formFactor.GetLength(1)}.",
+            nameof(formFactor));
+
+      const double tolerance = 1e-3;
+
+      //非負 + 閉包則
+      for (int i = 0; i < N; i++)
+      {
+        double rowSum = 0;
+        for (int j = 0; j < N; j++)
+        {
+          if (formFactor[i, j] < -tolerance)
+            throw new ArgumentException(
+                $"Form factor F[{i},{j}] = {formFactor[i, j]:G6} is negative.",
+                nameof(formFactor));
+          rowSum += formFactor[i, j];
+        }
+        if (Math.Abs(rowSum - 1.0) > tolerance)
+          throw new ArgumentException(
+              $"Closure violated for row {i}: sum = {rowSum:G6}, expected 1.0 "
+              + $"(tolerance {tolerance:G2}).",
+              nameof(formFactor));
+      }
+
+      //相反法則 (対角を除く)
+      for (int i = 0; i < N; i++)
+      {
+        for (int j = i + 1; j < N; j++)
+        {
+          double lhs = formFactor[i, j] * areas[i];
+          double rhs = formFactor[j, i] * areas[j];
+          double scale = Math.Max(Math.Max(Math.Abs(lhs), Math.Abs(rhs)), 1e-9);
+          if (Math.Abs(lhs - rhs) / scale > tolerance)
+            throw new ArgumentException(
+                $"Reciprocity violated for pair ({i},{j}): "
+                + $"F[{i},{j}]·A[{i}] = {lhs:G6} vs F[{j},{i}]·A[{j}] = {rhs:G6} "
+                + $"(relative tolerance {tolerance:G2}).",
+                nameof(formFactor));
+        }
+      }
+
+      //コピーして保存
+      if (userFormFactor == null) userFormFactor = new double[RoomCount][,]!;
+      double[,] copy = new double[N, N];
+      Array.Copy(formFactor, copy, formFactor.Length);
+      userFormFactor[roomIndex] = copy;
+      needFormFactorGebhart = true;
+      //この設定で確定したので警告フラグをクリア (構造変更が無ければ Validate も clean)
+      userFormFactorDiscarded = false;
+    }
+
+    /// <summary>
+    /// Clears the user-specified view factor matrix for the given room and reverts to the
+    /// automatic Matsuo-method estimation on the next <see cref="ForecastHeatTransfer"/> call.
+    /// No-op if no user matrix has been set for this room.
+    /// </summary>
+    /// <param name="roomIndex">Zero-based room index.</param>
+    /// <exception cref="ArgumentOutOfRangeException">roomIndex is not a valid room index.</exception>
+    public void ClearFormFactor(int roomIndex)
+    {
+      if (roomIndex < 0 || roomIndex >= RoomCount)
+        throw new ArgumentOutOfRangeException(nameof(roomIndex),
+            $"roomIndex must be in [0, {RoomCount}); got {roomIndex}.");
+      if (userFormFactor != null && userFormFactor[roomIndex] != null)
+      {
+        userFormFactor[roomIndex] = null!;
+        needFormFactorGebhart = true;
+      }
+    }
+
+    /// <summary>Returns true if a user-specified view factor matrix is currently active for the
+    /// given room (i.e., has been set via <see cref="SetFormFactor"/> and has not been discarded
+    /// by a subsequent structural change).</summary>
+    /// <param name="roomIndex">Zero-based room index.</param>
+    /// <exception cref="ArgumentOutOfRangeException">roomIndex is not a valid room index.</exception>
+    public bool HasUserFormFactor(int roomIndex)
+    {
+      if (roomIndex < 0 || roomIndex >= RoomCount)
+        throw new ArgumentOutOfRangeException(nameof(roomIndex),
+            $"roomIndex must be in [0, {RoomCount}); got {roomIndex}.");
+      return userFormFactor != null && userFormFactor[roomIndex] != null;
+    }
+
+    /// <summary>Returns the ordered list of envelope surfaces in the given room. The order is
+    /// the row/column order required by <see cref="SetFormFactor"/>: zones in room order, then
+    /// surfaces within each zone in their zone-local order.</summary>
+    /// <param name="roomIndex">Zero-based room index.</param>
+    /// <returns>Read-only list of surfaces.</returns>
+    /// <remarks>
+    /// Triggers lightweight serialization (<see cref="EnsureSerialized"/>) if needed; safe to
+    /// call between Add* operations and before the first solver step.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">roomIndex is not a valid room index.</exception>
+    public IReadOnlyList<EnvelopeSurface> GetRoomSurfaces(int roomIndex)
+    {
+      EnsureSerialized();
+      if (roomIndex < 0 || roomIndex >= RoomCount)
+        throw new ArgumentOutOfRangeException(nameof(roomIndex),
+            $"roomIndex must be in [0, {RoomCount}); got {roomIndex}.");
+      List<EnvelopeSurface> result = new List<EnvelopeSurface>();
+      for (int j = 0; j < wsIndex[roomIndex].Length; j++)
+        for (int k = 0; k < wsIndex[roomIndex][j].Length; k++)
+          result.Add(surfaces[wsIndex[roomIndex][j][k]]);
+      return result;
     }
 
     #endregion
@@ -2341,7 +2578,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void AddZone(int roomIndex, int zoneIndex)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       for (int i = 0; i < RoomCount; i++) rZones[i].Remove(zoneIndex);
       rZones[roomIndex].Add(zoneIndex);
       zones[zoneIndex].RoomIndex = roomIndex;
@@ -2370,7 +2607,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void AddWall(int zoneIndex, int wallIndex, bool isSideF)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface sf;
       if (isSideF) sf = walls[wallIndex].SurfaceF;
       else sf = walls[wallIndex].SurfaceB;
@@ -2447,7 +2684,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetOutsideWall(int wallIndex, bool isSideF, IReadOnlyIncline incline)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       Wall w = walls[wallIndex];
       EnvelopeSurface ws = isSideF ? w.SurfaceF : w.SurfaceB;
 
@@ -2488,7 +2725,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetGroundWall(int wallIndex, bool isSideF, double groundWallConductance)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
@@ -2525,7 +2762,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void UseAdjacentSpaceFactor(int wallIndex, bool isSideF, double adjacentSpaceFactor)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface ws;
       if (isSideF) ws = walls[wallIndex].SurfaceF;
       else ws = walls[wallIndex].SurfaceB;
@@ -2608,7 +2845,7 @@ namespace Popolo.Core.Building
     /// <param name="windowIndex">Window index.</param>
     public void AddWindow(int zoneIndex, int windowIndex)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       Window win = windows[windowIndex];
       for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(win.InsideSurface);
       zones[zoneIndex].Surfaces.Add(win.InsideSurface);
@@ -2673,7 +2910,7 @@ namespace Popolo.Core.Building
       var c = components[componentIndex];
       EnsureWindowFaceConvention(c, isSideF, indoorSideIsF: isSideF);
 
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface sf = isSideF ? c.SurfaceF : c.SurfaceB;
 
       bndSurfaces.Remove(sf);
@@ -2769,7 +3006,7 @@ namespace Popolo.Core.Building
       var c = components[componentIndex];
       EnsureWindowFaceConvention(c, isSideF, indoorSideIsF: !isSideF);
 
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
 
       ws.AdjacentSpaceFactor = -1.0;
@@ -2830,7 +3067,7 @@ namespace Popolo.Core.Building
             "A window cannot be a ground-contact envelope.",
             nameof(componentIndex));
 
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
 
       ws.ZoneIndex = -1;
@@ -2882,7 +3119,7 @@ namespace Popolo.Core.Building
             "A window cannot use an adjacent-space factor in the current model.",
             nameof(componentIndex));
 
-      needInitialize = true;
+      MarkStructuralChange();
       EnvelopeSurface ws = isSideF ? c.SurfaceF : c.SurfaceB;
 
       ws.AdjacentSpaceFactor = adjacentSpaceFactor;
@@ -2957,7 +3194,7 @@ namespace Popolo.Core.Building
     /// <param name="convectiveCoefficient">Outdoor convective heat transfer coefficient [W/(m²·K)].</param>
     public void SetOutsideConvectiveCoefficient(double convectiveCoefficient)
     {
-      needInitialize = true;
+      MarkStructuralChange();
       foreach (EnvelopeSurface sf in bndSurfaces)
       {
         if (!sf.IsGroundWall && sf.AdjacentSpaceFactor == -1)
@@ -2969,7 +3206,7 @@ namespace Popolo.Core.Building
     /// <param name="convectiveCoefficient">Indoor convective heat transfer coefficient [W/(m²·K)].</param>
     public void SetInsideConvectiveCoefficient(double convectiveCoefficient)
     {
-      needInitialize = true;
+      MarkStructuralChange();
 
       for (int i = 0; i < walls.Length; i++)
       {
