@@ -486,11 +486,11 @@ namespace BESTEST_2023
         mRoom.AddComponent(zones[0], windows[i]);
       }
 
-      // Std 140-2023 Table B7-1 の「固定室内日射分配比率」を直達日射に適用。
-      // HCW ケースは透過ゼロのため対象外、NoWindow も windows 空のため自動的にスキップ。
-      // walls index: 0=床, 1=屋根(天井), 2=北, 3=東, 4=西, 5=南。
-      if (!hasHighConductanceWall && windows.Length > 0)
-        ApplyBESTESTSolarDistribution(mRoom, windows, walls, tCase, hasEWWindow, isHighIntSWEmissivity, isLowIntSWEmissivity);
+      // 室内日射分配: Popolo は Gebhart 行列で内部分配を計算する (= Std 140-2023 が
+      // 「internal calculation」と呼ぶ経路) ため、Annex B7 Table B7-1 の固定分配
+      // (一部反射/再透過込みの簡易値) は適用しない。これにより C600 系・C960 (Sunspace)
+      // とも一貫して Gebhart に統一される (§7.2.2.2.7.4.2 "applied consistently
+      // throughout the test cases" 要件を満たす)。
 
       // 解析的形態係数 (parallel/perpendicular rectangles) を設定し、自動 Matsuo 法をバイパス。
       // 単室・8m×6m×2.7m 直方体の標準レイアウト用 (walls index: 0=床, 1=天井, 2=N, 3=E, 4=W, 5=S)。
