@@ -187,7 +187,47 @@ See `samples/Popolo.Samples/` for runnable examples.
 
 ## Validation
 
-The `tests/BESTEST/` project runs a subset of the ASHRAE Standard 140 / BESTEST validation suite. Results are written to per-case CSV files and compared against reference tool ranges. This lets you verify that Popolo's predictions sit within the envelope of established building simulation tools (EnergyPlus, DOE-2, ESP-r, etc.) for the same input conditions.
+Popolo is validated against **ANSI/ASHRAE Standard 140-2023**, the building
+energy simulation industry's reference benchmark (Method of Test for Evaluating
+Building Performance Simulation Software). The runner under
+`tests/BESTEST_2023/` simulates the full Section 7 Class I Building Thermal
+Envelope and Fabric Load test suite (46 cases including C195–C470, C600–C695
+low-mass, C800/810, C900–C995 high-mass, and the C960 sunspace) each build,
+then emits both reference-envelope diagnostics and a formal Annex A3 pass/fail
+report (`results/A3_AcceptanceReport.txt`).
+
+### Software Acceptance Criteria (Normative Annex A3): 40/40 PASS
+
+Std 140-2023 Annex A3 is the standard's normative compliance criterion. For
+each test group, software must place a minimum count of *range cases* (both
+absolute case values and case-to-case sensitivities) inside statistically
+derived acceptance ranges:
+
+| Test Group | Popolo Result | Required to Pass |
+|---|---:|---:|
+| Thermal Fabric Low Mass  | **21 / 21** | ≥ 18 / 21 |
+| Thermal Fabric High Mass | **19 / 19** | ≥ 17 / 19 |
+| **Combined**             | **40 / 40** | ≥ 35 / 40 |
+
+Popolo passes every Annex A3 range case for the Thermal Fabric test groups,
+exceeding the minimum required count for compliance. Acceptance ranges are
+constructed per Informative Annex B12.1 as the wider of a 3σ statistical band
+(median ± 2.024 × MAD over the reference-software set) and a ±5%
+non-statistical floor on the base-case median.
+
+### Informative Reference Envelope (Annex B8): ~90%
+
+Across the broader Section 7 diagnostic suite (46 cases × 4 outputs:
+annual / peak heating / cooling), 164 of 184 individual case results
+(≈ 89%) fall inside the example envelopes published from the six reference
+simulation programs (BSIMAC, CSE, DeST, EnergyPlus, ESP-r, TRNSYS).
+Standard 140-2023 §4.4.1 explicitly states these envelopes "do not constitute
+formal acceptance criteria"; they are provided for diagnostic comparison
+only. Out-of-envelope cases reflect legitimate modeling differences (per
+Annex B11.1.4) and do not affect the Annex A3 compliance status above.
+
+Earlier `tests/BESTEST/` runs an older Std 140-2017–era subset of the same
+test suite and is kept for regression purposes.
 
 ---
 
@@ -235,7 +275,9 @@ tests/
   Popolo.Core.Tests/      # Unit tests for the core (xUnit)
   Popolo.IO.Tests/        # Unit tests for the I/O layer
   Popolo.Webpro.Tests/    # Unit tests for the WEBPRO integration
-  BESTEST/                # ASHRAE 140 validation runner
+  BESTEST_2023/           # ANSI/ASHRAE Standard 140-2023 validation runner
+                          # (formal Annex A3 compliance + Annex B8 envelope check)
+  BESTEST/                # Legacy ASHRAE 140 (older) validation runner
 
 samples/
   Popolo.Samples/         # Runnable usage examples
