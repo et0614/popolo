@@ -1422,48 +1422,74 @@ namespace Popolo.Core.Building
         return mat;
       }
 
-      //昇順に並べ替え
-      int[] index = new int[area.Length];
-      for (int i = 0; i < index.Length; i++) index[i] = i;
-      Array.Sort(area, index);
-
-      double[,] ff = new double[area.Length, area.Length];
-      double sA = 0;
-      int last = area.Length - 1;
-      for (int i = 0; i < last; i++) sA += area[i];
-      if (sA < area[last])
+      //面積降順 + 元 index で tie 安定化 + インターリーブ配置
+      //
+      // 配置順: pos 0 = 最大面積、pos 1 = 最小、pos 2 = 2 番目に大、pos 3 = 2 番目に小、…
+      //
+      // 旧実装は ascending sort で大面積を円周上の隣接位置に並べていたため、
+      // Matsuo 2D 近似の Hottel cross-string で F_{大-大} (例: 床-天井) を過大評価
+      // する傾向があった。物理的には床と天井のような大面積同士は対面に配置されることが
+      // 多く、円周上では adjacent でなく opposite に近い位置の方が自然。本実装は
+      // 大面積同士を可能な限り離す deterministic な順序を採用する。
+      //
+      // 面積タイは元 index 昇順で解消することで model 構築順 (Array.Sort の非安定性)
+      // が結果に漏れないことを保証する。
+      int N = area.Length;
+      int[] descIdx = new int[N];
+      for (int i = 0; i < N; i++) descIdx[i] = i;
+      Array.Sort(descIdx, (a, b) =>
       {
-        //最も大きい面積が他の合算よりも大きい場合
-        ff[last, last] = 1.0;
-        for (int i = 0; i < last; i++)
+        int cmp = area[b].CompareTo(area[a]);   //面積降順
+        return cmp != 0 ? cmp : a.CompareTo(b); //tie は元 index 昇順 (stable)
+      });
+
+      //インターリーブ: pos 0=descIdx[0] (最大)、pos 1=descIdx[N-1] (最小)、pos 2=descIdx[1]、pos 3=descIdx[N-2]、…
+      int[] index = new int[N];   //index[k] = 元位置 of 並べ替え後 pos k
+      for (int p = 0, lo = 0, hi = N - 1; p < N; p++)
+        index[p] = (p % 2 == 0) ? descIdx[lo++] : descIdx[hi--];
+
+      //area を新順序で permute
+      double[] origArea = area;
+      area = new double[N];
+      for (int i = 0; i < N; i++) area[i] = origArea[index[i]];
+
+      double[,] ff = new double[N, N];
+      //最大面積は interleave 後 pos 0
+      const int largestPos = 0;
+      double sA = 0;
+      for (int i = 0; i < N; i++) if (i != largestPos) sA += area[i];
+
+      if (sA < area[largestPos])
+      {
+        //最も大きい面積が他の合算よりも大きい場合 (退化)
+        ff[largestPos, largestPos] = 1.0;
+        for (int i = 0; i < N; i++)
         {
-          ff[i, last] = 1.0;
-          ff[last, i] = area[i] / area[last];
-          ff[last, last] -= ff[last, i];
+          if (i == largestPos) continue;
+          ff[i, largestPos] = 1.0;
+          ff[largestPos, i] = area[i] / area[largestPos];
+          ff[largestPos, largestPos] -= ff[largestPos, i];
         }
+      }
+      else if (N == 3)
+      {
+        //3面の場合は半径情報は不要なので解析的に求められる (Hottel cross-string)
+        ff[0, 0] = ff[1, 1] = ff[2, 2] = 0.0;
+        ff[0, 1] = 0.5 * (area[0] + area[1] - area[2]) / area[1];
+        ff[0, 2] = 0.5 * (area[0] + area[2] - area[1]) / area[2];
+        ff[1, 0] = 0.5 * (area[1] + area[0] - area[2]) / area[0];
+        ff[1, 2] = 0.5 * (area[1] + area[2] - area[0]) / area[2];
+        ff[2, 0] = 0.5 * (area[2] + area[0] - area[1]) / area[0];
+        ff[2, 1] = 0.5 * (area[2] + area[1] - area[0]) / area[1];
       }
       else
       {
-        //3面の場合は半径情報は不要なので解析的に求められる
-        if (area.Length == 3)
-        {
-          IMatrix mat = new Matrix(3, 3);
-          mat[0, 0] = mat[1, 1] = mat[2, 2] = 0.0;
-          mat[0, 1] = 0.5 * (area[0] + area[1] - area[2]) / area[1];
-          mat[0, 2] = 0.5 * (area[0] + area[2] - area[1]) / area[2];
-          mat[1, 0] = 0.5 * (area[1] + area[0] - area[2]) / area[0];
-          mat[1, 2] = 0.5 * (area[1] + area[2] - area[0]) / area[2];
-          mat[2, 0] = 0.5 * (area[2] + area[0] - area[1]) / area[0];
-          mat[2, 1] = 0.5 * (area[2] + area[1] - area[0]) / area[1];
-          return mat;
-        }
-
         //仮想的な半径を収束計算
-        double[] alpha = new double[area.Length];
+        double[] alpha = new double[N];
         Roots.ErrorFunction eFnc = delegate (double r)
         {
           double sum = 0;
-          for (int i = 0; i < area.Length; i++)
+          for (int i = 0; i < N; i++)
           {
             double bf = (area[i] / r);
             alpha[i] = Math.Acos(Math.Max(-1, 1 - 0.5 * bf * bf));
@@ -1473,15 +1499,15 @@ namespace Popolo.Core.Building
         };
         //面積和=円周と見立てて収束計算の初期値を決定
         double sumA = 0;
-        for (int i = 0; i < area.Length; i++) sumA += area[i];
+        for (int i = 0; i < N; i++) sumA += area[i];
         double rad = Roots.NewtonBisection(eFnc, 0.5 * (sumA / Math.PI), 0.0001, 0.01, 0.01, 10);
         rad = Roots.Newton(eFnc, rad, 0.00001, 0.00001, 0.00001, 10);
 
         //形態係数を計算
-        for (int i = 0; i < area.Length - 1; i++)
+        for (int i = 0; i < N - 1; i++)
         {
           ff[i, i] = 0;
-          for (int j = i + 1; j < area.Length; j++)
+          for (int j = i + 1; j < N; j++)
           {
             double a1 = alpha[i];
             double a2 = alpha[j];
@@ -1497,10 +1523,10 @@ namespace Popolo.Core.Building
         }
       }
 
-      //順序を戻す
-      IMatrix ff2 = new Matrix(area.Length, area.Length);
-      for (int i = 0; i < area.Length; i++)
-        for (int j = 0; j < area.Length; j++)
+      //順序を戻す: ff2[元位置 i, 元位置 j] = ff[並替後位置 i', 並替後位置 j']
+      IMatrix ff2 = new Matrix(N, N);
+      for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
           ff2[index[i], index[j]] = ff[i, j];
 
       return ff2;
