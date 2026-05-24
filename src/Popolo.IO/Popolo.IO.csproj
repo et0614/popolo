@@ -13,7 +13,7 @@
     <!-- NuGetパッケージ情報 -->
     <PackageId>Popolo.IO</PackageId>
     <PackageIcon>icon.png</PackageIcon>
-    <Version>3.0.1</Version>
+    <Version>3.1.0</Version>
     <Authors>E.Togashi</Authors>
     <Description>File I/O for Popolo.Core: weather data readers and writers (EPW, HASP, TMY1, WEA2, EXA, CSV) and JSON serialization for BuildingThermalModel, MultiRoom, Zone, Wall, Window, Sun, and Incline.</Description>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
@@ -38,6 +38,7 @@
 
     <!-- CI ビルドでは deterministic build を有効化 -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 
   </PropertyGroup>
 

@@ -13,7 +13,7 @@
     <!-- NuGetパッケージ情報 -->
     <PackageId>Popolo.Webpro</PackageId>
     <PackageIcon>icon.png</PackageIcon>
-    <Version>3.0.1</Version>
+    <Version>3.1.0</Version>
     <Authors>E.Togashi</Authors>
     <Description>WEBPRO (Japan-local) compliance-calculation format integration for Popolo. Converts between the WEBPRO building energy model and Popolo's MultiRoom / BuildingThermalModel representation. Primarily intended for Japanese users targeting Building Energy Conservation Law submissions.</Description>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
@@ -38,6 +38,7 @@
 
     <!-- CI ビルドでは deterministic build を有効化 -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 
   </PropertyGroup>
 
