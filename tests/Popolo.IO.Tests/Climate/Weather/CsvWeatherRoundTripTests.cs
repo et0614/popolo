@@ -77,7 +77,22 @@ namespace Popolo.IO.Tests.Climate.Weather
                 var o = original.Records[i];
                 var r = roundTripped.Records[i];
                 Assert.Equal(o.Time, r.Time);
-                Assert.Equal(o.AvailableFields, r.AvailableFields);
+                // 湿度補完が無条件で動くため、original が DBT + w を持つレコードでは
+                // round-trip 後に RH (Estimated) が追加される。逆も同様。元の値は保持される。
+                var expectedAvailable = o.AvailableFields;
+                if (o.Has(WeatherField.DryBulbTemperature)
+                    && o.Has(WeatherField.HumidityRatio)
+                    && !o.Has(WeatherField.RelativeHumidity))
+                {
+                    expectedAvailable |= WeatherField.RelativeHumidity;
+                }
+                if (o.Has(WeatherField.DryBulbTemperature)
+                    && o.Has(WeatherField.RelativeHumidity)
+                    && !o.Has(WeatherField.HumidityRatio))
+                {
+                    expectedAvailable |= WeatherField.HumidityRatio;
+                }
+                Assert.Equal(expectedAvailable, r.AvailableFields);
                 if (o.Has(WeatherField.DryBulbTemperature))
                     Assert.Equal(o.DryBulbTemperature, r.DryBulbTemperature, precision: 9);
                 if (o.Has(WeatherField.HumidityRatio))

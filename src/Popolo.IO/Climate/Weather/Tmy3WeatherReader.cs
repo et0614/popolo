@@ -234,14 +234,8 @@ namespace Popolo.IO.Climate.Weather
             builder.SetOpaqueCloudCover(occ / 10.0);
 
           // [31] Dry-bulb [°C], 欠測: 99.9
-          double dbt = double.NaN;
-          bool dbtSet = false;
           if (TryParseDouble(f[31], ci, out double dbtRaw) && Math.Abs(dbtRaw) < 99.0)
-          {
-            dbt = dbtRaw;
-            builder.SetDryBulbTemperature(dbt);
-            dbtSet = true;
-          }
+            builder.SetDryBulbTemperature(dbtRaw);
 
           // [34] Dew-point [°C], 欠測: 99.9
           // TMY3 ファイルは RH (col 37) と Tdp (col 34) を独立処理しており
@@ -252,28 +246,14 @@ namespace Popolo.IO.Climate.Weather
             builder.SetDewPointTemperature(tdpRaw);
 
           // [37] RHum [%], 欠測: 999
-          double rh = double.NaN;
+          // TMY3 は RH を独立列で記録するため RH をそのまま保存し、
+          // HumidityRatio (絶対湿度) への変換は WeatherCompleter に委譲する。
           if (TryParseDouble(f[37], ci, out double rhRaw) && rhRaw >= 0 && rhRaw <= 110)
-            rh = rhRaw;
+            builder.SetRelativeHumidity(rhRaw);
 
           // [40] Pressure [mbar] → [kPa], 欠測: 9999
-          double? pressureKPa = null;
           if (TryParseDouble(f[40], ci, out double pmbar) && pmbar > 0 && pmbar < 1500)
-          {
-            pressureKPa = pmbar / 10.0;
-            builder.SetAtmosphericPressure(pressureKPa.Value);
-          }
-
-          // 乾球 + 相対湿度 + 気圧 → 絶対湿度 [g/kg]
-          if (dbtSet && !double.IsNaN(rh))
-          {
-            double pForHr = pressureKPa
-                ?? Popolo.Core.Physics.PhysicsConstants.StandardAtmosphericPressure;
-            double hrKgKg = Popolo.Core.Physics.MoistAir
-                .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
-                    dbt, rh, pForHr);
-            builder.SetHumidityRatio(hrKgKg * 1000.0);
-          }
+            builder.SetAtmosphericPressure(pmbar / 10.0);
 
           // [43] Wdir [deg from north], 欠測: 999
           if (TryParseDouble(f[43], ci, out double wdir) && wdir >= 0 && wdir <= 360)

@@ -226,38 +226,21 @@ namespace Popolo.IO.Climate.Weather
           hasPrev = true;
 
           var builder = new WeatherRecordBuilder();
-          bool dbtSet = false;
 
           // [6] 乾球温度 [°C], 欠測: 99.9
-          double dbt = 0;
-          if (TryParseDouble(f[6], ci, out dbt) && dbt < 99.0)
-          {
+          if (TryParseDouble(f[6], ci, out double dbt) && dbt < 99.0)
             builder.SetDryBulbTemperature(dbt);
-            dbtSet = true;
-          }
 
           // [8] 相対湿度 [%], 欠測: 999
-          double relHumidity = double.NaN;
+          // EPW は RH を記録するので RH のまま格納し、絶対湿度 (HumidityRatio) への
+          // 変換は WeatherCompleter に委譲する。圧力フォールバック等の整合性を
+          // 補完段に集約するため。
           if (TryParseDouble(f[8], ci, out double rh) && rh >= 0.0 && rh <= 110.0)
-            relHumidity = rh;
+            builder.SetRelativeHumidity(rh);
 
           // [9] 大気圧 [Pa], 欠測: 999999
-          double? pressureKPa = null;
           if (TryParseDouble(f[9], ci, out double patm) && patm > 0 && patm < 200000)
-          {
-            pressureKPa = patm / 1000.0;
-            builder.SetAtmosphericPressure(pressureKPa.Value);
-          }
-
-          // 乾球 + 相対湿度 + 気圧 → 絶対湿度 [g/kg]
-          if (dbtSet && !double.IsNaN(relHumidity))
-          {
-            double pForHr = pressureKPa ?? Popolo.Core.Physics.PhysicsConstants.StandardAtmosphericPressure;
-            double hrKgKg = Popolo.Core.Physics.MoistAir
-                .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
-                    dbt, relHumidity, pForHr);
-            builder.SetHumidityRatio(hrKgKg * 1000.0);
-          }
+            builder.SetAtmosphericPressure(patm / 1000.0);
 
           // [12] 大気(下向き)放射量 [W/m²], 欠測: 9999
           if (TryParseDouble(f[12], ci, out double atm) && atm > 0 && atm < 9000)

@@ -93,5 +93,14 @@ namespace Popolo.Core.Climate.Weather
     /// internally consistent.
     /// </summary>
     DewPointTemperature = 1 << 13,
+
+    /// <summary>
+    /// Relative humidity [%], range [0, 100]. Coexists with
+    /// <see cref="HumidityRatio"/>; either one (or both) may be present on a
+    /// record. When only one is recorded, the other is filled by the post-read
+    /// completer using the bidirectional psychrometric relation at the
+    /// record's atmospheric pressure (or 101.325 kPa fallback).
+    /// </summary>
+    RelativeHumidity = 1 << 14,
   }
 }

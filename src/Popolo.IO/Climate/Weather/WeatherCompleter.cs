@@ -87,6 +87,11 @@ namespace Popolo.IO.Climate.Weather
       if (options.EstimateAtmosphericPressureFromElevation)
         CompletePressureFromElevation(data);
 
+      // 湿度補完は無条件で実行する。物理計算層は HumidityRatio (絶対湿度) しか
+      // 読まないので、RH のみ与えられたデータは w を埋めないと下流が動かない。
+      // 双方向に補完するので、w のみ与えられたデータでも RH を取得可能になる。
+      CompleteHumidity(data);
+
       if (options.CompleteRadiationComponentsByGeometry
           || options.SplitGlobalRadiationIntoDirectAndDiffuse)
         CompleteRadiation(data, options);
@@ -113,6 +118,57 @@ namespace Popolo.IO.Climate.Weather
                 .SetAtmosphericPressure(pressure)
                 .MarkEstimated(WeatherField.AtmosphericPressure));
         data.SetRecord(i, updated);
+      }
+    }
+
+    #endregion
+
+    #region 湿度の補完 (HumidityRatio ↔ RelativeHumidity)
+
+    /// <summary>
+    /// DBT が与えられている行について、HumidityRatio と RelativeHumidity の
+    /// 一方のみが記録されていれば他方を導出する。両方とも記録されていなければ
+    /// (DBT 無し含む) 何もしない。圧力は <c>r.AtmosphericPressure</c> があれば
+    /// それを、なければ標準大気圧 (101.325 kPa) を使う。
+    /// </summary>
+    /// <remarks>
+    /// MoistAir API は湿度を [kg/kg(DA)] で扱うのに対し WeatherRecord は
+    /// [g/kg(DA)] で保持するため、両側で 1000 倍の換算を行う。
+    /// </remarks>
+    private static void CompleteHumidity(WeatherData data)
+    {
+      for (int i = 0; i < data.Count; i++)
+      {
+        var r = data.Records[i];
+        if (!r.Has(WeatherField.DryBulbTemperature)) continue;
+
+        bool hasW  = r.Has(WeatherField.HumidityRatio);
+        bool hasRh = r.Has(WeatherField.RelativeHumidity);
+
+        if (hasW == hasRh) continue;   // 両方無 / 両方有 → 何もしない
+
+        double pKPa = r.Has(WeatherField.AtmosphericPressure)
+            ? r.AtmosphericPressure
+            : PhysicsConstants.StandardAtmosphericPressure;
+
+        if (hasRh)
+        {
+          double wKgKg = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
+              r.DryBulbTemperature, r.RelativeHumidity, pKPa);
+          var updated = RebuildWith(r, b => b
+              .SetHumidityRatio(wKgKg * 1000.0)
+              .MarkEstimated(WeatherField.HumidityRatio));
+          data.SetRecord(i, updated);
+        }
+        else // hasW
+        {
+          double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(
+              r.DryBulbTemperature, r.HumidityRatio / 1000.0, pKPa);
+          var updated = RebuildWith(r, b => b
+              .SetRelativeHumidity(rh)
+              .MarkEstimated(WeatherField.RelativeHumidity));
+          data.SetRecord(i, updated);
+        }
       }
     }
 
@@ -430,6 +486,7 @@ namespace Popolo.IO.Climate.Weather
 
       if (r.Has(WeatherField.DryBulbTemperature))        b.SetDryBulbTemperature(r.DryBulbTemperature);
       if (r.Has(WeatherField.HumidityRatio))             b.SetHumidityRatio(r.HumidityRatio);
+      if (r.Has(WeatherField.RelativeHumidity))          b.SetRelativeHumidity(r.RelativeHumidity);
       if (r.Has(WeatherField.AtmosphericPressure))       b.SetAtmosphericPressure(r.AtmosphericPressure);
       if (r.Has(WeatherField.GlobalHorizontalRadiation)) b.SetGlobalHorizontalRadiation(r.GlobalHorizontalRadiation);
       if (r.Has(WeatherField.DirectNormalRadiation))     b.SetDirectNormalRadiation(r.DirectNormalRadiation);

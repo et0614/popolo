@@ -55,6 +55,7 @@ namespace Popolo.Core.Climate.Weather
     private bool _sourceTimeSet;
     private double _dryBulbTemperature;
     private double _humidityRatio;
+    private double _relativeHumidity;
     private double _atmosphericPressure;
     private double _globalHorizontalRadiation;
     private double _directNormalRadiation;
@@ -101,6 +102,14 @@ namespace Popolo.Core.Climate.Weather
     {
       _humidityRatio = value;
       _recordedMask |= WeatherField.HumidityRatio;
+      return this;
+    }
+
+    /// <summary>Sets the relative humidity [%] and marks it as recorded.</summary>
+    public WeatherRecordBuilder SetRelativeHumidity(double value)
+    {
+      _relativeHumidity = value;
+      _recordedMask |= WeatherField.RelativeHumidity;
       return this;
     }
 
@@ -237,7 +246,7 @@ namespace Popolo.Core.Climate.Weather
       DateTime sourceTime = _sourceTimeSet ? _sourceTime : _time;
       return new WeatherRecord(
           _time, sourceTime,
-          _dryBulbTemperature, _humidityRatio, _atmosphericPressure,
+          _dryBulbTemperature, _humidityRatio, _relativeHumidity, _atmosphericPressure,
           _globalHorizontalRadiation, _directNormalRadiation, _diffuseHorizontalRadiation,
           _atmosphericRadiation, _windSpeed, _windDirection,
           _precipitation, _cloudCover, _opaqueCloudCover, _ceilingHeight,

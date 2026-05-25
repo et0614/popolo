@@ -31,6 +31,7 @@ namespace Popolo.Core.Climate.Weather
   /// <list type="bullet">
   ///   <item><description>Temperature: [°C]</description></item>
   ///   <item><description>Humidity ratio (absolute humidity): [g/kg(DA)]</description></item>
+  ///   <item><description>Relative humidity: [%]</description></item>
   ///   <item><description>Atmospheric pressure: [kPa]</description></item>
   ///   <item><description>Radiation: [W/m²]</description></item>
   ///   <item><description>Wind speed: [m/s]</description></item>
@@ -93,6 +94,15 @@ namespace Popolo.Core.Climate.Weather
 
     /// <summary>Absolute humidity ratio [g/kg(DA)].</summary>
     public double HumidityRatio { get; }
+
+    /// <summary>
+    /// Relative humidity [%], range [0, 100]. Coexists with
+    /// <see cref="HumidityRatio"/>; either one (or both) may be present.
+    /// When only one is recorded, the missing counterpart is filled by
+    /// <c>WeatherCompleter</c> using the psychrometric relation at the
+    /// record's <see cref="AtmosphericPressure"/> (or 101.325 kPa fallback).
+    /// </summary>
+    public double RelativeHumidity { get; }
 
     /// <summary>Atmospheric pressure [kPa].</summary>
     public double AtmosphericPressure { get; }
@@ -179,6 +189,7 @@ namespace Popolo.Core.Climate.Weather
         DateTime sourceTime,
         double dryBulbTemperature,
         double humidityRatio,
+        double relativeHumidity,
         double atmosphericPressure,
         double globalHorizontalRadiation,
         double directNormalRadiation,
@@ -198,6 +209,7 @@ namespace Popolo.Core.Climate.Weather
       SourceTime = sourceTime;
       DryBulbTemperature = dryBulbTemperature;
       HumidityRatio = humidityRatio;
+      RelativeHumidity = relativeHumidity;
       AtmosphericPressure = atmosphericPressure;
       GlobalHorizontalRadiation = globalHorizontalRadiation;
       DirectNormalRadiation = directNormalRadiation;

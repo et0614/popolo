@@ -101,6 +101,7 @@ namespace Popolo.IO.Climate.Weather
       if (emitSourceTime) writer.Write(",SourceTime");
       writer.Write(",DryBulbTemperature[C]");
       writer.Write(",HumidityRatio[g/kg]");
+      writer.Write(",RelativeHumidity[%]");
       writer.Write(",AtmosphericPressure[kPa]");
       writer.Write(",GlobalHorizontalRadiation[W/m2]");
       writer.Write(",DirectNormalRadiation[W/m2]");
@@ -125,6 +126,7 @@ namespace Popolo.IO.Climate.Weather
         }
         WriteValue(writer, r, WeatherField.DryBulbTemperature,         r.DryBulbTemperature, ci);
         WriteValue(writer, r, WeatherField.HumidityRatio,              r.HumidityRatio, ci);
+        WriteValue(writer, r, WeatherField.RelativeHumidity,           r.RelativeHumidity, ci);
         WriteValue(writer, r, WeatherField.AtmosphericPressure,        r.AtmosphericPressure, ci);
         WriteValue(writer, r, WeatherField.GlobalHorizontalRadiation,  r.GlobalHorizontalRadiation, ci);
         WriteValue(writer, r, WeatherField.DirectNormalRadiation,      r.DirectNormalRadiation, ci);

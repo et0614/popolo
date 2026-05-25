@@ -68,6 +68,7 @@ namespace Popolo.Core.Climate.Weather
     /// </summary>
     private readonly FieldChannel _dryBulbTemperature;
     private readonly FieldChannel _humidityRatio;
+    private readonly FieldChannel _relativeHumidity;
     private readonly FieldChannel _globalHorizontalRadiation;
     private readonly FieldChannel _directNormalRadiation;
     private readonly FieldChannel _diffuseHorizontalRadiation;
@@ -139,6 +140,7 @@ namespace Popolo.Core.Climate.Weather
 
       _dryBulbTemperature         = BuildChannel(data, WeatherField.DryBulbTemperature,         strategies);
       _humidityRatio              = BuildChannel(data, WeatherField.HumidityRatio,              strategies);
+      _relativeHumidity           = BuildChannel(data, WeatherField.RelativeHumidity,           strategies);
       _globalHorizontalRadiation  = BuildChannel(data, WeatherField.GlobalHorizontalRadiation,  strategies);
       _directNormalRadiation      = BuildChannel(data, WeatherField.DirectNormalRadiation,      strategies);
       _diffuseHorizontalRadiation = BuildChannel(data, WeatherField.DiffuseHorizontalRadiation, strategies);
@@ -152,6 +154,7 @@ namespace Popolo.Core.Climate.Weather
       {
         { WeatherField.DryBulbTemperature,         InterpolationStrategy.Linear },
         { WeatherField.HumidityRatio,              InterpolationStrategy.Linear },
+        { WeatherField.RelativeHumidity,           InterpolationStrategy.Linear },
         { WeatherField.GlobalHorizontalRadiation,  InterpolationStrategy.Pchip  },
         { WeatherField.DirectNormalRadiation,      InterpolationStrategy.Pchip  },
         { WeatherField.DiffuseHorizontalRadiation, InterpolationStrategy.Pchip  },
@@ -203,6 +206,7 @@ namespace Popolo.Core.Climate.Weather
       {
         case WeatherField.DryBulbTemperature:         return r.DryBulbTemperature;
         case WeatherField.HumidityRatio:              return r.HumidityRatio;
+        case WeatherField.RelativeHumidity:           return r.RelativeHumidity;
         case WeatherField.GlobalHorizontalRadiation:  return r.GlobalHorizontalRadiation;
         case WeatherField.DirectNormalRadiation:      return r.DirectNormalRadiation;
         case WeatherField.DiffuseHorizontalRadiation: return r.DiffuseHorizontalRadiation;
@@ -228,6 +232,9 @@ namespace Popolo.Core.Climate.Weather
     /// <summary>Interpolates the absolute humidity ratio [g/kg(DA)] at the specified time.</summary>
     public double GetHumidityRatio(DateTime time) => _humidityRatio.Interpolate(time);
 
+    /// <summary>Interpolates the relative humidity [%] at the specified time.</summary>
+    public double GetRelativeHumidity(DateTime time) => _relativeHumidity.Interpolate(time);
+
     /// <summary>Interpolates the global horizontal radiation [W/m²] at the specified time.</summary>
     public double GetGlobalHorizontalRadiation(DateTime time)
         => _globalHorizontalRadiation.Interpolate(time);
@@ -245,11 +252,11 @@ namespace Popolo.Core.Climate.Weather
         => _atmosphericRadiation.Interpolate(time);
 
     /// <summary>
-    /// Returns a <see cref="WeatherRecord"/> whose six supported fields
-    /// (temperature, humidity ratio, three radiation components, and
-    /// atmospheric radiation) are filled in by interpolation at the specified
-    /// time. Fields for which the dataset has no recorded values are left
-    /// missing.
+    /// Returns a <see cref="WeatherRecord"/> whose supported fields
+    /// (temperature, humidity ratio, relative humidity, three radiation
+    /// components, and atmospheric radiation) are filled in by interpolation
+    /// at the specified time. Fields for which the dataset has no recorded
+    /// values are left missing.
     /// </summary>
     public WeatherRecord Sample(DateTime time)
     {
@@ -259,6 +266,8 @@ namespace Popolo.Core.Climate.Weather
         builder.SetDryBulbTemperature(_dryBulbTemperature.Interpolate(time));
       if (_humidityRatio.HasAnyData)
         builder.SetHumidityRatio(_humidityRatio.Interpolate(time));
+      if (_relativeHumidity.HasAnyData)
+        builder.SetRelativeHumidity(_relativeHumidity.Interpolate(time));
       if (_globalHorizontalRadiation.HasAnyData)
         builder.SetGlobalHorizontalRadiation(_globalHorizontalRadiation.Interpolate(time));
       if (_directNormalRadiation.HasAnyData)

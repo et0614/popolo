@@ -82,6 +82,124 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
+    #region 湿度の双方向補完 (HumidityRatio ↔ RelativeHumidity)
+    // この補完フェーズは無条件で動作する (WeatherReadOptions のフラグなし)。
+    // 物理計算層は HumidityRatio しか読まないので RH のみのデータを救済する必要があり、
+    // 逆方向 (w→RH) も対称性のために同時に埋める。
+
+    [Fact]
+    public void Humidity_FillsHumidityRatioFromRelativeHumidity()
+    {
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetDryBulbTemperature(25.0)
+                .SetRelativeHumidity(60.0)
+                .SetAtmosphericPressure(101.325)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions());
+
+      var r = data.Records[0];
+      Assert.True(r.Has(WeatherField.HumidityRatio));
+      Assert.True(r.IsEstimated(WeatherField.HumidityRatio));
+
+      // 期待値: 25°C, 60% RH, 101.325 kPa → 約 11.9 g/kg
+      double expectedWKgKg = MoistAir
+          .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(25.0, 60.0, 101.325);
+      Assert.Equal(expectedWKgKg * 1000.0, r.HumidityRatio, precision: 6);
+
+      // RH 側は Recorded のまま
+      Assert.False(r.IsEstimated(WeatherField.RelativeHumidity));
+    }
+
+    [Fact]
+    public void Humidity_FillsRelativeHumidityFromHumidityRatio()
+    {
+      // 25°C, 101.325 kPa, w = 11.9 g/kg ≈ RH 60%
+      double wKgKg = MoistAir
+          .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(25.0, 60.0, 101.325);
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetDryBulbTemperature(25.0)
+                .SetHumidityRatio(wKgKg * 1000.0)
+                .SetAtmosphericPressure(101.325)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions());
+
+      var r = data.Records[0];
+      Assert.True(r.Has(WeatherField.RelativeHumidity));
+      Assert.True(r.IsEstimated(WeatherField.RelativeHumidity));
+      Assert.Equal(60.0, r.RelativeHumidity, precision: 6);
+      Assert.False(r.IsEstimated(WeatherField.HumidityRatio));
+    }
+
+    [Fact]
+    public void Humidity_UsesStandardPressureWhenMissing()
+    {
+      // 圧力なしでも 101.325 kPa フォールバックで動作することを確認
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetDryBulbTemperature(25.0).SetRelativeHumidity(60.0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions());
+
+      var r = data.Records[0];
+      Assert.True(r.Has(WeatherField.HumidityRatio));
+      double expectedWKgKg = MoistAir
+          .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
+              25.0, 60.0, PhysicsConstants.StandardAtmosphericPressure);
+      Assert.Equal(expectedWKgKg * 1000.0, r.HumidityRatio, precision: 6);
+    }
+
+    [Fact]
+    public void Humidity_SkipsWhenBothPresent()
+    {
+      // w と RH が両方与えられているレコードは触らない (恣意的に不整合な値でも維持)
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetDryBulbTemperature(25.0)
+                .SetHumidityRatio(10.0)
+                .SetRelativeHumidity(40.0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions());
+
+      var r = data.Records[0];
+      Assert.Equal(10.0, r.HumidityRatio);
+      Assert.Equal(40.0, r.RelativeHumidity);
+      Assert.False(r.IsEstimated(WeatherField.HumidityRatio));
+      Assert.False(r.IsEstimated(WeatherField.RelativeHumidity));
+    }
+
+    [Fact]
+    public void Humidity_SkipsWhenDryBulbAbsent()
+    {
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetRelativeHumidity(60.0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions());
+
+      var r = data.Records[0];
+      Assert.False(r.Has(WeatherField.HumidityRatio));
+    }
+
+    [Fact]
+    public void Humidity_UsesElevationPressureWhenAvailableAfterFlagEnabled()
+    {
+      // 圧力が elevation 推定されてから湿度補完が走るので、海抜 40 m での圧力が
+      // RH→w 変換に使われることを確認する。フェーズ順 (圧力 → 湿度) の検証。
+      var data = MakeData(Build(new DateTime(2026, 6, 21, 12, 0, 0),
+          b => b.SetDryBulbTemperature(25.0).SetRelativeHumidity(60.0)));
+
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        EstimateAtmosphericPressureFromElevation = true,
+      });
+
+      var r = data.Records[0];
+      double pAt40m = MoistAir.GetAtmosphericPressure(40.0);
+      double expectedWKgKg = MoistAir
+          .GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(25.0, 60.0, pAt40m);
+      Assert.Equal(expectedWKgKg * 1000.0, r.HumidityRatio, precision: 6);
+    }
+
+    #endregion
+
+    // ================================================================
     #region CompleteRadiationComponentsByGeometry
 
     [Fact]

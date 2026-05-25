@@ -155,6 +155,7 @@ namespace Popolo.IO.Climate.Weather
       var fieldColumnMap = new List<(WeatherField Field, int Column)>();
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.DryBulbTemperature,         "DryBulbTemperature[C]");
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.HumidityRatio,              "HumidityRatio[g/kg]");
+      AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.RelativeHumidity,           "RelativeHumidity[%]");
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.AtmosphericPressure,        "AtmosphericPressure[kPa]");
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.GlobalHorizontalRadiation,  "GlobalHorizontalRadiation[W/m2]");
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.DirectNormalRadiation,      "DirectNormalRadiation[W/m2]");
@@ -232,6 +233,7 @@ namespace Popolo.IO.Climate.Weather
       {
         case WeatherField.DryBulbTemperature:         b.SetDryBulbTemperature(v); break;
         case WeatherField.HumidityRatio:              b.SetHumidityRatio(v); break;
+        case WeatherField.RelativeHumidity:           b.SetRelativeHumidity(v); break;
         case WeatherField.AtmosphericPressure:        b.SetAtmosphericPressure(v); break;
         case WeatherField.GlobalHorizontalRadiation:  b.SetGlobalHorizontalRadiation(v); break;
         case WeatherField.DirectNormalRadiation:      b.SetDirectNormalRadiation(v); break;
