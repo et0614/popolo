@@ -313,5 +313,59 @@ namespace Popolo.Core.Numerics
       return x;
     }
 
+    /// <summary>
+    /// Finds a root using Newton's method with an analytic derivative and
+    /// a bisection fallback when consecutive Newton steps straddle the root.
+    /// </summary>
+    /// <remarks>
+    /// Equivalent to <see cref="Newton(ErrorFunction, ErrorFunction, double, double, double, int)"/>
+    /// in the convergent regime, but falls back to
+    /// <see cref="Bisection(ErrorFunction, double, double, double, double, double, double, int)"/>
+    /// as soon as two consecutive iterates produce residuals of opposite sign — i.e.,
+    /// once a root is bracketed. Useful for problems where the analytic derivative is
+    /// trustworthy near the root but the function has stiff regions (e.g.,
+    /// PVT polynomials in the quasi-2-phase loop) where pure Newton can overshoot.
+    /// </remarks>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="eFncD">Derivative of the residual function.</param>
+    /// <param name="x">Initial guess.</param>
+    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="collectionTolerance">Tolerance on the correction step.</param>
+    /// <param name="maxIteration">Maximum number of iterations.</param>
+    /// <returns>Root of the function.</returns>
+    /// <exception cref="PopoloNumericalException">
+    /// Thrown when convergence is not reached within the maximum number of iterations.
+    /// </exception>
+    public static double NewtonBisection(ErrorFunction eFnc, ErrorFunction eFncD,
+        double x, double errorTolerance, double collectionTolerance, int maxIteration)
+    {
+      int iNum = 0;
+      double err = eFnc(x);
+      while (errorTolerance < Math.Abs(err))
+      {
+        if (maxIteration < iNum)
+          throw new PopoloNumericalException(
+              "NewtonBisection (analytical)",
+              $"Convergence failed after {iNum} iterations. "
+              + $"Last estimate: x={x}, f(x)={err}.");
+        double dfx = eFncD(x);
+        if (dfx == 0.0)
+          throw new PopoloNumericalException(
+              "NewtonBisection (analytical)",
+              $"Zero derivative at iteration {iNum}, x={x}.");
+        double dX = err / dfx;
+        double lastX = x;
+        double lastErr = err;
+        x -= dX;
+        if (Math.Abs(dX) < collectionTolerance) break;
+        err = eFnc(x);
+        if (lastErr * err < 0)
+          return Bisection(eFnc, lastX, x, lastErr, err,
+              errorTolerance, collectionTolerance, maxIteration - iNum);
+        iNum++;
+      }
+      return x;
+    }
+
   }
 }

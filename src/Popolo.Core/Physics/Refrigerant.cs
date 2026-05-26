@@ -34,10 +34,22 @@ namespace Popolo.Core.Physics
   /// Transactions of the Society of Heating, Air-conditioning and Sanitary Engineers of Japan
   /// DOI: 10.18948/shase.39.204_69
   ///
-  /// Supported refrigerants and valid pressure ranges (approximation fitting range):
-  /// - R32   : 700 to 4500 kPa
-  /// - R410A : 700 to 4000 kPa
-  /// - R134a : 200 to 1500 kPa
+  /// Three range layers are distinguished per fluid (paper §2.3, Fig.3):
+  ///   1. Standard cycle    - typical operating point (subset of #2)
+  ///   2. Validation range  - paper's &lt;1% accuracy claim holds here
+  ///   3. Fit range         - data points used for LSQ; widest envelope
+  /// The MinPressure / MaxPressure properties below correspond to layer #3
+  /// (the safety envelope for convergence iterations). For each fluid:
+  ///
+  ///   Fluid       | Standard cycle             | Valid range  | Fit range
+  ///   ------------|----------------------------|--------------|---------------
+  ///   R32         | T_e=5°C, T_c=60°C (AC)     |  950-3900kPa |  700-4500 kPa
+  ///   R410A       | T_e=5°C, T_c=50°C (AC)     |  936-3070kPa |  700-4000 kPa
+  ///   R134a       | T_e=5°C, T_c=40°C (chiller)|  350-1020kPa |  200-1500 kPa
+  ///   R1234ze(E)  | T_e=5°C, T_c=40°C (chiller)|  259- 766kPa |  150-1500 kPa
+  ///   R1233zd(E)  | T_e=5°C, T_c=35°C (centri.)|   60- 183kPa |   50- 500 kPa
+  ///   R1224yd(Z)  | T_e=30°C, T_c=100°C (HP)   |  177-1162kPa |  100-2500 kPa
+  ///   R290        | T_e=0°C, T_c=50°C (HP)     |  474-1713kPa |  250-2500 kPa
   ///
   /// Reference state follows ASHRAE/IIR convention:
   /// saturated liquid at 0 °C → enthalpy = 200 kJ/kg, entropy = 1.0 kJ/(kg·K).
@@ -57,7 +69,15 @@ namespace Popolo.Core.Physics
       /// <summary>R32 (difluoromethane, HFC-32)</summary>
       R32,
       /// <summary>R134a (1,1,1,2-tetrafluoroethane, HFC-134a)</summary>
-      R134a
+      R134a,
+      /// <summary>R1234ze(E) (trans-1,3,3,3-tetrafluoropropene, HFO-1234ze(E))</summary>
+      R1234zeE,
+      /// <summary>R1233zd(E) (trans-1-chloro-3,3,3-trifluoropropene, HCFO-1233zd(E))</summary>
+      R1233zdE,
+      /// <summary>R1224yd(Z) (cis-1-chloro-2,3,3,3-tetrafluoropropene, HCFO-1224yd(Z))</summary>
+      R1224ydZ,
+      /// <summary>R290 (propane, C3H8, natural refrigerant, GWP=3, ASHRAE A3)</summary>
+      R290
     }
 
     /// <summary>
@@ -142,41 +162,142 @@ namespace Popolo.Core.Physics
 
     #region 近似係数（静的データ）
 
-    // R32 coefficients (Togashi 2014, Table 2-4)
+    // R32 coefficients
+    // Original (Togashi 2014, Table 2-4): fit against REFPROP 7 via wxMaxima,
+    //   constraint set = {P, H^r, S^r, G^r}.
+    // Updated (2026-05-26): re-fit against REFPROP 10 via numpy.linalg.lstsq
+    //   with constraint set = {P, H^r, S^r, G^r, Cv} (Cv weight w_cv = 0.005).
+    //   Mean validation errors (P=950-4000 kPa, SC=10°C, SH=10-80°C, n=42):
+    //                 P       H       S       Cv      Cp
+    //     original:   0.032%  0.169%  0.135%  0.707%  0.480%
+    //     updated:    0.029%  0.003%  0.004%  0.196%  0.174%
     private static readonly double[] AlphaR32 = {
-            9.7665906E+03,  3.4609053E+04, -4.1024673E+04,  1.1966225E+04, -1.6994460E+02,  1.9091076E+02,
-            1.0932188E+03, -8.0842415E+03,  1.4466692E+04, -1.0718168E+04,  3.5651716E+03, -4.4110895E+02,
-           -1.3085150E+05, -1.8447255E+05,  2.9538016E+05, -7.9536583E+04, -1.0279583E+04,  3.3629135E+03,
-            1.2591969E+05,  3.3280998E+05, -5.4534004E+05,  1.9771955E+05, -7.5414922E+03, -3.2633069E+03,
-           -4.3690554E+04, -1.4724183E+05,  2.7062311E+05, -1.2341107E+05,  1.6622311E+04,  0.0000000E+00
-        };
+         1.0849130E+04,  2.4794975E+04,  2.5104943E+04, -4.7522715E+04,  2.1827033E+04, -3.1822583E+03,
+        -9.0730234E+02,  3.4680349E+04, -1.6193386E+05,  1.9553373E+05, -8.7146164E+04,  1.3020389E+04,
+        -1.2321952E+05, -2.9672469E+05,  4.0173154E+05, -2.7093883E+05,  1.1213584E+05, -1.7414212E+04,
+         1.1371753E+05,  4.5193776E+05, -4.3965229E+05,  1.3397163E+05, -3.7184868E+04,  6.9194528E+03,
+        -3.8478087E+04, -1.8449693E+05,  1.6119624E+05, -5.7226966E+03, -1.2429377E+04,  1.4955712E+03
+    };
     private static readonly double[] CcpR32 = { 4.0186023E+00, -3.1370881E-01, 6.8796834E-01, 2.6831619E+00, -1.3934091E+00 };
     private static readonly double[] CpsR32 = { 102795, -204886, 141476, -33645 };
     private static readonly double[] CtsR32 = { 148, -298, 269, 241 };
 
-    // R410A coefficients (Togashi 2014, Table 5-7)
+    // R410A coefficients (pseudo-pure fluid model; near-azeotropic R32/R125 50/50 mass% blend)
+    // Original (Togashi 2014, Table 5-7): fit against REFPROP 7 via wxMaxima,
+    //   constraint set = {P, H^r, S^r, G^r}.
+    // Updated (2026-05-27): re-fit against REFPROP 10 via numpy.linalg.lstsq
+    //   with constraint set = {P, H^r, S^r, G^r, Cv} (Cv weight w_cv = 0.003).
+    //   Mean validation errors (P=950-4000 kPa, SC=10°C, SH=10-80°C, n=28):
+    //                 P       H       S       Cv      Cp
+    //     original:   0.219%  0.651%  0.511%  0.830%  0.587%
+    //     updated:    0.044%  0.004%  0.003%  0.270%  0.183%
     private static readonly double[] AlphaR410A = {
-            6.7196006E+03,  3.1935694E+04, -3.2418379E+04,  8.5482532E-01,  8.1295227E+03, -1.7327422E+03,
-            8.6392377E+02, -5.7171597E+03,  6.8653458E+03, -3.3190647E+03,  7.1308696E+02, -5.6028267E+01,
-           -8.5841472E+04, -1.9218673E+05,  3.2004848E+05, -1.2678673E+05,  3.6577226E+03,  3.5479124E+03,
-            8.2190468E+04,  3.1572566E+05, -5.5079066E+05,  2.6367950E+05, -3.7740069E+04, -4.9244792E+02,
-           -2.8629986E+04, -1.3682605E+05,  2.5924131E+05, -1.3997914E+05,  2.7545424E+04, -1.4185289E+03
-        };
-    private static readonly double[] CcpR410A = { 3.8200427E+00, 2.5486066E+00, 1.0799339E+00, 9.8471295E-01, -7.6910990E-01 };
-    private static readonly double[] CpsR410A = { 86584, -171854, 118095, -27955 };
-    private static readonly double[] CtsR410A = { 151, -292, 260, 238 };
+         7.96456057369E+03,  3.96161230132E+04, -2.60836177027E+04,  3.12790189034E+03,  1.88923528834E+03, -4.61551549100E+02,
+         4.08848492642E+02,  1.53627402874E+04, -6.68760286294E+04,  7.53877725971E+04, -3.18958596363E+04,  4.57252255380E+03,
+        -8.63401359153E+04, -3.07883840750E+05,  3.76086218420E+05, -2.02414618930E+05,  6.69451776226E+04, -9.05652258978E+03,
+         8.03500435532E+04,  4.45756873314E+05, -4.51160881381E+05,  1.47539602232E+05, -3.25031390610E+04,  4.56104457172E+03,
+        -2.72532870792E+04, -1.77832225442E+05,  1.64316243737E+05, -2.22697540377E+04, -5.99983422526E+03,  9.36541074939E+02
+    };
+    private static readonly double[] CcpR410A = { 5.25889718276E+00, -3.50481683981E+00, 1.06656172982E+01, -5.82820807438E+00, 1.06897427100E+00 };
+    private static readonly double[] CpsR410A = { 81398.1783024, -157420.927345, 104810.780248, -23909.9854978 };
+    private static readonly double[] CtsR410A = { 195.861130515, -386.235417474, 312.449595141, 230.124374216 };
 
     // R134a coefficients
+    // Original (Togashi 2014): fit against REFPROP 7 via wxMaxima, M=4 N=6 (25 coeffs),
+    //   constraint set = {P, H^r, S^r, G^r}.
+    // Updated (2026-05-27): re-fit against REFPROP 10 via numpy.linalg.lstsq,
+    //   M=4 N=7 (30 coeffs) for consistency with the other 2026 fits,
+    //   constraint set = {P, H^r, S^r, G^r, Cv} (Cv weight w_cv = 0.01).
+    //   Mean validation errors (P=200-1500 kPa, SC=10°C, SH=10-80°C, n=40):
+    //                 P       H       S       Cv      Cp
+    //     original:   0.055%  0.273%  0.237%  0.202%  0.167%
+    //     updated:    0.017%  0.003%  0.002%  0.094%  0.099%
     private static readonly double[] AlphaR134a = {
-            9.6110418E+03,  2.9590018E+04, -2.2904579E+04,  2.7602291E+03,  6.3436858E+02, -5.9229642E+01,
-            1.1017426E+03, -1.2925788E+03,  5.1927422E+02, -6.9885390E+01,
-           -7.5524176E+04, -2.8006887E+05,  3.3388181E+05, -1.0398404E+05,  9.7152916E+03,
-            6.4037701E+04,  4.5332427E+05, -5.7147500E+05,  1.9611019E+05, -2.0375143E+04,
-           -1.9195915E+04, -1.9499885E+05,  2.6634260E+05, -1.0132763E+05,  1.1874162E+04
-        };
-    private static readonly double[] CcpR134a = { 1.9747230E-01, 2.6221924E+01, -3.8424120E+01, 3.8198553E+01, -1.4361012E+01 };
-    private static readonly double[] CpsR134a = { 56756, -104220, 65405, -13992 };
-    private static readonly double[] CtsR134a = { 1355, -1252, 513, 242 };
+         4.26782983893E+03,  7.47779629958E+04, -1.03296552181E+05,  5.79048984254E+04, -1.46696620562E+04,  1.36007325097E+03,
+         6.02145591946E+02,  1.80975607383E+04, -5.03642896407E+04,  4.25427135763E+04, -1.42378898748E+04,  1.64548187349E+03,
+        -5.52175547350E+04, -4.99042592126E+05,  7.81822186227E+05, -4.52183000860E+05,  1.22452741221E+05, -1.26000145019E+04,
+         4.14938288464E+04,  6.71281180765E+05, -1.00330650780E+06,  5.34011896482E+05, -1.32991311450E+05,  1.31556355591E+04,
+        -1.23678952300E+04, -2.55465409214E+05,  3.79578355040E+05, -1.88658706485E+05,  4.13925807508E+04, -3.55464783055E+03
+    };
+    private static readonly double[] CcpR134a = { 1.73870161216E+00, 1.42901233558E+01, -6.31540422018E+00, 2.56772345114E+00, -4.63026205964E-01 };
+    private static readonly double[] CpsR134a = { 64198.4477725, -121225.107696, 78245.2564068, -17195.4951804 };
+    private static readonly double[] CtsR134a = { 329.420528733, -599.328860874, 416.791595917, 242.586553194 };
+
+    // R1234ze(E) coefficients
+    // Auto-fit from REFPROP 10 (2026-05-26) using the same pipeline as the
+    // R32 update: linear LSQ over {P, H^r, S^r, G^r, Cv}, with Cv weight
+    // w_cv = 0.003. Validation errors (P=150-1500 kPa, SC=10°C, SH=10-80°C,
+    // n=45):
+    //              P       H       S       Cv      Cp
+    //   mean:     0.026%  0.019%  0.016%  0.097%  0.150%
+    //   max:      0.300%  0.051%  0.037%  0.404%  1.181%
+    // Note: 12 significant digits are kept for AlphaR1234zeE because lower
+    // precision (7-8 sig figs) inflates the max P error at the low-pressure
+    // subcooled-liquid corner from 0.30% to ~2%.
+    private static readonly double[] AlphaR1234zeE = {
+        -1.83086578854E+03,  3.39530175162E+04,  6.70994116056E+03, -2.58249830408E+04,  1.14954207793E+04, -1.51264700035E+03,
+        -4.14522665479E+03,  8.52303864397E+04, -2.64673883831E+05,  2.65088459699E+05, -1.04738953371E+05,  1.42413957982E+04,
+        -1.52005289179E+04, -3.25123780920E+05,  4.56538772295E+05, -3.56155903380E+05,  1.46147689363E+05, -2.14882879793E+04,
+         3.27877482480E+03,  3.11624223232E+05, -2.00252485427E+05,  4.33874087798E+04, -2.47876405258E+04,  6.48082110885E+03,
+        -2.21297314879E+02, -9.53392182169E+04, -1.95327621504E+03,  7.68766925789E+04, -3.10479194384E+04,  3.18504634291E+03
+    };
+    private static readonly double[] CcpR1234zeE = { 7.76379000506E+00, 2.22380610603E-01, 1.08458996728E+01, -6.16799631561E+00, 1.07067988024E+00 };
+    private static readonly double[] CpsR1234zeE = { 63063.7099384, -123304.983350, 82995.3594800, -19140.9417857 };
+    private static readonly double[] CtsR1234zeE = { 201.592825205, -404.667133640, 335.252071942, 257.691085558 };
+
+    // R1233zd(E) coefficients
+    // Auto-fit from REFPROP 10 (2026-05-26), w_cv = 0.03.
+    // Validation errors (P=50-500 kPa, SC=10°C, SH=10-80°C, n=48):
+    //              P       H       S       Cv      Cp
+    //   mean:     0.010%  0.002%  0.002%  0.015%  0.029%
+    //   max:      0.280%  0.007%  0.005%  0.053%  0.257%
+    private static readonly double[] AlphaR1233zdE = {
+        -6.17437665891E+03,  6.61630218055E+03,  3.25709306637E+04, -2.27918665410E+04,  3.43813401864E+03,  1.04494747503E+02,
+        -1.53195211565E+03,  2.47993116224E+04, -3.39124123631E+04,  8.41005177568E+03,  3.67416395345E+03, -1.25226651079E+03,
+        -3.65017557540E+03, -8.16577804730E+04, -8.73281050757E+04,  1.34948793510E+05, -4.63335973320E+04,  5.06948551321E+03,
+        -9.64163517769E+03,  9.02924242395E+04,  1.29751149124E+05, -1.94704259920E+05,  6.87141198088E+04, -7.45445705357E+03,
+         3.34960743547E+03, -3.34168621529E+04, -3.32608004757E+04,  6.32405247979E+04, -2.46188430583E+04,  2.87808619520E+03
+    };
+    private static readonly double[] CcpR1233zdE = { -3.16336665854E+00, 4.39682566277E+01, -4.62447281121E+01, 2.70759892457E+01, -6.25589913399E+00 };
+    private static readonly double[] CpsR1233zdE = { 47962.1451067, -85556.6416572, 51734.3299131, -10561.7197673 };
+    private static readonly double[] CtsR1233zdE = { 654.224630727, -1120.61928441, 671.668001111, 264.922237286 };
+
+    // R1224yd(Z) coefficients
+    // Auto-fit from REFPROP 10 (2026-05-26), w_cv = 0.003.
+    // Validation errors (P=100-2500 kPa, SC=10°C, SH=10-80°C, n=42):
+    //              P       H       S       Cv      Cp
+    //   mean:     0.047%  0.003%  0.002%  0.117%  0.162%
+    //   max:      0.737%  0.019%  0.012%  0.465%  1.697%
+    private static readonly double[] AlphaR1224ydZ = {
+        -7.27186538182E+03,  4.46560598082E+04, -3.32474905158E+04,  2.79130832934E+04, -1.38568201327E+04,  2.40465958955E+03,
+        -1.20879397912E+03,  1.36356613101E+04, -3.17572138288E+03, -2.46383687471E+04,  1.95102386615E+04, -4.01393571621E+03,
+        -4.76253045457E+03, -1.93814500594E+05,  9.20458738011E+03,  9.73979987870E+04, -3.90636902891E+04,  5.06861907048E+03,
+        -4.16377925032E+03,  2.24727617564E+05,  7.27017494373E+04, -2.18708618564E+05,  7.91658465109E+04, -8.25488946387E+03,
+         3.55757492510E+02, -7.95643797900E+04, -4.83354847268E+04,  1.20927561629E+05, -4.86353078025E+04,  5.71940387341E+03
+    };
+    private static readonly double[] CcpR1224ydZ = { -8.98378299708E+00, 6.19171577644E+01, -5.92644439555E+01, 2.76823791092E+01, -5.12664816466E+00 };
+    private static readonly double[] CpsR1224ydZ = { 50261.1736339, -93429.8998659, 59240.9641591, -12764.0263927 };
+    private static readonly double[] CtsR1224ydZ = { 426.575759089, -769.355380776, 516.391420205, 273.190159254 };
+
+    // R290 (propane) coefficients
+    // Natural refrigerant, GWP=3, ASHRAE A3 (flammable, 150 g charge limit
+    // in many residential applications). Widely used in small monoblock
+    // heat pumps (e.g., Daikin Altherma-3 series).
+    // Auto-fit from REFPROP 10 (2026-05-27), w_cv = 0.001.
+    // Validation errors (P=250-2500 kPa, SC=10°C, SH=10-80°C, n=42):
+    //              P       H       S       Cv      Cp
+    //   mean:     0.030%  0.004%  0.003%  0.163%  0.146%
+    //   max:      0.234%  0.024%  0.019%  0.521%  0.680%
+    private static readonly double[] AlphaR290 = {
+        -2.75837231441E+03,  2.95737811629E+04,  1.22628922512E+04, -2.03897339334E+04,  6.11174134264E+03, -5.15451890339E+02,
+        -1.39455329352E+03,  2.72560681057E+04, -9.16527883106E+04,  9.61941080163E+04, -3.91201760775E+04,  5.41391788241E+03,
+        -2.73059354975E+04, -1.87948303082E+05,  6.16525872334E+03,  6.55642173269E+04, -2.97921977324E+03, -3.33981697197E+03,
+         1.63605536098E+04,  2.06242482886E+05,  2.27458058938E+05, -3.85033388907E+05,  1.28282728537E+05, -1.16220791216E+04,
+        -3.77605575809E+03, -6.77109799866E+04, -1.53722836202E+05,  2.45946789442E+05, -9.60548040090E+04,  1.13549903508E+04
+    };
+    private static readonly double[] CcpR290 = { 6.79531550489E+00, -9.76566742771E+00, 2.44880813725E+01, -1.35811860307E+01, 2.60455810308E+00 };
+    private static readonly double[] CpsR290 = { 49046.9598740, -86960.6510847, 53501.4816859, -11361.4084943 };
+    private static readonly double[] CtsR290 = { 252.023695253, -489.083473956, 382.853613617, 233.719575599 };
 
     #endregion
 
@@ -195,12 +316,12 @@ namespace Popolo.Core.Physics
       {
         case Fluid.R410A:
           _mCount = 5; _nCount = 8;
-          CriticalTemperature = 71.358 + PhysicsConstants.CelsiusToKelvinOffset;
-          CriticalDensity = 459.53;
-          CriticalPressure = 4902.6;
-          _gasConstant = 8.3144621 / 72.585;
+          CriticalTemperature = 71.344 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 459.030;
+          CriticalPressure = 4901.18;
+          _gasConstant = 8.3144621 / 72.5854;
           _refTemperature = PhysicsConstants.ToKelvin(0);
-          _refDensity = 1170; _refEnthalpy = 200; _refEntropy = 1.0;
+          _refDensity = 1169.95; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR410A; _cps = CpsR410A; _cts = CtsR410A;
           MaxPressure = 4000; MinPressure = 700;
           _alpha = new double[_mCount, _nCount - 2];
@@ -228,13 +349,13 @@ namespace Popolo.Core.Physics
           break;
 
         case Fluid.R134a:
-          _mCount = 5; _nCount = 7;
-          CriticalTemperature = 101.06 + PhysicsConstants.CelsiusToKelvinOffset;
-          CriticalDensity = 511.9;
-          CriticalPressure = 4059.3;
-          _gasConstant = 8.3144621 / 102.03;
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 101.060 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 511.900;
+          CriticalPressure = 4059.11;
+          _gasConstant = 8.3144621 / 102.0320;
           _refTemperature = PhysicsConstants.ToKelvin(0);
-          _refDensity = 1294.8; _refEnthalpy = 200; _refEntropy = 1.0;
+          _refDensity = 1294.78; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR134a; _cps = CpsR134a; _cts = CtsR134a;
           MaxPressure = 1500; MinPressure = 200;
           _alpha = new double[_mCount, _nCount - 2];
@@ -242,6 +363,74 @@ namespace Popolo.Core.Physics
           for (int m = 0; m < _alpha.GetLength(0); m++)
             for (int n = 0; n < _alpha.GetLength(1); n++)
               _alpha[m, n] = AlphaR134a[index++];
+          break;
+
+        case Fluid.R1234zeE:
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 109.363 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 489.238;
+          CriticalPressure = 3634.86;
+          _gasConstant = 8.3144621 / 114.0416;
+          _refTemperature = PhysicsConstants.ToKelvin(0);
+          _refDensity = 1240.12; _refEnthalpy = 200; _refEntropy = 1.0;
+          _ccp = CcpR1234zeE; _cps = CpsR1234zeE; _cts = CtsR1234zeE;
+          MaxPressure = 1500; MinPressure = 150;
+          _alpha = new double[_mCount, _nCount - 2];
+          index = 0;
+          for (int m = 0; m < _alpha.GetLength(0); m++)
+            for (int n = 0; n < _alpha.GetLength(1); n++)
+              _alpha[m, n] = AlphaR1234zeE[index++];
+          break;
+
+        case Fluid.R1233zdE:
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 166.450 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 480.226;
+          CriticalPressure = 3623.64;
+          _gasConstant = 8.3144621 / 130.4962;
+          _refTemperature = PhysicsConstants.ToKelvin(0);
+          _refDensity = 1321.27; _refEnthalpy = 200; _refEntropy = 1.0;
+          _ccp = CcpR1233zdE; _cps = CpsR1233zdE; _cts = CtsR1233zdE;
+          MaxPressure = 500; MinPressure = 50;
+          _alpha = new double[_mCount, _nCount - 2];
+          index = 0;
+          for (int m = 0; m < _alpha.GetLength(0); m++)
+            for (int n = 0; n < _alpha.GetLength(1); n++)
+              _alpha[m, n] = AlphaR1233zdE[index++];
+          break;
+
+        case Fluid.R1224ydZ:
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 155.540 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 527.128;
+          CriticalPressure = 3337.25;
+          _gasConstant = 8.3144621 / 148.4867;
+          _refTemperature = PhysicsConstants.ToKelvin(0);
+          _refDensity = 1427.60; _refEnthalpy = 200; _refEntropy = 1.0;
+          _ccp = CcpR1224ydZ; _cps = CpsR1224ydZ; _cts = CtsR1224ydZ;
+          MaxPressure = 2500; MinPressure = 100;
+          _alpha = new double[_mCount, _nCount - 2];
+          index = 0;
+          for (int m = 0; m < _alpha.GetLength(0); m++)
+            for (int n = 0; n < _alpha.GetLength(1); n++)
+              _alpha[m, n] = AlphaR1224ydZ[index++];
+          break;
+
+        case Fluid.R290:
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 96.740 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 220.478;
+          CriticalPressure = 4251.16;
+          _gasConstant = 8.3144621 / 44.0956;
+          _refTemperature = PhysicsConstants.ToKelvin(0);
+          _refDensity = 528.59; _refEnthalpy = 200; _refEntropy = 1.0;
+          _ccp = CcpR290; _cps = CpsR290; _cts = CtsR290;
+          MaxPressure = 2500; MinPressure = 250;
+          _alpha = new double[_mCount, _nCount - 2];
+          index = 0;
+          for (int m = 0; m < _alpha.GetLength(0); m++)
+            for (int n = 0; n < _alpha.GetLength(1); n++)
+              _alpha[m, n] = AlphaR290[index++];
           break;
 
         default:
@@ -312,7 +501,12 @@ namespace Popolo.Core.Physics
 
       try
       {
-        density = Roots.Newton(eFnc, eFncD, density, 1e-3, 1e-3, 10);
+        // 2026.05.27: 許容誤差を 1e-3 → 1e-4 に締め、上限反復30回に拡張。
+        // この水準で標準冷凍サイクルの COP 誤差は <0.1%（多くの冷媒で <0.05%）。
+        // Rackett 初期値の ×1.10 持ち上げ（GetGibbsEnergyDifference 側）と
+        // 飽和起点からの単相状態探索により、密度反復は常に安定枝で開始する
+        // ため純 Newton で十分。
+        density = Roots.Newton(eFnc, eFncD, density, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
       {
@@ -358,7 +552,9 @@ namespace Popolo.Core.Physics
 
       try
       {
-        saturatedTemperature = Roots.Newton(eFnc, ts, 1e-5, 1e-5, 1e-3, 10);
+        // 2026.05.27: 許容誤差 (1e-5, 1e-3) → (1e-5, 1e-4)、上限反復 30 に拡張。
+        // この水準で COP 誤差 <0.1%。errTol の 1e-5 (Gibbs diff, kJ/kg) は元のまま。
+        saturatedTemperature = Roots.Newton(eFnc, ts, 1e-5, 1e-5, 1e-4, 30);
       }
       catch (Exception e)
       {
@@ -399,7 +595,9 @@ namespace Popolo.Core.Physics
 
       try
       {
-        saturatedPressure = Roots.Newton(eFnc, ps, 1e-5, 1e-4, 1e-3, 10);
+        // 2026.05.27: 許容誤差 (1e-4, 1e-3) → (1e-5, 1e-4)、上限反復 30 に拡張。
+        // この水準で COP 誤差 <0.1%。
+        saturatedPressure = Roots.Newton(eFnc, ps, 1e-5, 1e-5, 1e-4, 30);
       }
       catch (Exception e)
       {
@@ -426,6 +624,12 @@ namespace Popolo.Core.Physics
       double rc = CriticalPressure / (CriticalDensity * CriticalTemperature * _gasConstant);
       double rhol = 1.0 / (Math.Pow(rc, 1.0 + Math.Pow(1.0 - tr, 2.0 / 7.0))
           / CriticalPressure * _gasConstant * CriticalTemperature);
+      // 2026-05-27: Rackett tends to under-predict sat-liquid density and for
+      // some fluids (e.g., R410A at T = 278 K) falls inside the polynomial EOS
+      // spinodal region (dP/dρ < 0), making Newton drift toward the wrong root.
+      // Bump by 10% so the initial guess sits safely on the stable liquid branch;
+      // Newton then descends monotonically to the sat-liquid root.
+      rhol *= 1.10;
       GetDensityFromPressureAndTemperatureInternal(pressure, temperature, ref rhol);
       liquidDensity = rhol;
 
@@ -737,7 +941,9 @@ namespace Popolo.Core.Physics
       try
       {
         //2023.04.11: 10回で足りないケースがあったため15回に増加
-        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-3, 1e-3, 15);
+        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kJ/kg, K) に締め、上限反復30回に拡張
+        //            （COP 誤差 <0.1%）
+        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
       {
@@ -815,7 +1021,9 @@ namespace Popolo.Core.Physics
 
       try
       {
-        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-3, 1e-3, 10);
+        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kJ/(kg·K), K) に締め、上限反復30回に拡張
+        //            （COP 誤差 <0.1%）
+        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
       {
@@ -886,7 +1094,9 @@ namespace Popolo.Core.Physics
 
       try
       {
-        density = Roots.Newton(eFnc, density, 1e-5, 1e-3, 1e-3, 10);
+        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kg/m³) に締め、上限反復30回に拡張。
+        //            初期密度は飽和液／飽和蒸気密度を基準とするため常に安定枝側にある。
+        density = Roots.Newton(eFnc, density, 1e-5, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
       {
