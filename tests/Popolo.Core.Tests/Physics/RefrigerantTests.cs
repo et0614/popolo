@@ -197,11 +197,11 @@ namespace Popolo.Core.Tests.Physics
 
     private readonly Refrigerant _r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
-    /// <summary>臨界温度が正しい値を持つ（R410A: 71.358°C = 344.508K）</summary>
+    /// <summary>臨界温度が正しい値を持つ（R410A: 71.344°C = 344.494K, REFPROP 10）</summary>
     [Fact]
     public void R410A_CriticalTemperature_IsCorrect()
     {
-      Assert.Equal(344.508, _r410a.CriticalTemperature, precision: 2);
+      Assert.Equal(344.494, _r410a.CriticalTemperature, precision: 2);
     }
 
     /// <summary>飽和状態計算と逆算の整合性</summary>
@@ -257,6 +257,249 @@ namespace Popolo.Core.Tests.Physics
       Assert.Equal(pressure, pressureRecovered, precision: 0);
     }
 
+    /// <summary>R134aも基準状態が正しい</summary>
+    [Fact]
+    public void R134a_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r134a.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+
+      double h = _r134a.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r134a.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当（標準サイクル運転点付近）</summary>
+    [Fact]
+    public void R134a_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //標準サイクルの圧縮機入口に近い条件：P=350 kPa（T_sat≒5°C）+過熱 5°C
+      _r134a.GetStateFromPressureAndTemperature(350, 283.15,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0, "Enthalpy should be positive");
+      Assert.True(s > 0, "Entropy should be positive");
+      Assert.True(rho > 0, "Density should be positive");
+      Assert.True(rho < 50, "Vapor density should be < 50 kg/m^3 at these conditions");
+    }
+
+    #endregion
+
+    #region R1234ze(E) のテスト
+
+    private readonly Refrigerant _r1234zee = new Refrigerant(Refrigerant.Fluid.R1234zeE);
+
+    /// <summary>臨界温度が正しい値を持つ（R1234ze(E): 109.363°C = 382.513K, REFPROP 10）</summary>
+    [Fact]
+    public void R1234zeE_CriticalTemperature_IsCorrect()
+    {
+      Assert.Equal(382.513, _r1234zee.CriticalTemperature, precision: 2);
+    }
+
+    /// <summary>飽和状態計算と逆算の整合性（適用範囲 150-1500 kPa）</summary>
+    [Theory]
+    [InlineData(300)]
+    [InlineData(600)]
+    [InlineData(1200)]
+    public void R1234zeE_SaturatedProperty_RoundTrip(double pressure)
+    {
+      _r1234zee.GetSaturatedPropertyFromPressure(pressure,
+          out _, out _, out double tSat);
+      _r1234zee.GetSaturatedPropertyFromTemperature(tSat,
+          out _, out _, out double pressureRecovered);
+      Assert.Equal(pressure, pressureRecovered, precision: 0);
+    }
+
+    /// <summary>基準状態のエンタルピー・エントロピー（IIR規約）</summary>
+    [Fact]
+    public void R1234zeE_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r1234zee.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+      double h = _r1234zee.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r1234zee.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当（標準サイクル運転点付近）</summary>
+    [Fact]
+    public void R1234zeE_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //標準サイクルの圧縮機入口に近い条件：P=259 kPa（T_sat≒5°C）+過熱 10°C
+      _r1234zee.GetStateFromPressureAndTemperature(300, 288.15,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0, "Enthalpy should be positive");
+      Assert.True(s > 0, "Entropy should be positive");
+      Assert.True(rho > 0, "Density should be positive");
+      Assert.True(rho < 100, "Vapor density should be < 100 kg/m^3 at these conditions");
+    }
+
+    #endregion
+
+    #region R1233zd(E) のテスト
+
+    private readonly Refrigerant _r1233zde = new Refrigerant(Refrigerant.Fluid.R1233zdE);
+
+    /// <summary>臨界温度が正しい値を持つ（R1233zd(E): 166.450°C = 439.6K, REFPROP 10）</summary>
+    [Fact]
+    public void R1233zdE_CriticalTemperature_IsCorrect()
+    {
+      Assert.Equal(439.6, _r1233zde.CriticalTemperature, precision: 1);
+    }
+
+    /// <summary>飽和状態計算と逆算の整合性（適用範囲 50-500 kPa, 低圧冷媒）</summary>
+    [Theory]
+    [InlineData(80)]
+    [InlineData(200)]
+    [InlineData(400)]
+    public void R1233zdE_SaturatedProperty_RoundTrip(double pressure)
+    {
+      _r1233zde.GetSaturatedPropertyFromPressure(pressure,
+          out _, out _, out double tSat);
+      _r1233zde.GetSaturatedPropertyFromTemperature(tSat,
+          out _, out _, out double pressureRecovered);
+      Assert.Equal(pressure, pressureRecovered, precision: 0);
+    }
+
+    /// <summary>基準状態のエンタルピー・エントロピー（IIR規約）</summary>
+    [Fact]
+    public void R1233zdE_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r1233zde.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+      double h = _r1233zde.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r1233zde.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当</summary>
+    [Fact]
+    public void R1233zdE_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //標準サイクルの圧縮機入口に近い条件：P=80 kPa（T_sat≒7°C）+過熱 10°C
+      _r1233zde.GetStateFromPressureAndTemperature(80, 290,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0);
+      Assert.True(s > 0);
+      Assert.True(rho > 0);
+      Assert.True(rho < 50, "Vapor density should be < 50 kg/m^3 at low pressure");
+    }
+
+    #endregion
+
+    #region R1224yd(Z) のテスト
+
+    private readonly Refrigerant _r1224ydz = new Refrigerant(Refrigerant.Fluid.R1224ydZ);
+
+    /// <summary>臨界温度が正しい値を持つ（R1224yd(Z): 155.540°C = 428.69K, REFPROP 10）</summary>
+    [Fact]
+    public void R1224ydZ_CriticalTemperature_IsCorrect()
+    {
+      Assert.Equal(428.69, _r1224ydz.CriticalTemperature, precision: 1);
+    }
+
+    /// <summary>飽和状態計算と逆算の整合性（適用範囲 100-2500 kPa, 高温HP用）</summary>
+    [Theory]
+    [InlineData(200)]
+    [InlineData(600)]
+    [InlineData(2000)]
+    public void R1224ydZ_SaturatedProperty_RoundTrip(double pressure)
+    {
+      _r1224ydz.GetSaturatedPropertyFromPressure(pressure,
+          out _, out _, out double tSat);
+      _r1224ydz.GetSaturatedPropertyFromTemperature(tSat,
+          out _, out _, out double pressureRecovered);
+      Assert.Equal(pressure, pressureRecovered, precision: 0);
+    }
+
+    /// <summary>基準状態のエンタルピー・エントロピー（IIR規約）</summary>
+    [Fact]
+    public void R1224ydZ_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r1224ydz.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+      double h = _r1224ydz.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r1224ydz.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当（高温HP標準サイクル付近）</summary>
+    [Fact]
+    public void R1224ydZ_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //高温HP圧縮機入口：P=177 kPa（T_sat≒30°C）+過熱 5°C
+      _r1224ydz.GetStateFromPressureAndTemperature(200, 308,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0);
+      Assert.True(s > 0);
+      Assert.True(rho > 0);
+    }
+
+    #endregion
+
+    #region R290（プロパン）のテスト
+
+    private readonly Refrigerant _r290 = new Refrigerant(Refrigerant.Fluid.R290);
+
+    /// <summary>臨界温度が正しい値を持つ（R290: 96.740°C = 369.89K, REFPROP 10）</summary>
+    [Fact]
+    public void R290_CriticalTemperature_IsCorrect()
+    {
+      Assert.Equal(369.89, _r290.CriticalTemperature, precision: 1);
+    }
+
+    /// <summary>飽和状態計算と逆算の整合性（適用範囲 250-2500 kPa, 住宅HP用）</summary>
+    [Theory]
+    [InlineData(500)]
+    [InlineData(1000)]
+    [InlineData(2000)]
+    public void R290_SaturatedProperty_RoundTrip(double pressure)
+    {
+      _r290.GetSaturatedPropertyFromPressure(pressure,
+          out _, out _, out double tSat);
+      _r290.GetSaturatedPropertyFromTemperature(tSat,
+          out _, out _, out double pressureRecovered);
+      Assert.Equal(pressure, pressureRecovered, precision: 0);
+    }
+
+    /// <summary>基準状態のエンタルピー・エントロピー（IIR規約）</summary>
+    [Fact]
+    public void R290_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r290.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+      double h = _r290.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r290.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当（標準サイクル運転点付近）</summary>
+    [Fact]
+    public void R290_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //標準サイクル圧縮機入口に近い条件：P=474 kPa（T_sat≒0°C）+過熱 5°C
+      _r290.GetStateFromPressureAndTemperature(500, 278.15,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0);
+      Assert.True(s > 0);
+      Assert.True(rho > 0);
+      Assert.True(rho < 30, "Vapor density should be < 30 kg/m^3 at these conditions");
+    }
+
     #endregion
 
     #region 入力検証のテスト
@@ -280,6 +523,50 @@ namespace Popolo.Core.Tests.Physics
     {
       Assert.Throws<PopoloOutOfRangeException>(
           () => _r410a.GetSaturatedPropertyFromPressure(
+              pressure, out _, out _, out _));
+    }
+
+    /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R1234ze(E)）</summary>
+    [Theory]
+    [InlineData(100)]   // MinPressure=150 未満
+    [InlineData(1600)]  // MaxPressure=1500 超
+    public void R1234zeE_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => _r1234zee.GetSaturatedPropertyFromPressure(
+              pressure, out _, out _, out _));
+    }
+
+    /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R1233zd(E)）</summary>
+    [Theory]
+    [InlineData(30)]    // MinPressure=50 未満
+    [InlineData(600)]   // MaxPressure=500 超
+    public void R1233zdE_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => _r1233zde.GetSaturatedPropertyFromPressure(
+              pressure, out _, out _, out _));
+    }
+
+    /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R1224yd(Z)）</summary>
+    [Theory]
+    [InlineData(80)]    // MinPressure=100 未満
+    [InlineData(2800)]  // MaxPressure=2500 超
+    public void R1224ydZ_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => _r1224ydz.GetSaturatedPropertyFromPressure(
+              pressure, out _, out _, out _));
+    }
+
+    /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R290）</summary>
+    [Theory]
+    [InlineData(200)]   // MinPressure=250 未満
+    [InlineData(2800)]  // MaxPressure=2500 超
+    public void R290_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => _r290.GetSaturatedPropertyFromPressure(
               pressure, out _, out _, out _));
     }
 
