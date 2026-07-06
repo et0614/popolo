@@ -341,6 +341,60 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
+    #region R1234yf のテスト
+
+    private readonly Refrigerant _r1234yf = new Refrigerant(Refrigerant.Fluid.R1234yf);
+
+    /// <summary>臨界温度が正しい値を持つ（R1234yf: 94.700°C = 367.85K, REFPROP 10）</summary>
+    [Fact]
+    public void R1234yf_CriticalTemperature_IsCorrect()
+    {
+      Assert.Equal(367.85, _r1234yf.CriticalTemperature, precision: 2);
+    }
+
+    /// <summary>飽和状態計算と逆算の整合性（適用範囲 200-2000 kPa）</summary>
+    [Theory]
+    [InlineData(400)]
+    [InlineData(900)]
+    [InlineData(1800)]
+    public void R1234yf_SaturatedProperty_RoundTrip(double pressure)
+    {
+      _r1234yf.GetSaturatedPropertyFromPressure(pressure,
+          out _, out _, out double tSat);
+      _r1234yf.GetSaturatedPropertyFromTemperature(tSat,
+          out _, out _, out double pressureRecovered);
+      Assert.Equal(pressure, pressureRecovered, precision: 0);
+    }
+
+    /// <summary>基準状態のエンタルピー・エントロピー（IIR規約）</summary>
+    [Fact]
+    public void R1234yf_ReferenceState_EnthalpyAndEntropyAreCorrect()
+    {
+      _r1234yf.GetSaturatedPropertyFromTemperature(273.15,
+          out double rhoL, out _, out _);
+      double h = _r1234yf.GetEnthalpyFromTemperatureAndDensity(273.15, rhoL);
+      double s = _r1234yf.GetEntropyFromTemperatureAndDensity(273.15, rhoL);
+
+      Assert.Equal(200.0, h, precision: 1);
+      Assert.Equal(1.0, s, precision: 2);
+    }
+
+    /// <summary>過熱蒸気の物性値が物理的に妥当（標準サイクル運転点付近）</summary>
+    [Fact]
+    public void R1234yf_SuperheatedVaporProperties_ArePhysicallyReasonable()
+    {
+      //標準サイクルの圧縮機入口に近い条件：P=373 kPa（T_sat≒5°C）+過熱 10°C
+      _r1234yf.GetStateFromPressureAndTemperature(373, 288.15,
+          out double s, out double rho, out double h, out _);
+
+      Assert.True(h > 0, "Enthalpy should be positive");
+      Assert.True(s > 0, "Entropy should be positive");
+      Assert.True(rho > 0, "Density should be positive");
+      Assert.True(rho < 100, "Vapor density should be < 100 kg/m^3 at these conditions");
+    }
+
+    #endregion
+
     #region R1233zd(E) のテスト
 
     private readonly Refrigerant _r1233zde = new Refrigerant(Refrigerant.Fluid.R1233zdE);
@@ -534,6 +588,17 @@ namespace Popolo.Core.Tests.Physics
     {
       Assert.Throws<PopoloOutOfRangeException>(
           () => _r1234zee.GetSaturatedPropertyFromPressure(
+              pressure, out _, out _, out _));
+    }
+
+    /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R1234yf）</summary>
+    [Theory]
+    [InlineData(150)]   // MinPressure=200 未満
+    [InlineData(2200)]  // MaxPressure=2000 超
+    public void R1234yf_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => _r1234yf.GetSaturatedPropertyFromPressure(
               pressure, out _, out _, out _));
     }
 

@@ -47,6 +47,7 @@ namespace Popolo.Core.Physics
   ///   R410A       | T_e=5°C, T_c=50°C (AC)     |  936-3070kPa |  700-4000 kPa
   ///   R134a       | T_e=5°C, T_c=40°C (chiller)|  350-1020kPa |  200-1500 kPa
   ///   R1234ze(E)  | T_e=5°C, T_c=40°C (chiller)|  259- 766kPa |  150-1500 kPa
+  ///   R1234yf     | T_e=5°C, T_c=45°C (mob. AC)|  373-1154kPa |  200-2000 kPa
   ///   R1233zd(E)  | T_e=5°C, T_c=35°C (centri.)|   60- 183kPa |   50- 500 kPa
   ///   R1224yd(Z)  | T_e=30°C, T_c=100°C (HP)   |  177-1162kPa |  100-2500 kPa
   ///   R290        | T_e=0°C, T_c=50°C (HP)     |  474-1713kPa |  250-2500 kPa
@@ -72,6 +73,8 @@ namespace Popolo.Core.Physics
       R134a,
       /// <summary>R1234ze(E) (trans-1,3,3,3-tetrafluoropropene, HFO-1234ze(E))</summary>
       R1234zeE,
+      /// <summary>R1234yf (2,3,3,3-tetrafluoropropene, HFO-1234yf)</summary>
+      R1234yf,
       /// <summary>R1233zd(E) (trans-1-chloro-3,3,3-trifluoropropene, HCFO-1233zd(E))</summary>
       R1233zdE,
       /// <summary>R1224yd(Z) (cis-1-chloro-2,3,3,3-tetrafluoropropene, HCFO-1224yd(Z))</summary>
@@ -245,6 +248,25 @@ namespace Popolo.Core.Physics
     private static readonly double[] CpsR1234zeE = { 63063.7099384, -123304.983350, 82995.3594800, -19140.9417857 };
     private static readonly double[] CtsR1234zeE = { 201.592825205, -404.667133640, 335.252071942, 257.691085558 };
 
+    // R1234yf coefficients
+    // Mobile-AC / R134a drop-in HFO (GWP < 1); majority blend component of
+    // R454B (R410A successor). Auto-fit from REFPROP 10 (2026-07-06),
+    // w_cv = 0.001.
+    // Validation errors (P=200-2000 kPa, SC=10°C, SH=10-80°C, n=42):
+    //              P       H       S       Cv      Cp
+    //   mean:     0.062%  0.006%  0.005%  0.209%  0.204%
+    //   max:      0.524%  0.057%  0.043%  0.707%  1.376%
+    private static readonly double[] AlphaR1234yf = {
+        -1.99624511950E+03,  3.58943114337E+04, -1.44722524373E+04,  1.43548676218E+04, -1.10132495346E+04,  2.39413894032E+03,
+         1.11529399055E+03, -3.16189094226E+04,  6.65693480886E+04, -6.03383990857E+04,  2.71571204918E+04, -4.70994571195E+03,
+        -2.87859813689E+04, -5.06070884405E+04, -3.06816810688E+05,  3.22508620242E+05, -9.94826410081E+04,  1.03720476639E+04,
+         1.77949107265E+04,  9.15649331175E+04,  4.53060841858E+05, -5.34471151403E+05,  1.75536169942E+05, -1.79127921783E+04,
+        -5.10053671083E+03, -3.63143996210E+04, -2.00721775381E+05,  2.61567876372E+05, -9.59041501553E+04,  1.09964166323E+04
+    };
+    private static readonly double[] CcpR1234yf = { 1.52394714234E+00, 1.60674668659E+01, -2.78240031819E+00, -1.35542861421E+00, 4.79380228590E-01 };
+    private static readonly double[] CpsR1234yf = { 58202.0524394, -114793.926945, 78375.8330203, -18419.2252957 };
+    private static readonly double[] CtsR1234yf = { 148.462871444, -317.119729120, 290.859290593, 250.316565391 };
+
     // R1233zd(E) coefficients
     // Auto-fit from REFPROP 10 (2026-05-26), w_cv = 0.03.
     // Validation errors (P=50-500 kPa, SC=10°C, SH=10-80°C, n=48):
@@ -380,6 +402,23 @@ namespace Popolo.Core.Physics
           for (int m = 0; m < _alpha.GetLength(0); m++)
             for (int n = 0; n < _alpha.GetLength(1); n++)
               _alpha[m, n] = AlphaR1234zeE[index++];
+          break;
+
+        case Fluid.R1234yf:
+          _mCount = 5; _nCount = 8;
+          CriticalTemperature = 94.700 + PhysicsConstants.CelsiusToKelvinOffset;
+          CriticalDensity = 475.553;
+          CriticalPressure = 3382.24;
+          _gasConstant = 8.3144621 / 114.0416;
+          _refTemperature = PhysicsConstants.ToKelvin(0);
+          _refDensity = 1176.29; _refEnthalpy = 200; _refEntropy = 1.0;
+          _ccp = CcpR1234yf; _cps = CpsR1234yf; _cts = CtsR1234yf;
+          MaxPressure = 2000; MinPressure = 200;
+          _alpha = new double[_mCount, _nCount - 2];
+          index = 0;
+          for (int m = 0; m < _alpha.GetLength(0); m++)
+            for (int n = 0; n < _alpha.GetLength(1); n++)
+              _alpha[m, n] = AlphaR1234yf[index++];
           break;
 
         case Fluid.R1233zdE:
@@ -1023,7 +1062,11 @@ namespace Popolo.Core.Physics
       {
         //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kJ/(kg·K), K) に締め、上限反復30回に拡張
         //            （COP 誤差 <0.1%）
-        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-4, 1e-4, 30);
+        //2026.07.06: エントロピー残差のみ 1e-4 → 1e-6 に締める。残差 ds は h2 に
+        //            T·ds の誤差を残し、圧縮仕事 W=h2-h1 が小さい高COP冷媒
+        //            （R1234yf: W≈21 kJ/kg）では ds=1e-4 が COP 誤差 ~0.15% に
+        //            増幅されるため。二次収束のため追加コストは1反復程度。
+        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-6, 1e-5, 30);
       }
       catch (Exception e)
       {
