@@ -203,26 +203,27 @@ namespace Popolo.Core.HVAC.HeatSource
         };
       }
 
-      // 制約付き最小二乗（効率極大条件：a_cmp ≥ 0, d_cmp ≥ 0）。
-      // 凸二次計画なので、制約に対応する有効集合（a=0 / d=0 / 両方）を列挙し、
+      // 制約付き最小二乗（効率特性の物理条件：a_cmp ≥ 0, c_cmp ≥ 0, d_cmp ≥ 0。
+      // a, d は効率の極大、c は補機類の定常消費に対応する低負荷ペナルティの符号条件）。
+      // 凸二次計画なので、違反し得る係数の部分集合（最大7通り）を有効集合として列挙し、
       // 該当列を除いた通常のOLSを解いて実行可能解のうちRSS最小を採れば厳密解になる。
-      // {a=0, d=0} は構成上必ず実行可能なため、解は常に存在する。
+      // {a=0, c=0, d=0} は構成上必ず実行可能なため、解は常に存在する。
+      int[] signCols = [0, 2, 3];
+      bool Feasible(double[] c) => 0.0 <= c[0] && 0.0 <= c[2] && 0.0 <= c[3];
       double[] cf = FitOls(y, x, [true, true, true, true, true, true], out double rss);
       bool constrained = false;
-      if (cf[0] < 0.0 || cf[3] < 0.0)
+      if (!Feasible(cf))
       {
         constrained = true;
         cf = null!;
         rss = double.PositiveInfinity;
-        foreach (bool[] mask in new[]
+        for (int set = 1; set < 8; set++)   // 空集合（無制約）は解済みのため除く
         {
-          new[] { false, true, true, true, true, true },   // a=0
-          new[] { true, true, true, false, true, true },   // d=0
-          new[] { false, true, true, false, true, true },  // a=0, d=0
-        })
-        {
+          bool[] mask = [true, true, true, true, true, true];
+          for (int k = 0; k < signCols.Length; k++)
+            if ((set & (1 << k)) != 0) mask[signCols[k]] = false;
           double[] c = FitOls(y, x, mask, out double r);
-          if (c[0] < 0.0 || c[3] < 0.0) continue;   // 自由に残した側が違反 → 棄却
+          if (!Feasible(c)) continue;   // 自由に残した側が違反 → 棄却
           if (r < rss) { rss = r; cf = c; }
         }
       }
@@ -1237,7 +1238,8 @@ namespace Popolo.Core.HVAC.HeatSource
       public double NominalFlowVolume { get; init; }
       /// <summary>R² of the characteristic fit on the electric power E.</summary>
       public double RSquared { get; init; }
-      /// <summary>True if the efficiency-peak constraint (a_cmp ≥ 0, d_cmp ≥ 0) was activated
+      /// <summary>True if the sign constraints of the characteristic (a_cmp ≥ 0, c_cmp ≥ 0,
+      /// d_cmp ≥ 0) were activated
       /// (the unconstrained least-squares solution violated it).</summary>
       public bool ConstraintActivated { get; init; }
 
