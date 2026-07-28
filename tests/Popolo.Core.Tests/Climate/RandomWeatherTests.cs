@@ -109,6 +109,21 @@ namespace Popolo.Core.Tests.Climate
       }
     }
 
+    /// <summary>生成値は疑似精度の桁が丸められている（温度0.01℃、絶対湿度0.1g/kg、日射0.01W/m2）</summary>
+    [Fact]
+    public void Generate_ValuesAreRounded()
+    {
+      var rw = new RandomWeather(seed: 12345, location: RandomWeather.Location.Tokyo);
+      var data = rw.Generate(new DateTime(2026, 1, 1), years: 1);
+
+      foreach (var r in data.Records)
+      {
+        Assert.Equal(Math.Round(r.DryBulbTemperature, 2), r.DryBulbTemperature);
+        Assert.Equal(Math.Round(r.HumidityRatio, 1), r.HumidityRatio);
+        Assert.Equal(Math.Round(r.GlobalHorizontalRadiation, 2), r.GlobalHorizontalRadiation);
+      }
+    }
+
     /// <summary>years=0以下はPopoloArgumentExceptionを投げる</summary>
     [Fact]
     public void Generate_ZeroOrNegativeYears_Throws()

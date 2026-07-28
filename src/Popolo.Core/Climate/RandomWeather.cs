@@ -662,6 +662,12 @@ namespace Popolo.Core.Climate
     /// <see cref="Popolo.Core.Climate.Weather.WeatherData.NominalInterval"/>
     /// is set to 1 hour.
     /// </para>
+    /// <para>
+    /// Because the values are produced by a stochastic model, digits beyond
+    /// measurement-grade precision carry no information. The generated values
+    /// are therefore rounded: dry-bulb temperature to 0.01 °C, humidity ratio
+    /// to 0.1 g/kg, and global horizontal radiation to 0.01 W/m².
+    /// </para>
     /// </remarks>
     /// <param name="startDate">The logical start time of the first record.</param>
     /// <param name="years">Number of years to generate.</param>
@@ -688,9 +694,10 @@ namespace Popolo.Core.Climate
       {
         builder.Reset();
         builder.SetTime(startDate.AddHours(i));
-        builder.SetDryBulbTemperature(dbt[i]);
-        builder.SetHumidityRatio(hr[i]);
-        builder.SetGlobalHorizontalRadiation(rad[i]);
+        //確率モデルによる生成値のため、測定精度を超える桁は疑似精度として丸める
+        builder.SetDryBulbTemperature(Math.Round(dbt[i], 2));
+        builder.SetHumidityRatio(Math.Round(hr[i], 1));
+        builder.SetGlobalHorizontalRadiation(Math.Round(rad[i], 2));
         data.Add(builder.ToRecord());
       }
 
