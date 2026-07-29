@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class Regulator: ICircuitBranch
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Resistance coefficient at fully open position [kPa/(m³/s)²].</summary>
     private double minResistance;
@@ -70,7 +70,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="flowRate">Flow rate at fully open position [m³/s].</param>
@@ -101,7 +101,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region ICircuitBranch実装
+    #region ICircuitBranch implementation
 
     /// <summary>Gets or sets the flow rate [m³/s].</summary>
     public double VolumetricFlowRate { get; set; }
@@ -145,7 +145,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 開度計算処理
+    #region Opening ratio calculation methods
 
     /// <summary>Adjusts the valve opening based on the current differential pressure [kPa].</summary>
     public void UpdateLift()

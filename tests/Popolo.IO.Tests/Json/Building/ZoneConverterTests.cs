@@ -33,7 +33,7 @@ namespace Popolo.IO.Tests.Json.Building
   /// <summary>Unit tests for <see cref="ZoneConverter"/>.</summary>
   public class ZoneConverterTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// Options with ZoneConverter plus all converters needed for nested Windows.
@@ -82,7 +82,7 @@ namespace Popolo.IO.Tests.Json.Building
     #endregion
 
     // ================================================================
-    #region シリアライズ - 基本構造
+    #region Serialization - basic structure
 
     [Fact]
     public void Write_MinimalZone_ProducesExpectedBaseFields()
@@ -153,7 +153,7 @@ namespace Popolo.IO.Tests.Json.Building
     #endregion
 
     // ================================================================
-    #region デシリアライズ - 基本
+    #region Deserialization - basic
 
     [Fact]
     public void Read_MinimalZone_Succeeds()
@@ -246,7 +246,7 @@ namespace Popolo.IO.Tests.Json.Building
     #endregion
 
     // ================================================================
-    #region Deserialization Context - 壁参照と Windows
+    #region Deserialization context - wall references and windows
 
     [Fact]
     public void Read_WallReferences_AttachedToContext()
@@ -332,7 +332,7 @@ namespace Popolo.IO.Tests.Json.Building
     #endregion
 
     // ================================================================
-    #region ラウンドトリップ
+    #region Round trip
 
     [Fact]
     public void RoundTrip_MinimalZone_PreservesBasics()
@@ -387,7 +387,7 @@ namespace Popolo.IO.Tests.Json.Building
     #endregion
 
     // ================================================================
-    #region エラー処理
+    #region Error handling
 
     [Fact]
     public void Read_MissingKind_Throws()

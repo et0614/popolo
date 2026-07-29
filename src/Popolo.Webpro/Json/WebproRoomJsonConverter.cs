@@ -67,7 +67,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproRoomJsonConverter : JsonConverter<WebproRoom>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropBuildingType = "buildingType";
     private const string PropRoomType = "roomType";
@@ -78,7 +78,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproRoom Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

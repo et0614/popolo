@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class PlateHeatExchanger : IReadOnlyPlateHeatExchanger
   {
     
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets a value indicating whether the heat exchanger is overloaded.</summary>
     public bool IsOverLoad { get; private set; }
@@ -68,7 +68,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ・インスタンスメソッド
+    #region Constructors and instance methods
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="heatTransfer">Rated heat transfer rate [kW].</param>
@@ -127,7 +127,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       HeatSourceFlowRate = heatsourceFlowRate;
       SupplyFlowRate = supplyFlowRate;
 
-      //流量0.01%以下の場合は停止
+      //Shut off if the flow rate is 0.01% or less
       if (heatsourceFlowRate <= 0.001 * MaxHeatSourceFlowRate || supplyFlowRate <= 0.001 * MaxSupplyFlowRate)
       {
         ShutOff();
@@ -151,7 +151,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
           mcsp, mchs, HeatTransferCoefficient, HeatExchange.FlowType.CounterFlow);
       }
 
-      //出口水温計算
+      //Compute outlet water temperatures
       SupplyTemperature = ReturnTemperature + sign * HeatTransfer / mcsp;
       HeatSourceOutletTemperature = HeatSourceInletTemperature - sign * HeatTransfer / mchs;
     }
@@ -167,12 +167,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       ReturnTemperature = returnTemperature;
       SupplyFlowRate = supplyFlowRate;
 
-      //加熱冷却逆転判定
+      //Check for reversed heating/cooling direction
       bool isHeating = returnTemperature < SupplyTemperatureSetpoint;
       bool isRev = (heatsourceTemperature < returnTemperature && isHeating) ||
         (returnTemperature < heatsourceTemperature && !isHeating);
 
-      //流量0以下または加熱冷却逆転の場合には機器を停止
+      //Shut off if the flow rate is zero or below, or the heating/cooling direction is reversed
       if (supplyFlowRate <= 0 || isRev)
       {
         ShutOff();
@@ -182,16 +182,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double sign;
       double mcSply = supplyFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       double ql = Math.Abs(returnTemperature - SupplyTemperatureSetpoint) * mcSply;
-      //加熱運転
+      //Heating operation
       if (isHeating)
       {
         sign = 1;
-        //最大流量での熱交換量計算
+        //Compute heat transfer rate at maximum flow rate
         HeatTransfer = HeatExchange.GetHeatTransfer
           (heatsourceTemperature, returnTemperature, MaxHeatSourceFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat, mcSply,
           HeatTransferCoefficient, HeatExchange.FlowType.CounterFlow);
         IsOverLoad = HeatTransfer < ql;
-        //過負荷判定
+        //Check for overload
         if (IsOverLoad) HeatSourceFlowRate = MaxHeatSourceFlowRate;
         else
         {
@@ -205,16 +205,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
             (eFnc, 0, MaxHeatSourceFlowRate, -ql, HeatTransfer - ql, 0, MaxHeatSourceFlowRate * 0.001, 20);
         }
       }
-      //冷却運転
+      //Cooling operation
       else
       {
         sign = -1;
-        //最大流量での熱交換量計算
+        //Compute heat transfer rate at maximum flow rate
         HeatTransfer = HeatExchange.GetHeatTransfer
           (returnTemperature, heatsourceTemperature, mcSply, MaxHeatSourceFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat,
           HeatTransferCoefficient, HeatExchange.FlowType.CounterFlow);
         IsOverLoad = HeatTransfer < ql;
-        //過負荷判定
+        //Check for overload
         if (IsOverLoad) HeatSourceFlowRate = MaxHeatSourceFlowRate;
         else
         {
@@ -229,7 +229,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         }
       }
 
-      //出口水温計算
+      //Compute outlet water temperatures
       SupplyTemperature = ReturnTemperature + sign * HeatTransfer / mcSply;
       HeatSourceOutletTemperature = HeatSourceInletTemperature
         - sign * HeatTransfer / (HeatSourceFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat);

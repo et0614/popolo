@@ -26,7 +26,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     /// <summary>Wall の高度機能テスト（PCM・床冷暖房・熱水分同時移動）</summary>
     public class WallAdvancedTests
     {
-        #region PCM（潜熱蓄熱材）のテスト
+        #region PCM (phase change material) tests
 
         /// <summary>
         /// PCM入り床構成のサンプル（wallTest2再現）。
@@ -139,7 +139,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 床冷暖房（埋設配管）のテスト
+        #region Floor heating/cooling (buried pipe) tests
 
         /// <summary>床暖房用の壁（サンプルwallTest3再現）</summary>
         private static Wall MakeRadiantFloor()
@@ -261,7 +261,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 熱水分同時移動のテスト
+        #region Coupled heat and moisture transfer tests
 
         /// <summary>木繊維板3層構成（wallTest4再現）</summary>
         private static (Wall withMoisture, Wall withoutMoisture) MakeMoistureWalls()

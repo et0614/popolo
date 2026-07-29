@@ -42,7 +42,7 @@ namespace Popolo.Core.Tests.Numerics
         // x^2 - 2 = 0 の解（√2 ≈ 1.41421）
         private static readonly Roots.ErrorFunction SqrtTwoFunction = x => x * x - 2.0;
 
-        #region 二分法のテスト
+        #region Bisection method tests
 
         /// <summary>二分法でポンプ特性の解が正しく求まる</summary>
         [Fact]
@@ -80,7 +80,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region Brent法のテスト
+    #region Brent's method tests
 
     /// <summary>Brent法でポンプ特性の解が正しく求まる</summary>
     [Fact]
@@ -108,7 +108,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region ニュートン法のテスト
+        #region Newton's method tests
 
         /// <summary>ニュートン法（数値微分）でポンプ特性の解が正しく求まる</summary>
         [Fact]
@@ -142,7 +142,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region ニュートン・二分法のテスト
+    #region Newton-bisection hybrid tests
 
     /// <summary>ニュートン・二分法でポンプ特性の解が正しく求まる</summary>
     [Fact]

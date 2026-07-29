@@ -64,7 +64,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproWallJsonConverter : JsonConverter<WebproWall>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropDirection = "Direction";
     private const string PropEnvelopeArea = "EnvelopeArea";
@@ -77,7 +77,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproWall Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -173,7 +173,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region WindowList の読み取り
+    #region Reading WindowList
 
     private static void ReadWindowList(
       ref Utf8JsonReader reader, WebproWall target, JsonSerializerOptions options)

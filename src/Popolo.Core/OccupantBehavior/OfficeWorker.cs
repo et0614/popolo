@@ -32,7 +32,7 @@ namespace Popolo.Core.OccupantBehavior
     public class OfficeWorker : IReadOnlyOfficeWorker
     {
 
-      #region 列挙型定義
+      #region Enumeration definitions
 
       /// <summary>Job category of the office worker.</summary>
       public enum CategoryOfJob
@@ -58,7 +58,7 @@ namespace Popolo.Core.OccupantBehavior
 
       #endregion
 
-      #region クラス変数
+      #region Class variables
 
       /// <summary>Arrival time model parameters for weekdays.</summary>
       private static readonly double[] sttMdl = new double[] { -40.23, 32.61, 1.101, -0.452 };
@@ -86,7 +86,7 @@ namespace Popolo.Core.OccupantBehavior
 
       #endregion
 
-      #region インスタンス変数
+      #region Instance variables
 
       /// <summary>Uniform random number generator.</summary>
       private MersenneTwister urGen;
@@ -129,7 +129,7 @@ namespace Popolo.Core.OccupantBehavior
 
       #endregion
 
-      #region プロパティ定義
+      #region Property definitions
 
       /// <summary>Gets a value indicating whether the worker is male.</summary>
       public bool IsMale { get; private set; }
@@ -163,7 +163,7 @@ namespace Popolo.Core.OccupantBehavior
 
       #endregion
 
-      #region コンストラクタ
+      #region Constructors
 
       /// <summary>Initializes a new instance of <see cref="OfficeWorker"/>.</summary>
       /// <param name="office">Tenant office to which this worker belongs.</param>
@@ -177,10 +177,10 @@ namespace Popolo.Core.OccupantBehavior
         urGen = uRnd;
         nrGen = new NormalRandom(uRnd);
 
-        //職業種別を確率的に決定
+        //Determine job category stochastically
         CategoryOfJob job;
-        double[] mngRate = new double[] { 4 / 80d, 9 / 80d, 23 / 81d, 31 / 83d, 18 / 59d, 1 / 72d, 1 / 78d, 4 / 79d, 6 / 67d, 7 / 67d };  //管理職比率
-        double[] admRate = new double[] { 1 / 80d, 0 / 80d, 4 / 81d, 11 / 83d, 22 / 59d, 1 / 72d, 0 / 78d, 0 / 79d, 4 / 67d, 13 / 67d };  //役員比率
+        double[] mngRate = new double[] { 4 / 80d, 9 / 80d, 23 / 81d, 31 / 83d, 18 / 59d, 1 / 72d, 1 / 78d, 4 / 79d, 6 / 67d, 7 / 67d };  //Manager ratio
+        double[] admRate = new double[] { 1 / 80d, 0 / 80d, 4 / 81d, 11 / 83d, 22 / 59d, 1 / 72d, 0 / 78d, 0 / 79d, 4 / 67d, 13 / 67d };  //Administrator ratio
         double rnd = nrGen.NextDouble();
         if (mngRate[group] < rnd) job = CategoryOfJob.Manager;
         else if (mngRate[group] + admRate[group] < rnd) job = CategoryOfJob.Administrator;
@@ -219,7 +219,7 @@ namespace Popolo.Core.OccupantBehavior
         IsPermanent = isPermanent;
         Job = job;
 
-        //世代と年齢によるグループ判定
+        //Determine the group by sex and age
         if (IsMale)
         {
           if (age < 30) group = 0;
@@ -237,10 +237,10 @@ namespace Popolo.Core.OccupantBehavior
           else group = 9;
         }
 
-        //平均在室率から状態推移確率を計算
+        //Compute state transition probability from the average presence ratio
         tProbII = tProbOO[group] * (1 / indoorRate - 1) + 2 - 1 / indoorRate;
 
-        //徹夜作業と休日出勤可能性判定
+        //Determine possibility of overnight work and holiday work
         if (IsPermanent)
         {
           allNightWorkable = urGen.NextDouble() < 0.045;
@@ -265,9 +265,9 @@ namespace Popolo.Core.OccupantBehavior
           }
         }
 
-        //昼休みの取り方
-        double[] aGoOut = new double[] { 0.176, 0.157, 0.179, 0.122, 0.221, 0.068, 0.070, 0.141, 0.179, 0.155 };  //常に外出
-        double[] nGoOut = new double[] { 0.392, 0.446, 0.488, 0.451, 0.453, 0.534, 0.581, 0.500, 0.488, 0.452 };  //常に社内
+        //How the lunch break is taken
+        double[] aGoOut = new double[] { 0.176, 0.157, 0.179, 0.122, 0.221, 0.068, 0.070, 0.141, 0.179, 0.155 };  //Always goes out
+        double[] nGoOut = new double[] { 0.392, 0.446, 0.488, 0.451, 0.453, 0.534, 0.581, 0.500, 0.488, 0.452 };  //Always stays in the office
         double bf = urGen.NextDouble();
         if (bf < nGoOut[group]) lunchBreak = LunchBreakTake.NeverGoesOut;
         else if (bf < nGoOut[group] + aGoOut[group]) lunchBreak = LunchBreakTake.AlwaysGoesOut;
@@ -276,13 +276,13 @@ namespace Popolo.Core.OccupantBehavior
 
       #endregion
 
-      #region インスタンスメソッド
+      #region Instance methods
 
       /// <summary>Updates the daily work schedule for the specified date.</summary>
       /// <param name="dTime">Date.</param>
       public void UpdateDailySchedule(DateTime dTime)
       {
-        //休日出勤判定
+        //Determine holiday work
         IsLOA = Office.IsHoliday(dTime);
         if (!IsLOA && urGen.NextDouble() < 0.035)
         {
@@ -290,39 +290,39 @@ namespace Popolo.Core.OccupantBehavior
           holidayWorker = false;
         }
         else holidayWorker = IsLOA && holidayWorkable && urGen.NextDouble() < 0.188;
-        //休日出勤者の34.1%は平日相当の業務時間
+        //34.1% of holiday workers work hours equivalent to a weekday
         if (holidayWorker && 0.341 < urGen.NextDouble()) IsLOA = false;
 
-        //出社時刻計算****************************************
-        //前日徹夜作業の場合には出社時刻=0:00,翌日は非休日
-        bool spendNight = allNightWorker; //一次保存
+        //Compute arrival-at-work time*************************
+        //After overnight work on the previous day, arrival time = 0:00 and the next day is a workday
+        bool spendNight = allNightWorker; //Temporary save
         if (allNightWorker)
         {
           ArriveTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, 0, 0, 0);
           IsLOA = false;
         }
-        //休日の場合
+        //On a holiday (not working)
         else if (IsLOA && !holidayWorker)
           ArriveTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, 0, 0, 0).AddDays(1);
-        //平日出勤・休日出勤の場合
+        //Working on a weekday or on a holiday
         else
         {
           double[] par;
-          if (!IsLOA) par = sttMdl; //平日出勤
-          else par = sttMdl_Hol;    //休日出勤
+          if (!IsLOA) par = sttMdl; //Weekday work
+          else par = sttMdl_Hol;    //Holiday work
           double min = par[0] + par[1] * Math.Sinh((nrGen.NextDouble() - par[3]) / par[2]);
           ArriveTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.StartHour, Office.StartMinute, 0).AddMinutes(min);
         }
 
-        //退社時刻計算****************************************
-        //当日徹夜作業の場合には退社時刻=0:00
+        //Compute leaving-work time****************************
+        //For overnight work on the current day, leaving time = 0:00
         allNightWorker = (urGen.NextDouble() < 0.012 && allNightWorkable);
         if (allNightWorker) LeaveTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, 0, 0, 0).AddDays(1);
-        //休日の場合
+        //On a holiday (not working)
         else if (IsLOA && !holidayWorker) LeaveTime = ArriveTime;
         else
         {
-          //平日出勤
+          //Weekday work
           if (!IsLOA)
           {
             double[] par;
@@ -331,7 +331,7 @@ namespace Popolo.Core.OccupantBehavior
             double min = par[0] + par[1] * Math.Sinh((nrGen.NextDouble() - par[3]) / par[2]);
             LeaveTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.EndHour, Office.EndMinute, 0).AddMinutes(min);
           }
-          //休日出勤
+          //Holiday work
           else
           {
             double min = endMdl_Hol[0] + endMdl_Hol[1] * Math.Sinh((nrGen.NextDouble() - endMdl_Hol[3]) / endMdl_Hol[2]);
@@ -341,8 +341,8 @@ namespace Popolo.Core.OccupantBehavior
           if (LeaveTime.CompareTo(ArriveTime) < 0) LeaveTime = ArriveTime;
         }
 
-        //昼休み**********************************************
-        //外出する場合
+        //Lunch break******************************************
+        //When going out
         if (lunchBreak == LunchBreakTake.AlwaysGoesOut || urGen.NextDouble() < 0.488)
         {
           double min = lncStMdl[0] + lncStMdl[1] * Math.Sinh((nrGen.NextDouble() - lncStMdl[3]) / lncStMdl[2]);
@@ -353,14 +353,14 @@ namespace Popolo.Core.OccupantBehavior
           min = Math.Max(0, 60 * (Office.LunchEndHour - Office.LunchStartHour) + (Office.LunchEndMinute - Office.LunchStartMinute) - min);
           lnchComeBackTime = lnchOutGoTime.AddMinutes(min);
         }
-        //社内に留まる場合
+        //When staying in the office
         else lnchOutGoTime = lnchComeBackTime = ArriveTime;
 
-        //その他一時外出**************************************
+        //Other temporary outings******************************
         outGoTime.Clear();
         comeBackTime.Clear();
         DateTime dtNow;
-        if (spendNight) dtNow = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.StartHour, Office.StartMinute, 0); //前日泊まった執務者は定時より外出し得る
+        if (spendNight) dtNow = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.StartHour, Office.StartMinute, 0); //A worker who stayed overnight may go out from the official start time
         else dtNow = ArriveTime;
         bool goOut = urGen.NextDouble() < ((1.0 - tProbII) / (2.0 - tProbOO[group] - tProbII));
         if (goOut) outGoTime.Add(dtNow);
@@ -387,21 +387,21 @@ namespace Popolo.Core.OccupantBehavior
       /// <returns>True if the worker is currently in the office.</returns>
       public void UpdateStatus(DateTime dTime)
       {
-        //出社退社時間外の場合は不在
+        //Absent outside the arrival-to-leaving period
         if (dTime.CompareTo(ArriveTime) < 0 || 0 < dTime.CompareTo(LeaveTime))
         {
           StayInOffice = false;
           return;
         }
 
-        //昼休み滞在不在確認
+        //Check absence during the lunch break
         if (0 < dTime.CompareTo(lnchOutGoTime) && dTime.CompareTo(lnchComeBackTime) <= 0)
         {
           StayInOffice = false;
           return;
         }
 
-        //その他一時外出確認
+        //Check other temporary outings
         for (int i = 0; i < outGoTime.Count; i++)
         {
           if (0 < dTime.CompareTo(outGoTime[i]) && dTime.CompareTo(comeBackTime[i]) <= 0)
@@ -430,7 +430,7 @@ namespace Popolo.Core.OccupantBehavior
         double sum = (LeaveTime - ArriveTime).TotalMinutes;
         for (int i = 0; i < outGoTime.Count; i++)
           sum -= (comeBackTime[i] - outGoTime[i]).TotalMinutes;
-        sum -= (lnchComeBackTime - lnchOutGoTime).TotalMinutes;  //昼食時間が重複する可能性はある
+        sum -= (lnchComeBackTime - lnchOutGoTime).TotalMinutes;  //The lunch period may overlap with other outings
         return Math.Max(sum, 0);
       }
 

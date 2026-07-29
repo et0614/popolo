@@ -54,7 +54,7 @@ namespace Popolo.Samples.Demos.Webpro
   public sealed class AnnualSimulationDemo : IDemo
   {
 
-    #region IDemo 実装
+    #region IDemo implementation
 
     public string Name => "webpro-annual";
     public string Category => "Webpro";
@@ -84,7 +84,7 @@ namespace Popolo.Samples.Demos.Webpro
 
     #endregion
 
-    #region シミュレーション本体
+    #region Simulation body
 
     private static void RunSimulation(string inputPath, string outputPath)
     {
@@ -200,7 +200,7 @@ namespace Popolo.Samples.Demos.Webpro
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>Parses the WEBPRO region code string into an integer 1–8.</summary>
     private static int ParseRegionNumber(string region)

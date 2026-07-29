@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class SteamBoiler
   {
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Excess air ratio [-].</summary>
     private double airRatio = 1.1;
@@ -98,7 +98,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated operating conditions.</summary>
     /// <param name="inletWaterTemperature">Feed water inlet temperature [°C].</param>
@@ -114,7 +114,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double fuelConsumption, double electricConsumption, double ambientTemperature, double airRatio,
       Boiler.Fuel fuel, double smokeTemperature)
     {
-      //プロパティ保存
+      //Store properties
       Fuel = fuel;
       AirRatio = airRatio;
       nominalSmokeTemperature = smokeTemperature;
@@ -130,29 +130,29 @@ namespace Popolo.Core.HVAC.HeatSource
       double hw = Water.GetSaturatedLiquidEnthalpy(inletWaterTemperature);
       NominalCapacity = steamFlowRate * (hs - hw);
 
-      //熱損失係数の計算
+      //Compute the heat loss coefficient
       heatLossCoefficient = Boiler.GetHeatLossCoefficient
         (NominalCapacity, ts, AmbientTemperature, fuel, nominalSmokeTemperature, AirRatio,
         NominalFuelConsumption, AmbientTemperature);
 
-      //停止させる
+      //Shut off the boiler
       ShutOff();
     }
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the boiler state for the given feed water and steam flow rate.</summary>
     /// <param name="inletWaterTemperature">Feed water inlet temperature [°C].</param>
     /// <param name="steamFlowRate">Steam flow rate [kg/s].</param>
     public void Update(double inletWaterTemperature, double steamFlowRate)
     {
-      //入力条件保存
+      //Store input conditions
       InletWaterTemperature = inletWaterTemperature;
       SteamFlowRate = steamFlowRate;
 
-      //流量0、設定圧力 < 入口水温の飽和圧力で停止
+      //Shut off when flow rate is zero or setpoint pressure < saturation pressure at the inlet water temperature
       double pwi = Water.GetSaturationPressure(InletWaterTemperature);
       if (SteamFlowRate <= 0)
       {
@@ -160,7 +160,7 @@ namespace Popolo.Core.HVAC.HeatSource
         return;
       }
 
-      //燃料消費量を計算
+      //Compute the fuel consumption
       double ts = Water.GetSaturationTemperature(SteamPressure);
       double hs = Water.GetSaturatedVaporEnthalpy(ts);
       double hw = Water.GetSaturatedLiquidEnthalpy(inletWaterTemperature);
@@ -168,7 +168,7 @@ namespace Popolo.Core.HVAC.HeatSource
       FuelConsumption = Boiler.GetFuelConsumption(hl, ts, AmbientTemperature, Fuel,
         nominalSmokeTemperature, airRatio, heatLossCoefficient, AmbientTemperature, nominalSteamTemperature);
 
-      //過負荷の場合には上記流量を調整
+      //Adjust the steam flow rate above when overloaded
       if (NominalFuelConsumption < FuelConsumption)
       {
         FuelConsumption = NominalFuelConsumption;

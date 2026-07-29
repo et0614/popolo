@@ -28,7 +28,7 @@ namespace Popolo.Webpro.Tests.Json.EnumConverters
     /// <summary>Unit tests for <see cref="BuildingTypeJsonConverter"/>.</summary>
     public class BuildingTypeJsonConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static JsonSerializerOptions CreateOptions()
         {
@@ -137,7 +137,7 @@ namespace Popolo.Webpro.Tests.Json.EnumConverters
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_UnknownString_Throws()

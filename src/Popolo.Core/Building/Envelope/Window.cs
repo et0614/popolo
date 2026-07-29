@@ -56,7 +56,7 @@ namespace Popolo.Core.Building.Envelope
   public class Window : OpticalLayeredEnvelope, IReadOnlyWindow
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Specifies the glazing type.</summary>
     public enum GlassType
@@ -73,7 +73,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Angle-of-incidence correction coefficients for each glazing layer.</summary>
     private double[][] tau_CF = null!, tau_CB = null!, rho_CF = null!, rho_CB = null!;
@@ -165,7 +165,7 @@ namespace Popolo.Core.Building.Envelope
       set
       {
         if (value == null) return;
-        sunShade = new SunShade(value); //コピーして設定
+        sunShade = new SunShade(value); //Set a copy
         sunShade.Incline = OutsideIncline;
       }
     }
@@ -285,7 +285,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new multi-layer glazing window assembly.</summary>
     /// <param name="area">Surface area [m²].</param>
@@ -302,7 +302,7 @@ namespace Popolo.Core.Building.Envelope
       this.SunShade = SunShade.MakeEmptySunShade();
       this.OutsideIncline = outsideIncline;
       lstAlt = lstOri = -999;
-      // 窓ガラスは VerySmooth (R_f=1.00; MoWiTT 基準). 基底既定値と同じだが明示する。
+      // Window glass is VerySmooth (R_f=1.00; MoWiTT basis). Same as the base-class default, but stated explicitly.
       SetSurfaceRoughnessF(SurfaceRoughness.VerySmooth);
       SetSurfaceRoughnessB(SurfaceRoughness.VerySmooth);
 
@@ -321,9 +321,9 @@ namespace Popolo.Core.Building.Envelope
       absBDif = new double[GlazingCount * 2 + 1];
       agapRes = new double[GlazingCount * 2 + 2];
       glassRes = new double[GlazingCount];
-      glassHeatCapacity = new double[GlazingCount]; // 既定は熱容量 0 (Phase C-2 互換)
+      glassHeatCapacity = new double[GlazingCount]; // Default heat capacity is 0 (Phase C-2 compatible)
 
-      //空の日射遮蔽で初期化
+      //Initialize with an empty sun shade
       sDevices = new IShadingDevice[GlazingCount + 1];
       for (int i = 0; i < sDevices.Length; i++)
       {
@@ -334,7 +334,7 @@ namespace Popolo.Core.Building.Envelope
           opFDir[i2, 2] = opBDir[i2, 2] = opFDif[i2, 2] = opBDif[i2, 2] = 0.0;
       }
 
-      //垂直入射時の透過率と反射率を保存
+      //Store transmittance and reflectance at normal incidence
       for (int i = 0; i < GlazingCount; i++)
       {
         taurhoF[i, 0] = transmittanceF[i];
@@ -343,7 +343,7 @@ namespace Popolo.Core.Building.Envelope
         taurhoB[i, 1] = reflectanceB[i];
       }
 
-      //熱抵抗を初期化
+      //Initialize thermal resistances
       RadiativeCoefficientF = RadiativeCoefficientB = 4.5;
       ConvectiveCoefficientF = 18.5;
       ConvectiveCoefficientB = 7.5;
@@ -352,7 +352,7 @@ namespace Popolo.Core.Building.Envelope
       for (int i = 2; i < agapRes.Length - 2; i++) agapRes[i] = 0.5 * 1 / 6.7;
       for (int i = 0; i < glassRes.Length; i++) glassRes[i] = 0.006;
 
-      //行列ソルバ用配列を確保 (capS は全て 0 = 熱容量なし、resS は glass+air-gap の連鎖)
+      //Allocate arrays for the matrix solver (capS all 0 = no heat capacity; resS is the glass + air-gap chain)
       int mNum = 2 * GlazingCount;
       capS = new double[mNum];
       resS = new double[mNum + 1];
@@ -363,13 +363,13 @@ namespace Popolo.Core.Building.Envelope
       tempAndHumid = new Vector(mNum);
       uMatrix = new Matrix(mNum, mNum);
       uxMatrix = new Matrix(mNum, mNum);
-      needToUpdateUMatrix = true; //初回 Update で逆行列を構築させる
+      needToUpdateUMatrix = true; //Have the first Update build the inverse matrix
 
-      //内外表面作成
+      //Create the indoor and outdoor surfaces
       SurfaceF = new EnvelopeSurface(this, true);
       SurfaceB = new EnvelopeSurface(this, false);
 
-      //入射角特性を透明フロートガラスで初期化
+      //Initialize incident angle characteristics as clear float glass
       for (int i = 0; i < GlazingCount; i++) SetAngleDependence(i, GlassType.Transparent);
     }
 
@@ -384,7 +384,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Recomputes the window's direct-solar optical properties for the current sun position.</summary>
     /// <param name="sun">Solar state (position is read; irradiance values are not used by this method).</param>
@@ -404,7 +404,7 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public override void UpdateOpticalProperties(IReadOnlySun sun)
     {
-      //ガラス・日射遮蔽物単体の光学特性の更新処理//////////////////////////////
+      //Update optical properties of individual glass panes and shading devices//////////////////////////////
       double cos = OutsideIncline.GetDirectSolarRadiationRatio(sun);
       if (sun.Altitude <= 0)
       {
@@ -420,7 +420,7 @@ namespace Popolo.Core.Building.Envelope
         lstAlt = sun.Altitude;
         lstOri = sun.Azimuth;
 
-        //ガラスの直達日射入射角特性を反映
+        //Apply the incident angle characteristics of the glass for direct solar radiation
         if (0 < cos)
         {
           for (int i = 0; i < GlazingCount; i++)
@@ -444,12 +444,12 @@ namespace Popolo.Core.Building.Envelope
           }
         }
 
-        //日射遮蔽物のプロファイル角を更新
+        //Update the profile angle of the shading device
         double pAngle = OutsideIncline.GetProfileAngle(sun);
         for (int i = 0; i < sDevices.Length; i++) sDevices[i].ProfileAngle = pAngle;
       }
 
-      //日射遮蔽物の光学特性を更新
+      //Update the optical properties of the shading devices
       bool sPropChanged = false;
       for (int i = 0; i < sDevices.Length; i++)
       {
@@ -468,11 +468,11 @@ namespace Popolo.Core.Building.Envelope
         }
       }
 
-      //太陽位置と日射遮蔽物光学特性不変の場合は終了
+      //Exit if the solar position and shading device optical properties are unchanged
       if (!sunMoved && !sPropChanged) return;
 
-      //総合光学特性の更新処理//////////////////////////////////////////////////
-      //直達日射に関する特性を更新
+      //Update overall optical properties//////////////////////////////////////////////////
+      //Update characteristics for direct solar radiation
       if (0 < cos)
       {
         double[] bf = new double[absFDir.Length];
@@ -490,7 +490,7 @@ namespace Popolo.Core.Building.Envelope
         DirectSolarIncidentAbsorptance = 0;
       }
 
-      //遮蔽物光学特性特性変化時には拡散日射に関する特性を更新
+      //Update characteristics for diffuse solar radiation when shading device optical properties change
       if (sPropChanged) UpdateDiffuseTotalProperties();
     }
 
@@ -664,17 +664,18 @@ namespace Popolo.Core.Building.Envelope
     {
       Climate.IReadOnlyIncline inc = OutsideIncline;
       double dir = inc.GetDirectSolarIrradiance(sun) * (1 - SunShade.GetDirectShadingRate(sun, inc));
-      // 拡散日射: 天空成分のみ SunShade で一律係数で減衰させ、地面反射は不変。
+      // Diffuse solar radiation: only the sky component is attenuated by a uniform SunShade factor; ground reflection is unchanged.
       //
-      // Note: Perez (1990) 異方性モデルでは sky diffuse は
-      //   ① isotropic dome
-      //   ② circumsolar (太陽近傍に集中)
-      //   ③ horizon brightening (地平線近傍)
-      // の 3 成分から成る。一律係数 (sky view factor 比) で全 sky diffuse に
-      // 掛ける現在の方式は ① には適切だが、② (太陽方向依存・遮蔽は二値的) と
-      // ③ (地平線高度に集中・庇では物理的に遮蔽されない) には不適切。
-      // 理論的に厳密化するには Perez 3 成分を分解し個別に減衰させる必要があるが、
-      // 現状は近似として全成分一律で扱う (TODO: Perez 分解の実装)。
+      // Note: in the Perez (1990) anisotropic model, sky diffuse consists of
+      //   (1) isotropic dome
+      //   (2) circumsolar (concentrated near the sun)
+      //   (3) horizon brightening (near the horizon)
+      // — three components. The current approach of applying a uniform factor
+      // (sky view factor ratio) to all sky diffuse is appropriate for (1), but not
+      // for (2) (sun-direction dependent; shading is binary) or (3) (concentrated
+      // at horizon altitude; not physically shaded by an overhang).
+      // A theoretically rigorous treatment would decompose the three Perez components and attenuate them individually,
+      // but for now all components are treated uniformly as an approximation (TODO: implement Perez decomposition).
       double diffuseTotal = inc.GetDiffuseSolarIrradiance(sun, albedo);
       double groundReflected = albedo * inc.ConfigurationFactorToGround
                              * sun.GlobalHorizontalRadiation;
@@ -683,11 +684,11 @@ namespace Popolo.Core.Building.Envelope
       double skyShadingRate = SunShade.GetSkyDiffuseShadingRate(inc);
       double dif = skyDiffuse * (1.0 - skyShadingRate) + groundReflected;
 
-      // 各層の吸収日射 [W/m²] を per-node 体積熱源として行列ソルバに供給。
-      // absFDir / absFDif は 2N+1 長 (層境界毎、奇数 index = ガラス層中央、
-      // 偶数 index = エアギャップ / シェーディング位置)。
-      // 各 absorption 位置 i の吸収量を、その両隣の節点に半分ずつ分配する
-      // (端は片側のみ)。これによりガラス層・遮蔽位置の双方を統一的に扱う。
+      // Feed the absorbed solar radiation of each layer [W/m²] to the matrix solver as per-node volumetric heat sources.
+      // absFDir / absFDif have length 2N+1 (per layer boundary; odd index = glass layer center,
+      // even index = air gap / shading position).
+      // The absorption at each position i is split half-and-half between its two neighboring nodes
+      // (only one side at the ends). This treats glass layers and shading positions uniformly.
       Array.Clear(solarAbsorption, 0, solarAbsorption.Length);
       int positions = absFDir.Length; // = 2N+1
       int last = positions - 1;
@@ -697,25 +698,25 @@ namespace Popolo.Core.Building.Envelope
         if (q == 0) continue;
         if (i == 0)
         {
-          // 屋外側端の吸収 (例: 屋外側 ShadingDevice)。屋外面節点 (0) に集約。
+          // Absorption at the outdoor end (e.g., outdoor-side ShadingDevice). Lumped into the outdoor surface node (0).
           solarAbsorption[0] += q;
         }
         else if (i == last)
         {
-          // 室内側端の吸収。室内面節点 (mNum-1) に集約。
+          // Absorption at the indoor end. Lumped into the indoor surface node (mNum-1).
           solarAbsorption[NodeCount - 1] += q;
         }
         else
         {
-          // 中間位置: 両隣の節点に半分ずつ。
+          // Intermediate position: half to each neighboring node.
           solarAbsorption[i - 1] += 0.5 * q;
           solarAbsorption[i] += 0.5 * q;
         }
       }
 
-      // 室内側に到達する短波長は matrix が ガラス層温度を介して扱うため、
-      // 表面で吸収する成分 (InsideAbsorbedFlux) は 0 とする。
-      // 透過分は従来通り室内面間で再分配される。
+      // Short-wave radiation reaching the indoor side is handled by the matrix via the glass layer temperatures,
+      // so the component absorbed at the surface (InsideAbsorbedFlux) is set to 0.
+      // The transmitted portion is redistributed among the indoor surfaces as before.
       double transmittedDirect = dir * DirectSolarIncidentTransmittance * Area;
       double transmittedDiffuse = dif * DiffuseSolarIncidentTransmittance * Area;
       return new ShortWaveEmission(0.0, transmittedDirect, transmittedDiffuse);
@@ -812,9 +813,9 @@ namespace Popolo.Core.Building.Envelope
     {
       int N = GlazingCount;
 
-      // capS: 各ガラス層の熱容量を、その層の F・B 表面節点 (Wall 規約と同じ
-      // <c>HeatCapacity_F</c> / <c>HeatCapacity_B</c> の半分ずつ) に分配。
-      // エアギャップは熱容量 0 として扱う (実物理でも気層の熱容量は無視可能)。
+      // capS: distribute each glass layer's heat capacity to its F and B surface nodes
+      // (half each, as <c>HeatCapacity_F</c> / <c>HeatCapacity_B</c> in the Wall convention).
+      // Air gaps are treated as having zero heat capacity (physically negligible for an air layer as well).
       Array.Clear(capS, 0, capS.Length);
       for (int k = 0; k < N; k++)
       {
@@ -889,7 +890,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region モデル設定関連の処理
+    #region Model configuration methods
 
     /// <summary>Installs an interior shading device at a specific slot in the glazing stack.</summary>
     /// <param name="number">Slot index: 0 = outdoor air gap, <c>GlazingCount</c> = indoor air gap; intermediate values are gaps between glazing layers.</param>
@@ -1046,7 +1047,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 入射角特性関連の処理
+    #region Incident angle characteristic methods
 
     /// <summary>Supplies custom angle-of-incidence polynomial coefficients for a glazing layer.</summary>
     /// <param name="layerIndex">Glazing layer index.</param>
@@ -1073,7 +1074,7 @@ namespace Popolo.Core.Building.Envelope
       rho_CF[ln] = coefRF;
       rho_CB[ln] = coefRB;
 
-      //拡散日射の規準化透過率と規準化反射率の計算
+      //Compute the normalized transmittance and normalized reflectance for diffuse solar radiation
       double difCTF = 0;
       double difCTB = 0;
       double difCRF = 0;
@@ -1090,15 +1091,15 @@ namespace Popolo.Core.Building.Envelope
       difCRF *= 2;
       difCRB *= 2;
 
-      // 拡散日射の透過率・反射率の解析積分による hemisphere 値計算。
-      // 多項式の正規化が T と R で異なる:
-      //   P_T(cos) = T(θ) / T_normal             (T は比)
+      // Compute hemisphere values of the diffuse transmittance and reflectance by analytical integration.
+      // The polynomial normalization differs between T and R:
+      //   P_T(cos) = T(θ) / T_normal             (T is a ratio)
       //     ⇒ difCTF = ∫ P_T · 2 sin θ cos θ dθ = T_hemis / T_normal
       //     ⇒ T_hemis = difCTF × T_normal                                 (line below)
-      //   P_R(cos) = (1 − R(θ)) / (1 − R_normal)  (R は (1−R) の比)
+      //   P_R(cos) = (1 − R(θ)) / (1 − R_normal)  (R is a ratio of (1−R))
       //     ⇒ difCRF = ∫ P_R · 2 sin θ cos θ dθ = (1 − R_hemis) / (1 − R_normal)
       //     ⇒ R_hemis = 1 − (1 − R_normal) × difCRF                       (line below)
-      // (直達側 line 444 の P_R → R(θ) 復元と同じ式構造で対称)
+      // (Symmetric with the same equation structure as the P_R → R(θ) recovery on the direct side, line 444)
       opFDif[2 * ln + 1, 0] = difCTF * taurhoF[ln, 0];
       opFDif[2 * ln + 1, 1] = 1 - (1 - taurhoF[ln, 1]) * difCRF;
       opFDif[2 * ln + 1, 2] = 1 - (opFDif[2 * ln + 1, 0] + opFDif[2 * ln + 1, 1]);
@@ -1106,7 +1107,7 @@ namespace Popolo.Core.Building.Envelope
       opBDif[2 * ln + 1, 1] = 1 - (1 - taurhoB[ln, 1]) * difCRB;
       opBDif[2 * ln + 1, 2] = 1 - (opBDif[2 * ln + 1, 0] + opBDif[2 * ln + 1, 1]);
 
-      //拡散日射に関する総合特性を更新
+      //Update overall characteristics for diffuse solar radiation
       UpdateDiffuseTotalProperties();
     }
 

@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class HotWaterAbsorptionChiller
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Desorption temperature approach between hot water and solution [°C].</summary>
     private const double DESORB_TEMPERATURE_APPROACH = 2;
@@ -36,7 +36,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Evaporator overall heat transfer conductance [kW/K].</summary>
     private double evaporatorKA;
@@ -144,7 +144,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated operating conditions.</summary>
     /// <param name="chilledWaterInletTemperature">Chilled water inlet temperature [°C].</param>
@@ -161,7 +161,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double coolingWaterInletTemperature, double coolingWaterOutletTemperature, double coolingWaterFlowRate,
       double hotWaterInletTemperature, double hotWaterOutletTemperature, double hotWaterFlowRate)
     {
-      //伝熱係数を計算
+      //Compute the heat transfer coefficients
       double dsvHL;
       AbsorptionRefrigerationCycle.GetHeatTransferCoefficients
         (chilledWaterInletTemperature, chilledWaterOutletTemperature, chilledWaterFlowRate,
@@ -169,7 +169,7 @@ namespace Popolo.Core.HVAC.HeatSource
         hotWaterInletTemperature, hotWaterFlowRate, DESORB_TEMPERATURE_APPROACH, out evaporatorKA,
         out condenserKA, out desorborKA, out solutionHexKA, out nominalSolutionFlowRate, out dsvHL);
 
-      //熱損失率[-]を計算    
+      //Compute the heat loss rate [-]
       double qHW = (hotWaterInletTemperature - hotWaterOutletTemperature) * hotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       heatLossRate = (qHW - dsvHL) / qHW;
 
@@ -183,13 +183,13 @@ namespace Popolo.Core.HVAC.HeatSource
       this.NominalCapacity = (chilledWaterInletTemperature - chilledWaterOutletTemperature)
         * chilledWaterFlowRate * (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat);
 
-      //機器を停止
+      //Shut off the unit
       ShutOff();
     }
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the chiller state for the given inlet conditions.</summary>
     /// <param name="chilledWaterInletTemperature">Chilled water inlet temperature [°C].</param>
@@ -202,7 +202,7 @@ namespace Popolo.Core.HVAC.HeatSource
       (double chilledWaterInletTemperature, double chilledWaterFlowRate, double coolingWaterInletTemperature,
       double coolingWaterFlowRate, double hotWaterInletTemperature, double hotWaterFlowRate)
     {
-      //状態値を保存
+      //Store state values
       this.ChilledWaterInletTemperature = chilledWaterInletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.HotWaterInletTemperature = hotWaterInletTemperature;
@@ -215,17 +215,17 @@ namespace Popolo.Core.HVAC.HeatSource
       double rht = hotWaterFlowRate / NominalHotWaterFlowRate;
       this.HotWaterFlowRate = Math.Max(HotWaterMinFlowRatio, Math.Min(1, rht)) * NominalHotWaterFlowRate;
 
-      //冷却運転
+      //Cooling operation
       if (ChilledWaterOutletSetpointTemperature < chilledWaterInletTemperature)
       {
         double cho, cdo, ho;
-        //成り行きの出口状態を計算
+        //Compute the uncontrolled outlet state
         AbsorptionRefrigerationCycle.GetOutletTemperatures
           (ChilledWaterInletTemperature, ChilledWaterFlowRate, CoolingWaterInletTemperature,
           CoolingWaterFlowRate, HotWaterInletTemperature, HotWaterFlowRate, evaporatorKA, condenserKA,
           desorborKA, solutionHexKA, nominalSolutionFlowRate, out cho, out cdo, out ho);
 
-        //処理可能の場合
+        //Load can be handled
         if (cho < ChilledWaterOutletSetpointTemperature)
         {
           cho = ChilledWaterOutletSetpointTemperature;
@@ -235,15 +235,15 @@ namespace Popolo.Core.HVAC.HeatSource
             desorborKA, solutionHexKA, nominalSolutionFlowRate, cho, out cdo, out ho);
         }
 
-        //出口状態設定
+        //Set outlet state
         ChilledWaterOutletTemperature = cho;
         CoolingWaterOutletTemperature = cdo;
         HotWaterOutletTemperature = (ho - heatLossRate * HotWaterInletTemperature) / (1 - heatLossRate);
-        //処理熱量計算
+        //Compute the processed heat
         CoolingLoad = (ChilledWaterInletTemperature - ChilledWaterOutletTemperature)
           * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       }
-      //運転停止
+      //Shut off the unit
       else ShutOff();
     }
 

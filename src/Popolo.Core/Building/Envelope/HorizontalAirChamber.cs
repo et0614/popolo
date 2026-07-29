@@ -37,7 +37,7 @@ namespace Popolo.Core.Building.Envelope
   public class HorizontalAirChamber : WallLayer
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Temperature difference threshold [K] below which properties are not recalculated.</summary>
     private const double RECALC_TMP = 0.1;
@@ -47,7 +47,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Surface temperatures [°C] at the last property update.</summary>
     private double lstUpTmp, lstDwnTmp;
@@ -66,7 +66,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with specified geometry and surface emissivities.</summary>
     /// <param name="name">Layer name.</param>
@@ -102,38 +102,38 @@ namespace Popolo.Core.Building.Envelope
     /// <returns>True if properties were updated; otherwise false.</returns>
     public override bool UpdateState(double temperatureF, double temperatureB)
     {
-      const double RAY_LMT = 1708;  //限界レイリー数
+      const double RAY_LMT = 1708;  //Critical Rayleigh number
 
-      //前回の物性計算時と温度差がRECALC_TMP未満ならば更新しない（計算速度確保のため）
+      //Skip the update if the temperature change since the last property calculation is below RECALC_TMP (for computational speed)
       if (Math.Abs(temperatureF - lstUpTmp) < RECALC_TMP && Math.Abs(temperatureB - lstDwnTmp) < RECALC_TMP)
         return false;
       lstUpTmp = temperatureF;
       lstDwnTmp = temperatureB;
 
-      //平均空気温度
+      //Mean air temperature
       double aveTemp = 0.5 * (temperatureF + temperatureB);
       ThermalConductivity = MoistAir.GetThermalConductivity(aveTemp);
-      RadiativeHeatTransferCoefficient = 4 * UpperEmissivity * LowerEmissivity * Math.Pow(PhysicsConstants.ToKelvin(aveTemp), 3) * PhysicsConstants.StefanBoltzmannConstant;  //放射熱伝達の線形近似式
+      RadiativeHeatTransferCoefficient = 4 * UpperEmissivity * LowerEmissivity * Math.Pow(PhysicsConstants.ToKelvin(aveTemp), 3) * PhysicsConstants.StefanBoltzmannConstant;  //Linearized approximation of radiative heat transfer
 
-      //温度が逆転している場合には対流が生じない
+      //No convection occurs when the temperature gradient is inverted
       if (temperatureB <= temperatureF)
         ConvectiveHeatTransferCoefficient = ThermalConductivity / Thickness;
       else
       {
-        //無次元数の計算        
-        double nu = MoistAir.GetDynamicViscosity(aveTemp, HUMIDITY_RATIO, PhysicsConstants.StandardAtmosphericPressure); //動粘性係数[m2/s]
-        double alpha = MoistAir.GetThermalDiffusivity(aveTemp, HUMIDITY_RATIO, PhysicsConstants.StandardAtmosphericPressure);  //熱拡散係数[m2/s]
-        double plandtl = nu / alpha;  //プラントル数[-]
-        double beta = MoistAir.GetExpansionCoefficient(aveTemp);  //体積膨張率[1/K]
-        double grashof = 9.8 * Math.Pow(Thickness, 3) * beta * (temperatureB - temperatureF) / Math.Pow(nu, 2);  //グラスホフ数[-]
-        double rayleigh = plandtl * grashof;  //レイリー数[-]
+        //Compute dimensionless numbers
+        double nu = MoistAir.GetDynamicViscosity(aveTemp, HUMIDITY_RATIO, PhysicsConstants.StandardAtmosphericPressure); //Kinematic viscosity [m2/s]
+        double alpha = MoistAir.GetThermalDiffusivity(aveTemp, HUMIDITY_RATIO, PhysicsConstants.StandardAtmosphericPressure);  //Thermal diffusivity [m2/s]
+        double plandtl = nu / alpha;  //Prandtl number [-]
+        double beta = MoistAir.GetExpansionCoefficient(aveTemp);  //Volumetric expansion coefficient [1/K]
+        double grashof = 9.8 * Math.Pow(Thickness, 3) * beta * (temperatureB - temperatureF) / Math.Pow(nu, 2);  //Grashof number [-]
+        double rayleigh = plandtl * grashof;  //Rayleigh number [-]
 
-        //対流が生じない場合
+        //Case without convection
         if (rayleigh < RAY_LMT)
           ConvectiveHeatTransferCoefficient = ThermalConductivity / Thickness;
         else
         {
-          //平均ヌセルト数から熱伝達率[W/m2K]を計算
+          //Compute the heat transfer coefficient [W/m2K] from the mean Nusselt number
           double fpr = Math.Pow(1 + Math.Pow(0.5 / plandtl, 9d / 16d), -16d / 9d);
           double nud = Math.Pow(Math.Pow(1d + 1.466 * (1.0 - RAY_LMT / rayleigh), 15) + Math.Pow(rayleigh * fpr / 1420d, 5), 1d / 15d);
           ConvectiveHeatTransferCoefficient = nud * ThermalConductivity / Thickness;

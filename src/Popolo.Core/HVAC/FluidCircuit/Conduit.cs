@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public static class Conduit
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Pipe material type.</summary>
     public enum Material
@@ -53,7 +53,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 等価直径関連の処理
+    #region Equivalent diameter methods
 
     /// <summary>Computes the equivalent diameter [m].</summary>
     /// <param name="flowArea">Flow cross-sectional area [m²].</param>
@@ -89,7 +89,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region ダルシーワイスバッハ式関連の処理
+    #region Darcy-Weisbach equation methods
 
     /// <summary>Computes the pressure drop [Pa] using the Darcy-Weisbach equation.</summary>
     /// <param name="frictionFactor">Darcy-Weisbach friction factor [-].</param>
@@ -119,7 +119,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 管摩擦係数関連の処理
+    #region Pipe friction factor methods
 
     /// <summary>Gets the surface roughness of the material [m].</summary>
     /// <param name="mat">Material.</param>
@@ -156,11 +156,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <returns>Darcy-Weisbach friction factor [-].</returns>
     public static double GetFrictionFactor(double reynoldsNumber, double relRoughness)
     {
-      //層流の場合はレイノルズ数のみに依存
+      //For laminar flow, depends only on the Reynolds number
       if (reynoldsNumber < 4000) return 64d / reynoldsNumber;
       else
       {
-        //遷移領域と仮定してCole brookの式を解く
+        //Assume the transition region and solve the Colebrook equation
         Roots.ErrorFunction eFnc = delegate (double fc)
         {
           double fcc = -2.0 * Math.Log10(relRoughness + 9.34 / (reynoldsNumber * Math.Sqrt(fc))) + 1.14;
@@ -171,7 +171,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         if (bnd <= 200) return fCoef;
         else
         {
-          //完全に粗い場合（fully rough）にはNikuradseの式を解く
+          //For the fully rough regime, solve the Nikuradse equation
           fCoef = -2.0 * Math.Log10(relRoughness) + 1.14;
           return 1d / (fCoef * fCoef);
         }

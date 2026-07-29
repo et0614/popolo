@@ -29,7 +29,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class ParallelFluidMachines: ICircuitBranch
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>List of fluid machines.</summary>
     private List<FluidMachinery> allFlds = new List<FluidMachinery>();
@@ -74,7 +74,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Static constructor.</summary>
     /// <param name="maxStageCount">Number of control stages.</param>
@@ -94,7 +94,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Passes fluid through the branch.</summary>
     /// <param name="flowRate">Flow rate [m³/s].</param>
@@ -102,7 +102,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <returns>True if fluid can flow through the branch.</returns>
     public bool TryToRunFluid(double flowRate, double pressure)
     {
-      //一旦、全台停止
+      //Shut off all units first
       foreach (FluidMachinery fm in allFlds) fm.ShutOff();
       pressure = Math.Max(MinPressure, pressure);
 
@@ -126,8 +126,8 @@ namespace Popolo.Core.HVAC.FluidCircuit
             }
             return VolumetricFlowRate - flowRate;
           };
-          //収束計算//0.0001の加算は解がある側へシフトさせる保険
-          //PQ特性切片付近の極微小流量で差圧不足となる場合があるため
+          //Iterative solution//Adding 0.0001 is a safeguard to shift toward the side where a solution exists,
+          //because the differential pressure can be insufficient at very small flow rates near the PQ characteristic intercept
           RotationRatio = Roots.NewtonBisection(eFnc, 1.0, 0.0001, 0.0001, 0.0001, 20);
           RotationRatio = Math.Max(0.0001 + RotationRatio, MinRotationRatio);
           BypassFlowRate = eFnc(RotationRatio);
@@ -168,7 +168,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region ICircuitBranch実装
+    #region ICircuitBranch implementation
 
     /// <summary>Gets or sets the flow rate [m³/s].</summary>
     public double VolumetricFlowRate { get; set; }

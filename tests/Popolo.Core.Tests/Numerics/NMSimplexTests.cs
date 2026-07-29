@@ -36,7 +36,7 @@ namespace Popolo.Core.Tests.Numerics
     private static readonly NelderMeadSimplex.OptimizeFunction RosenbrockFunction =
         x => 100 * Math.Pow(x[1] - x[0] * x[0], 2) + Math.Pow(1 - x[0], 2);
 
-    #region GetSolution（制約なし）のテスト
+    #region GetSolution (unconstrained) tests
 
     /// <summary>2次関数の最小点が原点になる</summary>
     [Fact]
@@ -107,7 +107,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region GetSolution（制約付き）のテスト
+    #region GetSolution (constrained) tests
 
     /// <summary>制約付きで円上の最小点を探索できる</summary>
     [Fact]

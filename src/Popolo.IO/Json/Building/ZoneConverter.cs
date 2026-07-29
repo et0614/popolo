@@ -99,7 +99,7 @@ namespace Popolo.IO.Json.Building
   public sealed class ZoneConverter : JsonConverter<Zone>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropName = "name";
@@ -112,18 +112,18 @@ namespace Popolo.IO.Json.Building
     private const string PropWalls = "walls";
     private const string PropWindows = "windows";
 
-    // capacities 内のキー
+    // Keys inside capacities
     private const string PropHeating = "heating";
     private const string PropCooling = "cooling";
     private const string PropHumidifying = "humidifying";
     private const string PropDehumidifying = "dehumidifying";
 
-    // baseHeatGain 内のキー
+    // Keys inside baseHeatGain
     private const string PropConvectiveHeatGain = "convectiveHeatGain";
     private const string PropRadiativeHeatGain = "radiativeHeatGain";
     private const string PropMoistureGain = "moistureGain";
 
-    // walls 内のキー
+    // Keys inside walls
     private const string PropWallId = "wallId";
     private const string PropSideF = "sideF";
 
@@ -131,7 +131,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region 内部型
+    #region Internal types
 
     private readonly struct Capacities
     {
@@ -164,7 +164,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="Zone"/> from JSON.</summary>
     public override Zone Read(
@@ -240,8 +240,8 @@ namespace Popolo.IO.Json.Building
           baseHeatGain.Value.MoistureGain);
       }
 
-      // 壁参照と windows を side-band コンテキストに保管。
-      // MultiRoomsConverter がこれを拾って MultiRooms 側で結合を行う。
+      // Store the wall references and windows in a side-band context.
+      // MultiRoomsConverter picks this up and performs the connection on the MultiRooms side.
       ZoneDeserializationContext.Attach(zone,
         new ZoneDeserializationContext(wallRefs, windows));
 
@@ -278,7 +278,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region capacities の読み書き
+    #region Reading and writing capacities
 
     private static Capacities ReadCapacities(ref Utf8JsonReader reader)
     {
@@ -335,7 +335,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region baseHeatGain の読み書き
+    #region Reading and writing baseHeatGain
 
     private static HeatGainValues ReadBaseHeatGain(ref Utf8JsonReader reader)
     {
@@ -386,7 +386,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region walls 参照配列の読み書き
+    #region Reading and writing the walls reference array
 
     private static List<WallSurfaceReference> ReadWallReferences(ref Utf8JsonReader reader)
     {
@@ -446,7 +446,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region windows の読み書き
+    #region Reading and writing windows
 
     private static List<Window> ReadWindows(
       ref Utf8JsonReader reader, JsonSerializerOptions options)

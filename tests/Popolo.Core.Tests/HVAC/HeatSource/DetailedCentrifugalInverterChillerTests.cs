@@ -30,7 +30,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class DetailedCentrifugalInverterChillerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 標準的な詳細インバータターボ冷凍機を生成する（デフォルトパラメータ）。
@@ -54,7 +54,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>NominalCapacity が正。</summary>
         [Fact]
@@ -93,7 +93,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region Update — 通常冷却運転
+        #region Update — normal cooling operation
 
         /// <summary>冷却負荷が正。</summary>
         [Fact]
@@ -190,7 +190,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region カスタムパラメータ
+        #region Custom parameters
 
         /// <summary>
         /// カスタム Parameters を渡したコンストラクタが正常に動作する。

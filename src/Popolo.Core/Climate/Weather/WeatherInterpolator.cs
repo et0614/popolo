@@ -57,7 +57,7 @@ namespace Popolo.Core.Climate.Weather
   public class WeatherInterpolator
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     private readonly IReadOnlyWeatherData _data;
 
@@ -79,7 +79,7 @@ namespace Popolo.Core.Climate.Weather
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes an interpolator over the specified dataset using the
@@ -122,7 +122,7 @@ namespace Popolo.Core.Climate.Weather
         throw new PopoloArgumentException(
             "data must contain at least one record.", nameof(data));
 
-      // 時刻昇順の検証
+      // Verify ascending time order
       var records = data.Records;
       for (int i = 1; i < records.Count; i++)
       {
@@ -171,7 +171,7 @@ namespace Popolo.Core.Climate.Weather
           ? s
           : DefaultStrategyFor(field);
 
-      // 当該フィールドが記録されているレコードだけを抽出
+      // Extract only the records in which this field is recorded
       var records = data.Records;
       var times = new List<DateTime>(records.Count);
       var values = new List<double>(records.Count);
@@ -219,7 +219,7 @@ namespace Popolo.Core.Climate.Weather
 
     #endregion
 
-    #region インスタンスメソッド(フィールド別クエリ)
+    #region Instance methods (per-field queries)
 
     /// <summary>
     /// Interpolates the dry-bulb temperature [°C] at the specified time.
@@ -282,7 +282,7 @@ namespace Popolo.Core.Climate.Weather
 
     #endregion
 
-    #region 内部補助クラス
+    #region Internal helper classes
 
     /// <summary>
     /// Bundle of the date-time array, value array, and interpolation strategy for a single field.
@@ -318,10 +318,10 @@ namespace Popolo.Core.Climate.Weather
               $"Cannot interpolate field '{_field}': no recorded values in dataset.");
         }
 
-        // 単一観測点しかない場合は、常にその値を返す
+        // With only a single data point, always return that value
         if (_times.Length == 1) return _values[0];
 
-        // 範囲外クランプ
+        // Clamp outside the covered range
         if (time <= _times[0]) return _values[0];
         if (time >= _times[_times.Length - 1]) return _values[_values.Length - 1];
 
@@ -374,11 +374,11 @@ namespace Popolo.Core.Climate.Weather
         int pos = Array.BinarySearch(_times, time);
         if (pos >= 0)
         {
-          // 完全一致。後続の区間補間を avoid するため、末尾でない場合はそのまま返す。
+          // Exact match. Return it as-is when not the last element, so the following interval interpolation stays valid.
           return pos < _times.Length - 1 ? pos : pos - 1;
         }
         int insert = ~pos;
-        // insert は time を挿入すべき位置。insert-1 が下限インデックス。
+        // insert is the position where time would be inserted; insert-1 is the lower index.
         return insert - 1;
       }
     }

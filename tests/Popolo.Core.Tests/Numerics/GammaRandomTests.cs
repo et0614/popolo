@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class GammaRandomTests
     {
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>α・βが正しく保持される</summary>
         [Fact]
@@ -72,7 +72,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region NextDouble のテスト
+        #region NextDouble tests
 
         /// <summary>生成される値は常に正</summary>
         [Theory]

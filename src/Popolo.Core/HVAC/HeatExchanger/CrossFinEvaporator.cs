@@ -30,7 +30,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class CrossFinEvaporator : IReadOnlyCrossFinEvaporator
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     /// <summary>Latent heat of sublimation of ice [kJ/kg].</summary>
@@ -58,7 +58,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region プロパティ
+    #region Properties
     
     /// <summary>Relative humidity threshold at the dry/wet boundary [%].</summary>
     private double borderRelativeHumidity;
@@ -117,7 +117,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated operating conditions.</summary>
     /// <param name="evpTemperature">Evaporating temperature [°C].</param>
@@ -129,7 +129,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public CrossFinEvaporator(double evpTemperature, double heatTransfer, double airFlowRate,
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
     {
-      //プロパティ初期化
+      //Initialize properties
       NominalAirFlowRate = airFlowRate;
       AirFlowRate = airFlowRate;
       BorderRelativeHumidity = borderRelativeHumidity;
@@ -137,7 +137,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       InletAirHumidityRatio = inletAirHumidityRatio;
       ShutOff();
 
-      //伝熱面積を初期化する
+      //Initialize the heat transfer surface area
       SurfaceArea = GetSurfaceArea(evpTemperature, heatTransfer, airFlowRate, airFlowRate,
         inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity);
     }
@@ -158,36 +158,36 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double epsilon;
       double kD = CF_A * Math.Pow(airFlowRate / nominalAirFlowRate, CF_B);
 
-      //乾湿境界判定
+      //Determine the dry/wet boundary
       double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
 
-      //湿り空気比熱の計算
+      //Compute the moist air specific heat
       double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
 
-      //乾きコイル面積の計算
+      //Compute the dry coil area
       double mca = cpmaWB * airFlowRate;
       double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
         (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double qD = (inletAirTemperature - tWB) * mca;
 
-      //乾きコイルで伝熱が終了する場合
+      //If heat transfer completes within the dry coil
       if (heatTransfer < qD)
       {
         epsilon = heatTransfer / (mca * (inletAirTemperature - evpTemperature));
         return -Math.Log(1 - epsilon) * mca / kD;
       }
-      //湿りコイルまで到達する場合
+      //If heat transfer extends into the wet coil
       epsilon = qD / (mca * (inletAirTemperature - evpTemperature));
       double sD = -Math.Log(1 - epsilon) * mca / kD;
 
       double qW, sW, xFB, tFB, cpmaFB;
-      //湿りコイルがある場合
+      //If a wet coil section exists
       if (0 < tWB)
       {
         tFB = 0;
-        //湿りコイル面積の計算
+        //Compute the wet coil area
         xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
@@ -200,13 +200,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
         qW = (hWB - hFB) * airFlowRate;
         double kW = kD / (0.5 * (cpmaWB + cpmaFB));
 
-        //湿りコイルで伝熱が終了する場合
+        //If heat transfer completes within the wet coil
         if (heatTransfer - qD < qW)
         {
           epsilon = (heatTransfer - qD) / (airFlowRate * (hWB - hEvp));
           return -Math.Log(1 - epsilon) * airFlowRate / kW + sD;
         }
-        //着霜コイルまで到達する場合
+        //If heat transfer extends into the frosted coil
         epsilon = qW / (airFlowRate * (hWB - hEvp));
         sW = -Math.Log(1 - epsilon) * airFlowRate / kW;
       }
@@ -220,7 +220,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         sW = 0;
       }
 
-      //着霜コイル面積の計算
+      //Compute the frosted coil area
       double kF = kD / cpmaFB * F_PENALTY;
       double hdF = GetHD(tFB, borderRelativeHumidity);
       double hdEvp = GetHD(evpTemperature, 100);
@@ -261,7 +261,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 交換熱量計算処理
+    #region Heat exchange calculation methods
 
     /// <summary>Computes the heat transfer rate [kW] (positive = cooling, negative = heating).</summary>
     /// <param name="evpTemperature">Evaporating temperature [°C].</param>
@@ -272,13 +272,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double GetHeatTransfer
       (double evpTemperature, double airFlowRate, double inletAirTemperature, double inletAirHumidityRatio)
     {
-      //プロパティ設定
+      //Set properties
       EvaporatingTemperature = evpTemperature;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
 
-      //運転判定
+      //Determine whether the unit operates
       if (airFlowRate <= 0 || inletAirTemperature <= evpTemperature)
       {
         ShutOff();
@@ -317,22 +317,22 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double sD, out double sW, out double defrostLoad)
     {
-      //乾きコイルの熱通過率[kW/m2K]
+      //Overall heat transfer coefficient of the dry coil [kW/m2K]
       double kD = CF_A * Math.Pow(airFlowRate / nominalAirFlowRate, CF_B);
 
-      //乾湿境界判定
+      //Determine the dry/wet boundary
       double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
       double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
         (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-      //湿り空気比熱[kJ/kgK]の計算
+      //Compute the moist air specific heat [kJ/kgK]
       double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpmaWB * airFlowRate;
 
-      //乾きコイルの計算
-      //露点まで冷却するために必要な面積を計算
+      //Dry coil calculation
+      //Compute the area required to cool the air to the dew point
       double qD = mca * (inletAirTemperature - tWB);
       double epsilonD = qD / (mca * (inletAirTemperature - evpTemperature));
       if (epsilonD < 1) sD = -Math.Log(1 - epsilonD) * mca / kD;
@@ -342,7 +342,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double hEvp = 
         MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity(evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
-      //乾きコイルのみで伝熱が終了する場合
+      //If heat transfer completes within the dry coil only
       if (surfaceArea <= sD || 1 <= epsilonD || hWB < hEvp)
       {
         sD = surfaceArea;
@@ -357,7 +357,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return;
       }
 
-      //湿りコイルがある場合
+      //If a wet coil section exists
       double tFB, qW, xFB, cpmaFB;
       if (0 < tWB)
       {
@@ -366,7 +366,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
 
-        //凝固点（0C）まで冷却するために必要な面積を計算
+        //Compute the area required to cool the air to the freezing point (0C)
         double hFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
@@ -376,7 +376,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         if (epsilonW < 1) sW = -Math.Log(1 - epsilonW) * airFlowRate / kW;
         else sW = surfaceArea - sD;
 
-        //湿りコイルで伝熱が終了する場合
+        //If heat transfer completes within the wet coil
         if (surfaceArea <= sW + sD || 1 <= epsilonW)
         {
           sW = surfaceArea - sD;
@@ -403,7 +403,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
       }
 
-      //着霜コイルの計算
+      //Frosted coil calculation
       double kF = kD / cpmaFB * F_PENALTY;
       double hdFB = GetHD(tFB, borderRelativeHumidity);
       double hdEvp = GetHD(evpTemperature, 100);
@@ -412,7 +412,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double qF = epsilonF * airFlowRate * (hdFB - hdEvp);
       double hdo = hdFB - qF / airFlowRate;
 
-      //出口空気温度を収束計算
+      //Iterate to find the outlet air temperature
       double to = tFB;
       double err1 = Math.Abs(GetHD(to, borderRelativeHumidity) - hdo);
       const double DELTA = 0.001;
@@ -426,17 +426,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
       outletAirHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
         (outletAirTemperature, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-      //除霜負荷を計算
+      //Compute the defrost load
       defrostLoad = airFlowRate * (xFB - outletAirHumidityRatio) 
         * (SUBLIMINATION_LATENT_HEAT - ICE_ISOBARIC_SPECIFIC_HEAT * outletAirTemperature);
 
-      //交換熱量[kW]を集計
+      //Sum up the heat transfer [kW]
       heatTransfer = qD + qW + qF;
     }
 
     #endregion
 
-    #region 蒸発温度計算処理
+    #region Evaporating temperature calculation methods
 
     /// <summary>Computes the evaporating temperature [°C] from the given air and heat conditions.</summary>
     /// <param name="heatTransfer">Heat transfer rate [kW].</param>
@@ -448,13 +448,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double GetEvaporatingTemperature(double heatTransfer, double airFlowRate, 
       double inletAirTemperature, double inletAirHumidityRatio, bool deductDefrostLoad)
     {
-      //プロパティ設定
+      //Set properties
       HeatTransfer = heatTransfer;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
 
-      //運転判定
+      //Determine whether the unit operates
       if (airFlowRate <= 0 || heatTransfer <= 0)
       {
         ShutOff();
@@ -495,7 +495,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       bool deductDefrostLoad, out double evaporatingTemperature, out double outletAirTemperature, 
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //蒸発温度を仮定
+      //Assume an initial evaporating temperature
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       evaporatingTemperature = inletAirTemperature - heatTransfer / (airFlowRate * cpma);
 

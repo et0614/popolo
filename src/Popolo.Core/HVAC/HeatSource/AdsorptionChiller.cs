@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class AdsorptionChiller
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Water content during adsorption at rated conditions [kg/kg].</summary>
     private const double NOM_AD0 = 0.04;
@@ -60,7 +60,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Cycle time ratio relative to the rated cycle.</summary>
     private double ctRate = 1.0;
@@ -217,7 +217,7 @@ namespace Popolo.Core.HVAC.HeatSource
       ChilledWaterOutletSetpointTemperature = chilledWaterOutletTemperature;
       CyclingTimeRatio = 1.0;
 
-      //絶対温度に変換
+      //Convert to absolute temperatures
       double tHwi = PhysicsConstants.ToKelvin(hotWaterInletTemperature);
       double tCDwi = PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       double tCHwi = PhysicsConstants.ToKelvin(chilledWaterInletTemperature);
@@ -226,21 +226,21 @@ namespace Popolo.Core.HVAC.HeatSource
       double tCHwo = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature);
       double tDS = tHwi - (1 - heatLossRate) * (tHwi - tHwo) / EPSILON_DS;
 
-      //熱容量流量の計算
+      //Compute the heat-capacity flow rates
       double mcH = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate;
       double mcCD = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * coolingWaterFlowRate;
       double mcCH = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
 
-      //熱収支の確認：熱損失率の計算
+      //Check the heat balance: compute the heat loss rate
       double qCDW = mcCD * (tCDwo - tCDwi);
       double qHW = mcH * (tHwi - tHwo);
       double qEvp = mcCH * (tCHwi - tCHwo);
       double qDS = qCDW - qEvp;
-      heatLossRate = Math.Max(0, 1 - qDS / qHW); //熱収支を調整
+      heatLossRate = Math.Max(0, 1 - qDS / qHW); //adjust the heat balance
       NominalCapacity = qEvp;
       NominalCOP = qEvp / qHW;
 
-      //吸着器・脱着器処理熱量の計算
+      //Compute the heat processed by the adsorber and the desorber
       double gamTDS = (CGAM_A * tDS + CGAM_B);
       double bb = (EPSILON_AD - 1) * tCDwi - tCDwo + CGAM_B / CGAM_A * EPSILON_AD;
       double cc = (qEvp * EPSILON_AD * gamTDS) / (mcCD * CGAM_A)
@@ -251,7 +251,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double tAD = qAD / (mcCD * EPSILON_AD) + tCDwi;
       double qCnd = (tCDwo - tADwo) * mcCD;
 
-      //蒸発器の伝熱係数
+      //Heat transfer coefficient of the evaporator
       double atws0 = tAD * (tAD * ATWS0[0] + ATWS0[1]) + ATWS0[2];
       double atws1 = tAD * (tAD * ATWS1[0] + ATWS1[1]) + ATWS1[2];
       double awad = mcCH * atws0 / (CGAM_A * tAD + CGAM_B);
@@ -262,7 +262,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double epsEvp = qEvp / (mcCH * (tCHwi - aveEvp));
       evaporatorKA = -Math.Log(1 - Math.Min(0.99, epsEvp)) * mcCH;
 
-      //凝縮器の熱通過有効度[-]
+      //Heat transfer effectiveness of the condenser [-]
       atws0 = tDS * (tDS * ATWS0[0] + ATWS0[1]) + ATWS0[2];
       atws1 = tDS * (tDS * ATWS1[0] + ATWS1[1]) + ATWS1[2];
       double awds = mcCD * atws0 / (CGAM_A * tDS + CGAM_B);
@@ -273,12 +273,12 @@ namespace Popolo.Core.HVAC.HeatSource
       double epsCnd = qCnd / (mcCD * (aveCnd - tADwo));
       condenserKA = -Math.Log(1 - Math.Min(0.99, epsCnd)) * mcCD;
 
-      //周期あたりの吸着材質量[kg/sec]
+      //Adsorbent mass per cycle [kg/sec]
       double mpc1 = awad * epsEvp / ademt;
       double mpc2 = awds * epsCnd / dsemt;
       massPerCycle = Math.Min(mpc1, mpc2);
 
-      //吸着反応器の熱容量
+      //Heat capacity of the adsorption reactor
       double qloss = qAD - qEvp;
       heatCapacity = qloss / (massPerCycle * (1 - EPSILON_RCV) * (tDS - tAD));
     }
@@ -295,12 +295,12 @@ namespace Popolo.Core.HVAC.HeatSource
       double coolingWaterInletTemperature, double coolingWaterFlowRate,
       double hotWaterInletTemperature, double hotWaterFlowRate)
     {
-      //状態値を保存
+      //Save the state values
       this.ChilledWaterInletTemperature = chilledWaterInletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.HotWaterInletTemperature = hotWaterInletTemperature;
 
-      //停止判定
+      //Shutdown check
       if (chilledWaterFlowRate <= 0 || coolingWaterFlowRate <= 0 || hotWaterFlowRate <= 0
         || hotWaterInletTemperature < coolingWaterInletTemperature || coolingWaterInletTemperature < chilledWaterInletTemperature)
       {
@@ -308,7 +308,7 @@ namespace Popolo.Core.HVAC.HeatSource
         return;
       }
 
-      //流量調整
+      //Flow rate adjustment
       double rch = chilledWaterFlowRate / NominalChilledWaterFlowRate;
       this.ChilledWaterFlowRate = Math.Max(ChilledWaterMinFlowRatio,
         Math.Min(1.4, rch)) * NominalChilledWaterFlowRate;
@@ -319,30 +319,30 @@ namespace Popolo.Core.HVAC.HeatSource
       this.HotWaterFlowRate = Math.Max(HotWaterMinFlowRatio,
         Math.Min(1.4, rht)) * NominalHotWaterFlowRate;
 
-      //冷却運転
+      //Cooling operation
       if (ChilledWaterOutletSetpointTemperature < chilledWaterInletTemperature)
       {
-        //絶対温度に変換
+        //Convert to absolute temperatures
         double thwi = PhysicsConstants.ToKelvin(HotWaterInletTemperature);
         double tcwi = PhysicsConstants.ToKelvin(CoolingWaterInletTemperature);
         double tchwi = PhysicsConstants.ToKelvin(ChilledWaterInletTemperature);
 
-        //熱容量流量の計算
+        //Compute the heat-capacity flow rates
         double mcH = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * HotWaterFlowRate;
         double mcCD = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * CoolingWaterFlowRate;
         double mcCH = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * ChilledWaterFlowRate;
         double epsEvp = 1 - Math.Exp(-evaporatorKA / mcCH);
         double epsCnd = 1 - Math.Exp(-condenserKA / mcCD);
 
-        //サイクル時間補正
+        //Cycle time correction
         double mperc = massPerCycle / CyclingTimeRatio;
 
-        //吸着温度を収束計算
+        //Iterate to solve the adsorption temperature
         double qEVP, tDS, tAD, qAD, qDS, qCND, wad0, wadt, tADwo;
         qEVP = tDS = tAD = qAD = qDS = qCND = wad0 = wadt = tADwo = 0;
         Roots.ErrorFunction eFnc = delegate (double cop)
         {
-          //熱源全体の熱収支式から脱着器投入熱を収束計算
+          //Iterate to solve the desorber heat input from the overall heat balance of the heat source
           double gamAD, gamDS;
           gamAD = gamDS = 0;
           Roots.ErrorFunction eFnc1 = delegate (double thwo)
@@ -362,7 +362,7 @@ namespace Popolo.Core.HVAC.HeatSource
           double tDSwo = Roots.Newton(eFnc1, thwi - 1, 0.00001, 0.00001, 0.0001, 20);
           tADwo = tcwi + EPSILON_AD * (tAD - tcwi);
 
-          //吸着器入口含水率を収束計算
+          //Iterate to solve the water content at the adsorber inlet
           double atws0ad = tAD * (tAD * ATWS0[0] + ATWS0[1]) + ATWS0[2];
           double atws1ad = tAD * (tAD * ATWS1[0] + ATWS1[1]) + ATWS1[2];
           double awad = mcCH * atws0ad / gamAD;
@@ -385,7 +385,7 @@ namespace Popolo.Core.HVAC.HeatSource
         };
         if (0.001 < Math.Abs(eFnc(0.0)))
           Roots.Bisection(eFnc, 0.0, 0.8, 0.001, 0.0001, 20);
-        //Roots.NewtonBisection(eFnc, 0.45, 0.001, 0.001, 0.0001, 20);  //ニュートン法だと稀に飛ぶ
+        //Roots.NewtonBisection(eFnc, 0.45, 0.001, 0.001, 0.0001, 20);  //Newton's method occasionally diverges
 
         ChilledWaterOutletTemperature = ChilledWaterInletTemperature - qEVP / mcCH;
         HotWaterOutletTemperature = HotWaterInletTemperature - qDS / (1 - heatLossRate) / mcH;
@@ -395,7 +395,7 @@ namespace Popolo.Core.HVAC.HeatSource
         WaterContent_Adsorption = wadt;
         OperatingTimeRatio = 1.0;
       }
-      //運転停止
+      //Shut down
       else ShutOff();
     }
 
@@ -412,19 +412,19 @@ namespace Popolo.Core.HVAC.HeatSource
       double coolingWaterInletTemperature, double coolingWaterFlowRate,
       double hotWaterInletTemperature, double hotWaterFlowRate, bool controlOutletTemperature)
     {
-      //成り行き運転
+      //Free-running operation
       Update
         (chilledWaterInletTemperature, chilledWaterFlowRate,
         coolingWaterInletTemperature, coolingWaterFlowRate,
         hotWaterInletTemperature, hotWaterFlowRate);
 
-      //出口温度を制御しない場合は終了
+      //Return if the outlet temperature is not controlled
       if (!controlOutletTemperature || (ChilledWaterOutletTemperature == ChilledWaterInletTemperature)) return;
 
-      //理想的な発停を前提に出口温度を制御
+      //Control the outlet temperature assuming ideal on-off cycling
       OperatingTimeRatio = (ChilledWaterOutletSetpointTemperature - ChilledWaterInletTemperature)
         / (ChilledWaterOutletTemperature - ChilledWaterInletTemperature);
-      //過負荷の場合には制御不可能：成り行き運転
+      //Uncontrollable when overloaded: free-running operation
       if (1.0 <= OperatingTimeRatio) return;
       ChilledWaterOutletTemperature = ChilledWaterOutletSetpointTemperature;
       HotWaterOutletTemperature = HotWaterInletTemperature * (1 - OperatingTimeRatio) + HotWaterOutletTemperature * OperatingTimeRatio;

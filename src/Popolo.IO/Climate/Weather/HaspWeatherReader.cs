@@ -85,10 +85,10 @@ namespace Popolo.IO.Climate.Weather
   /// </remarks>
   public class HaspWeatherReader : IWeatherDataReader
   {
-    /// <summary>ステファン・ボルツマン定数 [W/(m²·K⁴)]。内部計算用。</summary>
+    /// <summary>Stefan-Boltzmann constant [W/(m²·K⁴)]. For internal calculations.</summary>
     private const double Sigma = PhysicsConstants.StefanBoltzmannConstant;
 
-    /// <summary>摂氏→ケルビン変換。内部計算用。</summary>
+    /// <summary>Celsius-to-Kelvin conversion. For internal calculations.</summary>
     private const double CelsiusToKelvin = PhysicsConstants.CelsiusToKelvinOffset;
 
     /// <summary>
@@ -133,7 +133,7 @@ namespace Popolo.IO.Climate.Weather
     {
       var ci = CultureInfo.InvariantCulture;
 
-      // HASP は CRLF 区切り、空行は無視
+      // HASP is CRLF-delimited; empty lines are ignored
       string[] lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
       if (lines.Length < 365 * 7)
       {
@@ -165,7 +165,7 @@ namespace Popolo.IO.Climate.Weather
         {
           int off = hour * 3;
 
-          // 値のパース
+          // Parse the values
           double temperature = (double.Parse(dbtLine.Substring(off, 3), ci) - 500.0) * 0.1;
           double humidityRatio = double.Parse(hrtLine.Substring(off, 3), ci) * 0.1;
           double dniMJ = double.Parse(dnrLine.Substring(off, 3), ci) * 0.01;
@@ -179,7 +179,7 @@ namespace Popolo.IO.Climate.Weather
           double diffuseHoriz = MJhToWm2(dhiMJ);
           double nocturnalDownward = MJhToWm2(ncrMJ);
 
-          // 夜間放射(outgoing net) → 大気放射(downwelling)
+          // Nocturnal radiation (outgoing net) → atmospheric radiation (downwelling)
           double blackBody = BlackBodyRadiation(temperature);
           double atmosphericRadiation = blackBody - nocturnalDownward;
 
@@ -192,7 +192,7 @@ namespace Popolo.IO.Climate.Weather
           builder.SetAtmosphericRadiation(Math.Max(0.0, atmosphericRadiation));
           builder.SetWindSpeed(windSpeed);
 
-          // 風向: 16方位インデックスを radian に変換。0 は calm/未定義扱い。
+          // Wind direction: convert 16-point compass index to radians. 0 is treated as calm/undefined.
           if (windCompass >= 1 && windCompass <= 16)
           {
             double bearing = 22.5 * windCompass;
@@ -209,7 +209,7 @@ namespace Popolo.IO.Climate.Weather
 
     private static double MJhToWm2(double mjPerM2Hour) => mjPerM2Hour * 1.0e6 / 3600.0;
 
-    /// <summary>σ(T + 273.15)⁴ [W/m²]。</summary>
+    /// <summary>σ(T + 273.15)⁴ [W/m²].</summary>
     private static double BlackBodyRadiation(double temperatureCelsius)
     {
       double k = temperatureCelsius + CelsiusToKelvin;

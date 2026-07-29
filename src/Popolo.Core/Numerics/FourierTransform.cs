@@ -48,7 +48,7 @@ namespace Popolo.Core.Numerics
             $"x and xi must have the same length. x.Length={x.Length}, xi.Length={xi.Length}.",
             nameof(xi));
 
-      // 配列を2の冪乗に調整
+      // Pad the arrays to a power of two
       int len2 = (int)Math.Ceiling(Math.Log(x.Length, 2));
       int len = (int)Math.Pow(2, len2);
       double[] y = new double[len];
@@ -56,7 +56,7 @@ namespace Popolo.Core.Numerics
       x.CopyTo(y, 0);
       xi.CopyTo(yi, 0);
 
-      // ビット反転処理
+      // Bit-reversal reordering
       int jj = 0;
       for (int i = 0; i < len; i++)
       {
@@ -103,7 +103,7 @@ namespace Popolo.Core.Numerics
         pk /= 2.0;
       }
 
-      // 結果を元の配列に書き戻す
+      // Write the results back to the original arrays
       for (int i = 0; i < x.Length; i++)
       {
         x[i] = y[i];
@@ -132,8 +132,8 @@ namespace Popolo.Core.Numerics
     /// <summary>Computes the complex product (x + xi·i) * (y + yi·i).</summary>
     private static void Multi(ref double x, ref double xi, double y, double yi)
     {
-      // 元のコードは x を上書き後に yi との積を計算するバグがあった
-      // 正しくは一時変数を使って同時に計算する
+      // The original code had a bug: it overwrote x before computing the product with yi
+      // The correct approach uses a temporary variable to compute both simultaneously
       double tmpX = x * y - xi * yi;
       xi = x * yi + y * xi;
       x = tmpX;

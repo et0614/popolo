@@ -21,7 +21,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
   /// </remarks>
   public class CO2BalanceTests
   {
-    #region CO2発生量（式26.18）
+    #region CO2 generation rate (eq. 26.18)
 
     /// <summary>日本人男性のオフィス作業（ADu=1.7m2, Met=1.1）で約0.02m3/(h・人)となる。</summary>
     [Fact]
@@ -49,7 +49,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
 
     #endregion
 
-    #region Seidelの式（式26.20・例題26.1）
+    #region Seidel's equation (eq. 26.20, example 26.1)
 
     /// <summary>例題26.1: 換気量0.301m3/sで1時間後の濃度が約1,078ppmとなる。</summary>
     [Fact]
@@ -101,7 +101,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
 
     #endregion
 
-    #region 必要換気量（式26.21・例題26.1）
+    #region Required ventilation rate (eq. 26.21, example 26.1)
 
     /// <summary>例題26.1: 1時間後に1,000ppmとするための換気量は約0.301m3/s。</summary>
     [Fact]

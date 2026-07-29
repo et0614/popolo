@@ -43,7 +43,7 @@ namespace Popolo.Core.Tests.ThermalComfort
   /// </remarks>
   public class TanabeMultiNodeModelTests
   {
-    #region ヘルパー
+    #region Helpers
 
     private const double TimeStepSec = 60.0;
     private const int WarmUpSteps = 180; // 3時間
@@ -97,7 +97,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 基本動作テスト
+    #region Basic behavior tests
 
     /// <summary>デフォルト体格でインスタンスを生成できる。</summary>
     [Fact]
@@ -123,7 +123,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 震え熱産生テスト（追加活動代謝ゼロ＝基礎代謝のみ）
+    #region Shivering heat production tests (zero additional activity = basal metabolism only)
     /// <remarks>
     /// 震えの制御式（式27.92）：
     ///   SIGshv = -24.36 × Min(SIGhead, 0) × Clds × RAdu
@@ -178,7 +178,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 発汗テスト（1 met）
+    #region Sweating tests (1 met)
 
     /// <summary>高温多湿環境では潜熱損失がニュートラル時の2倍以上になる（発汗）。</summary>
     [Fact]
@@ -204,7 +204,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 皮膚温・顕熱損失テスト（1 met）
+    #region Skin temperature and sensible heat loss tests (1 met)
 
     /// <summary>寒冷環境では平均皮膚温がニュートラルより低い。</summary>
     [Fact]
@@ -272,7 +272,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 個別部位テスト
+    #region Individual body part tests
 
     /// <summary>寒冷環境では四肢末端（右手）の皮膚温が胸部コア温より大幅に低い。</summary>
     [Fact]

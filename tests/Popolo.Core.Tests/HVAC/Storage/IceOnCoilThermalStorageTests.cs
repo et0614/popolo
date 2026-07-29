@@ -42,7 +42,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
   /// </remarks>
   public class IceOnCoilThermalStorageTests
   {
-    #region ヘルパー
+    #region Helpers
 
     // 標準的な内融式氷蓄熱槽のパラメータ
     private const double WaterVolume = 1.0;    // 水槽容量 [m³]
@@ -64,7 +64,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 物性定数
+    #region Physical property constants
 
     /// <summary>氷の密度 [kg/m³] は 917。</summary>
     [Fact]
@@ -90,7 +90,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 初期化
+    #region Initialization
 
     /// <summary>コンストラクタに指定した寸法パラメータがプロパティで取得できる。</summary>
     [Fact]
@@ -163,7 +163,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 製氷運転
+    #region Ice making operation
 
     /// <summary>低温ブライン投入で氷が生成される（IPF が増加）。</summary>
     [Fact]
@@ -219,7 +219,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 解氷運転
+    #region Ice melting operation
 
     /// <summary>氷が存在する状態で高温ブラインを流すと氷が融ける（IPF 減少）。</summary>
     [Fact]
@@ -264,7 +264,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 熱流ゼロのケース
+    #region Zero heat flow cases
 
     /// <summary>ブラインと水槽が同温度・ambient も同温度なら熱流は 0。</summary>
     [Fact]
@@ -291,7 +291,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 熱損失
+    #region Heat loss
 
     /// <summary>周囲温度 > 水温のとき、HeatLoss は正（周囲から水槽が吸熱）。</summary>
     [Fact]
@@ -365,7 +365,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region エネルギー収支
+    #region Energy balance
 
     /// <summary>
     /// 熱損失を 0 とし、製氷運転を 1 ステップだけ行った場合、
@@ -400,7 +400,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 例外条件
+    #region Exception conditions
 
     /// <summary>タイムステップが大きすぎて 1 ステップで全水量が凍る場合は PopoloNumericalException。</summary>
     [Fact]
@@ -426,7 +426,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region IReadOnly インターフェース
+    #region IReadOnly interface
 
     /// <summary>IReadOnlyIceOnCoilThermalStorage で参照できるプロパティが一致する。</summary>
     [Fact]

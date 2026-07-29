@@ -39,7 +39,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     /// </remarks>
     public class WallTests
     {
-        #region テスト用ヘルパー
+        #region Test helpers
 
         /// <summary>RC単層壁を生成する（150mm, λ=1.6, C=1896）</summary>
         private static Wall MakeRCWall(double area = 1.0)
@@ -64,7 +64,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>コンストラクタでプロパティが正しく設定される</summary>
         [Fact]
@@ -97,7 +97,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 初期化のテスト
+        #region Initialization tests
 
         /// <summary>Initialize後に全質点の温度が指定値になる</summary>
         [Fact]
@@ -127,7 +127,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 定常状態収束のテスト
+        #region Steady state convergence tests
 
         /// <summary>
         /// 両側に温度差を与えて多数ステップ後に定常に収束する。
@@ -210,7 +210,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 断熱性能のテスト
+        #region Insulation performance tests
 
         /// <summary>断熱材入りの壁はRC単層壁より熱流が小さい（同じ境界条件で）</summary>
         [Fact]
@@ -236,7 +236,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 熱伝達率のテスト
+        #region Heat transfer coefficient tests
 
         /// <summary>熱伝達率が高いほど表面温度が境界温度に近づく</summary>
         [Fact]
@@ -265,7 +265,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region タイムステップのテスト
+        #region Time step tests
 
         /// <summary>タイムステップを変更してもUpdate後に有効な温度が得られる</summary>
         [Theory]

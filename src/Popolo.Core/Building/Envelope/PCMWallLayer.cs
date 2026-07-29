@@ -50,7 +50,7 @@ namespace Popolo.Core.Building.Envelope
   public class PCMWallLayer : WallLayer
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Specifies the phase state of the PCM layer.</summary>
     [Flags]
@@ -66,7 +66,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Thermophysical properties for each phase.</summary>
     private Dictionary<State, WallLayer> layers = new Dictionary<State, WallLayer>();
@@ -91,7 +91,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Initializes a new PCM wall layer with three phase states.</summary>
     /// <param name="name">Layer name.</param>

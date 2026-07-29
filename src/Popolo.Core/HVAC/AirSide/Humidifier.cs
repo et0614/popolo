@@ -47,7 +47,7 @@ namespace Popolo.Core.HVAC.AirSide
   public class Humidifier : IReadOnlyHumidifier
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Humidification method.</summary>
     public enum HumidifierType
@@ -64,7 +64,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <inheritdoc />
     public HumidifierType Type { get; }
@@ -104,7 +104,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with typical maximum saturation efficiency
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Computes the outlet air state with the current
@@ -212,7 +212,7 @@ namespace Popolo.Core.HVAC.AirSide
 
       double satW = GetProcessSaturationHumidityRatio(inletAirTemperature, inletAirHumidityRatio);
 
-      //必要な飽和効率を逆算(加湿不要または飽和空気の場合は0)
+      //Back-calculate the required saturation efficiency (0 when no humidification is needed or the air is saturated)
       double eff = 0.0;
       if (inletAirHumidityRatio < setpointHumidityRatio && inletAirHumidityRatio < satW)
         eff = (setpointHumidityRatio - inletAirHumidityRatio) / (satW - inletAirHumidityRatio);
@@ -267,12 +267,12 @@ namespace Popolo.Core.HVAC.AirSide
       double satW = processSatW ??
         GetProcessSaturationHumidityRatio(inletAirTemperature, inletAirHumidityRatio);
 
-      //式26.5: W_out = (1 - η)W_in + ηW_s
+      //Equation 26.5: W_out = (1 - η)W_in + ηW_s
       double wOut = Math.Max(inletAirHumidityRatio,
         (1 - saturationEfficiency) * inletAirHumidityRatio + saturationEfficiency * satW);
       OutletAirHumidityRatio = wOut;
 
-      //水加湿は等比エンタルピー線上、蒸気加湿は乾球温度一定線上を移動
+      //Water humidification moves along a constant specific enthalpy line; steam humidification along a constant dry-bulb temperature line
       if (IsAdiabatic)
       {
         double hIn = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(
@@ -282,7 +282,7 @@ namespace Popolo.Core.HVAC.AirSide
       }
       else OutletAirTemperature = inletAirTemperature;
 
-      //給水量・蒸気量(式26.6)
+      //Water supply and steam consumption (Equation 26.6)
       double supply = (wOut - inletAirHumidityRatio) * airFlowRate / WaterSupplyCoefficient;
       if (IsAdiabatic)
       {

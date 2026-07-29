@@ -39,7 +39,7 @@ namespace Popolo.Core.Tests.Physics
     private const double MF60 = 0.60;
     private const double MF55 = 0.55;
 
-    #region 飽和温度・溶液温度・質量分率の計算テスト
+    #region Saturation temperature, solution temperature, and mass fraction calculation tests
 
     /// <summary>溶液温度と質量分率から飽和温度を計算し逆算できる</summary>
     [Theory]
@@ -81,7 +81,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 比エンタルピーの計算テスト
+    #region Specific enthalpy calculation tests
 
     /// <summary>溶液温度と質量分率から比エンタルピーを計算し逆算できる</summary>
     [Theory]
@@ -123,7 +123,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region その他の物性値テスト
+    #region Other physical property tests
 
     /// <summary>密度は水の密度と臭化リチウム密度の混合として妥当な範囲にある</summary>
     [Fact]
@@ -166,7 +166,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region ファクトリメソッドのテスト
+    #region Factory method tests
 
     /// <summary>MakeFromLiquidTemperatureAndMassFraction で全プロパティが設定される</summary>
     [Fact]
@@ -206,7 +206,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 引数チェックのテスト
+    #region Argument check tests
 
     /// <summary>負の温度（[K]）で PopoloOutOfRangeException が発生する</summary>
     [Fact]

@@ -29,12 +29,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class AirHeatSourceModularChillersSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Air-heat-source heat pump (modular chiller).</summary>
     private AirHeatSourceModularChillers mChiller;
@@ -59,7 +59,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get; private set; }
@@ -162,7 +162,7 @@ namespace Popolo.Core.HVAC.SystemModel
       mChiller.WaterOutletSetpointTemperature = HotWaterSupplyTemperatureSetpoint;
       while (true)
       {
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pump
         double hwFlow = hotWaterFlowRate / ActiveChillerCount;
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
@@ -194,7 +194,7 @@ namespace Popolo.Core.HVAC.SystemModel
       mChiller.WaterOutletSetpointTemperature = ChilledWaterSupplyTemperatureSetpoint;
       while (true)
       {
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pump
         double chwFlow = chilledWaterFlowRate / ActiveChillerCount;
         chwPump.UpdateState(0.001 * chwFlow);
         double twi = ChilledWaterReturnTemperature + chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow);
@@ -214,7 +214,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="mChiller">Modular chiller/heat pump unit.</param>
@@ -229,7 +229,7 @@ namespace Popolo.Core.HVAC.SystemModel
       this.chwPump = chwPump;
       this.hwPump = hwPump;
 
-      //加熱運転・冷却運転対応
+      //Supports heating and cooling operation
       SelectableMode = HeatSourceSystemModel.OperatingMode.Cooling | HeatSourceSystemModel.OperatingMode.Heating;
       Mode = HeatSourceSystemModel.OperatingMode.ShutOff;
     }

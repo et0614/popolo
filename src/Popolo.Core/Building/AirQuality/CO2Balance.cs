@@ -37,7 +37,7 @@ namespace Popolo.Core.Building.AirQuality
   public static class CO2Balance
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>
     /// Standard CO2 generation rate per person [m³/s] for a Japanese adult
@@ -47,13 +47,13 @@ namespace Popolo.Core.Building.AirQuality
 
     /// <summary>
     /// Allowable indoor CO2 concentration [ppm] under the Japanese Building
-    /// Sanitation Law (建築物衛生法).
+    /// Sanitation Law (Building Sanitation Act).
     /// </summary>
     public const double BuildingSanitationLawLimit_PPM = 1000;
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>
     /// Computes the CO2 generation rate of a person [m³/s] from the metabolic
@@ -63,7 +63,7 @@ namespace Popolo.Core.Building.AirQuality
     /// <returns>CO2 generation rate [m³/s].</returns>
     public static double GetCO2GenerationRate(double metabolicRate)
     {
-      //回帰式はm3/h単位のためm3/sに換算
+      //The regression formula uses m3/h, so convert to m3/s
       return (1.575e-4 * metabolicRate + 3.693e-4) / 3600.0;
     }
 
@@ -100,7 +100,7 @@ namespace Popolo.Core.Building.AirQuality
       if (airVolume <= 0)
         throw new PopoloArgumentException("airVolume must be positive.", nameof(airVolume));
 
-      //換気量0の場合には発生分が単調に蓄積
+      //With zero ventilation, the generated CO2 accumulates monotonically
       if (ventilationRate <= 0)
         return initialCO2Level + co2Generation * time / airVolume;
 

@@ -43,14 +43,14 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class NoShadingDeviceConverter : JsonConverter<NoShadingDevice>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string ExpectedKind = "noShadingDevice";
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="NoShadingDevice"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>

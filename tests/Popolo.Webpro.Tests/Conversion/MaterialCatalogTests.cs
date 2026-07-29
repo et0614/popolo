@@ -29,7 +29,7 @@ namespace Popolo.Webpro.Tests.Conversion
     /// <summary>Unit tests for <see cref="MaterialCatalog"/>.</summary>
     public class MaterialCatalogTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private const string SampleCatalogJson = """
             {
@@ -65,7 +65,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region ロード
+        #region Loading
 
         [Fact]
         public void LoadFromString_ParsesAllEntries()
@@ -238,7 +238,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void MakeWallLayer_NullId_Throws()
@@ -259,7 +259,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region Default - 埋め込みリソース
+        #region Default - embedded resource
 
         [Fact]
         public void Default_HasMaterialsFromEmbeddedResource()

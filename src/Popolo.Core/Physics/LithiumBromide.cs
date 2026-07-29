@@ -29,7 +29,7 @@ namespace Popolo.Core.Physics
   public class LithiumBromide
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the specific enthalpy [kJ/kg].</summary>
     public double Enthalpy { get; private set; }
@@ -48,7 +48,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 近似係数（静的フィールド）
+    #region Approximation coefficients (static fields)
 
     /// <summary>Specific-enthalpy approximation coefficients C.</summary>
     private static readonly double[] C_LBN =
@@ -64,7 +64,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 飽和温度・溶液温度・質量分率の計算
+    #region Calculation of saturation temperature, solution temperature, and mass fraction
 
     /// <summary>
     /// Gets the equilibrium vapor temperature [K]
@@ -118,7 +118,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 比エンタルピーの計算
+    #region Specific enthalpy calculation
 
     /// <summary>
     /// Gets the specific enthalpy [kJ/kg]
@@ -133,7 +133,7 @@ namespace Popolo.Core.Physics
       ValidateTemperatureK(liquidTemperature, nameof(liquidTemperature));
       ValidateMassFraction(massFraction, nameof(massFraction));
       GetCoefficientCDE(massFraction, out double clb, out double dlb, out double elb);
-      // 近似式は°C基準のため変換する
+      // The approximation is based on °C, so convert
       double ltc = PhysicsConstants.ToCelsius(liquidTemperature);
       return clb + ltc * (dlb + ltc * elb);
     }
@@ -166,7 +166,7 @@ namespace Popolo.Core.Physics
       ValidateMassFraction(massFraction, nameof(massFraction));
       GetCoefficientCDE(massFraction, out double clb, out double dlb, out double elb);
 
-      //ニュートン法で収束計算（近似式は°C基準）
+      //Iterate with Newton's method (the approximation is based on °C)
       Roots.ErrorFunction eFnc = lTemp =>
           enthalpy - (clb + lTemp * (dlb + lTemp * elb));
       double ltc = Roots.Newton(eFnc, 40, 0.001, 0.00001, 0.00001, 20);
@@ -192,7 +192,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region その他の物性値
+    #region Other physical properties
 
     /// <summary>
     /// Gets the density [kg/m³]
@@ -205,8 +205,8 @@ namespace Popolo.Core.Physics
     {
       ValidateTemperatureK(liquidTemperature, nameof(liquidTemperature));
       ValidateMassFraction(massFraction, nameof(massFraction));
-      const double LBD = 3460.0; //臭化リチウムの密度[kg/m3]
-                                 // Water.GetLiquidDensity は°C を受け取るため変換する（バグ修正）
+      const double LBD = 3460.0; //Density of lithium bromide [kg/m3]
+                                 // Water.GetLiquidDensity takes °C, so convert (bug fix)
       double wd = Water.GetLiquidDensity(PhysicsConstants.ToCelsius(liquidTemperature));
       return LBD * massFraction + wd * (1.0 - massFraction);
     }
@@ -229,13 +229,13 @@ namespace Popolo.Core.Physics
         dlb = dlb * massFraction + D_LBN[i];
         elb = elb * massFraction + E_LBN[i];
       }
-      //近似式は°C基準
+      //The approximation is based on °C
       return dlb + 2.0 * elb * PhysicsConstants.ToCelsius(liquidTemperature);
     }
 
     #endregion
 
-    #region ファクトリメソッド
+    #region Factory methods
 
     /// <summary>
     /// Creates a <see cref="LithiumBromide"/> instance
@@ -324,7 +324,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 非公開メソッド
+    #region Private methods
 
     /// <summary>Computes the coefficients a and b used for the saturation temperature calculation.</summary>
     private static void GetCoefficientAB(

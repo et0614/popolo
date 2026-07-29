@@ -53,7 +53,7 @@ namespace Popolo.Core.Building.Envelope
   public interface IReadOnlyWallLayer
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the discriminator identifying the concrete layer type.
     /// Used by serializers to distinguish subtypes without reflection.</summary>

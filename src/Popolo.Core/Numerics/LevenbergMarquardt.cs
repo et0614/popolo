@@ -28,7 +28,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Machine epsilon.</summary>
     private static readonly double MECH_EPS;
@@ -65,7 +65,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the number of residual functions.</summary>
     public int FunctionCount { get; private set; }
@@ -160,11 +160,11 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     static LevenbergMarquardt()
     {
-      //機械イプシロン初期化
+      //Initialize machine epsilon
       MECH_EPS = 1.0;
       while (true)
       {
@@ -196,7 +196,7 @@ namespace Popolo.Core.Numerics
       this.VariableCount = variableCount;
       this.MaxIteration = 1000;
 
-      //計算に備えて計算領域を確保
+      //Allocate work areas for the computation
       outputs = new Vector(functionCount);
       wa1 = new Vector(variableCount);
       wa2 = new Vector(variableCount);
@@ -414,7 +414,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region privateメソッド
+    #region Private methods
 
     private static void QrFac(ref IMatrix a, ref IVector rdiag,
       ref IVector acnorm, ref IVector wa, ref int[] ipvt)

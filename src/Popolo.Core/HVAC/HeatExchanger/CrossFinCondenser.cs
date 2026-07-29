@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class CrossFinCondenser : IReadOnlyCrossFinCondenser
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     /// <summary>Heat transfer coefficient calculation factor for the coil [kW/(m²·K)].</summary>
@@ -36,7 +36,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Temperature reduction effectiveness of water spray [-].</summary>
     /// <remarks>Typical value is 0.4–0.5. Set to 0 to disable water spray.</remarks>
@@ -87,7 +87,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated operating conditions.</summary>
     /// <param name="cndTemperature">Condensing temperature [°C].</param>
@@ -99,14 +99,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double cndTemperature, double heatTransfer, double airFlowRate,
       double inletAirTemperature, double inletAirHumidityRatio)
     {
-      //プロパティ初期化
+      //Initialize properties
       NominalAirFlowRate = airFlowRate;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
       ShutOff();
 
-      //伝熱面積を初期化する
+      //Initialize the heat transfer surface area
       SurfaceArea = GetSurfaceArea
         (cndTemperature, heatTransfer, airFlowRate, airFlowRate, inletAirTemperature, inletAirHumidityRatio);
     }
@@ -163,7 +163,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 交換熱量計算処理
+    #region Heat exchange calculation methods
 
     /// <summary>Computes the heat transfer rate [kW] (positive = heating, negative = cooling).</summary>
     /// <param name="cndTemperature">Condensing temperature [°C].</param>
@@ -174,13 +174,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double GetHeatTransfer
       (double cndTemperature, double airFlowRate, double inletAirTemperature, double inletAirHumidityRatio)
     {
-      //プロパティ設定
+      //Set properties
       CondensingTemperature = cndTemperature;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
 
-      //運転判定
+      //Operation check
       if (airFlowRate <= 0 || cndTemperature <= inletAirTemperature)
       {
         ShutOff();
@@ -217,16 +217,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double heatTransfer, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double waterSupply)
     {
-      //水噴霧がある場合
+      //With water spray
       if (0 < sprayEffectiveness)
         waterSupply = GetWaterSupply
          (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //水噴霧がない場合
+      //Without water spray
       else waterSupply = 0;
 
-      //熱通過率[kW/m2K]
+      //Overall heat transfer coefficient [kW/m2K]
       double kCnd = CF_A * Math.Pow(airFlowRate / nominalAirFlowRate, CF_B);
-      //湿り空気比熱[kJ/kgK]
+      //Specific heat of moist air [kJ/kgK]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 
@@ -239,7 +239,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 凝縮温度計算処理
+    #region Condensing temperature calculation methods
 
     /// <summary>Computes the condensing temperature [°C] from the given air and heat conditions.</summary>
     /// <param name="heatTransfer">Heat transfer rate [kW].</param>
@@ -250,13 +250,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public double GetCondensingTemperature
       (double heatTransfer, double airFlowRate, double inletAirTemperature, double inletAirHumidityRatio)
     {
-      //プロパティ設定
+      //Set properties
       HeatTransfer = heatTransfer;
       AirFlowRate = airFlowRate;
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
 
-      //運転判定
+      //Operation check
       if (airFlowRate <= 0 || heatTransfer <= 0)
       {
         ShutOff();
@@ -291,16 +291,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double outletAirTemperature, out double outletAirHumidityRatio,
       out double waterSupply)
     {
-      //水噴霧がある場合
+      //With water spray
       if (0 < sprayEffectiveness)
         waterSupply = GetWaterSupply
          (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //水噴霧がない場合
+      //Without water spray
       else waterSupply = 0;
 
-      //熱通過率[kW/m2K]
+      //Overall heat transfer coefficient [kW/m2K]
       double kCnd = CF_A * Math.Pow(airFlowRate / nominalAirFlowRate, CF_B);
-      //湿り空気比熱[kJ/kgK]
+      //Specific heat of moist air [kJ/kgK]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 

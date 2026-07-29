@@ -23,7 +23,7 @@ namespace Popolo.Core.HVAC.VRF
   public interface IReadOnlyVRFSystem
   {
 
-    #region VRFシステム全体のプロパティ
+    #region Properties of the whole VRF system
 
     /// <summary>Gets the current operating mode.</summary>
     VRFSystem.Mode CurrentMode { get; }
@@ -109,7 +109,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 冷房・暖房運転の温度制限プロパティ
+    #region Temperature limit properties for cooling/heating operation
 
     /// <summary>Gets the target evaporating temperature for free-running calculation [°C].</summary>
     /// <remarks>Used only in cooling mode.</remarks>
@@ -121,7 +121,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 計算結果取得処理
+    #region Calculation result getters
 
     /// <summary>Gets the total indoor unit heat load [kW] (positive = heating, negative = cooling).</summary>
     /// <returns>Total indoor unit heat load [kW] (positive = heating, negative = cooling).</returns>

@@ -25,7 +25,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class WaterPipe : IReadOnlyWaterPipe, ICircuitBranch
   {
 
-    #region 列挙型の定義
+    #region Enumeration definitions
 
     /// <summary>Pipe material.</summary>
     public enum Material
@@ -53,7 +53,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Linear thermal transmittance excluding convective resistances [W/(m·K)].</summary>
     private double linearThermalTransmittance = 0;
@@ -66,7 +66,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the inner diameter [m].</summary>
     public double InnerDiameter { get; private set; }
@@ -117,7 +117,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="length">Length [m].</param>
@@ -131,7 +131,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       Roughness = roughness;
       OuterDiameter = InnerDiameter + 2 * thickness;
 
-      //断熱材無しとする
+      //Assume no insulation
       RemoveInsulator();
     }
 
@@ -161,25 +161,25 @@ namespace Popolo.Core.HVAC.FluidCircuit
       }
       OuterDiameter = InnerDiameter + 2 * dth;
 
-      //断熱材無しとする
+      //Assume no insulation
       RemoveInsulator();
     }
 
     /// <summary>Initializes internal state.</summary>
     private void Initialize()
     {
-      //線熱通過率[W/(mK)]を初期化する
+      //Initialize the linear thermal transmittance [W/(mK)]
       linearThermalTransmittance = GetPipeLinearThermalTransmittance
         (InnerDiameter, InsulatorThermalConductivity, InsulatorThickness, PipeThermalConductivity,
         0.5 * (OuterDiameter - InnerDiameter));
 
-      //熱流を初期化する//水量は水速2.0m/s相当
+      //Initialize the heat flow//Water flow rate equivalent to a velocity of 2.0 m/s
       UpdateHeatFlow(7, InnerDiameter * InnerDiameter / 4d * Math.PI * 2 * 1000, 25, 0.02);
     }
 
     #endregion
 
-    #region 熱流に関わるインスタンスメソッド
+    #region Instance methods for heat flow
 
     /// <summary>Updates the heat flow.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
@@ -194,13 +194,13 @@ namespace Popolo.Core.HVAC.FluidCircuit
       AmbientTemperature = ambientTemperature;
       AmbientHumidityRatio = ambientHumidityRatio;
 
-      //体積流量[m3/s]を質量流量[kg/s]に換算
+      //Convert volumetric flow rate [m3/s] to mass flow rate [kg/s]
       double mw = waterFlowRate / Water.GetLiquidDensity(inletWaterTemperature);
 
-      //水側の対流熱伝達率[W/(m2K)]を計算
+      //Compute the water-side convective heat transfer coefficient [W/(m2K)]
       double aw = GetInsideHeatTransferCoefficient(InletWaterTemperature, InnerDiameter, mw);
 
-      //配管表面温度は水温と空気温度の平均と仮定
+      //Assume the pipe surface temperature is the average of the water and air temperatures
       double ts = 0.5 * (InletWaterTemperature + AmbientTemperature);
 
       double err = 1;
@@ -211,15 +211,15 @@ namespace Popolo.Core.HVAC.FluidCircuit
           "WaterPipe.UpdateHeatFlow",
           $"Surface temperature iteration did not converge within {iterNum} iterations.");
 
-        //空気側の対流熱伝達率[W/(m2K)]を計算
+        //Compute the air-side convective heat transfer coefficient [W/(m2K)]
         double aa = GetOutSideHeatTransferCoefficient
           (AmbientTemperature, AmbientHumidityRatio, OuterDiameter, ts);
 
-        //線熱通過率[W/(mK)]を更新する
+        //Update the linear thermal transmittance [W/(mK)]
         LinearThermalTransmittance = GetAirToWaterLinearThermalTransmittance
           (aw, aa, InnerDiameter, OuterDiameter, linearThermalTransmittance);
 
-        //線表面温度[C]を更新して誤差を評価
+        //Update the pipe surface temperature [C] and evaluate the error
         double tsOld = ts;
         ts = AmbientTemperature - LinearThermalTransmittance
           * (AmbientTemperature - InletWaterTemperature) / aa;
@@ -227,7 +227,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         iterNum++;
       }
 
-      //熱損失と出口水温を更新
+      //Update the heat loss and outlet water temperature
       HeatLoss = LinearThermalTransmittance * Length
         * (AmbientTemperature - InletWaterTemperature) / 1000d;
       double cpw = Water.GetLiquidIsobaricSpecificHeat(InletWaterTemperature);
@@ -298,7 +298,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region ICircuitBranch実装
+    #region ICircuitBranch implementation
 
     /// <summary>Gets or sets the flow rate [m³/s].</summary>
     public double VolumetricFlowRate { get; set; }
@@ -318,22 +318,22 @@ namespace Popolo.Core.HVAC.FluidCircuit
             nameof(WaterPipe),
             nameof(UpStreamNode));
 
-      //水物性（動粘性係数[m2/s], 熱拡散率[m2/s]）を計算
+      //Compute water properties (kinematic viscosity [m2/s], thermal diffusivity [m2/s])
       double v = Water.GetLiquidDynamicViscosity(InletWaterTemperature);
       double rho = Water.GetLiquidDensity(InletWaterTemperature);
 
-      //流路面積[m2]と前後差圧[kPa]
+      //Flow area [m2] and pressure difference across the pipe [kPa]
       double fArea = InnerDiameter * InnerDiameter / 4d * Math.PI;
       double dp = (UpStreamNode.Pressure - DownStreamNode.Pressure) * 1000;
 
-      //流速[m/s]を収束計算
+      //Iteratively solve for the flow velocity [m/s]
       Roots.ErrorFunction eFnc = delegate (double vel)
       {
         double reNumber = vel * InnerDiameter / v;
         double ff = Conduit.GetFrictionFactor(reNumber, Roughness / InnerDiameter);
         return Conduit.GetVelocity(ff, rho, Length, InnerDiameter, dp) - vel;
       };
-      //初期値はレイノルズ数（流速大）が大きめの点とすると収束がうまくいく
+      //Convergence works well when the initial guess is at a large Reynolds number (high velocity)
       VolumetricFlowRate = Roots.Newton(eFnc, 5, 0.0001, 1e-10, 1e-9, 30) * fArea;
     }
 
@@ -353,7 +353,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       return 0.001 * Conduit.GetPressureDrop(ff, rho, Length, InnerDiameter, vel);
     }
 
-    #region クラスメソッド
+    #region Class methods
 
     /// <summary>Computes the convective heat transfer coefficient at the inner pipe surface [W/(m²·K)].</summary>
     /// <param name="waterTemperature">Water temperature [°C].</param>
@@ -364,20 +364,20 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public static double GetInsideHeatTransferCoefficient
       (double waterTemperature, double diameter, double waterFlowRate)
     {
-      //水の物性を計算
-      //動粘性係数[m2/s], 熱拡散率[m2/s], 熱伝導率[W/(m·K)], 密度[kg/m3]
+      //Compute water properties
+      //Kinematic viscosity [m2/s], thermal diffusivity [m2/s], thermal conductivity [W/(m·K)], density [kg/m3]
       double v = Water.GetLiquidDynamicViscosity(waterTemperature);
       double a = Water.GetLiquidThermalDiffusivity(waterTemperature);
       double lam = Water.GetLiquidThermalConductivity(waterTemperature);
       double rho = Water.GetLiquidDensity(waterTemperature);
 
-      //配管内流速[m/s]からヌセルト数を計算
+      //Compute the Nusselt number from the in-pipe flow velocity [m/s]
       double u = waterFlowRate / (rho * diameter * diameter / 4 * Math.PI);
       double reNumber = u * diameter / v;
       double prNumber = v / a;
       double nuNumber = 0.023 * Math.Pow(reNumber, 0.8) * Math.Pow(prNumber, 0.4);
 
-      //ヌセルト数から対流熱伝達率[W/m2K]を計算
+      //Compute the convective heat transfer coefficient [W/m2K] from the Nusselt number
       return nuNumber * lam / diameter;
     }
 
@@ -390,27 +390,27 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public static double GetOutSideHeatTransferCoefficient
       (double dryBulbTemperature, double humidityRatio, double diameter, double surfaceTemperature)
     {
-      //湿り空気の物性を計算
-      //動粘性係数[m2/s], 熱拡散率[m2/s], 膨張率[1/K], 熱伝導率[W/(m·K)]
+      //Compute moist air properties
+      //Kinematic viscosity [m2/s], thermal diffusivity [m2/s], expansion coefficient [1/K], thermal conductivity [W/(m·K)]
       double v = MoistAir.GetDynamicViscosity(dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double a = MoistAir.GetThermalDiffusivity(dryBulbTemperature, humidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double beta = MoistAir.GetExpansionCoefficient(dryBulbTemperature);
       double lam = MoistAir.GetThermalConductivity(dryBulbTemperature);
 
-      //グラフホフ数の計算
+      //Compute the Grashof number
       double grNumber = 9.8 * Math.Pow(diameter, 3) * beta *
         Math.Abs(surfaceTemperature - dryBulbTemperature) / (v * v);
 
-      //プラントル数の計算
+      //Compute the Prandtl number
       double prNumber = v / a;
 
-      //ヌセルト数の計算
+      //Compute the Nusselt number
       double nuNumber;
       double grpr = grNumber * prNumber;
       if (grpr < 1e10) nuNumber = 0.53 * Math.Pow(grpr, 0.25);
       else nuNumber = 0.13 * Math.Pow(grpr, 0.333);
 
-      //ヌセルト数から対流熱伝達率[W/(m2K)]を計算
+      //Compute the convective heat transfer coefficient [W/(m2K)] from the Nusselt number
       return nuNumber * lam / diameter;
     }
 

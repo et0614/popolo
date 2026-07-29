@@ -29,12 +29,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class HotWaterBoilerSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Hot-water boiler.</summary>
     private HotWaterBoiler boiler;
@@ -56,7 +56,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get { return false; } }
@@ -147,7 +147,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
       while (true)
       {
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pump
         double hwFlow = hotWaterFlowRate / ActiveUnitCount;
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="boiler">Hot-water boiler.</param>

@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class RotaryRegenerator : IReadOnlyRotaryRegenerator
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
 
@@ -45,7 +45,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Thermal conductivity of the matrix material [W/(m·K)].</summary>
     private double thermalConductivity;
@@ -70,7 +70,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Gets a value indicating whether the detailed geometric model is used.</summary>
     /// <remarks>Simplified model: effectiveness is constant regardless of flow rate.</remarks>
@@ -126,7 +126,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="nominalEpsilon">Nominal heat transfer effectiveness [-].</param>
@@ -211,31 +211,31 @@ namespace Popolo.Core.HVAC.HeatExchanger
     {
       IsDetailedModel = true;
 
-      //幾何学形状を保存・計算
+      //Store and compute geometry
       Depth = depth;
       Diameter = diameter;
       GetRotaryGeometrics
         (diameter, depth, out frontalArea, out airStreamArea, out matrixArea, out heatTransferArea);
 
-      //マトリクスの熱伝導率[W/(mK)]を保存して熱容量を逆算
+      //Store matrix thermal conductivity [W/(mK)] and back-calculate the heat capacity
       this.thermalConductivity = thermalConductivity;
       matrixHeatCapacity = GetMatrixHeatCapacity
         (efficiency, frontalArea, airStreamArea, matrixArea, heatTransferArea, depth, thermalConductivity,
         saFlowVolume, eaFlowVolume, inletSADryBulbTemperature, inletSAHumidityRatio,
         inletEADryBulbTemperature, inletEAHumidityRatio);
 
-      //ローターの種類と消費電力を保存
+      //Store rotor type and power consumption
       IsDesiccantWheel = isDesiccantWheel;
       NominalElectricity = nominalElectricity;
 
-      //定格条件で成り行き計算
+      //Run a free-running calculation at nominal conditions
       UpdateState(saFlowVolume, eaFlowVolume, 1.0, inletSADryBulbTemperature, inletSAHumidityRatio,
         inletEADryBulbTemperature, inletEAHumidityRatio);
     }
 
     #endregion
 
-    #region 成り行き計算処理（インスタンスメソッド）
+    #region Free-run calculation (instance methods)
 
     /// <summary>Computes the outlet states for the given inlet conditions (free-running).</summary>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
@@ -250,20 +250,20 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
-      //風量を保存
+      //Store air flow rates
       SupplyAirFlowVolume = supplyAirFlowVolume;
       ExhaustAirFlowVolume = exhaustAirFlowVolume;
 
-      //入口空気状態を保存
+      //Store inlet air states
       SupplyAirInletDryBulbTemperature = inletSADryBulbTemperature;
       SupplyAirInletHumidityRatio = inletSAHumidityRatio;
       ExhaustAirInletDryBulbTemperature = inletEADryBulbTemperature;
       ExhaustAirInletHumidityRatio = inletEAHumidityRatio;
 
-      //消費電力は回転率に比例
+      //Power consumption is proportional to the rotation rate
       Electricity = NominalElectricity * rotatingRate;
 
-      //風量・回転数が0の場合
+      //Case of zero air flow or rotation
       if (supplyAirFlowVolume <= 0 || exhaustAirFlowVolume <= 0 || rotatingRate <= 0)
       {
         ShutOff();
@@ -287,12 +287,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
       Efficiency = effSA;
 
-      //出口空気状態の計算
+      //Compute outlet air states
       SupplyAirOutletDryBulbTemperature = SupplyAirInletDryBulbTemperature -
         effSA * (SupplyAirInletDryBulbTemperature - ExhaustAirInletDryBulbTemperature);
       ExhaustAirOutletDryBulbTemperature = ExhaustAirInletDryBulbTemperature -
         effEA * (ExhaustAirInletDryBulbTemperature - SupplyAirInletDryBulbTemperature);
-      //水分交換
+      //Moisture exchange
       if (IsDesiccantWheel)
       {
         SupplyAirOutletHumidityRatio = SupplyAirInletHumidityRatio -
@@ -322,7 +322,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
     {
-      //無次元数を計算
+      //Compute dimensionless parameters
       double ntu0m, rmc, cLambda, mcMin;
       bool isMcMinSASide;
       GetDimensionLessVariables
@@ -331,15 +331,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
         inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio,
         out mcMin, out rmc, out ntu0m, out cLambda, out isMcMinSASide);
 
-      //回転数制御の効果を計算
+      //Compute the effect of rotation speed control
       double rr = (matrixHeatCapacity * rotatingRate) / mcMin;
 
-      //熱通過有効度[-]を計算
+      //Compute heat transfer effectiveness [-]
       double eff = GetEffectiveness
         (mcMin, rmc, ntu0m, cLambda, rr, supplyAirFlowVolume, exhaustAirFlowVolume,
         inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
-      //熱交換効率[-]を計算
+      //Compute heat exchange efficiency [-]
       if (isMcMinSASide)
       {
         effSA = eff;
@@ -367,7 +367,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio, out double effSA, out double effEA)
     {
-      //熱容量流量比[-]の計算
+      //Compute heat capacity rate ratio [-]
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
         (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
@@ -394,7 +394,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 出口状態制御処理（インスタンスメソッド）
+    #region Outlet state control (instance methods)
 
     /// <summary>Controls the supply air outlet temperature to the given setpoint.</summary>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
@@ -411,15 +411,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSADryBulbTemperatureSP)
     {
-      //成り行き計算実行
+      //Run a free-running calculation
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
         inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
-      //冷却運転か否か
+      //Determine whether this is cooling operation
       bool cl = SupplyAirOutletDryBulbTemperature < SupplyAirInletDryBulbTemperature;
 
-      //熱交換が無駄な場合は停止
+      //Shut off if heat exchange is counterproductive
       if ((cl && (SupplyAirInletDryBulbTemperature < outletSADryBulbTemperatureSP)) ||
         (!cl && (outletSADryBulbTemperatureSP < SupplyAirInletDryBulbTemperature)))
       {
@@ -427,7 +427,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return false;
       }
 
-      //処理可能な場合には消費電力と出口条件を修正
+      //If the setpoint is achievable, adjust power consumption and outlet conditions
       bool canSolve =
         (cl && SupplyAirOutletDryBulbTemperature <= outletSADryBulbTemperatureSP
         && outletSADryBulbTemperatureSP <= SupplyAirInletDryBulbTemperature) ||
@@ -460,16 +460,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSAHumidityRatioSP)
     {
-      //成り行き計算実行
+      //Run a free-running calculation
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
         inletSADryBulbTemperature, inletSAHumidityRatio,
         inletEADryBulbTemperature, inletEAHumidityRatio);
 
-      //除湿運転か否か
+      //Determine whether this is dehumidifying operation
       bool cl = SupplyAirOutletHumidityRatio < SupplyAirInletHumidityRatio;
 
-      //熱交換が無駄な場合は停止
+      //Shut off if heat exchange is counterproductive
       if ((cl && (SupplyAirInletHumidityRatio < outletSAHumidityRatioSP)) ||
         (!cl && (outletSAHumidityRatioSP < SupplyAirInletHumidityRatio)))
       {
@@ -477,7 +477,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return false;
       }
 
-      //制御可能な場合には消費電力と出口条件を修正
+      //If controllable, adjust power consumption and outlet conditions
       bool canSolve =
         (cl && SupplyAirOutletHumidityRatio <= outletSAHumidityRatioSP
         && outletSAHumidityRatioSP <= SupplyAirInletHumidityRatio) ||
@@ -511,26 +511,26 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio, double outletSAEnthalpySP)
     {
-      //成り行き計算実行
+      //Run a free-running calculation
       UpdateState
         (supplyAirFlowVolume, exhaustAirFlowVolume, rotatingRate,
         inletSADryBulbTemperature, inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
 
-      //冷却除湿運転か否か
+      //Determine whether this is cooling-dehumidifying operation
       double hSAi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
         (SupplyAirInletDryBulbTemperature, SupplyAirInletHumidityRatio);
       double hSAo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
         (SupplyAirOutletDryBulbTemperature, SupplyAirOutletHumidityRatio);
       bool cl = hSAo < hSAi;
 
-      //熱交換が無駄な場合は停止
+      //Shut off if heat exchange is counterproductive
       if ((cl && (hSAi < outletSAEnthalpySP)) || (!cl && (outletSAEnthalpySP < hSAi)))
       {
         ShutOff();
         return false;
       }
 
-      //制御可能な場合には消費電力と出口条件を修正
+      //If controllable, adjust power consumption and outlet conditions
       bool canSolve =
         (cl && hSAo <= outletSAEnthalpySP && outletSAEnthalpySP <= hSAi) ||
         (!cl && outletSAEnthalpySP <= hSAo && hSAi <= outletSAEnthalpySP);
@@ -558,7 +558,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region その他インスタンスメソッド
+    #region Other instance methods
 
     /// <summary>Computes the heat recovery rate [kW].</summary>
     /// <returns>Heat recovery rate [kW] (positive = supply air heated).</returns>
@@ -587,7 +587,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the rotary heat capacity rate of the matrix [W/K].</summary>
     /// <param name="efficiency">Supply-air-side heat exchange efficiency εSA [-].</param>
@@ -610,7 +610,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double exhaustAirFlowVolume, double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
-      //無次元数を取得
+      //Get dimensionless parameters
       double ntu0m, rmc, cLambda, mcMin;
       bool isMcMinSASide;
       GetDimensionLessVariables
@@ -626,7 +626,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double rr;
       if (0.99 < rmc)
       {
-        //熱容量流量がほぼ等しい場合
+        //Case of nearly equal heat capacity rates
         double ee = ntu0m / (1 + ntu0m);
         rr = effectiveness / ee / (1 - cLambda);
         if (1 <= rr) rr = 100;
@@ -634,7 +634,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
       else
       {
-        //熱容量流量が異なる場合
+        //Case of unequal heat capacity rates
         double em = 2 * rmc * Math.Log((1 - effectiveness) / (1 - effectiveness * rmc));
         em = em / (em + rmc * rmc - 1);
         double rm = em * ((1 + ntu0m) / ntu0m) / (1 - cLambda / (2 - rmc));
@@ -666,13 +666,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double e;
       if (0.99 < rmc)
       {
-        //熱容量流量がほぼ等しい場合
+        //Case of nearly equal heat capacity rates
         double ee = ntu0m / (1 + ntu0m);
         e = ee * (1 - 1 / (9 * Math.Pow(rr, 1.93))) * (1 - cLambda);
       }
       else
       {
-        //熱容量流量が異なる場合
+        //Case of unequal heat capacity rates
         double rrm = 2 * rr * rmc / (1 + rmc);
         double em = ntu0m / (1 + ntu0m) * (1 - 1 / (9 * Math.Pow(rrm, 1.93)));
         em *= 1 - cLambda / (2 - rmc);
@@ -706,7 +706,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSAHumidityRatio, double inletEADryBulbTemperature, double inletEAHumidityRatio,
       out double mcMin, out double rmc, out double ntu0m, out double cLambda, out bool isMcMinSASide)
     {
-      //熱容量流量比[-]の計算
+      //Compute heat capacity rate ratio [-]
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
         (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
@@ -720,20 +720,20 @@ namespace Popolo.Core.HVAC.HeatExchanger
       rmc = mcMin / mcMax;
       isMcMinSASide = (mcSA == mcMin);
 
-      //風速[m/s]の計算
+      //Compute air velocity [m/s]
       double vSA = saFlowVolume / 3600d / (airStreamArea * SA_AREA_RATE);
       double vEA = eaFlowVolume / 3600d / (airStreamArea * (1 - SA_AREA_RATE));
-      //対流熱伝達率[W/(m2K)]の計算
+      //Compute convective heat transfer coefficient [W/(m2K)]
       double ed25 = 1d / Math.Pow(E_DIAMETER, 0.25);
       double alphaSA = (4.13 + 0.195 * inletSADryBulbTemperature / 100) * Math.Pow(vSA, 0.75) * ed25;
       double alphaEA = (4.13 + 0.195 * inletEADryBulbTemperature / 100) * Math.Pow(vEA, 0.75) * ed25;
-      //修正移動単位数[-]の計算
+      //Compute modified number of transfer units [-]
       double ha = 1 / (alphaSA * heatTransferArea * SA_AREA_RATE)
         + 1 / (alphaEA * heatTransferArea * (1 - SA_AREA_RATE));
       double ntu0 = 1 / mcMin / ha;
       ntu0m = (2 * ntu0 * rmc) / (1 + rmc);
 
-      //流路方向の熱伝導補正係数[-]の計算
+      //Compute longitudinal heat conduction correction factor [-]
       double lambda = (thermalConductivity * matrixArea) / (length * mcMin);
       double phi = Math.Sqrt((lambda * ntu0m) / (1 + lambda * ntu0m));
       phi = phi * Math.Tanh(ntu0m / phi);
@@ -751,13 +751,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double diameter, double length, out double frontalArea, out double airStreamArea,
       out double matrixArea, out double heatTransferArea)
     {
-      //見付面積[m2]の計算
+      //Compute frontal area [m2]
       frontalArea = diameter * diameter * Math.PI / 4;
-      //流路面積[m2]の計算
+      //Compute air stream area [m2]
       airStreamArea = frontalArea * AIRSTREAM_RATE;
-      //マトリクス面積[m2]の計算
+      //Compute matrix area [m2]
       matrixArea = frontalArea - airStreamArea;
-      //伝熱面積[m2]の計算
+      //Compute heat transfer area [m2]
       heatTransferArea = frontalArea * PERUNIT * length;
     }
 

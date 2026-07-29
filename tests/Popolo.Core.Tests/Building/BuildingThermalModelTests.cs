@@ -45,7 +45,7 @@ namespace Popolo.Core.Tests.Building
   /// </remarks>
   public class BuildingThermalModelTests
   {
-    #region テスト用定数・気象データ
+    #region Test constants and weather data
 
     // 空調能力
     private const double HeatingCapacity = 2000.0; // [W]
@@ -90,7 +90,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region モデル構築
+    #region Model construction
 
     /// <summary>サンスペース付き2ゾーンモデルを構築する。</summary>
     private static BuildingThermalModel MakeSunSpaceModel()
@@ -283,7 +283,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region 周期定常収束テスト
+    #region Periodic steady state convergence tests
 
     /// <summary>夏季・冬季ともに周期定常計算が収束する。</summary>
     [Theory]
@@ -303,7 +303,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region 室温制御精度テスト
+    #region Room temperature control accuracy tests
 
     /// <summary>空調時間帯の室温が設定値付近に制御される。</summary>
     [Theory]
@@ -339,7 +339,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region 顕熱負荷の符号テスト
+    #region Sensible heat load sign tests
 
     /// <summary>夏季の空調時間帯は冷房負荷（HeatSupply &lt; 0）が支配的である。</summary>
     [Fact]
@@ -367,7 +367,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region サンスペース効果テスト
+    #region Sunspace effect tests
 
     /// <summary>冬季の自然室温においてSunSpaceはBackSpaceより温かい（日射効果）。</summary>
     [Fact]
@@ -417,7 +417,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region UpdateHeatTransferWithinCapacityLimit との一致テスト
+    #region Consistency tests with UpdateHeatTransferWithinCapacityLimit
 
     /// <summary>
     /// ForecastHeatTransfer + 手動過負荷判定 と
@@ -456,7 +456,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region 断熱効果テスト
+    #region Insulation effect tests
 
     /// <summary>冬季の自然室温が外気温より高い（断熱効果）。</summary>
     [Fact]
@@ -502,7 +502,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region エネルギー収支テスト
+    #region Energy balance tests
 
     /// <summary>
     /// 収束後の周期定常状態では、1日の熱収支がほぼゼロになる。
@@ -566,7 +566,7 @@ namespace Popolo.Core.Tests.Building
 
     #endregion
 
-    #region 熱水分同時移動テスト
+    #region Coupled heat and moisture transfer tests
 
     /// <summary>
     /// 熱水分同時移動が NaN / Inf 無く回り、物理的に妥当な範囲に収束する。
@@ -1069,7 +1069,7 @@ namespace Popolo.Core.Tests.Building
     #endregion
 
     // ================================================================
-    #region GetAirFlow — ゾーン間流量の読み取り
+    #region GetAirFlow — reading inter-zone air flows
 
     /// <summary>2つのMultiRoomを持つ最小モデル（流量の設定・読み取り検証用）。</summary>
     private static BuildingThermalModel MakeTwoMultiRoomModel()

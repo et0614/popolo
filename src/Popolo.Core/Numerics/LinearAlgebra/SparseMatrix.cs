@@ -28,7 +28,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   public class SparseMatrix : IMatrix
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Per-row dictionaries that hold the non-zero elements.</summary>
     private Dictionary<int, double>[] elem;
@@ -66,7 +66,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with the specified dimensions.</summary>
     /// <param name="rows">Number of rows.</param>
@@ -81,7 +81,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Clears all non-zero elements (only zero initialization is supported).</summary>
     /// <param name="val">Initialization value. Must be zero.</param>
@@ -133,7 +133,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       IVector r = new Vector(Rows);
       IVector rr = new Vector(Rows);
 
-      //初回の残差ベクトルを設定
+      //Set the initial residual vector
       double bnrm = 0;
       double rnrm = 0;
       Multiply(vecX, ref r);
@@ -144,7 +144,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         rnrm += r[i] * rr[i];
       }
 
-      //収束計算開始
+      //Start the iterative calculation
       int maxIter = 10 * Rows;
       for (int iter = 0; iter < maxIter; iter++)
       {
@@ -160,7 +160,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           rr[i] -= ak * app[i];
         }
 
-        //収束判定
+        //Convergence check
         Multiply(vecX, ref ap);
         double err = 0;
         for (int i = 0; i < Rows; i++)
@@ -188,11 +188,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <remarks>Uses the Gauss-Jordan elimination method.</remarks>
     public void ConvertToInverseMatrix()
     {
-      //Pivot配列初期化
+      //Initialize the pivot array
       int[] pivot = new int[Rows];
       for (int i = 0; i < pivot.Length; i++) pivot[i] = i;
 
-      //各行の規準化係数を計算
+      //Compute the normalization factor of each row
       double[] rate = new double[Rows];
       for (int i = 0; i < Rows; i++)
       {
@@ -208,7 +208,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
       for (int i = 0; i < Rows; i++)
       {
-        //対角要素最大の行を特定//Pivotting        
+        //Find the row with the largest diagonal element//Pivotting
         int prNum = pivot[i];
         double big = Math.Abs(this[prNum, i] * rate[prNum]);
         int tgtJ = i;
@@ -225,7 +225,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         pivot[tgtJ] = pivot[i];
         pivot[i] = prNum;
 
-        //Pivot行を対角要素で除する
+        //Divide the pivot row by its diagonal element
         Dictionary<int, double> pRow = elem[prNum];
         double inv = 1d / pRow[i];
         pRow[i] = 1.0;
@@ -233,7 +233,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         foreach (int key in pRow.Keys) nRow.Add(key, pRow[key] * inv);
         elem[prNum] = pRow = nRow;
 
-        //他の行を処理
+        //Process the other rows
         for (int j = 0; j < Rows; j++)
         {
           if (i != j)
@@ -253,7 +253,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         }
       }
 
-      //行列入替
+      //Reorder the rows
       Dictionary<int, double> bfRow;
       for (int i = 0; i < Rows; i++)
       {

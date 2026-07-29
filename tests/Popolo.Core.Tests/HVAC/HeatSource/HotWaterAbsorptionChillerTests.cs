@@ -24,7 +24,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class HotWaterAbsorptionChillerTests
     {
-        #region 定格条件
+        #region Rated conditions
 
         private static readonly double ChWM = 274.9 / 60.0;
         private static readonly double CdWM = 918.0 / 60.0;
@@ -35,7 +35,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
         #endregion
 
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>サンプルコードと同じ定格条件で初期化。成り行き運転。</summary>
         private static HotWaterAbsorptionChiller MakeChiller()
@@ -51,7 +51,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ
+        #region Constructors
 
         /// <summary>NominalCapacity が正。</summary>
         [Fact]
@@ -83,7 +83,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region Update — 定格条件
+        #region Update — rated conditions
 
         /// <summary>定格条件で Update すると冷凍能力が正。</summary>
         [Fact]
@@ -137,7 +137,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 温水温度・冷却水温度の依存性（サンプルコードのループ条件より）
+        #region Dependence on hot water and cooling water temperatures (from the loop conditions of the sample code)
 
         /// <summary>
         /// 温水温度が高いほど冷凍能力が大きい（70C vs 90C）。

@@ -55,7 +55,7 @@ namespace Popolo.Webpro.Json
   public static class WebproJsonReader
   {
 
-    #region デフォルトオプション
+    #region Default options
 
     /// <summary>
     /// Creates a <see cref="JsonSerializerOptions"/> pre-configured with all
@@ -107,7 +107,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region 読み取り API
+    #region Read API
 
     /// <summary>Reads a WEBPRO model from a JSON string.</summary>
     /// <param name="json">The WEBPRO JSON document as a string.</param>

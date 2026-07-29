@@ -28,7 +28,7 @@ namespace Popolo.Webpro.Tests.Conversion
     /// <summary>Unit tests for <see cref="GlazingCatalog"/>.</summary>
     public class GlazingCatalogTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private const string SampleCatalogJson = """
             {
@@ -47,7 +47,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region ロード
+        #region Loading
 
         [Fact]
         public void LoadFromString_ParsesAllEntries()
@@ -145,7 +145,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region Default - 埋め込みリソース
+        #region Default - embedded resource
 
         [Fact]
         public void Default_HasGlazingsFromEmbeddedResource()

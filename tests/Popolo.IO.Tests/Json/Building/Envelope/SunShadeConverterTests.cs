@@ -36,7 +36,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
   /// </remarks>
   public class SunShadeConverterTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// Options with <see cref="SunShadeConverter"/> and <see cref="InclineConverter"/>.
@@ -136,7 +136,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region Vertical 系
+    #region Vertical variants
 
     [Fact]
     public void RoundTrip_LongVerticalLeft_PreservesFields()
@@ -232,7 +232,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region 直接 public コンストラクタ経由のラウンドトリップ
+    #region Round trip via direct public constructor
 
     /// <summary>
     /// 9 引数コンストラクタ(public)で作った SunShade がラウンドトリップで保存されることを確認。
@@ -258,7 +258,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region Incline のネスト
+    #region Nested Incline
 
     [Fact]
     public void Write_IncludesNestedInclineWithKind()
@@ -290,7 +290,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region エラー処理
+    #region Error handling
 
     [Fact]
     public void Read_MissingKind_Throws()

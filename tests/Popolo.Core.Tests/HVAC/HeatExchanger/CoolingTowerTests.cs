@@ -32,7 +32,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
   /// </remarks>
   public class CoolingTowerTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// 標準的な冷却塔を生成する。
@@ -56,7 +56,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region コンストラクタ・プロパティ
+    #region Constructors and properties
 
     /// <summary>コンストラクタで HasInverter フラグが正しく設定される。</summary>
     [Fact]
@@ -227,7 +227,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region static メソッド
+    #region Static methods
 
     /// <summary>
     /// GetHeatRejection: 定格条件に近い値で除去熱量が正になる。

@@ -64,7 +64,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class SunShadeConverter : JsonConverter<SunShade>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropShape = "shape";
@@ -81,7 +81,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="SunShade"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>
@@ -146,16 +146,16 @@ namespace Popolo.IO.Json.Building.Envelope
       if (shape is null)
         throw new JsonException($"Required property '{PropShape}' is missing from {nameof(SunShade)} JSON.");
 
-      // Shape == None は incline 不要。
+      // Shape == None requires no incline.
       if (shape == SunShade.ShapeType.None)
         return SunShade.MakeEmptySunShade();
 
-      // Shape != None は incline 必須。
+      // Shape != None requires an incline.
       if (incline is null)
         throw new JsonException($"Property '{PropIncline}' is required when {PropShape} != None.");
 
-      // 9 引数コンストラクタ一発。SunShade クラスの remarks 記載のとおり、
-      // 本コンストラクタはシリアライズ用途に公開されている。
+      // Single call to the 9-argument constructor. As stated in the remarks of the
+      // SunShade class, this constructor is exposed for serialization purposes.
       return new SunShade(
         shape.Value, incline,
         winHeight, winWidth, overhang,
@@ -180,8 +180,8 @@ namespace Popolo.IO.Json.Building.Envelope
       if (value.Shape != SunShade.ShapeType.None)
       {
         writer.WritePropertyName(PropIncline);
-        // Incline は IReadOnlyIncline として保持されているが、IReadOnlyIncline の別実装に備えて
-        // コピーコンストラクタで具象化する。InclineConverter が options に登録されている前提。
+        // Incline is held as an IReadOnlyIncline, but to allow for other IReadOnlyIncline
+        // implementations, concretize it via the copy constructor. Assumes an InclineConverter is registered in the options.
         JsonSerializer.Serialize(writer, new Incline(value.Incline), options);
 
         writer.WriteNumber(PropWinHeight, value.WinHeight);

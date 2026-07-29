@@ -28,7 +28,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   public class VectorView : IVector
   {
 
-    #region static変数
+    #region Static variables
 
     /// <summary>Square root of the maximum representable value (used for scaling).</summary>
     private static double DGIANT = Math.Sqrt(double.MaxValue);
@@ -38,7 +38,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Start index of the subvector within the source vector.</summary>
     private int startIndex;
@@ -63,7 +63,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the length (number of elements) of the view.</summary>
     public int Length { get; private set; }
@@ -103,7 +103,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a view over a contiguous slice of a vector.</summary>
     /// <param name="vector">Source vector.</param>
@@ -154,13 +154,13 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Computes the Euclidean norm of the view, using a numerically stable scaling.</summary>
     /// <returns>Euclidean norm.</returns>
     public double ComputeEuclideanNorm()
     {
-      double aGiant = DGIANT / Length;   //1要素あたりの最大値
+      double aGiant = DGIANT / Length;   //Maximum value per element
       double sN, sG, sD, maxG, maxD;
       sN = sG = sD = maxG = maxD = 0;
 
@@ -168,10 +168,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       {
         double abs = Math.Abs(this[i]);
 
-        //値を確認して計算可能な範囲になるように拡大縮小する
-        //計算可能な大きさの場合
+        //Check the value and scale it into a computable range
+        //Value is within the computable range
         if (DDWARF < abs && abs < aGiant) sN += abs * abs;
-        //小さすぎる場合
+        //Value is too small
         else if (abs <= DDWARF)
         {
           if (abs <= maxD)
@@ -184,7 +184,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
             maxD = abs;
           }
         }
-        //大きすぎる場合
+        //Value is too large
         else
         {
           if (abs <= maxG)
@@ -199,7 +199,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         }
       }
 
-      //maxGとmaxDの2乗の計算が発生しないように計算順序を調整
+      //Order the operations so that maxG and maxD are never squared directly
       if (sG != 0.0d) return maxG * Math.Sqrt(sG + (sN / maxG) / maxG);
       else if (sN == 0) return maxD * Math.Sqrt(sD);
       else

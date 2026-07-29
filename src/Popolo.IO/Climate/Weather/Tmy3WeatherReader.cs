@@ -142,7 +142,7 @@ namespace Popolo.IO.Climate.Weather
         NominalInterval = TimeSpan.FromHours(1),
       };
 
-      // --- ヘッダ 1 行目: 観測局情報 ---
+      // --- Header line 1: station information ---
       string? header1 = reader.ReadLine();
       if (header1 == null)
         throw new PopoloArgumentException("TMY3 file is empty.", "stream");
@@ -158,12 +158,12 @@ namespace Popolo.IO.Climate.Weather
       double elevation = double.Parse(hdr[6].Trim(), ci);
       data.Station = new WeatherStationInfo(name, latitude, longitude, elevation);
 
-      // --- ヘッダ 2 行目: 列名（読み飛ばし。仕様で位置固定なのでインデックス参照）---
+      // --- Header line 2: column names (skipped; positions are fixed by the spec, so columns are accessed by index) ---
       if (reader.ReadLine() == null)
         throw new PopoloArgumentException(
             "TMY3 file is missing the column-name header line.", "stream");
 
-      // --- データ行 ---
+      // --- Data lines ---
       var raws = new List<RawRecord>();
       string? line;
       int lineNo = 2;
@@ -176,8 +176,8 @@ namespace Popolo.IO.Climate.Weather
         if (line.Length == 0) continue;
 
         string[] f = line.Split(',');
-        // データ行は 71 フィールド (date + time + 69 measurement)。
-        // 末尾に欠落が無いはずだが、保険として最小限で判定。
+        // A data line has 71 fields (date + time + 69 measurements).
+        // Trailing fields should never be missing, but check only the minimum as a safeguard.
         if (f.Length < 47) continue;
 
         try
@@ -213,7 +213,7 @@ namespace Popolo.IO.Climate.Weather
 
           var builder = new WeatherRecordBuilder();
 
-          // [4] GHI [W/m²], 欠測: 9999
+          // [4] GHI [W/m²], missing: 9999
           if (TryParseDouble(f[4], ci, out double ghi) && ghi >= 0 && ghi < 9000)
             builder.SetGlobalHorizontalRadiation(ghi);
 
@@ -225,64 +225,64 @@ namespace Popolo.IO.Climate.Weather
           if (TryParseDouble(f[10], ci, out double dhi) && dhi >= 0 && dhi < 9000)
             builder.SetDiffuseHorizontalRadiation(dhi);
 
-          // [25] TotCld [tenths], 欠測: 99
+          // [25] TotCld [tenths], missing: 99
           if (TryParseDouble(f[25], ci, out double tcc) && tcc >= 0 && tcc <= 10)
             builder.SetCloudCover(tcc / 10.0);
 
-          // [28] OpqCld [tenths], 欠測: 99
+          // [28] OpqCld [tenths], missing: 99
           if (TryParseDouble(f[28], ci, out double occ) && occ >= 0 && occ <= 10)
             builder.SetOpaqueCloudCover(occ / 10.0);
 
-          // [31] Dry-bulb [°C], 欠測: 99.9
+          // [31] Dry-bulb [°C], missing: 99.9
           if (TryParseDouble(f[31], ci, out double dbtRaw) && Math.Abs(dbtRaw) < 99.0)
             builder.SetDryBulbTemperature(dbtRaw);
 
-          // [34] Dew-point [°C], 欠測: 99.9
-          // TMY3 ファイルは RH (col 37) と Tdp (col 34) を独立処理しており
-          // Magnus 式で完全には round-trip しない (典型 ±0.5°C、極端時 ±数°C)。
-          // ANSI/ASHRAE 140-2023 の Tsky-Informative は col 34 を直接使用するため
-          // long-wave 大気放射の計算では col 34 を優先する (WeatherCompleter 参照)。
+          // [34] Dew-point [°C], missing: 99.9
+          // TMY3 files process RH (col 37) and Tdp (col 34) independently, so they
+          // do not fully round-trip through the Magnus formula (typically ±0.5°C, up to several °C in extremes).
+          // ANSI/ASHRAE 140-2023 Tsky-Informative uses col 34 directly, so
+          // col 34 takes precedence in long-wave atmospheric radiation calculations (see WeatherCompleter).
           if (TryParseDouble(f[34], ci, out double tdpRaw) && Math.Abs(tdpRaw) < 99.0)
             builder.SetDewPointTemperature(tdpRaw);
 
-          // [37] RHum [%], 欠測: 999
-          // TMY3 は RH を独立列で記録するため RH をそのまま保存し、
-          // HumidityRatio (絶対湿度) への変換は WeatherCompleter に委譲する。
+          // [37] RHum [%], missing: 999
+          // TMY3 records RH as an independent column, so store RH as-is and
+          // delegate the conversion to HumidityRatio to WeatherCompleter.
           if (TryParseDouble(f[37], ci, out double rhRaw) && rhRaw >= 0 && rhRaw <= 110)
             builder.SetRelativeHumidity(rhRaw);
 
-          // [40] Pressure [mbar] → [kPa], 欠測: 9999
+          // [40] Pressure [mbar] → [kPa], missing: 9999
           if (TryParseDouble(f[40], ci, out double pmbar) && pmbar > 0 && pmbar < 1500)
             builder.SetAtmosphericPressure(pmbar / 10.0);
 
-          // [43] Wdir [deg from north], 欠測: 999
+          // [43] Wdir [deg from north], missing: 999
           if (TryParseDouble(f[43], ci, out double wdir) && wdir >= 0 && wdir <= 360)
             builder.SetWindDirection(WindDirectionUtil.FromNorthBearingDegrees(wdir));
 
-          // [46] Wspd [m/s], 欠測: 99
+          // [46] Wspd [m/s], missing: 99
           if (TryParseDouble(f[46], ci, out double wsp) && wsp >= 0 && wsp < 99)
             builder.SetWindSpeed(wsp);
 
-          // [52] CeilHgt [m]: 0..77000 が通常値、77777 = unlimited (TMY3 sentinel:
-          // ceilometer が天井を検出しなかった、すなわち雲底が測定不能), 99999 = missing.
+          // [52] CeilHgt [m]: 0..77000 are normal values, 77777 = unlimited (TMY3 sentinel:
+          // the ceilometer detected no ceiling, i.e. the cloud base could not be measured), 99999 = missing.
           //
-          // 77777 は「天井不明」という抽象的意味を担う TMY3 固有のセンチネル値。
-          // 物理モデル (Sky.GetInfraredRadiationFromSky) には NaN として渡し、
-          // Sky 側で Martin-Berdahl 規約 (天井不明 → Γ_opaque = exp(2000/82000))
-          // を適用する。Reader 側は TMY3 固有の数値コードを抽象表現に翻訳する責務を担う。
+          // 77777 is a TMY3-specific sentinel carrying the abstract meaning "ceiling unknown".
+          // It is passed to the physical model (Sky.GetInfraredRadiationFromSky) as NaN, and
+          // the Sky side applies the Martin-Berdahl convention (ceiling unknown → Γ_opaque = exp(2000/82000)).
+          // The reader is responsible for translating TMY3-specific numeric codes into the abstract representation.
           //
-          // 99999 (missing) は SetCeilingHeight 未呼出 → 上位は cloud cover ベースの
-          // フォールバックモデルへ。
+          // 99999 (missing) means SetCeilingHeight is not called → upper layers fall back to the
+          // cloud-cover-based model.
           if (f.Length > 52 && TryParseDouble(f[52], ci, out double ceil))
           {
             if (ceil >= 0 && ceil < 77000)
               builder.SetCeilingHeight(ceil);
             else if ((int)ceil == 77777)
-              builder.SetCeilingHeight(double.NaN);   // 「天井不明」を抽象的に表現
+              builder.SetCeilingHeight(double.NaN);   // abstract representation of "ceiling unknown"
           }
 
-          // [64] Lprecip depth [mm], 欠測値は -9900 等の負値や 99 (TMY3 仕様)。
-          // 正常範囲のみ受け入れる。
+          // [64] Lprecip depth [mm], missing values are negatives such as -9900 or 99 (TMY3 spec).
+          // Accept only the normal range.
           if (f.Length > 64 && TryParseDouble(f[64], ci, out double precip)
               && precip >= 0 && precip < 999)
             builder.SetPrecipitation(precip);
@@ -298,7 +298,7 @@ namespace Popolo.IO.Climate.Weather
         }
       }
 
-      // --- TMY 判定と時刻ラベル付け ---
+      // --- TMY detection and time labelling ---
       bool isTypicalYear = DetectTypicalYear(raws);
       data.IsTypicalYear = isTypicalYear;
 

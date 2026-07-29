@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class DirectFiredAbsorptionChiller: IReadOnlyDirectFiredAbsorptionChiller
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     /// <summary>Minimum variable flow ratio for chilled/hot water [-].</summary>
@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Evaporator overall heat transfer conductance [kW/K].</summary>
     private double evaporatorKA;
@@ -79,7 +79,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Gets or sets a value indicating whether the unit is in cooling mode.</summary>
     public bool IsCoolingMode { get; set; }
@@ -191,7 +191,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated conditions.</summary>
     /// <param name="nominalCoolingFuelConsumption">Nominal cooling fuel consumption rate [Nm³/s or kg/s].</param>
@@ -236,29 +236,29 @@ namespace Popolo.Core.HVAC.HeatSource
       this.Fuel = fuel;
       this.NominalElectricConsumption = electricConsumption;
 
-      //吸収冷凍サイクルの各種性能を計算
+      //Compute the performance characteristics of the absorption refrigeration cycle
       AbsorptionRefrigerationCycle.GetHeatTransferCoefficients(chilledWaterInletTemperature,
         chilledWaterOutletTemperature, chilledWaterFlowRate, coolingWaterInletTemperature,
         coolingWaterOutletTemperature, coolingWaterFlowRate, out evaporatorKA, out condenserKA,
         out lowDesorborKA, out thinSolutionHexKA, out solutionFlowRate, out desorbHeat);
-      desorbHeat *= 1.001;  //定格性能を担保するための処理
+      desorbHeat *= 1.001;  //Adjustment to guarantee the rated performance
 
-      //缶体熱損失係数の計算
+      //Compute the shell heat loss coefficient
       heatLossCoefficient = Boiler.GetHeatLossCoefficient
         (desorbHeat, AbsorptionRefrigerationCycle.NominalDesorberLiquidTemperature, AMB_TEMP, Fuel,
         SMK_TEMP, AIR_RATIO, NominalCoolingFuelConsumption, AMB_TEMP);
 
-      //温水ボイラ初期化
+      //Initialize the hot water boiler
       hBoiler = new HotWaterBoiler(hotWaterInletTemperature, hotWaterOutletTemperature, hotWaterFlowRate,
         NominalHeatingFuelConsumption, 0, AMB_TEMP, AIR_RATIO, Fuel, SMK_TEMP);
 
-      //運転停止
+      //Shut off the unit
       ShutOff();
     }
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the unit state for the given inlet conditions.</summary>
     /// <param name="coolingWaterInletTemperature">Cooling water inlet temperature [°C].</param>
@@ -268,15 +268,15 @@ namespace Popolo.Core.HVAC.HeatSource
     public void Update(double coolingWaterInletTemperature, double inletWaterTemperature,
       double coolingWaterFlowRate, double waterFlowRate)
     {
-      //状態値を保存
+      //Store state values
       this.InletWaterTemperature = inletWaterTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.CoolingWaterFlowRate = Math.Max(coolingWaterFlowRate, MinCoolingWaterFlowRate);
 
-      //冷却運転
+      //Cooling operation
       if (IsCoolingMode && (OutletWaterSetpointTemperature < InletWaterTemperature))
       {
-        //極少負荷対応のための入口水温・水量補正
+        //Correct the inlet water temperature and flow rate to handle extremely small loads
         this.WaterFlowRate = Math.Max(waterFlowRate, MinChilledWaterFlowRate);
         double pl = (InletWaterTemperature - OutletWaterSetpointTemperature)
           * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * WaterFlowRate / NominalCoolingCapacity;
@@ -285,20 +285,20 @@ namespace Popolo.Core.HVAC.HeatSource
 
         double dsbH = 0;
         double tcdo, tdsb, tevp, tcnd, wtn, wtk;
-        //定格の高温再生器投入熱量で出口状態を計算
+        //Compute the outlet state with the rated high-temperature regenerator heat input
         double cht = AbsorptionRefrigerationCycle.GetChilledWaterOutletTemperature
           (ti, WaterFlowRate, CoolingWaterInletTemperature, CoolingWaterFlowRate, evaporatorKA,
           condenserKA, lowDesorborKA, thinSolutionHexKA, solutionFlowRate, desorbHeat,
           out tcdo, out tdsb, out tevp, out tcnd, out wtn, out wtk);
 
         IsOverLoad = OutletWaterSetpointTemperature <= cht;
-        //過負荷の場合
+        //Overloaded
         if (IsOverLoad)
         {
           OutletWaterTemperature = cht;
           dsbH = desorbHeat;
         }
-        //処理可能の場合
+        //Load can be handled
         else
         {
           if (HasSolutionInverterPump)
@@ -336,14 +336,14 @@ namespace Popolo.Core.HVAC.HeatSource
         ThickSolutionMassFraction = wtk;
         ThinSolutionMassFraction = wtn;
       }
-      //加熱運転
+      //Heating operation
       else if (!IsCoolingMode && (InletWaterTemperature < OutletWaterSetpointTemperature))
       {
-        //水量設定
+        //Set water flow rates
         CoolingWaterFlowRate = 0;
         this.WaterFlowRate = Math.Max(waterFlowRate, MinHotWaterFlowRate);
 
-        //温水ボイラを更新
+        //Update the hot water boiler
         hBoiler.OutletWaterSetpointTemperature = this.OutletWaterSetpointTemperature;
         hBoiler.Update(InletWaterTemperature, WaterFlowRate);
         IsOverLoad = hBoiler.IsOverLoad;
@@ -353,7 +353,7 @@ namespace Popolo.Core.HVAC.HeatSource
         FuelConsumption = hBoiler.FuelConsumption;
         ElectricConsumption = HeatingLoad / NominalHeatingCapacity * NominalElectricConsumption;
       }
-      //運転停止
+      //Shut off the unit
       else ShutOff();
     }
 

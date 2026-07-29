@@ -51,7 +51,7 @@ namespace Popolo.Core.Building.Envelope
   public class EnvelopeSurface
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>True if this surface is the F side of the element.</summary>
     internal bool isSideF { get; private set; }
@@ -310,7 +310,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region メソッド
+    #region Methods
 
     /// <summary>
     /// Notifies this surface of the short-wave radiation [W/m²] arriving from
@@ -335,7 +335,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new envelope surface element.</summary>
     /// <param name="component">The envelope component this surface belongs to.</param>

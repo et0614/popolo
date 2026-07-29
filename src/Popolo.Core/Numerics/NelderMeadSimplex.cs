@@ -26,14 +26,14 @@ namespace Popolo.Core.Numerics
   public static class NelderMeadSimplex
   {
 
-    #region 定数
+    #region Constants
 
     private const int MAX_ITERATION = 5000;
     private const double ERR_TOLERANCE = 1e-5;
 
     #endregion
 
-    #region パラメータ
+    #region Parameters
 
     private static double alpha = 1.0;
     private static double beta = 0.5;
@@ -78,7 +78,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region デリゲート定義
+    #region Delegate definitions
 
     /// <summary>Objective function to optimize.</summary>
     /// <param name="x">Input vector.</param>
@@ -90,7 +90,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 公開メソッド
+    #region Public methods
 
     /// <summary>Finds the input vector that minimizes the given function.</summary>
     /// <param name="mFnc">Function to minimize.</param>
@@ -135,7 +135,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 非公開メソッド
+    #region Private methods
 
     /// <summary>Validates the search-range arguments.</summary>
     private static void ValidateSearchRange(double[] minX, double[] maxX)
@@ -258,7 +258,7 @@ namespace Popolo.Core.Numerics
       double[][] pnts = new double[minX.Length + 1][];
       for (int i = 0; i < pnts.Length; i++) pnts[i] = new double[minX.Length];
 
-      // ミリ秒単位のシードで同一秒内の重複を低減
+      // Millisecond-resolution seed reduces duplicates within the same second
       var mt = new MersenneTwister((uint)DateTime.Now.Ticks);
       for (int i = 0; i < pnts.Length; i++)
         for (int j = 0; j < minX.Length; j++)

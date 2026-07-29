@@ -20,7 +20,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
   /// </remarks>
   public class AdsorptionChillerTests
   {
-    #region 定格条件定数
+    #region Rated condition constants
 
     private static readonly double MChW = 54.0 / 60.0;
     private static readonly double MCdW = 127.0 / 60.0;
@@ -34,7 +34,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static AdsorptionChiller MakeChiller()
     {

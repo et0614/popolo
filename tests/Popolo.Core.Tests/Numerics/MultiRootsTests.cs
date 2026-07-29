@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.Numerics
             fx[1] = x[0] - x[1];
         };
 
-        #region Newton (基本版) のテスト
+        #region Newton (basic version) tests
 
         /// <summary>線形方程式を正しく解ける</summary>
         [Fact]
@@ -119,7 +119,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region Newton (振動防止係数付き) のテスト
+        #region Newton (with oscillation damping factor) tests
 
         /// <summary>振動防止係数付きで線形方程式を正しく解ける</summary>
         [Fact]

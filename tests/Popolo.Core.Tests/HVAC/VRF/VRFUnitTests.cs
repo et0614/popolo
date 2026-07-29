@@ -49,7 +49,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
         }
 
         // ================================================================
-        #region コンストラクタ
+        #region Constructors
 
         [Fact]
         public void Constructor_Evaporator_SelectableModeIncludesCooling()
@@ -100,7 +100,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
         #endregion
 
         // ================================================================
-        #region 蒸発器 — CrossFinEvaporatorTest
+        #region Evaporator — CrossFinEvaporatorTest
 
         /// <summary>定格条件（入口7C、蒸発2C）で HeatTransfer が負値（冷却）。</summary>
         [Fact]
@@ -170,7 +170,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
         #endregion
 
         // ================================================================
-        #region 凝縮器 — CrossFinCondensorTest
+        #region Condenser — CrossFinCondensorTest
 
         /// <summary>定格条件（入口35C/RH55%、凝縮45C）で HeatTransfer が正値（加熱）。</summary>
         [Fact]

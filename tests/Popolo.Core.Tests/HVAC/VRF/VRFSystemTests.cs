@@ -35,7 +35,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
   /// </remarks>
   public class VRFSystemTests
   {
-    #region 定数
+    #region Constants
 
     private static readonly double NOM_IHEX_AFLOW = 34.5 * 1.2 / 60.0;
     private static readonly double NOM_OHEX_AFLOW_S = 187.0 * 1.2 / 60.0;
@@ -50,7 +50,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static double HR_from_DBT_WBT(double dbt, double wbt)
         => MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(dbt, wbt, ATM);
@@ -109,7 +109,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
     #endregion
 
     // ================================================================
-    #region コンストラクタ・プロパティ
+    #region Constructors and properties
 
     /// <summary>冷房専用機の Cooling.NominalCapacity が負値。</summary>
     [Fact]
@@ -149,7 +149,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
     #endregion
 
     // ================================================================
-    #region 冷房定格条件（testVRF1_C の定格条件テストより）
+    #region Cooling rated conditions (from the rated condition tests of testVRF1_C)
 
     /// <summary>
     /// JIS冷房定格条件（OA=35/24°C, IA=27/19°C）で UpdateState → CompressorElectricity > 0。
@@ -260,7 +260,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
     #endregion
 
     // ================================================================
-    #region 暖房定格条件（testVRF1_H の定格条件テストより）
+    #region Heating rated conditions (from the rated condition tests of testVRF1_H)
 
     /// <summary>
     /// JIS暖房定格条件（OA=7/6°C, IA=20/15°C）で UpdateState → CompressorElectricity > 0。
@@ -349,7 +349,7 @@ namespace Popolo.Core.Tests.HVAC.VRF
     #endregion
 
     // ================================================================
-    #region ShutOff / 成り行き計算
+    #region ShutOff / free-run calculation
 
     /// <summary>
     /// ShutOff モードでは CompressorElectricity = 0。

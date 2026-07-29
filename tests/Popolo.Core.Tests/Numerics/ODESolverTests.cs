@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
   public class ODESolverTests
   {
 
-    #region SolveRK4 のテスト
+    #region SolveRK4 tests
 
     /// <summary>dy/dt = y の解析解 y = exp(t) と一致する（小ステップ）</summary>
     [Fact]
@@ -90,7 +90,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region SolveRKGill のテスト
+    #region SolveRKGill tests
 
     /// <summary>既存テストと同じ連立微分方程式の解が解析解と一致する</summary>
     [Fact]
@@ -152,7 +152,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region SolveRKF45 のテスト
+    #region SolveRKF45 tests
 
     /// <summary>dy/dt = y の解析解 y=exp(t) と一致する</summary>
     [Fact]

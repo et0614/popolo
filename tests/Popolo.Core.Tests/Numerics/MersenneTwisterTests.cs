@@ -27,7 +27,7 @@ namespace Popolo.Core.Tests.Numerics
     public class MersenneTwisterTests
     {
 
-        #region 基本動作のテスト
+        #region Basic behavior tests
 
         /// <summary>シードが正しく保持される</summary>
         [Fact]
@@ -65,7 +65,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region NextDouble のテスト
+        #region NextDouble tests
 
         /// <summary>NextDouble の値が [0.0, 1.0] の範囲に収まる</summary>
         [Fact]
@@ -106,7 +106,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region 統計的性質のテスト
+        #region Statistical property tests
 
         /// <summary>大量の乱数の平均が約0.5になる（一様分布の性質）</summary>
         [Fact]

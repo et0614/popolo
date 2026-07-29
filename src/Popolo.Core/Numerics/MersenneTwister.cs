@@ -31,7 +31,7 @@ namespace Popolo.Core.Numerics
   public class MersenneTwister
   {
 
-    #region 定数
+    #region Constants
 
     private const int N = 624;
     private const int M = 397;
@@ -41,7 +41,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Gets the random seed.</summary>
     public uint Seed { get; private set; }
@@ -52,7 +52,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with the specified seed.</summary>
     /// <param name="seed">Random seed.</param>
@@ -69,7 +69,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 乱数生成
+    #region Random number generation
 
     /// <summary>Generates the next 32-bit unsigned pseudo-random number.</summary>
     /// <returns>A 32-bit unsigned pseudo-random number.</returns>

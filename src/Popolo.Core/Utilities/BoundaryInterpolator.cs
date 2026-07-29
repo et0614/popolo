@@ -31,7 +31,7 @@ namespace Popolo.Core.Utilities
   public class BoundaryInterpolator
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Array of date-time values used for interpolation.</summary>
     private readonly DateTime[] _dTimes;
@@ -47,7 +47,7 @@ namespace Popolo.Core.Utilities
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with the specified date-time array and no series data.
@@ -72,14 +72,14 @@ namespace Popolo.Core.Utilities
     {
       _dTimes = dateTimes;
 
-      //ソート確認
+      //Check sort order
       for (int i = 1; i < dateTimes.Length; i++)
         if (dateTimes[i] < dateTimes[i - 1])
           throw new PopoloArgumentException(
               "DateTime array must be sorted in ascending order.", 
               nameof(dateTimes));
 
-      //データ数確認
+      //Check data counts
       for (int i = 0; i < boundaryValues.Count; i++)
         if (boundaryValues[i].Length != NodeCount)
           throw new PopoloArgumentException(
@@ -92,7 +92,7 @@ namespace Popolo.Core.Utilities
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Returns the interpolated value for the specified date-time and series index.

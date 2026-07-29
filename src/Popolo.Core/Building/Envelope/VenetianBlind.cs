@@ -56,14 +56,14 @@ namespace Popolo.Core.Building.Envelope
   public class VenetianBlind : IShadingDevice
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Number of slat subdivisions for the radiation calculation.</summary>
     private const int SP_N = 5;
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Backing field for the deployed state.</summary>
     private bool pullDowned = true;
@@ -170,7 +170,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new venetian blind with the specified slat geometry and optical properties.</summary>
     /// <param name="slatWidth">Slat width (any consistent unit).</param>
@@ -194,7 +194,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 光学特性計算関連の処理
+    #region Optical property calculation methods
 
     /// <summary>Computes the optical properties of the venetian blind.</summary>
     /// <param name="isDiffuseIrradianceProperties">True for diffuse irradiance; false for direct.</param>
@@ -211,7 +211,7 @@ namespace Popolo.Core.Building.Envelope
         return;
       }
 
-      //必要に応じて逆行列を更新
+      //Update the inverse matrix if needed
       if (needUpdateInverseMatrix)
       {
         UpdateInverseMatrix();
@@ -220,7 +220,7 @@ namespace Popolo.Core.Building.Envelope
         HasPropertyChanged = false;
       }
 
-      //拡散日射に対する光学特性
+      //Optical properties for diffuse solar radiation
       if (isDiffuseIrradianceProperties)
       {
         if (irradianceFromSideF)
@@ -234,7 +234,7 @@ namespace Popolo.Core.Building.Envelope
           reflectance = difRhoB_U + difRhoB_L;
         }
       }
-      //直達日射に対する光学特性
+      //Optical properties for direct solar radiation
       else
       {
         if (needUpdateDirectIrradianceProperties)
@@ -250,7 +250,7 @@ namespace Popolo.Core.Building.Envelope
         }
         else
         {
-          //F側と同じ値とする
+          //Use the same values as side F
           transmittance = dirTauF_U + dirTauF_L + dirTauDir;
           reflectance = dirRhoF_U + dirRhoF_L;
         }
@@ -291,13 +291,13 @@ namespace Popolo.Core.Building.Envelope
       IVector bVec = new Vector(SP_N * 2);
       IVector eVec = new Vector(SP_N * 2);
 
-      //F側開口からの拡散日射に対する透過率・反射率
+      //Transmittance and reflectance for diffuse solar radiation from the F-side opening
       for (int i = 0; i < bVec.Length; i++) bVec[i] = vFacOF[i];
       LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
       ComputeRateToOpenings(eVec, out difRhoF_U, out difRhoF_L, out difTauF_U, out difTauF_L);
       difTauF_L += vFacOF[SP_N * 2];
 
-      //B側開口からの拡散日射に対する透過率・反射率
+      //Transmittance and reflectance for diffuse solar radiation from the B-side opening
       for (int i = 0; i < bVec.Length; i++) bVec[i] = vFacOB[i];
       LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
       ComputeRateToOpenings(eVec, out difTauB_U, out difTauB_L, out difRhoB_U, out difRhoB_L);
@@ -307,7 +307,7 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Computes optical properties for direct irradiance based on the current profile angle.</summary>
     private void UpdateDirectIrradianceProperties()
     {
-      //スラットに直接入射する日射を計算
+      //Compute the solar radiation directly incident on the slats
       IVector bVec = new Vector(SP_N * 2);
       IVector eVec = new Vector(SP_N * 2);
 
@@ -324,7 +324,7 @@ namespace Popolo.Core.Building.Envelope
       for (int i = 0; i < SP_N; i++) bVec[i + bf] = Math.Min(1, Math.Max(0, dRrad - i)) / dRrad;
       LinearAlgebraOperations.Multiply(iaMatrixINV, bVec, eVec, 1, 0);
 
-      //開口部へ向かう日射を計算
+      //Compute the solar radiation heading toward the openings
       ComputeRateToOpenings(eVec, out dirRhoF_U, out dirRhoF_L, out dirTauF_U, out dirTauF_L);
       dirTauDir = Math.Max(0, dRrad - SP_N) / dRrad;
 
@@ -333,12 +333,12 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 逆行列関連の処理
+    #region Matrix inversion methods
 
     /// <summary>Updates all view factors for the current slat angle.</summary>
     private void UpdateViewFactor()
     {
-      //スラット間距離を更新
+      //Update the slat spacing
       double[] dn = new double[SP_N * 2 + 1];
       double sinPsi = Math.Sin(SlatAngle);
       for (int i = 0; i < dn.Length; i++)
@@ -347,7 +347,7 @@ namespace Popolo.Core.Building.Envelope
         dn[i] = Math.Sqrt(dRspan * (2 * bf * sinPsi + dRspan) + bf * bf);
       }
 
-      //スラットからみた形態係数を更新
+      //Update view factors as seen from the slats
       double sum;
       double[] ff = new double[2 * SP_N - 1];
       for (int i = 0; i < ff.Length; i++) ff[i] = 0.5 * (dn[i] + dn[i + 2]) - dn[i + 1];
@@ -363,7 +363,7 @@ namespace Popolo.Core.Building.Envelope
         vFacSlt[i, SP_N + 1] = vFacSlt[SP_N, SP_N - 1 - i] = 1 - (sum + vFacSlt[i, SP_N]);
       }
 
-      //開口からみた形態係数を更新
+      //Update view factors as seen from the openings
       sum = 0;
       for (int i = 0; i < SP_N; i++)
       {
@@ -377,7 +377,7 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Updates the radiosity inverse matrix for the current slat angle.</summary>
     private void UpdateInverseMatrix()
     {
-      //形態係数を更新
+      //Update view factors
       UpdateViewFactor();
 
       for (int i = 0; i < SP_N; i++)
@@ -399,7 +399,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 日照関連の処理
+    #region Sunlight-related methods
 
     /// <summary>Computes detailed optical properties for illuminance calculation.</summary>
     /// <param name="diffuseDiffuseTransmittance_U">Upper diffuse-diffuse transmittance [-].</param>
@@ -411,7 +411,7 @@ namespace Popolo.Core.Building.Envelope
       (out double diffuseDiffuseTransmittance_U, out double diffuseDiffuseTransmittance_L,
       out double directDiffuseTransmittance_U, out double directDiffuseTransmittance_L, out double directDirectTransmittanse)
     {
-      //必要に応じて逆行列を更新
+      //Update the inverse matrix if needed
       if (needUpdateInverseMatrix)
       {
         UpdateInverseMatrix();

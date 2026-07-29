@@ -52,7 +52,7 @@ namespace Popolo.Core.Building.Envelope
   /// </remarks>
   public class WallLayer : ICloneable, IReadOnlyWallLayer
   {
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Specifies predefined wall layer materials with standard thermophysical properties.</summary>
     public enum Material
@@ -245,7 +245,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the discriminator identifying the concrete layer type.
     /// Returns <c>"wallLayer"</c> for the base class; subtypes override this.</summary>
@@ -289,7 +289,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Initializes a new empty instance for use by derived classes.</summary>
     protected WallLayer() { }
@@ -643,7 +643,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region ICloneable実装
+    #region ICloneable implementation
 
     /// <summary>Creates a shallow copy of this instance.</summary>
     /// <returns>A new <see cref="WallLayer"/> with the same property values.</returns>

@@ -20,7 +20,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     private const double WIN = 0.005;
     private const double FLOW = 2.0;  //[kg/s]
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>方式別のデフォルト値が設定される。</summary>
     [Theory]
@@ -62,7 +62,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region ControlOutletHumidityRatio — 出口湿度制御
+    #region ControlOutletHumidityRatio — outlet humidity control
 
     /// <summary>能力範囲内なら出口絶対湿度が設定値に一致する。</summary>
     [Fact]
@@ -154,7 +154,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region UpdateOutletState — 成り行き運転
+    #region UpdateOutletState — free-run operation
 
     /// <summary>成り行き運転では式26.5の出口湿度となる。</summary>
     [Fact]
@@ -202,7 +202,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region 給水量・蒸気量
+    #region Water supply and steam consumption
 
     /// <summary>給水量は加湿量を給水有効利用率で除した値となる（式26.6）。</summary>
     [Fact]
@@ -232,7 +232,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region ShutOff・停止処理
+    #region ShutOff and stop methods
 
     /// <summary>ShutOffで風量・消費量・飽和効率が0になる。</summary>
     [Fact]

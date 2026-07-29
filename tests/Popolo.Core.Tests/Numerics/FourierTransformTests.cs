@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class FourierTransformTests
     {
 
-        #region 引数チェックのテスト
+        #region Argument check tests
 
         /// <summary>x が null のとき PopoloArgumentException が発生する</summary>
         [Fact]
@@ -67,7 +67,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region FFT の数学的性質のテスト
+        #region Mathematical property tests of FFT
 
         /// <summary>定数信号のFFTはDC成分のみに集中する</summary>
         [Fact]

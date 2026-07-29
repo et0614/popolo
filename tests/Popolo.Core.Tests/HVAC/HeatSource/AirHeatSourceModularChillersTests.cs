@@ -23,7 +23,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class AirHeatSourceModularChillersTests
     {
-        #region 定格条件
+        #region Rated conditions
 
         private const double CoolingCap  = 150.0;
         private const double HeatingCap  = 150.0;
@@ -38,7 +38,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
         #endregion
 
-        #region ヘルパー
+        #region Helpers
 
         private static AirHeatSourceModularChillers MakeHP()
             => new AirHeatSourceModularChillers(
@@ -55,7 +55,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ
+        #region Constructors
 
         [Fact]
         public void Constructor_NumberOfUnits_MatchesInput()
@@ -92,7 +92,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 冷房運転
+        #region Cooling operation
 
         /// <summary>100%負荷・外気35C で CoolingLoad が正。</summary>
         [Fact]
@@ -163,7 +163,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 暖房運転
+        #region Heating operation
 
         /// <summary>100%負荷・外気7C で HeatingLoad が正。</summary>
         [Fact]

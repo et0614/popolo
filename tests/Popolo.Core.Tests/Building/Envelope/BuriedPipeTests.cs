@@ -39,7 +39,7 @@ namespace Popolo.Core.Tests.Building.Envelope
   /// </remarks>
   public class BuriedPipeTests
   {
-    #region テスト用ヘルパー
+    #region Test helpers
 
     /// <summary>代表的な床暖房配管を生成する</summary>
     private static BuriedPipe MakeTypicalPipe()
@@ -61,7 +61,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>コンストラクタでプロパティが正しく設定される</summary>
     [Fact]
@@ -89,7 +89,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 流量のテスト
+    #region Flow rate tests
 
     /// <summary>流量0では有効度が0</summary>
     [Fact]
@@ -156,7 +156,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 水温のテスト
+    #region Water temperature tests
 
     /// <summary>水温が変化しても有効度は物理的な範囲内</summary>
     [Theory]
@@ -200,7 +200,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region フィン効率のテスト
+    #region Fin efficiency tests
 
     /// <summary>フィン熱伝導率が高いほどフィン効率が高い</summary>
     [Fact]

@@ -29,7 +29,7 @@ namespace BESTEST_2023
   /// </summary>
   internal static class WindowOptics
   {
-    #region 公開エントリ
+    #region Public entry points
 
     /// <summary>
     /// 屈折率 n と吸収係数 K, ガラス厚 TH から、per-pane の入射角依存
@@ -157,7 +157,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region §B6.2 単板計算 (Snell + Fresnel + Bouguer)
+    #region §B6.2 single pane calculation (Snell + Fresnel + Bouguer)
 
     /// <summary>
     /// 入射角 <paramref name="aoi"/> [rad] に対する単板 (n=1) 透過率と反射率。
@@ -221,7 +221,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 多項式フィット
+    #region Polynomial fit
 
     /// <summary>
     /// データ点 (<paramref name="x"/>[i], <paramref name="y"/>[i]) を

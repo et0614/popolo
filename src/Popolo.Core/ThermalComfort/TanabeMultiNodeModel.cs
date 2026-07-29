@@ -34,7 +34,7 @@ namespace Popolo.Core.ThermalComfort
   public partial class TanabeMultiNodeModel : IReadOnlyTanabeMultiNodeModel
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Volumetric specific heat of blood [J/(mL·K)].</summary>
     public const double BodySpecificHeat = 3.842;
@@ -74,7 +74,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Body segment node identifiers for the Tanabe 65-node model.</summary>
     [Flags]
@@ -139,7 +139,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Body segment node identifiers for the Tanabe 65-node model.</summary>
     private Dictionary<Node, bodyPart> parts = new Dictionary<Node, bodyPart>();
@@ -158,7 +158,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the weight [kg].</summary>
     public double Weight { get; private set; }
@@ -204,7 +204,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region コンストラクタ・初期化処理
+    #region Constructors and initialization
 
     /// <summary>Initializes a new instance of the Tanabe multi-node model.</summary>
     /// <remarks>When no arguments are provided, the reference standard body dimensions are used.</remarks>
@@ -220,7 +220,7 @@ namespace Popolo.Core.ThermalComfort
     public TanabeMultiNodeModel
       (double weight, double height, double age, bool isMale, double fatPercentage, bool isStanding)
     {
-      //情報保存
+      //Store the input data
       Weight = weight;
       Height = height;
       Age = age;
@@ -228,19 +228,19 @@ namespace Popolo.Core.ThermalComfort
       IsStanding = isStanding;
       FatPercentage = fatPercentage;
 
-      //体表面積[m2]を計算
+      //Compute the body surface area [m2]
       SurfaceArea = 0.202 * Math.Pow(Weight, 0.425) * Math.Pow(Height, 0.725);
-      //心係数[(mL/s)/m2]を計算
+      //Compute the cardiac index [(mL/s)/m2]
       double ci = 115 + Age * (-2.4 + Age * (0.0167 + Age * (3.56e-4 - 4.29e-6 * Age)));
-      //基礎血流[mL/s]を計算
+      //Compute the basal blood flow [mL/s]
       BasalBloodFlow = ci * SurfaceArea;
 
-      //基礎代謝[W]を計算
+      //Compute the basal metabolic rate [W]
       BasalMetabolicRate = (0.1238 + 2.34 * height + 0.0481 * weight - 0.0138 * age);
       if (isMale) BasalMetabolicRate = (BasalMetabolicRate - 0.5473) / 0.0864;
       else BasalMetabolicRate = (BasalMetabolicRate - 0.5473 * 2) / 0.0864;
 
-      //部位を作成
+      //Create the body segments
       double muscleSum = 0;
       Node[] nds = (Node[])Enum.GetValues(typeof(Node));
       foreach (Node nd in nds)
@@ -250,10 +250,10 @@ namespace Popolo.Core.ThermalComfort
         parts.Add(nd, bp);
         muscleSum += bp.muscleWeight;
       }
-      //筋肉の重量比を計算
+      //Compute the muscle weight ratio
       foreach (Node nd in parts.Keys) rMuscle[nd] = parts[nd].muscleWeight / muscleSum;
 
-      //部位を接続
+      //Connect the body segments
       parts[Node.Neck].connect(parts[Node.Head]);
       parts[Node.Pelvis].connect(parts[Node.LeftThigh]);
       parts[Node.Pelvis].connect(parts[Node.RightThigh]);
@@ -266,31 +266,31 @@ namespace Popolo.Core.ThermalComfort
       parts[Node.LeftArm].connect(parts[Node.LeftHand]);
       parts[Node.RightArm].connect(parts[Node.RightHand]);
 
-      //体温を初期化
+      //Initialize the body temperatures
       InitializeTemperature(36);
 
-      //セットポイント初期化
+      //Initialize the setpoints
       InitializeSetpoint();
     }
 
     /// <summary>Initializes thermoregulatory setpoint temperatures.</summary>
     private void InitializeSetpoint()
     {
-      //制御をOFF
+      //Turn control off
       foreach (Node nd in parts.Keys)
       {
         parts[nd].initializing = true;
         parts[nd].setClothingIndex(0);
       }
 
-      //PMV=0となる境界条件を設定
+      //Set the boundary conditions that give PMV=0
       UpdateBoundary(0, 28.8, 28.8, 50);
       SetMetabolicRate(1);
 
-      //定常状態まで計算（24時間）
+      //Iterate to steady state (24 hours)
       for (int i = 0; i < 24; i++) Update(3600);
 
-      //セットポイント設定
+      //Set the setpoints
       foreach (Node nd in parts.Keys)
       {
         parts[nd].initializing = false;
@@ -298,8 +298,8 @@ namespace Popolo.Core.ThermalComfort
         parts[nd].setpoint_Core = parts[nd].temperatures[Layer.Core];
       }
 
-      //平均セットポイントを作成
-      //体中心の核
+      //Build the mean setpoints
+      //Core at the body center
       Layer core = Layer.Core;
       double capSum = parts[Node.Chest].heatCapacity[core]
         + parts[Node.Pelvis].heatCapacity[core] + parts[Node.Back].heatCapacity[core];
@@ -308,7 +308,7 @@ namespace Popolo.Core.ThermalComfort
         + parts[Node.Pelvis].setpoint_Core * parts[Node.Pelvis].heatCapacity[core]
         + parts[Node.Back].setpoint_Core * parts[Node.Back].heatCapacity[core]) / capSum;
 
-      //全身の皮膚
+      //Whole-body skin
       averageSkinSetpoint = 0;
       foreach (Node bp in parts.Keys) averageSkinSetpoint += parts[bp].setpoint_Skin * parts[bp].surfaceArea;
       averageSkinSetpoint /= SurfaceArea;
@@ -318,16 +318,16 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="temperature">Initial temperature [°C].</param>
     public void InitializeTemperature(double temperature)
     {
-      //行列に設定
+      //Set the vector
       for (int i = 0; i < tVector.Length; i++) tVector[i] = temperature;
-      //各部位への設定処理
+      //Apply to each body segment
       CentralBloodTemperature = temperature;
       foreach (Node nd in parts.Keys) parts[nd].updateTemperature(tVector);
     }
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Gets the upstream body segment node.</summary>
     /// <param name="node">Body segment node.</param>
@@ -397,7 +397,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 更新処理
+    #region Update methods
 
     /// <summary>Updates the thermoregulatory state for one time step.</summary>
     /// <param name="timeStep">Time step [s].</param>
@@ -406,30 +406,30 @@ namespace Popolo.Core.ThermalComfort
       this.TimeStep = timeStep;
       IVector zVector = new Vector(115);
 
-      //制御を更新
+      //Update control
       UpdateControl();
 
-      //計算用疎行列を用意
+      //Prepare the sparse matrix for the computation
       SparseMatrix bMatrix = new SparseMatrix(115, 115);
 
       double mr = 0;
       foreach (Node nd in parts.Keys)
       {
-        //行列に各部位の項を設定
+        //Set the terms for each body segment in the matrix
         parts[nd].makeMatrix(bMatrix, zVector);
-        //代謝量を積算
+        //Accumulate the metabolic rate
         mr += parts[nd].shiveringLoad + parts[nd].externalWork
           + parts[nd].basalMetabolicRate[Layer.Core] + parts[nd].basalMetabolicRate[Layer.Muscle]
           + parts[nd].basalMetabolicRate[Layer.Fat] + parts[nd].basalMetabolicRate[Layer.Skin];
       }
 
-      //胸部の呼吸の項を追加
+      //Add the respiration term at the chest
       bodyPart head = parts[Node.Head];
       HeatLossByBreathing = mr * (0.0014 * (34 - head.dryBulbTemperature)
         + 0.017251 * (5.8662 - head.waterVaporPressure));
       zVector[13] -= HeatLossByBreathing;
 
-      //中央血液溜まりの項を追加
+      //Add the central blood pool term
       bMatrix[0, 0] = parts[Node.Chest].centralBloodHeatCapacity / timeStep;
       bodyPart[] bps = new bodyPart[] { parts[Node.Neck], parts[Node.LeftShoulder],
         parts[Node.RightShoulder], parts[Node.Pelvis], parts[Node.Chest], parts[Node.Back]};
@@ -443,10 +443,10 @@ namespace Popolo.Core.ThermalComfort
       }
       zVector[0] = parts[Node.Chest].centralBloodHeatCapacity / timeStep * CentralBloodTemperature;
 
-      //連立代数方程式を解く
+      //Solve the system of algebraic equations
       bMatrix.SolveLinearEquation(zVector, ref tVector);
 
-      //設定
+      //Apply the results
       foreach (Node nd in parts.Keys) parts[nd].updateTemperature(tVector);
       CentralBloodTemperature = tVector[0];
     }
@@ -454,7 +454,7 @@ namespace Popolo.Core.ThermalComfort
     /// <summary>Computes thermoregulatory control signals from temperature deviations.</summary>
     private void UpdateControl()
     {
-      //全身の温冷感信号の計算
+      //Compute the whole-body thermal sensation signal
       double cldSignal, wrmSignal;
       cldSignal = wrmSignal = 0;
       foreach (Node bp in parts.Keys)
@@ -465,11 +465,11 @@ namespace Popolo.Core.ThermalComfort
       }
       double signal = wrmSignal + cldSignal;
 
-      //頭部の核の温冷感信号
+      //Thermal sensation signal of the head core
       Layer core = Layer.Core;
       double sHead = parts[Node.Head].temperatures[core] - parts[Node.Head].setpoint_Core;
 
-      //発汗・ふるえ・血管収縮・血管拡張の信号を計算
+      //Compute the sweating, shivering, vasoconstriction, and vasodilation signals
       double sfRate = SurfaceArea / STANDARD_SURFACE_AREA;
       double sweatSignal = Math.Max(0, (371.2 * sHead + 33.64 * signal)) * sfRate;
       double shiveringSignal = (-24.36 * Math.Max(0, -sHead) * cldSignal) * sfRate;
@@ -477,8 +477,8 @@ namespace Popolo.Core.ThermalComfort
       double vasodilatationSignal = Math.Max(0, 32.5 * sHead + 2.08 * signal);
       vasodilatationSignal *= BasalBloodFlow / STANDARD_BLOOD_FLOW;
 
-      //AVA血流開度信号を計算
-      //体中心（腰・胸・背中）の平均温度を計算
+      //Compute the AVA blood flow opening signal
+      //Compute the mean temperature of the body center (pelvis, chest, back)
       double capSum = parts[Node.Chest].heatCapacity[core]
           + parts[Node.Pelvis].heatCapacity[core] + parts[Node.Back].heatCapacity[core];
       double aveCore = 0;
@@ -486,15 +486,15 @@ namespace Popolo.Core.ThermalComfort
       aveCore += parts[Node.Pelvis].temperatures[core] * parts[Node.Pelvis].heatCapacity[core];
       aveCore += parts[Node.Back].temperatures[core] * parts[Node.Back].heatCapacity[core];
       aveCore /= capSum;
-      //全身の平均皮膚温を計算
+      //Compute the whole-body mean skin temperature
       double atSkin = GetAverageSkinTemperature();
-      //AVA開度の計算
+      //Compute the AVA opening
       double ovaHand = 0.265 * (atSkin - (averageSkinSetpoint - 0.43))
           + 0.953 * (aveCore - (averageCoreSetpoint - 0.1905)) + 0.9126;
       double ovaFoot = 0.265 * (atSkin - (averageSkinSetpoint - 0.97))
           + 0.953 * (aveCore - (averageCoreSetpoint + 0.0095)) + 0.9126;
 
-      //皮膚血管運動・発汗・ふるえ熱生産・AVA血流を計算
+      //Compute skin vasomotion, sweating, shivering heat production, and AVA blood flow
       foreach (Node bp in parts.Keys)
       {
         if ((bp == Node.LeftHand) || (bp == Node.RightHand))
@@ -504,7 +504,7 @@ namespace Popolo.Core.ThermalComfort
             (signal, sweatSignal, shiveringSignal, vasodilatationSignal, vasoconstrictionSignal, ovaFoot);
       }
 
-      //血流更新処理//中央血液溜まり直結部以外はメソッド内で再帰的に呼び出し
+      //Update blood flow //segments not directly connected to the central blood pool are called recursively within the method
       BloodFlow = 0;
       Node[] nds =
         new Node[] { Node.Neck, Node.Chest, Node.Back, Node.Pelvis, Node.LeftShoulder, Node.RightShoulder };
@@ -514,7 +514,7 @@ namespace Popolo.Core.ThermalComfort
         BloodFlow += parts[nds[i]].bloodFlow[Layer.DeepVein] + parts[nds[i]].bloodFlow[Layer.SuperficialVein];
       }
 
-      //全身代謝量[W]を更新
+      //Update the whole-body metabolic rate [W]
       MetabolicRate = BasalMetabolicRate;
       foreach (Node nd in parts.Keys)
       {
@@ -525,7 +525,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 境界条件設定処理
+    #region Boundary condition setting methods
 
     /// <summary>Sets the metabolic rate [met].</summary>
     /// <param name="met">Metabolic rate [met].</param>
@@ -581,7 +581,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 情報取得処理
+    #region Getter methods
 
     /// <summary>Gets the air velocity [m/s].</summary>
     /// <param name="node">Body segment node.</param>

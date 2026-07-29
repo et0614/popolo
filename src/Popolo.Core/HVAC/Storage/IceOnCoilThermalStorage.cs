@@ -37,7 +37,7 @@ namespace Popolo.Core.HVAC.Storage
   public class IceOnCoilThermalStorage : IReadOnlyIceOnCoilThermalStorage
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Specific heat of liquid water [kJ/(kg·K)].</summary>
     public const double WaterSpecificHeat = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
@@ -82,7 +82,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>State of ice around a coil segment.</summary>
     public enum IceState
@@ -97,7 +97,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Time step [s].</summary>
     private double timeStep = 60;
@@ -186,7 +186,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance of the <see cref="IceOnCoilThermalStorage"/> class.</summary>
     /// <param name="waterVolume">Total water volume of the tank [m³].</param>
@@ -203,11 +203,11 @@ namespace Popolo.Core.HVAC.Storage
       PipeInnerDiameter = pipeInnerDiameter;
       PipeOuterDiameter = pipeOuterDiameter;
 
-      watPerUnit = WaterVolume / (NumberOfBranches * branchLength); //単位配管あたりの水量[m3/m]
-      icePerUnit = watPerUnit * PhysicsConstants.NominalWaterDensity / IceDensity; //単位配管あたりの氷量[m3/m]
-      maxIceDiameter = getOuterDiameterFromAnnulusArea(icePerUnit, PipeOuterDiameter); //最大氷直径[m]
+      watPerUnit = WaterVolume / (NumberOfBranches * branchLength); //Water volume per unit pipe length [m3/m]
+      icePerUnit = watPerUnit * PhysicsConstants.NominalWaterDensity / IceDensity; //Ice volume per unit pipe length [m3/m]
+      maxIceDiameter = getOuterDiameterFromAnnulusArea(icePerUnit, PipeOuterDiameter); //Maximum ice diameter [m]
 
-      //水温を初期化
+      //Initialize the water temperature
       Initialize(10);
     }
 
@@ -226,7 +226,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 状態更新処理
+    #region State update methods
 
     /// <summary>Advances the tank state by one time step.</summary>
     /// <param name="inletBrineTemperature">Brine inlet temperature [°C].</param>
@@ -237,27 +237,27 @@ namespace Popolo.Core.HVAC.Storage
       BrineFlowRate = brineFlowRate;
       double branchFlow = BrineFlowRate / NumberOfBranches;
 
-      //流量に応じた配管自体の熱抵抗を計算
-      //内表面対流熱伝達率は0度の水を仮定
+      //Compute the thermal resistance of the pipe itself depending on the flow rate
+      //The inside convective heat transfer coefficient assumes water at 0°C
       double alpha_i = WaterPipe.GetInsideHeatTransferCoefficient(0, PipeInnerDiameter, branchFlow);
-      if (alpha_i == 0) alpha_i = 0.001; //流量が0に近い場合にも0とはせず、対流を考慮して極小さい値を設定。
-      double pR = 1d / (PipeInnerDiameter * alpha_i) + //配管内表面の対流熱伝達
-        0.5d / PipeThermalConductivity * Math.Log(PipeOuterDiameter / PipeInnerDiameter);  //配管の熱伝導
+      if (alpha_i == 0) alpha_i = 0.001; //Even at near-zero flow, use a very small value instead of 0 to account for convection.
+      double pR = 1d / (PipeInnerDiameter * alpha_i) + //Convective heat transfer at the pipe inner surface
+        0.5d / PipeThermalConductivity * Math.Log(PipeOuterDiameter / PipeInnerDiameter);  //Heat conduction through the pipe
 
-      //各セグメントの状態を更新
+      //Update the state of each segment
       HeatLoss = 0;
       for (int i = 0; i < SegmentsCount; i++)
       {
         updateSegment(i, inletBrineTemperature, branchFlow, pR, out double hl, out inletBrineTemperature);
-        HeatLoss += hl; //熱損失を合計
+        HeatLoss += hl; //Sum the heat losses
       }
       HeatLoss *= 0.001 / SegmentsCount * BranchLength * NumberOfBranches;
       OutletBrineTemperature = inletBrineTemperature;
 
-      //ブラインからコイルへの熱流を計算
+      //Compute the heat flow from the brine to the coil
       HeatTransferToCoil = (InletBrineTemperature - OutletBrineTemperature) * BrineFlowRate * BrineSpecificHeat;
 
-      //現在の氷状態を更新(セグメント0基準)
+      //Update the current ice state (based on segment 0)
       CurrentState = getIceState(PipeOuterDiameter, iceOuterDiameters[0], iceInnerDiameters[0]);
     }
 
@@ -276,48 +276,48 @@ namespace Popolo.Core.HVAC.Storage
       double dIceI = this.iceInnerDiameters[segmentIndex];
       double tIceWater = this.waterIceTemperatures[segmentIndex];
 
-      //熱流を計算
+      //Compute the heat flows
       heatLoss = (AmbientTemperature - tIceWater) * heatLossPerUnit;
       double heatFlowToCoil = (inletBrineTemperature - tIceWater) * getPipeLinearThermalTransmittance(segmentIndex, pipeResistance) + heatLoss;
 
-      //熱流なし
+      //No heat flow
       if (heatFlowToCoil == 0)
       {
         outletBrineTemperature = inletBrineTemperature;
         return;
       }
 
-      //氷あり
+      //Ice present
       if (PipeOuterDiameter < dIceO)
       {
-        //製氷中
+        //Ice making
         if (heatFlowToCoil < 0)
         {
-          //融解途中で再度製氷に転じる特殊な状況
+          //Special situation: ice making resumes in the middle of melting
           if (PipeOuterDiameter < dIceI)
           {
-            //同体積の氷を配管に直接付着させる
+            //Attach the same volume of ice directly to the pipe
             dIceO = getOuterDiameterFromAnnulusArea(getAnnulusSurfaceArea(dIceO, dIceI), PipeOuterDiameter);
             iceOuterDiameters[segmentIndex] = dIceO;
             iceInnerDiameters[segmentIndex] = PipeOuterDiameter;
           }
 
-          //凍らす水が残っていない場合には氷の温度が低下
+          //If no water is left to freeze, the ice temperature drops
           if (maxIceDiameter <= dIceO)
           {
             double dTice = -heatFlowToCoil * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
             waterIceTemperatures[segmentIndex] -= dTice;
           }
-          //水があれば厚みを増す
+          //If water remains, the ice grows thicker
           else
           {
-            double dAreaIce = -heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //氷の増加体積[m3/m]
-            dIceO = getOuterDiameterFromAnnulusArea(dAreaIce, dIceO);  //氷の直径を更新
+            double dAreaIce = -heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume increase [m3/m]
+            dIceO = getOuterDiameterFromAnnulusArea(dAreaIce, dIceO);  //Update the ice diameter
 
-            //氷の外径が最大を超えた場合
+            //Ice outer diameter exceeded the maximum
             if (maxIceDiameter <= dIceO)
             {
-              //過剰潜熱処理分を温度低下に換算
+              //Convert the excess latent heat into a temperature drop
               double dTice = getAnnulusSurfaceArea(dIceO, maxIceDiameter) * (IceLatentHeat / (IceSpecificHeat * icePerUnit));
               waterIceTemperatures[segmentIndex] = -dTice;
               iceOuterDiameters[segmentIndex] = maxIceDiameter;
@@ -325,25 +325,25 @@ namespace Popolo.Core.HVAC.Storage
             else iceOuterDiameters[segmentIndex] = dIceO;
           }
         }
-        //融解中
+        //Ice melting
         else
         {
-          //氷の温度変化
+          //Ice temperature change
           if (tIceWater < 0)
           {
             double dTice = heatFlowToCoil * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
             tIceWater += dTice;
-            //0度を超えた場合は水に変化
+            //Turns into water when the temperature exceeds 0°C
             if (0 < tIceWater)
             {
-              //過剰顕熱処理分を解氷体積に換算
+              //Convert the excess sensible heat into an ice melting volume
               double dAreaIce = tIceWater * (icePerUnit * IceSpecificHeat) / IceLatentHeat;
               double areaIce = getAnnulusSurfaceArea(dIceO, dIceI);
-              //氷がなくなる場合
+              //All of the ice would melt
               if (areaIce <= dAreaIce)
                 throw new PopoloNumericalException(nameof(IceOnCoilThermalStorage),
                   "100% of the ice was melted in a single time step. The time step is too large.");
-              //氷の内径を更新
+              //Update the ice inner diameter
               else
               {
                 dIceI = getInnerDiameterFromAnnulusArea(areaIce - dAreaIce, dIceO);
@@ -353,21 +353,21 @@ namespace Popolo.Core.HVAC.Storage
             }
             waterIceTemperatures[segmentIndex] = tIceWater;
           }
-          //解氷
+          //Ice melting
           else
           {
-            double dAreaIce = heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //氷の減少体積[m3/m]
+            double dAreaIce = heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume decrease [m3/m]
             double areaIce = getAnnulusSurfaceArea(dIceO, dIceI);
-            //氷がなくなる場合
+            //All of the ice melts
             if (areaIce <= dAreaIce)
             {
-              //過剰処理分を水温上昇に換算
+              //Convert the excess heat into a water temperature rise
               double dTwat = (dAreaIce - areaIce) * (IceDensity * IceLatentHeat) / (watPerUnit * PhysicsConstants.NominalWaterDensity * WaterSpecificHeat);
               tIceWater += dTwat;
               waterIceTemperatures[segmentIndex] = tIceWater;
               iceOuterDiameters[segmentIndex] = iceInnerDiameters[segmentIndex] = PipeOuterDiameter;
             }
-            //氷の内径を更新
+            //Update the ice inner diameter
             else
             {
               dIceI = getInnerDiameterFromAnnulusArea(areaIce - dAreaIce, dIceO);
@@ -376,15 +376,15 @@ namespace Popolo.Core.HVAC.Storage
           }
         }
       }
-      //氷なし
+      //No ice
       else
       {
         tIceWater += heatFlowToCoil * timeStep / (watPerUnit * PhysicsConstants.NominalWaterDensity * WaterSpecificHeat * 1000);
 
-        //製氷が始まった場合
+        //Ice making has started
         if (tIceWater < 0)
         {
-          //過剰処理分を製氷に換算
+          //Convert the excess heat into ice making
           double dAreaIce = -tIceWater * (watPerUnit * PhysicsConstants.NominalWaterDensity * WaterSpecificHeat) / (IceDensity * IceLatentHeat);
           iceOuterDiameters[segmentIndex] = getOuterDiameterFromAnnulusArea(dAreaIce, PipeOuterDiameter);
           if (maxIceDiameter <= iceOuterDiameters[segmentIndex])
@@ -395,7 +395,7 @@ namespace Popolo.Core.HVAC.Storage
         else waterIceTemperatures[segmentIndex] = tIceWater;
       }
 
-      //ブライン温度更新
+      //Update the brine temperature
       if (brineFlowRate == 0) outletBrineTemperature = inletBrineTemperature;
       else outletBrineTemperature = inletBrineTemperature - (heatFlowToCoil * BranchLength / SegmentsCount)
         / (brineFlowRate * BrineSpecificHeat * 1000);
@@ -403,7 +403,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region その他のインスタンスメソッド
+    #region Other instance methods
 
     /// <summary>Computes the linear thermal transmittance of pipe + ice/water [W/(m·K)] at the given segment.</summary>
     /// <param name="segmentIndex">Segment index.</param>
@@ -439,7 +439,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the linear thermal transmittance of pipe + ice/water [W/(m·K)].</summary>
     /// <param name="pipeInnerDiameter">Pipe inner diameter [m].</param>
@@ -458,22 +458,22 @@ namespace Popolo.Core.HVAC.Storage
       IceState iState = getIceState(pipeOuterDiameter, iceOuterDiameter, iceInnerDiameter);
       bool isBroken =
         ((pipeOuterDiameter < iceInnerDiameter) &&
-        (0.5 * (iceOuterDiameter - iceInnerDiameter) < CriticalIceThickness)); //一定厚み以下で氷は砕けている（後で調整）
+        (0.5 * (iceOuterDiameter - iceInnerDiameter) < CriticalIceThickness)); //Ice is considered broken below a certain thickness (to be adjusted later)
 
-      //氷なし
+      //No ice
       if (iState == IceState.NoIce)
-        buff += 1d / (pipeOuterDiameter * (isBubbling ? ForcedConvectionCoefficient : NaturalConvectionCoefficient)); //配管外表面の対流熱伝達
-      //着氷状態
+        buff += 1d / (pipeOuterDiameter * (isBubbling ? ForcedConvectionCoefficient : NaturalConvectionCoefficient)); //Convective heat transfer at the pipe outer surface
+      //Frozen (ice attached)
       else if (iState == IceState.Frozen)
       {
-        buff += 0.5d / IceThermalConductivity * Math.Log(iceOuterDiameter / pipeOuterDiameter); //氷の熱伝導
-        buff += 1d / (iceOuterDiameter * (isBubbling ? ForcedConvectionCoefficient : NaturalConvectionCoefficient)); //氷の外側の対流熱伝達
+        buff += 0.5d / IceThermalConductivity * Math.Log(iceOuterDiameter / pipeOuterDiameter); //Heat conduction through the ice
+        buff += 1d / (iceOuterDiameter * (isBubbling ? ForcedConvectionCoefficient : NaturalConvectionCoefficient)); //Convective heat transfer outside the ice
       }
-      //融解中
+      //Melting
       else
       {
-        buff += 1d / (pipeOuterDiameter * ((isBubbling && isBroken) ? ForcedConvectionCoefficient : InsideNaturalConvectionCoefficient)); //配管外表面対流熱伝達
-        buff += 1d / (iceInnerDiameter * ((isBubbling && isBroken) ? ForcedConvectionCoefficient : InsideNaturalConvectionCoefficient)); //氷表面対流熱伝達
+        buff += 1d / (pipeOuterDiameter * ((isBubbling && isBroken) ? ForcedConvectionCoefficient : InsideNaturalConvectionCoefficient)); //Convective heat transfer at the pipe outer surface
+        buff += 1d / (iceInnerDiameter * ((isBubbling && isBroken) ? ForcedConvectionCoefficient : InsideNaturalConvectionCoefficient)); //Convective heat transfer at the ice surface
       }
 
       return Math.PI / buff;

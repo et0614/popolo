@@ -71,7 +71,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class WallLayerConverter : JsonConverter<WallLayer>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropName = "name";
@@ -80,7 +80,7 @@ namespace Popolo.IO.Json.Building.Envelope
     private const string PropThickness = "thickness";
     private const string PropMoistureProperties = "moistureProperties";
 
-    // moistureProperties 内のキー
+    // Keys inside moistureProperties
     private const string PropMoistureConductivity = "conductivity";
     private const string PropVoidage = "voidage";
     private const string PropKappa = "kappa";
@@ -91,7 +91,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="WallLayer"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>
@@ -155,12 +155,12 @@ namespace Popolo.IO.Json.Building.Envelope
         }
       }
 
-      // kind 識別子の検証
+      // Validate the kind discriminator
       if (kind != ExpectedKind)
         throw new JsonException(
           $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(WallLayer)}, but got '{kind ?? "(missing)"}'.");
 
-      // 必須項目の検証
+      // Validate required properties
       if (name is null)
         throw new JsonException($"Required property '{PropName}' is missing from {nameof(WallLayer)} JSON.");
       if (thermalConductivity is null)
@@ -199,7 +199,7 @@ namespace Popolo.IO.Json.Building.Envelope
         throw new ArgumentNullException(nameof(value));
 
       writer.WriteStartObject();
-      writer.WriteString(PropKind, value.Kind); // virtual / override から取得
+      writer.WriteString(PropKind, value.Kind); // obtained via virtual / override
       writer.WriteString(PropName, value.Name);
       writer.WriteNumber(PropThermalConductivity, value.ThermalConductivity);
       writer.WriteNumber(PropVolSpecificHeat, value.VolSpecificHeat);
@@ -207,8 +207,8 @@ namespace Popolo.IO.Json.Building.Envelope
 
       if (value.MoistureConductivity != 0 && value.Thickness > 0)
       {
-        // Popolo.Core は WaterCapacity/KappaC/NuC を半層集約形で保持している。
-        // コンストラクタ入力と同じ原単位(voidage, kappa, nu)に戻す。
+        // Popolo.Core keeps WaterCapacity/KappaC/NuC in half-layer aggregated form.
+        // Convert back to the same base units as the constructor inputs (voidage, kappa, nu).
         //   WaterCapacity = 0.5 * voidage * thickness * ρ   →  voidage = 2*WC / (thickness * ρ)
         //   KappaC        = 0.5 * kappa * thickness         →  kappa   = 2*KC / thickness
         //   NuC           = 0.5 * nu    * thickness         →  nu      = 2*NuC / thickness
@@ -231,7 +231,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region private ヘルパー
+    #region Private helpers
 
     /// <summary>Reads the nested <c>moistureProperties</c> object.</summary>
     private static void ReadMoistureProperties(

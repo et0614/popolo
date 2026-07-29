@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public static class HeatExchange
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Heat exchanger flow arrangement type.</summary>
     public enum FlowType
@@ -49,7 +49,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 熱通過有効度の計算
+    #region Heat transfer effectiveness calculation
 
     /// <summary>Computes the heat transfer effectiveness ε [-] from NTU and heat capacity rate ratio.</summary>
     /// <param name="ntu">Number of transfer units (NTU) [-].</param>
@@ -60,17 +60,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
     {
       double rMC = heatCapacityRatio;
 
-      //熱容量流量比が0の場合
+      //Case of zero heat capacity rate ratio
       if (rMC <= 0) return 1 - Math.Exp(-ntu);
 
-      //NTUが0の場合
+      //Case of zero NTU
       if (ntu <= 0) return 0;
 
       double eps;
       switch (flowType)
       {
         case FlowType.CounterFlow:
-          if (rMC < 0.999) return (1 - Math.Exp((rMC - 1) * ntu)) / (1 - rMC * Math.Exp((rMC - 1) * ntu)); //2024.02.01:極端にrMCが1に近い場合のエラー回避
+          if (rMC < 0.999) return (1 - Math.Exp((rMC - 1) * ntu)) / (1 - rMC * Math.Exp((rMC - 1) * ntu)); //2024.02.01: avoid errors when rMC is extremely close to 1
           else return ntu / (1 + ntu);
 
         case FlowType.ParallelFlow:
@@ -103,12 +103,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
     {
       Roots.ErrorFunction eFnc = delegate (double ntu)
       { return effectiveness - GetEffectiveness(ntu, heatCapacityRatio, flowType); };
-      return Roots.Newton(eFnc, 0.1, 1e-4, 1e-6, 1e-6, 20); //2024.02.01:初期値を0から0.1に変更
+      return Roots.Newton(eFnc, 0.1, 1e-4, 1e-6, 1e-6, 20); //2024.02.01: initial value changed from 0 to 0.1
     }
 
     #endregion
 
-    #region 平均温度差Tmの計算
+    #region Mean temperature difference Tm calculation
 
     /// <summary>Computes the log mean temperature difference (LMTD) [°C] from fluid inlet and outlet temperatures.</summary>
     /// <param name="hotInletTemperature">Hot fluid inlet temperature [°C].</param>
@@ -121,7 +121,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double hotInletTemperature, double coldInletTemperature,
       double hotOutletTemperature, double coldOutletTemperature, FlowType flowType)
     {
-      //向流の場合
+      //Counter flow case
       if (flowType == FlowType.CounterFlow)
       {
         double dt1 = hotInletTemperature - coldOutletTemperature;
@@ -130,7 +130,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         if (dt1 <= 0 || dt2 <= 0) return 0;
         else return (dt1 - dt2) / Math.Log(dt1 / dt2);
       }
-      //並流の場合
+      //Parallel flow case
       else if (flowType == FlowType.ParallelFlow)
       {
         double dt1 = hotInletTemperature - coldInletTemperature;
@@ -146,24 +146,24 @@ namespace Popolo.Core.HVAC.HeatExchanger
           (coldOutletTemperature - coldInletTemperature) / (hotInletTemperature - coldInletTemperature);
         double r = 0;
 
-        //直交流（片側混合）の場合
+        //Cross flow case (one fluid mixed)
         if (flowType == FlowType.CrossFlow_CminMixed || flowType == FlowType.CrossFlow_CmaxMixed)
         {
           double bf = 1 - q / p * Math.Log(1 / (1 - p));
           if (bf <= 0) r = 0;
           else r = q / Math.Log(1 / bf);
         }
-        //直交流（両側混合・非混合）の場合
+        //Cross flow case (both fluids mixed or both unmixed)
         else if (flowType == FlowType.CrossFlow_BothFluidMixed
           || flowType == FlowType.CrossFlow_BothFluidsUnmixed)
         {
-          //rの上下限値を計算して解の範囲を特定
-          double rMax;  //上限値（対向流のr）
+          //Compute the upper and lower bounds of r to bracket the solution
+          double rMax;  //Upper bound (r for counter flow)
           if (Math.Abs(p - q) < 1e-8) rMax = 1;
           else rMax = (p - q) / Math.Log((1 - q) / (1 - p));
-          r = Math.Max(1e-4, 1 - (p + q));  //下限値（出口温度差）
+          r = Math.Max(1e-4, 1 - (p + q));  //Lower bound (outlet temperature difference)
 
-          //極小値を黄金探索
+          //Golden section search for the minimum
           Minimization.MinimizeFunction mFnc = delegate (double x)
           {
             if (flowType == FlowType.CrossFlow_BothFluidMixed) return Math.Abs(EFncBothMixedR(p, q, x));
@@ -226,7 +226,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region フィン効率の計算
+    #region Fin efficiency calculation
 
     /// <summary>Computes the efficiency of an annular fin [-] using modified Bessel functions.</summary>
     /// <param name="tubeRadius">Tube outer radius at the fin base [m].</param>
@@ -243,11 +243,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double xexb = finRadius / tubeRadius;
 
       double ws = w * Math.Sqrt(filmCoefficient / thermalConductivity / thickness);
-      //多くの図表はwsを横軸、フィン効率を縦軸に取る
+      //Most charts plot ws on the horizontal axis and fin efficiency on the vertical axis
       double ub = ws / (xexb - 1);
       double ue = ub * xexb;
 
-      //ベッセル関数の計算
+      //Compute Bessel functions
       double i0ub = BesI0(ub);
       double i1ue = BesI1(ue);
       double i1ub = BesI1(ub);
@@ -261,7 +261,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region ベッセル関数の計算
+    #region Bessel function calculation
 
     /// <summary>Computes the modified Bessel function of the first kind, order 0: I₀(u).</summary>
     /// <param name="u">Argument of the Bessel function.</param>
@@ -351,7 +351,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region 熱交換量の計算
+    #region Heat exchange calculation
 
     /// <summary>Computes the heat transfer rate [kW] using the effectiveness-NTU method.</summary>
     /// <param name="highTemperature">Hot-side temperature [°C].</param>

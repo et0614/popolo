@@ -44,14 +44,14 @@ namespace Popolo.Core.Tests.ThermalComfort
     /// </remarks>
     public class TakakusakiComfortModelTests
     {
-        #region 定数
+        #region Constants
 
         private const int  OccupantCount = 10000;
         private const uint RndSeed       = 0;
 
         #endregion
 
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 10,000 人の執務者集団を生成して返す。
@@ -69,7 +69,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region 個体パラメータテスト
+        #region Individual parameter tests
 
         /// <summary>コンストラクタ（シードのみ）で正常に生成できる。</summary>
         [Fact]
@@ -106,7 +106,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region SetPMV / 不満確率テスト
+        #region SetPMV / dissatisfaction probability tests
 
         /// <summary>環境 PMV = OptimumPMV のとき不満確率は最小（≈ 0）。</summary>
         [Fact]
@@ -173,7 +173,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region UpdateThermalSensationVote テスト
+        #region UpdateThermalSensationVote tests
 
         /// <summary>投票結果は Hot/Cold/Neutral のいずれかである。</summary>
         [Fact]
@@ -218,7 +218,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region 集団統計テスト（不満足者率 ≈ PPD）
+        #region Population statistics tests (dissatisfied ratio ≈ PPD)
 
         /// <summary>
         /// 10,000 人の集団でPMVを変化させたとき、不満足者率（暑い + 寒い）が
@@ -300,7 +300,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region IComparable テスト
+        #region IComparable tests
 
         /// <summary>OptimumPMV の大小が CompareTo に反映される。</summary>
         [Fact]

@@ -69,7 +69,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproWindowConfigurationJsonConverter : JsonConverter<WebproWindowConfiguration>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropWindowArea = "windowArea";
     private const string PropWindowWidth = "windowWidth";
@@ -88,7 +88,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproWindowConfiguration Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -164,7 +164,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static double ReadDoubleOrNaN(ref Utf8JsonReader reader)
     {

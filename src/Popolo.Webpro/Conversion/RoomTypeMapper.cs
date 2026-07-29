@@ -48,13 +48,13 @@ namespace Popolo.Webpro.Conversion
   public sealed class RoomTypeMapper
   {
 
-    #region 定数
+    #region Constants
 
     private const string DefaultResourceName = "Popolo.Webpro.Resources.RoomTypeMapping.json";
 
     #endregion
 
-    #region 内部データ
+    #region Internal data
 
     /// <summary>Composite key used by the mapping dictionary.</summary>
     private readonly struct Key : IEquatable<Key>
@@ -80,7 +80,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region インスタンス構築
+    #region Instance construction
 
     private RoomTypeMapper(Dictionary<Key, WebproHeatGainScheduler.RoomType> entries)
     {
@@ -155,7 +155,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 公開 API
+    #region Public API
 
     /// <summary>Gets the number of mapping entries.</summary>
     public int Count => entries.Count;

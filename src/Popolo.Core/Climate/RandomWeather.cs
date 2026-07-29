@@ -34,7 +34,7 @@ namespace Popolo.Core.Climate
   public class RandomWeather
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Specifies the location for weather generation.</summary>
     public enum Location
@@ -55,7 +55,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 変数
+    #region Variables
 
     /// <summary>Solar calculator for the calculation site.</summary>
     private Sun _sun = null!;
@@ -89,14 +89,14 @@ namespace Popolo.Core.Climate
     /// <summary>Normal random number generator.</summary>
     private NormalRandom _nRnd;
 
-    #region 東京
+    #region Tokyo
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Tokyo = 0.5686;
     private static readonly double sdevTHR_Tokyo = 0.3078;
     private static readonly double sdevTAT_Tokyo = 0.0241;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Tokyo = new double[] { 1.1366, 0.0836, -0.0915, 0.0017, -0.1000, -0.0253 };
     private static readonly double[] iHRCof_Tokyo = new double[] { 0.0212, 1.0330, 0.0186, -0.0618, -0.0262, -0.0197 };
     private static readonly double iATCof_Tokyo = 0.8306;
@@ -104,13 +104,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Tokyo = 0.3636;
     private static readonly double iATSD_Tokyo = 0.0289;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Tokyo = 2.584;
     private static readonly double swingDTa_Tokyo = 1.118;
     private static readonly double swingDTb_Tokyo = 1.249;
     private static readonly double shiftHR_Tokyo = -2.806;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Tokyo = new double[] { 16.1553, -9.1951, -0.5818, 0.6386, -0.4619 };
     private static readonly double[] bcaDT_Tokyo = new double[] { 0.0000, 4.5427, -0.3686, 0.5093, -0.2657 };
     private static readonly double[] acaHR_Tokyo = new double[] { 8.4347, -5.8197, 0.2694, 0.3759, -0.1934 };
@@ -126,7 +126,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] acHRSD_Tokyo = new double[] { 1.3130, -0.4424, -0.1839, 0, 0 };
     private static readonly double[] bcHRSD_Tokyo = new double[] { 0.0000, 0.2039, 0.0424, 0, 0 };
 
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Tokyo = new double[] { 0.0000, -1.5906, 0.5391, -0.0523 };
     private static readonly double[] bccDT_Tokyo = new double[] { 0.0000, 1.7772, -0.2794, -0.0602 };
     private static readonly double[] accHR_Tokyo = new double[] { 0.0000, 0.1410, -0.0029, -0.0107 };
@@ -136,19 +136,19 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Tokyo = new double[] { 0.3807, 0.2269, 0.0000, -0.0008 };
     private static readonly double[] bcFAR_Tokyo = new double[] { 0.0000, 0.0062, 0.0000, -0.0019 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Tokyo = 10;
 
     #endregion
 
-    #region 大阪
+    #region Osaka
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Osaka = 0.5154;
     private static readonly double sdevTHR_Osaka = 0.2984;
     private static readonly double sdevTAT_Osaka = 0.0323;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Osaka = new double[] { 1.1584, 0.0931, -0.0837, -0.0088, -0.1388, -0.0284 };
     private static readonly double[] iHRCof_Osaka = new double[] { -0.0086, 1.0589, 0.0413, -0.0643, -0.0146, -0.0403 };
     private static readonly double iATCof_Osaka = 0.7394;
@@ -156,13 +156,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Osaka = 0.3315;
     private static readonly double iATSD_Osaka = 0.0906;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Osaka = 0;
     private static readonly double swingDTa_Osaka = 1.486;
     private static readonly double swingDTb_Osaka = 1.337;
     private static readonly double shiftHR_Osaka = -4.173;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Osaka = new double[] { 16.8268, -9.3956, -0.3928, 0.3107, -0.2057 };
     private static readonly double[] bcaDT_Osaka = new double[] { 0.0000, 4.4420, -0.5665, 0.5255, -0.3072 };
     private static readonly double[] acaHR_Osaka = new double[] { 9.4201, -6.0004, 0.5700, 0.1399, -0.0428 };
@@ -178,7 +178,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] acHRSD_Osaka = new double[] { 1.2499, -0.3970, -0.1582, 0, 0 };
     private static readonly double[] bcHRSD_Osaka = new double[] { 0.0000, 0.1771, 0.1389, 0, 0 };
 
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Osaka = new double[] { 0.0000, -1.7793, 0.6353, -0.0995 };
     private static readonly double[] bccDT_Osaka = new double[] { 0.0000, 1.6188, -0.2374, -0.1190 };
     private static readonly double[] accHR_Osaka = new double[] { 0.0000, -0.1133, 0.0500, 0.0032 };
@@ -188,19 +188,19 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Osaka = new double[] { 0.3579, 0.1904, 0.0000, 0.0053 };
     private static readonly double[] bcFAR_Osaka = new double[] { 0.0000, -0.0113, 0.0000, 0.0056 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Osaka = 10;
 
     #endregion
 
-    #region 札幌
+    #region Sapporo
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Sapporo = 0.5686;
     private static readonly double sdevTHR_Sapporo = 0.3078;
     private static readonly double sdevTAT_Sapporo = 0.0241;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Sapporo = new double[] { 1.1456, 0.1611, -0.1402, -0.0552, -0.0701, -0.0481 };
     private static readonly double[] iHRCof_Sapporo = new double[] { 0.0625, 0.9749, -0.0017, -0.0038, -0.0330, -0.0330 };
     private static readonly double iATCof_Sapporo = 0.7219;
@@ -208,13 +208,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Sapporo = 0.3704;
     private static readonly double iATSD_Sapporo = 0.1025;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Sapporo = 0.723;
     private static readonly double swingDTa_Sapporo = 1.346;
     private static readonly double swingDTb_Sapporo = 1.343;
     private static readonly double shiftHR_Sapporo = -1.613;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Sapporo = new double[] { 8.8674, -11.5445, -0.7236, 0.5122, -0.2416 };
     private static readonly double[] bcaDT_Sapporo = new double[] { 0.0000, 5.3594, -0.4775, 0.5302, -0.2817 };
     private static readonly double[] acaHR_Sapporo = new double[] { 5.8837, -4.3882, 0.5599, 0.2440, -0.2687 };
@@ -230,7 +230,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] acHRSD_Sapporo = new double[] { 0.9420, -0.3845, -0.0669, 0, 0 };
     private static readonly double[] bcHRSD_Sapporo = new double[] { 0.0000, 0.3613, -0.0884, 0, 0 };
 
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Sapporo = new double[] { 0.0000, -2.0102, 0.6600, -0.0203 };
     private static readonly double[] bccDT_Sapporo = new double[] { 0.0000, 1.2000, -0.0492, -0.1270 };
     private static readonly double[] accHR_Sapporo = new double[] { 0.0000, -0.1166, 0.0264, 0.0067 };
@@ -240,19 +240,19 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Sapporo = new double[] { 0.3787, 0.2029, 0.0115, 0.0138 };
     private static readonly double[] bcFAR_Sapporo = new double[] { 0.0000, 0.0036, 0.0034, -0.0043 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Sapporo = 10;
 
     #endregion
 
-    #region 仙台
+    #region Sendai
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Sendai = 0.6328;
     private static readonly double sdevTHR_Sendai = 0.3540;
     private static readonly double sdevTAT_Sendai = 0.0200;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Sendai = new double[] { 1.0883, 0.1604, -0.0766, -0.0292, -0.0789, -0.0603 };
     private static readonly double[] iHRCof_Sendai = new double[] { 0.0353, 1.0105, 0.0100, -0.0091, -0.0327, -0.0448 };
     private static readonly double iATCof_Sendai = 0.7464;
@@ -260,13 +260,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Sendai = 0.3376;
     private static readonly double iATSD_Sendai = 0.0964;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Sendai = 1.794;
     private static readonly double swingDTa_Sendai = 1.284;
     private static readonly double swingDTb_Sendai = 1.304;
     private static readonly double shiftHR_Sendai = -2.182;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Sendai = new double[] { 12.3043, -9.6166, -0.6660, 0.6683, -0.4191 };
     private static readonly double[] bcaDT_Sendai = new double[] { 0.0000, 5.0537, -0.4351, 0.4763, -0.1837 };
     private static readonly double[] acaHR_Sendai = new double[] { 7.4230, -5.1868, 0.4997, 0.4007, -0.3268 };
@@ -281,7 +281,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] bcDTSD_Sendai = new double[] { 0.0000, -0.1038, 0.1049, 0, 0 };
     private static readonly double[] acHRSD_Sendai = new double[] { 1.1640, -0.5124, -0.1287, 0, 0 };
     private static readonly double[] bcHRSD_Sendai = new double[] { 0.0000, 0.3059, -0.0090, 0, 0 };
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Sendai = new double[] { 0.0000, -1.9449, 0.7034, -0.0493 };
     private static readonly double[] bccDT_Sendai = new double[] { 0.0000, 1.3603, -0.1132, -0.1271 };
     private static readonly double[] accHR_Sendai = new double[] { 0.0000, -0.0205, 0.0410, -0.0030 };
@@ -291,19 +291,19 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Sendai = new double[] { 0.3852, 0.2452, 0.0000, 0.0117 };
     private static readonly double[] bcFAR_Sendai = new double[] { 0.0000, 0.0005, 0.0000, 0.0002 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Sendai = 10;
 
     #endregion
 
-    #region 福岡
+    #region Fukuoka
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Fukuoka = 0.4559;
     private static readonly double sdevTHR_Fukuoka = 0.2169;
     private static readonly double sdevTAT_Fukuoka = 0.0221;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Fukuoka = new double[] { 1.1385, 0.0996, -0.1107, -0.0029, -0.0907, -0.0418 };
     private static readonly double[] iHRCof_Fukuoka = new double[] { 0.0264, 0.9199, 0.0160, 0.0400, -0.0145, -0.0172 };
     private static readonly double iATCof_Fukuoka = 0.7344;
@@ -311,13 +311,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Fukuoka = 0.3547;
     private static readonly double iATSD_Fukuoka = 0.0871;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Fukuoka = -0.162;
     private static readonly double swingDTa_Fukuoka = 1.324;
     private static readonly double swingDTb_Fukuoka = 1.290;
     private static readonly double shiftHR_Fukuoka = -3.323;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Fukuoka = new double[] { 16.8268, -9.3956, -0.3928, 0.3107, -0.2057 };
     private static readonly double[] bcaDT_Fukuoka = new double[] { 0.0000, 4.4420, -0.5665, 0.5255, -0.3072 };
     private static readonly double[] acaHR_Fukuoka = new double[] { 9.4201, -6.0004, 0.5700, 0.1399, -0.0428 };
@@ -333,7 +333,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] acHRSD_Fukuoka = new double[] { 1.2744, -0.1366, -0.1652, 0, 0 };
     private static readonly double[] bcHRSD_Fukuoka = new double[] { 0.0000, 0.1132, 0.1945, 0, 0 };
 
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Fukuoka = new double[] { 0.0000, -1.7793, 0.6353, -0.0995 };
     private static readonly double[] bccDT_Fukuoka = new double[] { 0.0000, 1.6188, -0.2374, -0.1190 };
     private static readonly double[] accHR_Fukuoka = new double[] { 0.0000, -0.1133, 0.0500, 0.0032 };
@@ -343,19 +343,19 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Fukuoka = new double[] { 0.3579, 0.1904, 0.0000, 0.0053 };
     private static readonly double[] bcFAR_Fukuoka = new double[] { 0.0000, -0.0113, 0.0000, 0.0056 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Fukuoka = 10;
 
     #endregion
 
-    #region 那覇
+    #region Naha
 
-    //トレンド成分標準偏差
+    //Trend component standard deviations
     private static readonly double sdevTDT_Naha = 0.4332;
     private static readonly double sdevTHR_Naha = 0.3588;
     private static readonly double sdevTAT_Naha = 0.0210;
 
-    //ARモデル係数
+    //AR model coefficients
     private static readonly double[] iDTCof_Naha = new double[] { 0.9343, 0.0676, -0.0137, 0.0114, -0.0049, 0.0145 };
     private static readonly double[] iHRCof_Naha = new double[] { -0.0082, 0.7498, 0.0229, 0.1372, 0.0045, 0.0637 };
     private static readonly double iATCof_Naha = 0.7364;
@@ -363,13 +363,13 @@ namespace Popolo.Core.Climate
     private static readonly double iHRSD_Naha = 0.3404;
     private static readonly double iATSD_Naha = 0.1009;
 
-    //振幅変調・シフト係数
+    //Amplitude modulation and shift coefficients
     private static readonly double shiftDT_Naha = 1.899;
     private static readonly double swingDTa_Naha = 0.582;
     private static readonly double swingDTb_Naha = 0.811;
     private static readonly double shiftHR_Naha = -3.168;
 
-    //年周期フーリエ係数
+    //Annual cycle Fourier coefficients
     private static readonly double[] acaDT_Naha = new double[] { 22.9623, -5.3214, -0.2766, -0.1536, 0.1923 };
     private static readonly double[] bcaDT_Naha = new double[] { 0.0000, 2.9532, 0.0588, 0.1686, -0.0156 };
     private static readonly double[] acaHR_Naha = new double[] { 13.8874, -5.6110, 0.0933, -0.0870, 0.1813 };
@@ -385,7 +385,7 @@ namespace Popolo.Core.Climate
     private static readonly double[] acHRSD_Naha = new double[] { 1.9009, 0.3594, -0.4965, 0, 0 };
     private static readonly double[] bcHRSD_Naha = new double[] { 0.0000, -0.3534, 0.4481, 0, 0 };
 
-    //日周期フーリエ係数
+    //Daily cycle Fourier coefficients
     private static readonly double[] accDT_Naha = new double[] { 0.0000, -1.1943, 0.4402, -0.0188 };
     private static readonly double[] bccDT_Naha = new double[] { 0.0000, 0.7588, -0.1384, -0.0821 };
     private static readonly double[] accHR_Naha = new double[] { 0.0000, -0.1003, 0.0246, 0.0117 };
@@ -395,14 +395,14 @@ namespace Popolo.Core.Climate
     private static readonly double[] acFAR_Naha = new double[] { 0.3428, 0.2665, 0.0000, 0.0165 };
     private static readonly double[] bcFAR_Naha = new double[] { 0.0000, -0.0426, 0.0000, -0.0061 };
 
-    //最小相対湿度
+    //Minimum relative humidity
     private static readonly double minimumRelativeHumidity_Naha = 30;
 
     #endregion
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance for the specified location and random seed.
@@ -437,7 +437,7 @@ namespace Popolo.Core.Climate
       _acFAR = new double[4];
       _bcFAR = new double[4];
 
-      //係数初期化
+      //Initialize coefficients
       InitializeParameters(location);
 
       _rnd = new MersenneTwister(seed);
@@ -446,7 +446,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region メイン処理
+    #region Main routine
 
     /// <summary>
     /// Generates stochastic weather data for the specified number of years (non-leap year).
@@ -489,7 +489,7 @@ namespace Popolo.Core.Climate
       double[] hrtRnd = new double[totalDay];
       isFair = new bool[totalHour];
 
-      //トレンド成分を計算
+      //Compute trend components
       double[] trendDT = new double[year];
       double[] trendHR = new double[year];
       double[] trendAT = new double[year];
@@ -500,7 +500,7 @@ namespace Popolo.Core.Climate
         trendAT[i] = _nRnd.NextDouble() * _sdevTAT;
       }
 
-      //確定的年周期成分を計算
+      //Compute deterministic annual periodic components
       double[] caDBT, caHRT, caATM, caFTF, caCTC, caDTSIG, caHRSIG;
       MakeAnnualData(out caDBT, out caHRT, out caATM, out caFTF, out caCTC, out caDTSIG, out caHRSIG, isLeapYear);
       caATM = InterpolateDailyData(caATM);
@@ -509,11 +509,11 @@ namespace Popolo.Core.Climate
       caDTSIG = InterpolateDailyData(caDTSIG);
       caHRSIG = InterpolateDailyData(caHRSIG);
 
-      //確定的日周期成分を計算
+      //Compute deterministic daily periodic components
       double[] ccDBT, ccHRT, ccATMF, ccATMC;
       MakeCircadianData(out ccDBT, out ccHRT, out ccATMF, out ccATMC);
 
-      //水平面全天日射の計算
+      //Compute global horizontal solar radiation
       int tHour = 0;
       int dOfY = days * 24;
       for (int i = 0; i < totalDay; i++)
@@ -521,15 +521,15 @@ namespace Popolo.Core.Climate
         int yHour = tHour % dOfY;
         int cYear = i / days;
 
-        //晴れ曇りの状態をマルコフ連鎖で計算
+        //Compute fair/cloudy states with a Markov chain
         for (int j = 0; j < 8; j++)
         {
           int ch = tHour + 3 * j;
-          //0時点の状態は不変分布から計算
+          //State at time 0 is drawn from the stationary distribution
           if (ch == 0)
             isFair[0] = isFair[1] = isFair[2] =
               ((1 - caCTC[yHour]) / (2 - caFTF[yHour] - caCTC[yHour])) < _rnd.NextDouble();
-          //その他の時点の状態は推移確率から計算
+          //States at other times are drawn from the transition probabilities
           else
           {
             bool curF = isFair[ch - 1];
@@ -539,9 +539,9 @@ namespace Popolo.Core.Climate
           isFair[ch + 2] = isFair[ch + 1] = isFair[ch];
         }
 
-        //不規則変動成分の計算
+        //Compute the random variation component
         double[] iATM = new double[24];
-        //時点0の場合には助走計算
+        //Warm-up iterations at time 0
         if (i == 0)
         {
           for (int j = 0; j < 50; j++)
@@ -558,7 +558,7 @@ namespace Popolo.Core.Climate
           iATM[j * 2 + 1] = iATM[j * 2] * _iATCof + _nRnd.NextDouble() * _iATSD;
         }
 
-        //確定成分と不規則変動成分を集計
+        //Sum deterministic and random variation components
         int nSum = 0;
         double rSum = 0;
         for (int j = 0; j < 24; j++)
@@ -581,13 +581,13 @@ namespace Popolo.Core.Climate
               rSum += iATM[j] + ccATMC[j];
             }
 
-            //大気透過率から水平面全天日射を計算（渡辺の式）
+            //Compute global horizontal solar radiation from atmospheric transmissivity (Watanabe's equation)
             radiation[ch] = Math.Min(1.0, Math.Max(0.001, radiation[ch]));
             radiation[ch] = GetGlobalHorizontalRadiation(radiation[ch], _sun);
           }
           else radiation[ch] = 0;
         }
-        //不規則成分で振幅変調および絶対値シフト
+        //Amplitude modulation and absolute shift by the random component
         rSum /= nSum;
         dbtRnd[i] = caDBT[i % days] + rSum * _shiftDT;
         hrtRnd[i] = caHRT[i % days] + rSum * _shiftHR;
@@ -597,18 +597,18 @@ namespace Popolo.Core.Climate
         tHour += 24;
       }
 
-      //振幅変調・絶対値シフトデータを時刻別データにSpline補間
+      //Spline-interpolate amplitude modulation and absolute shift data to hourly data
       dbtRnd = InterpolateDailyData(dbtRnd);
       hrtRnd = InterpolateDailyData(hrtRnd);
       swing = InterpolateDailyData(swing);
 
-      //VARモデル助走計算
+      //VAR model warm-up iterations
       double[] idbt = new double[3];
       double[] ihrt = new double[3];
       for (int i = 0; i < 100; i++)
         UpdateRandomComponent(_nRnd, ref idbt, ref ihrt);
 
-      //確定成分と不規則変動成分を合成
+      //Combine deterministic and random variation components
       tHour = 0;
       for (int i = 0; i < totalDay; i++)
       {
@@ -694,7 +694,7 @@ namespace Popolo.Core.Climate
       {
         builder.Reset();
         builder.SetTime(startDate.AddHours(i));
-        //確率モデルによる生成値のため、測定精度を超える桁は疑似精度として丸める
+        //Values come from a stochastic model, so digits beyond measurement precision are spurious and rounded off
         builder.SetDryBulbTemperature(Math.Round(dbt[i], 2));
         builder.SetHumidityRatio(Math.Round(hr[i], 1));
         builder.SetGlobalHorizontalRadiation(Math.Round(rad[i], 2));
@@ -706,7 +706,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 周期成分の計算
+    #region Periodic component calculation
 
     /// <summary>Computes daily annual cycle component arrays.</summary>
     /// <param name="dryBulbTemperature">Annual cycle of dry-bulb temperature [°C]</param>
@@ -721,10 +721,10 @@ namespace Popolo.Core.Climate
       (out double[] dryBulbTemperature, out double[] humidityRatio, out double[] atmTransmissivity,
       out double[] fairToFair, out double[] cloudToCloud, out double[] dbtSigma, out double[] hrtSigma, bool isLeapYear)
     {
-      //うるう年の場合には366日
+      //366 days for a leap year
       int days = isLeapYear ? 366 : 365;
 
-      //日別年周期データを作成
+      //Create daily annual-cycle data
       dryBulbTemperature = new double[days];
       humidityRatio = new double[days];
       atmTransmissivity = new double[days];
@@ -759,7 +759,7 @@ namespace Popolo.Core.Climate
       (out double[] dryBulbTemperature, out double[] humidityRatio,
        out double[] atmTransFair, out double[] atmTransCloudy)
     {
-      //時刻別データを作成
+      //Create hourly data
       dryBulbTemperature = new double[24];
       humidityRatio = new double[24];
       atmTransCloudy = new double[24];
@@ -781,7 +781,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 不規則変動成分の計算
+    #region Random component calculation
 
     /// <summary>Advances the VAR model by one step to update the irregular components.</summary>
     /// <param name="nRnd">Normal random number generator.</param>
@@ -810,7 +810,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region その他の計算
+    #region Other calculations
 
     /// <summary>Initializes model parameters for the specified location.</summary>
     /// <param name="location">Calculation location.</param>
@@ -821,12 +821,12 @@ namespace Popolo.Core.Climate
         case Location.Osaka:
           _sun = new Sun(34, 40.7, 0, 135, 31.3, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Osaka;
           _sdevTHR = sdevTHR_Osaka;
           _sdevTAT = sdevTAT_Osaka;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Osaka.CopyTo(_iDTCof, 0);
           iHRCof_Osaka.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Osaka;
@@ -834,13 +834,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Osaka;
           _iATSD = iATSD_Osaka;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Osaka;
           _swingDTa = swingDTa_Osaka;
           _swingDTb = swingDTb_Osaka;
           _shiftHR = -shiftHR_Osaka;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Osaka.CopyTo(_acaDT, 0);
           bcaDT_Osaka.CopyTo(_bcaDT, 0);
           acaHR_Osaka.CopyTo(_acaHR, 0);
@@ -856,7 +856,7 @@ namespace Popolo.Core.Climate
           acHRSD_Osaka.CopyTo(_acHRSD, 0);
           bcHRSD_Osaka.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Osaka.CopyTo(_accDT, 0);
           bccDT_Osaka.CopyTo(_bccDT, 0);
           accHR_Osaka.CopyTo(_accHR, 0);
@@ -866,18 +866,18 @@ namespace Popolo.Core.Climate
           acFAR_Osaka.CopyTo(_acFAR, 0);
           bcFAR_Osaka.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Osaka;
           break;
         case Location.Sapporo:
           _sun = new Sun(43, 3.5, 0, 141, 19.9, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Sapporo;
           _sdevTHR = sdevTHR_Sapporo;
           _sdevTAT = sdevTAT_Sapporo;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Sapporo.CopyTo(_iDTCof, 0);
           iHRCof_Sapporo.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Sapporo;
@@ -885,13 +885,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Sapporo;
           _iATSD = iATSD_Sapporo;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Sapporo;
           _swingDTa = swingDTa_Sapporo;
           _swingDTb = swingDTb_Sapporo;
           _shiftHR = -shiftHR_Sapporo;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Sapporo.CopyTo(_acaDT, 0);
           bcaDT_Sapporo.CopyTo(_bcaDT, 0);
           acaHR_Sapporo.CopyTo(_acaHR, 0);
@@ -907,7 +907,7 @@ namespace Popolo.Core.Climate
           acHRSD_Sapporo.CopyTo(_acHRSD, 0);
           bcHRSD_Sapporo.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Sapporo.CopyTo(_accDT, 0);
           bccDT_Sapporo.CopyTo(_bccDT, 0);
           accHR_Sapporo.CopyTo(_accHR, 0);
@@ -917,18 +917,18 @@ namespace Popolo.Core.Climate
           acFAR_Sapporo.CopyTo(_acFAR, 0);
           bcFAR_Sapporo.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Sapporo;
           break;
         case Location.Sendai:
           _sun = new Sun(38, 15.5, 0, 140, 54.0, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Sendai;
           _sdevTHR = sdevTHR_Sendai;
           _sdevTAT = sdevTAT_Sendai;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Sendai.CopyTo(_iDTCof, 0);
           iHRCof_Sendai.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Sendai;
@@ -936,13 +936,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Sendai;
           _iATSD = iATSD_Sendai;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Sendai;
           _swingDTa = swingDTa_Sendai;
           _swingDTb = swingDTb_Sendai;
           _shiftHR = -shiftHR_Sendai;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Sendai.CopyTo(_acaDT, 0);
           bcaDT_Sendai.CopyTo(_bcaDT, 0);
           acaHR_Sendai.CopyTo(_acaHR, 0);
@@ -958,7 +958,7 @@ namespace Popolo.Core.Climate
           acHRSD_Sendai.CopyTo(_acHRSD, 0);
           bcHRSD_Sendai.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Sendai.CopyTo(_accDT, 0);
           bccDT_Sendai.CopyTo(_bccDT, 0);
           accHR_Sendai.CopyTo(_accHR, 0);
@@ -968,18 +968,18 @@ namespace Popolo.Core.Climate
           acFAR_Sendai.CopyTo(_acFAR, 0);
           bcFAR_Sendai.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Sendai;
           break;
         case Location.Fukuoka:
           _sun = new Sun(33, 34.8, 0, 130, 22.6, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Fukuoka;
           _sdevTHR = sdevTHR_Fukuoka;
           _sdevTAT = sdevTAT_Fukuoka;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Fukuoka.CopyTo(_iDTCof, 0);
           iHRCof_Fukuoka.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Fukuoka;
@@ -987,13 +987,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Fukuoka;
           _iATSD = iATSD_Fukuoka;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Fukuoka;
           _swingDTa = swingDTa_Fukuoka;
           _swingDTb = swingDTb_Fukuoka;
           _shiftHR = -shiftHR_Fukuoka;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Fukuoka.CopyTo(_acaDT, 0);
           bcaDT_Fukuoka.CopyTo(_bcaDT, 0);
           acaHR_Fukuoka.CopyTo(_acaHR, 0);
@@ -1009,7 +1009,7 @@ namespace Popolo.Core.Climate
           acHRSD_Fukuoka.CopyTo(_acHRSD, 0);
           bcHRSD_Fukuoka.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Fukuoka.CopyTo(_accDT, 0);
           bccDT_Fukuoka.CopyTo(_bccDT, 0);
           accHR_Fukuoka.CopyTo(_accHR, 0);
@@ -1019,18 +1019,18 @@ namespace Popolo.Core.Climate
           acFAR_Fukuoka.CopyTo(_acFAR, 0);
           bcFAR_Fukuoka.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Fukuoka;
           break;
         case Location.Naha:
           _sun = new Sun(26, 12.2, 0, 127, 41.3, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Naha;
           _sdevTHR = sdevTHR_Naha;
           _sdevTAT = sdevTAT_Naha;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Naha.CopyTo(_iDTCof, 0);
           iHRCof_Naha.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Naha;
@@ -1038,13 +1038,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Naha;
           _iATSD = iATSD_Naha;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Naha;
           _swingDTa = swingDTa_Naha;
           _swingDTb = swingDTb_Naha;
           _shiftHR = -shiftHR_Naha;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Naha.CopyTo(_acaDT, 0);
           bcaDT_Naha.CopyTo(_bcaDT, 0);
           acaHR_Naha.CopyTo(_acaHR, 0);
@@ -1060,7 +1060,7 @@ namespace Popolo.Core.Climate
           acHRSD_Naha.CopyTo(_acHRSD, 0);
           bcHRSD_Naha.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Naha.CopyTo(_accDT, 0);
           bccDT_Naha.CopyTo(_bccDT, 0);
           accHR_Naha.CopyTo(_accHR, 0);
@@ -1070,18 +1070,18 @@ namespace Popolo.Core.Climate
           acFAR_Naha.CopyTo(_acFAR, 0);
           bcFAR_Naha.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Naha;
           break;
-        default://東京
+        default://Tokyo
           _sun = new Sun(35, 41.2, 0, 139, 45.9, 0, 135, 0, 0);
 
-          //トレンド成分標準偏差
+          //Trend component standard deviations
           _sdevTDT = sdevTDT_Tokyo;
           _sdevTHR = sdevTHR_Tokyo;
           _sdevTAT = sdevTAT_Tokyo;
 
-          //ARモデル係数
+          //AR model coefficients
           iDTCof_Tokyo.CopyTo(_iDTCof, 0);
           iHRCof_Tokyo.CopyTo(_iHRCof, 0);
           _iATCof = iATCof_Tokyo;
@@ -1089,13 +1089,13 @@ namespace Popolo.Core.Climate
           _iHRSD = iHRSD_Tokyo;
           _iATSD = iATSD_Tokyo;
 
-          //振幅変調・シフト係数
+          //Amplitude modulation and shift coefficients
           _shiftDT = shiftDT_Tokyo;
           _swingDTa = swingDTa_Tokyo;
           _swingDTb = swingDTb_Tokyo;
           _shiftHR = -shiftHR_Tokyo;
 
-          //年周期フーリエ係数
+          //Annual cycle Fourier coefficients
           acaDT_Tokyo.CopyTo(_acaDT, 0);
           bcaDT_Tokyo.CopyTo(_bcaDT, 0);
           acaHR_Tokyo.CopyTo(_acaHR, 0);
@@ -1111,7 +1111,7 @@ namespace Popolo.Core.Climate
           acHRSD_Tokyo.CopyTo(_acHRSD, 0);
           bcHRSD_Tokyo.CopyTo(_bcHRSD, 0);
 
-          //日周期フーリエ係数
+          //Daily cycle Fourier coefficients
           accDT_Tokyo.CopyTo(_accDT, 0);
           bccDT_Tokyo.CopyTo(_bccDT, 0);
           accHR_Tokyo.CopyTo(_accHR, 0);
@@ -1121,7 +1121,7 @@ namespace Popolo.Core.Climate
           acFAR_Tokyo.CopyTo(_acFAR, 0);
           bcFAR_Tokyo.CopyTo(_bcFAR, 0);
 
-          //最小相対湿度
+          //Minimum relative humidity
           _minRelativeHumidity = minimumRelativeHumidity_Tokyo;
           break;
       }

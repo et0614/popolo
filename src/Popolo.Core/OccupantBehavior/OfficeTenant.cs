@@ -28,7 +28,7 @@ namespace Popolo.Core.OccupantBehavior
   public partial class OfficeTenant: IReadOnlyOfficeTenant
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Industry category of the tenant.</summary>
     public enum CategoryOfIndustry
@@ -88,7 +88,7 @@ namespace Popolo.Core.OccupantBehavior
 
     #endregion
 
-    #region クラス変数
+    #region Class variables
 
     /// <summary>Job type distribution ratios [-] by sex: male/female × managerial/technical(perm)/technical(non-perm)/clerical(perm)/clerical(non-perm)/sales(perm)/sales(non-perm).</summary>
     private static readonly Dictionary<CategoryOfIndustry, double[][]> jobRates = new Dictionary<CategoryOfIndustry, double[][]>();
@@ -122,7 +122,7 @@ namespace Popolo.Core.OccupantBehavior
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Gets the male ratio among workers [-].</summary>
     /// <param name="ind">Industry category.</param>
@@ -153,85 +153,85 @@ namespace Popolo.Core.OccupantBehavior
     /// <summary>Static constructor: initializes industry and job parameter tables.</summary>
     static OfficeTenant()
     {
-      //職業比率初期化***********************************************************
-      //建設業
+      //Initialize job category ratios*******************************************
+      //Construction
       double[][] jRates = new double[2][];
       jRates[0] = new double[] { 0.185, 0.455, 0.511, 0.691, 0.728, 0.953, 1.000 };
       jRates[1] = new double[] { 0.030, 0.052, 0.060, 0.729, 0.970, 0.992, 1.000 };
       jobRates.Add(CategoryOfIndustry.Construction, jRates);
-      //製造業
+      //Manufacturing
       jRates = new double[2][];
       jRates[0] = new double[] { 0.119, 0.389, 0.446, 0.746, 0.809, 0.967, 1.000 };
       jRates[1] = new double[] { 0.020, 0.063, 0.109, 0.520, 0.961, 0.980, 1.000 };
       jobRates.Add(CategoryOfIndustry.Manufacturing, jRates);
-      //電気・ガス・水道・インフラ
+      //Electricity, gas, water, and other infrastructure
       jRates = new double[2][];
       jRates[0] = new double[] { 0.000, 0.212, 0.230, 0.868, 0.923, 0.994, 1.000 };
       jRates[1] = new double[] { 0.000, 0.000, 0.000, 0.750, 1.000, 1.000, 1.000 };
       jobRates.Add(CategoryOfIndustry.Infrastructure, jRates);
-      //情報通信業
+      //Information and communications
       jRates = new double[2][];
       jRates[0] = new double[] { 0.027, 0.642, 0.714, 0.880, 0.900, 0.990, 1.000 };
       jRates[1] = new double[] { 0.000, 0.266, 0.415, 0.755, 0.944, 0.980, 1.000 };
       jobRates.Add(CategoryOfIndustry.InformationAndCommunications, jRates);
-      //運輸業・郵便業
+      //Transport and postal services
       jRates = new double[2][];
       jRates[0] = new double[] { 0.105, 0.131, 0.140, 0.706, 0.895, 0.974, 1.000 };
       jRates[1] = new double[] { 0.033, 0.033, 0.033, 0.339, 1.000, 1.000, 1.000 };
       jobRates.Add(CategoryOfIndustry.TrafficOrPostalService, jRates);
-      //卸売業・小売業
+      //Wholesale and retail trade
       jRates = new double[2][];
       jRates[0] = new double[] { 0.115, 0.163, 0.179, 0.376, 0.442, 0.860, 1.000 };
       jRates[1] = new double[] { 0.025, 0.055, 0.118, 0.378, 0.932, 0.954, 1.000 };
       jobRates.Add(CategoryOfIndustry.WholesaleOrRetailing, jRates);
-      //金融業・保険業
+      //Finance and insurance
       jRates = new double[2][];
       jRates[0] = new double[] { 0.072, 0.111, 0.115, 0.588, 0.638, 0.966, 1.000 };
       jRates[1] = new double[] { 0.000, 0.008, 0.012, 0.453, 0.695, 0.892, 1.000 };
       jobRates.Add(CategoryOfIndustry.FinanceOrInsurance, jRates);
-      //不動産業 他
+      //Real estate and others
       jRates = new double[2][];
       jRates[0] = new double[] { 0.149, 0.164, 0.170, 0.537, 0.680, 0.910, 1.000 };
       jRates[1] = new double[] { 0.061, 0.061, 0.061, 0.570, 0.909, 0.964, 1.000 };
       jobRates.Add(CategoryOfIndustry.RealEstate, jRates);
 
-      //年代比率初期化***********************************************************
-      //建設業
+      //Initialize age group ratios**********************************************
+      //Construction
       double[][] aRates = new double[2][];
       aRates[0] = new double[] { 0.113, 0.306, 0.562, 0.762 };
       aRates[1] = new double[] { 0.081, 0.257, 0.554, 0.757 };
       ageRates.Add(CategoryOfIndustry.Construction, aRates);
-      //製造業
+      //Manufacturing
       aRates = new double[2][];
       aRates[0] = new double[] { 0.159, 0.381, 0.651, 0.857 };
       aRates[1] = new double[] { 0.144, 0.345, 0.620, 0.831 };
       ageRates.Add(CategoryOfIndustry.Manufacturing, aRates);
-      //電気・ガス・水道・インフラ
+      //Electricity, gas, water, and other infrastructure
       aRates = new double[2][];
       aRates[0] = new double[] { 0.125, 0.292, 0.583, 0.875 };
       aRates[1] = new double[] { 0.000, 0.333, 1.000, 1.000 };
       ageRates.Add(CategoryOfIndustry.Infrastructure, aRates);
-      //情報通信業
+      //Information and communications
       aRates = new double[2][];
       aRates[0] = new double[] { 0.162, 0.461, 0.760, 0.942 };
       aRates[1] = new double[] { 0.273, 0.582, 0.855, 0.964 };
       ageRates.Add(CategoryOfIndustry.InformationAndCommunications, aRates);
-      //運輸業・郵便業
+      //Transport and postal services
       aRates = new double[2][];
       aRates[0] = new double[] { 0.096, 0.284, 0.565, 0.790 };
       aRates[1] = new double[] { 0.143, 0.349, 0.667, 0.889 };
       ageRates.Add(CategoryOfIndustry.TrafficOrPostalService, aRates);
-      //卸売業・小売業
+      //Wholesale and retail trade
       aRates = new double[2][];
       aRates[0] = new double[] { 0.180, 0.388, 0.623, 0.801 };
       aRates[1] = new double[] { 0.198, 0.381, 0.622, 0.822 };
       ageRates.Add(CategoryOfIndustry.WholesaleOrRetailing, aRates);
-      //金融業・保険業
+      //Finance and insurance
       aRates = new double[2][];
       aRates[0] = new double[] { 0.143, 0.300, 0.586, 0.857 };
       aRates[1] = new double[] { 0.183, 0.390, 0.695, 0.915 };
       ageRates.Add(CategoryOfIndustry.FinanceOrInsurance, aRates);
-      //不動産業 他
+      //Real estate and others
       aRates = new double[2][];
       aRates[0] = new double[] { 0.107, 0.267, 0.467, 0.640 };
       aRates[1] = new double[] { 0.136, 0.318, 0.523, 0.705 };
@@ -240,7 +240,7 @@ namespace Popolo.Core.OccupantBehavior
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Uniform random number generator.</summary>
     private MersenneTwister uRnd = new MersenneTwister(1);
@@ -249,25 +249,25 @@ namespace Popolo.Core.OccupantBehavior
     /// <remarks>Default holiday dates do not account for the Happy Monday system.</remarks>
     private List<DateTime> specialHolidays = new List<DateTime>()
     {
-      new DateTime(1999,1,1), //元日
-      new DateTime(1999,1,2), //正月休暇
-      new DateTime(1999,1,3), //正月休暇
-      new DateTime(1999,1,15), //成人の日
-      new DateTime(1999,2,11), //建国記念日
-      new DateTime(1999,4,29), //昭和の日
-      new DateTime(1999,5,3), //憲法記念日
-      new DateTime(1999,5,4), //みどりの日
-      new DateTime(1999,5,5), //こどもの日
-      new DateTime(1999,7,20), //海の日
-      new DateTime(1999,8,11), //山の日
-      new DateTime(1999,9,15), //敬老の日
-      new DateTime(1999,10,10), //体育の日
-      new DateTime(1999,11,3), //文化の日
-      new DateTime(1999,11,23), //勤労感謝の日
-      new DateTime(1999,12,23), //天皇誕生日
-      new DateTime(1999,12,29), //年末休暇
-      new DateTime(1999,12,30), //年末休暇
-      new DateTime(1999,12,31) //年末休暇
+      new DateTime(1999,1,1), //New Year's Day
+      new DateTime(1999,1,2), //New Year holiday
+      new DateTime(1999,1,3), //New Year holiday
+      new DateTime(1999,1,15), //Coming of Age Day
+      new DateTime(1999,2,11), //National Foundation Day
+      new DateTime(1999,4,29), //Showa Day
+      new DateTime(1999,5,3), //Constitution Memorial Day
+      new DateTime(1999,5,4), //Greenery Day
+      new DateTime(1999,5,5), //Children's Day
+      new DateTime(1999,7,20), //Marine Day
+      new DateTime(1999,8,11), //Mountain Day
+      new DateTime(1999,9,15), //Respect for the Aged Day
+      new DateTime(1999,10,10), //Health and Sports Day
+      new DateTime(1999,11,3), //Culture Day
+      new DateTime(1999,11,23), //Labor Thanksgiving Day
+      new DateTime(1999,12,23), //Emperor's Birthday
+      new DateTime(1999,12,29), //Year-end holiday
+      new DateTime(1999,12,30), //Year-end holiday
+      new DateTime(1999,12,31) //Year-end holiday
     };
 
     /// <summary>Gets the industry category.</summary>
@@ -320,7 +320,7 @@ namespace Popolo.Core.OccupantBehavior
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance of <see cref="OfficeTenant"/>.</summary>
     /// <param name="cInd">Industry category.</param>
@@ -342,24 +342,24 @@ namespace Popolo.Core.OccupantBehavior
     {
       uRnd = new MersenneTwister(seed);
 
-      //就業規則上の定時を設定*****************************************************
-      //始業時刻
+      //Set official hours defined by the work regulations*************************
+      //Business start time
       double rnd = uRnd.NextDouble();
       int index = 0;
       while (startTimeDists[index] < rnd) index++;
       DateTime sttTime = new DateTime(1999, 1, 1, startTimes_Hour[index], startTimes_Minute[index], 0);
-      //昼休み開始時刻
+      //Lunch break start time
       rnd = uRnd.NextDouble();
       index = 0;
       while (lunchTimeDists[index] < rnd) index++;
       DateTime lnchSttTime = new DateTime(1999, 1, 1, lunchTimes_Hour[index], lunchTimes_Minute[index], 0);
-      //昼休み終了時刻
+      //Lunch break end time
       rnd = uRnd.NextDouble();
       index = 0;
       while (lunchLengthDists[index] < rnd) index++;
       LunchEndHour = lnchSttTime.AddMinutes(lunchLengths[index]).Hour;
       LunchEndMinute = lnchSttTime.AddMinutes(lunchLengths[index]).Minute;
-      //終業時刻
+      //Business end time
       DateTime endTime = sttTime.AddHours(8).AddMinutes(lunchLengths[index]);
 
       StartHour = sttTime.Hour;
@@ -408,7 +408,7 @@ namespace Popolo.Core.OccupantBehavior
     /// <summary>Builds the behavioral model for all office workers.</summary>
     private void MakeOfficeWorkers()
     {
-      //執務者を生成***************************************************************
+      //Generate office workers****************************************************
       owNumbers[true] = new Dictionary<bool, uint[]>();
       owNumbers[false] = new Dictionary<bool, uint[]>();
       owNumbers[true][true] = new uint[4];
@@ -417,58 +417,58 @@ namespace Popolo.Core.OccupantBehavior
       owNumbers[false][false] = new uint[4];
       NormalRandom nRnd = new NormalRandom(uRnd);
       List<OfficeWorker> wks = new List<OfficeWorker>();
-      double rateRnd = nRnd.NextDouble_Standard();  //在籍率用乱数
+      double rateRnd = nRnd.NextDouble_Standard();  //Random number for the enrollment ratio
       int np0, np1, np2, np3;
       np0 = np1 = np2 = np3 = 0;
       while (true)
       {
-        //性別決定
+        //Determine sex
         bool isMale = uRnd.NextDouble() < GetMaleRatio(Industry);
 
-        //職業決定
+        //Determine job category
         OfficeWorker.CategoryOfJob job;
         bool isPermanent;
-        double oRate;  //在籍者密度[人/m2], 在室率[-]
+        double oRate;  //Enrolled worker density [persons/m2], presence ratio [-]
         double[] jRates;
         if (isMale) jRates = jobRates[Industry][0];
         else jRates = jobRates[Industry][1];
         double rnd = uRnd.NextDouble();
-        if (rnd < jRates[0])  //管理
+        if (rnd < jRates[0])  //Managerial
         {
           isPermanent = false;
-          job = OfficeWorker.CategoryOfJob.Manager; //役員無し
+          job = OfficeWorker.CategoryOfJob.Manager; //No administrators
           oRate = nRnd.NextDouble_Standard() * 0.115 + 0.694;
           owNumbers[isMale][isPermanent][0]++;
           np0++;
         }
-        else if (rnd < jRates[2]) //技術
+        else if (rnd < jRates[2]) //Technical
         {
-          isPermanent = jRates[1] < rnd;  //正規・非正規
+          isPermanent = jRates[1] < rnd;  //Permanent or non-permanent
           job = OfficeWorker.CategoryOfJob.NoTitle;
           oRate = nRnd.NextDouble_Standard() * 0.122 + 0.647;
           owNumbers[isMale][isPermanent][1]++;
           np1++;
         }
-        else if (rnd < jRates[4]) //事務
+        else if (rnd < jRates[4]) //Clerical
         {
-          isPermanent = jRates[3] < rnd;  //正規・非正規
+          isPermanent = jRates[3] < rnd;  //Permanent or non-permanent
           job = OfficeWorker.CategoryOfJob.NoTitle;
           oRate = nRnd.NextDouble_Standard() * 0.115 + 0.694;
           owNumbers[isMale][isPermanent][2]++;
           np2++;
         }
-        else //営業
+        else //Sales
         {
-          isPermanent = jRates[5] < rnd;  //正規・非正規
+          isPermanent = jRates[5] < rnd;  //Permanent or non-permanent
           job = OfficeWorker.CategoryOfJob.NoTitle;
           oRate = nRnd.NextDouble_Standard() * 0.052 + 0.477;
           owNumbers[isMale][isPermanent][3]++;
           np3++;
         }
-        //正規分布の裾値対策
+        //Guard against normal distribution tail values
         oRate = Math.Min(1.0, Math.Max(0.01, oRate));
 
-        //年齢決定
+        //Determine age
         int age;
         double[] aRates;
         if (isMale) aRates = ageRates[Industry][0];
@@ -480,16 +480,16 @@ namespace Popolo.Core.OccupantBehavior
         else if (rnd < aRates[3]) age = 55;
         else age = 65;
 
-        //執務者を作成
+        //Create the office worker
         //wks.Add(new OfficeWorker(this, isMale, age, isPermanent, job, oRate, uRnd));
         wks.Add(new OfficeWorker(this, isMale, age, isPermanent, job, oRate, new MersenneTwister(uRnd.Next()))); //2023.07.30 Bugfix
 
-        //床面積確認
+        //Check the floor area
         int npSum = np0 + np1 + np2 + np3;
         double myu = (0.162 * (np0 + np2) + 0.149 * np1 + 0.193 * np3) / npSum;
         double dev = (0.055 * (np0 + np2) + 0.053 * np1 + 0.059 * np3) / npSum;
         double ppf = (dev * rateRnd + myu) * 0.83;
-        ppf = Math.Max(0.05, Math.Min(0.4, ppf)); //藤井の調査実績から最大最小を設定
+        ppf = Math.Max(0.05, Math.Min(0.4, ppf)); //Maximum and minimum set from Fujii's survey results
         if (FloorArea * ppf < npSum) break;
       }
       workers = wks.ToArray();
@@ -501,49 +501,49 @@ namespace Popolo.Core.OccupantBehavior
     {
       NormalRandom nRnd = new NormalRandom(uRnd);
 
-      //性別決定
+      //Determine sex
       bool isMale = uRnd.NextDouble() < GetMaleRatio(Industry);
 
-      //職業決定
+      //Determine job category
       OfficeWorker.CategoryOfJob job;
       bool isPermanent;
-      double oRate;  //在籍者密度[人/m2], 在室率[-]
+      double oRate;  //Enrolled worker density [persons/m2], presence ratio [-]
       double[] jRates;
       if (isMale) jRates = jobRates[Industry][0];
       else jRates = jobRates[Industry][1];
       double rnd = uRnd.NextDouble();
-      if (rnd < jRates[0])  //管理
+      if (rnd < jRates[0])  //Managerial
       {
         isPermanent = false;
-        job = OfficeWorker.CategoryOfJob.Manager; //役員無し
+        job = OfficeWorker.CategoryOfJob.Manager; //No administrators
         oRate = nRnd.NextDouble_Standard() * 0.115 + 0.694;
         owNumbers[isMale][isPermanent][0]++;
       }
-      else if (rnd < jRates[2]) //技術
+      else if (rnd < jRates[2]) //Technical
       {
-        isPermanent = jRates[1] < rnd;  //正規・非正規
+        isPermanent = jRates[1] < rnd;  //Permanent or non-permanent
         job = OfficeWorker.CategoryOfJob.NoTitle;
         oRate = nRnd.NextDouble_Standard() * 0.122 + 0.647;
         owNumbers[isMale][isPermanent][1]++;
       }
-      else if (rnd < jRates[4]) //事務
+      else if (rnd < jRates[4]) //Clerical
       {
-        isPermanent = jRates[3] < rnd;  //正規・非正規
+        isPermanent = jRates[3] < rnd;  //Permanent or non-permanent
         job = OfficeWorker.CategoryOfJob.NoTitle;
         oRate = nRnd.NextDouble_Standard() * 0.115 + 0.694;
         owNumbers[isMale][isPermanent][2]++;
       }
-      else //営業
+      else //Sales
       {
-        isPermanent = jRates[5] < rnd;  //正規・非正規
+        isPermanent = jRates[5] < rnd;  //Permanent or non-permanent
         job = OfficeWorker.CategoryOfJob.NoTitle;
         oRate = nRnd.NextDouble_Standard() * 0.052 + 0.477;
         owNumbers[isMale][isPermanent][3]++;
       }
-      //正規分布の裾値対策
+      //Guard against normal distribution tail values
       oRate = Math.Min(1.0, Math.Max(0.01, oRate));
 
-      //年齢決定
+      //Determine age
       int age;
       double[] aRates;
       if (isMale) aRates = ageRates[Industry][0];
@@ -555,13 +555,13 @@ namespace Popolo.Core.OccupantBehavior
       else if (rnd < aRates[3]) age = 55;
       else age = 65;
 
-      //執務者を作成
+      //Create the office worker
       return new OfficeWorker(this, isMale, age, isPermanent, job, oRate, uRnd);
     }
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Gets the number of workers [persons].</summary>
     /// <param name="isMale">True for male; false for female.</param>
@@ -619,11 +619,11 @@ namespace Popolo.Core.OccupantBehavior
     /// <returns>True if the specified date is a holiday.</returns>
     public bool IsHoliday(DateTime dTime)
     {
-      //祝日チェック
+      //Check national holidays
       foreach (DateTime dt in specialHolidays)
         if (dt.Month == dTime.Month && dt.Day == dTime.Day) return true;
 
-      //一般休日チェック
+      //Check regular holidays
       switch (dTime.DayOfWeek)
       {
         case DayOfWeek.Saturday:
@@ -648,10 +648,10 @@ namespace Popolo.Core.OccupantBehavior
     /// <returns>True if within business hours.</returns>
     public bool IsBuisinessHours(DateTime dTime)
     {
-      //休日の場合は確定的にfalse
+      //Always false on holidays
       if (IsHoliday(dTime)) return false;
 
-      //平日の場合は始業終業時刻内かを確認
+      //On weekdays, check whether the time is within business start and end times
       return (StartHour <= dTime.Hour && StartMinute <= dTime.Minute) && (dTime.Hour <= EndHour && dTime.Minute <= EndMinute);
     }
 

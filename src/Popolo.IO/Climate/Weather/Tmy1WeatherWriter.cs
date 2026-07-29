@@ -82,7 +82,7 @@ namespace Popolo.IO.Climate.Weather
       {
         DateTime t = r.SourceTime != default ? r.SourceTime : r.Time;
         int year2 = t.Year % 100;
-        int hour1Based = t.Hour + 1;  // TMY1 の hour は 1..24
+        int hour1Based = t.Hour + 1;  // TMY1 hour is 1..24
 
         var sb = new StringBuilder(new string(' ', 133));
 
@@ -97,7 +97,7 @@ namespace Popolo.IO.Climate.Weather
         // [11..12] Hour (1..24)
         WritePad(sb, 11, hour1Based.ToString("D2", ci));
 
-        // [13..22] 予備 (10 桁分空白のまま)
+        // [13..22] Reserved (left blank, 10 columns)
 
         // [23] DNI flag, [24..27] DNI value (kJ/m²·h)
         if (r.Has(WeatherField.DirectNormalRadiation))
@@ -125,7 +125,7 @@ namespace Popolo.IO.Climate.Weather
           WritePad(sb, 29, "9999");
         }
 
-        // [33..52] 予備 (20 桁分)
+        // [33..52] Reserved (20 columns)
 
         // [53] GHI flag, [54..57] GHI value
         if (r.Has(WeatherField.GlobalHorizontalRadiation))
@@ -140,7 +140,7 @@ namespace Popolo.IO.Climate.Weather
           WritePad(sb, 54, "9999");
         }
 
-        // [58..97] 予備 (40 桁分)
+        // [58..97] Reserved (40 columns)
 
         // [98..102] Pressure (0.1 mbar), 5 chars
         double pressureKPa = r.Has(WeatherField.AtmosphericPressure)
@@ -193,10 +193,10 @@ namespace Popolo.IO.Climate.Weather
         if (ccRaw < 0) ccRaw = 0;
         WritePad(sb, 118, ccRaw.ToString("D2", ci));
 
-        // [120..121] Opaque cloud (未サポート) → "00"
+        // [120..121] Opaque cloud (unsupported) → "00"
         WritePad(sb, 120, "00");
 
-        // [122] 予備 → '9'
+        // [122] Reserved → '9'
         sb[122] = '9';
 
         writer.Write(sb.ToString());
@@ -210,7 +210,7 @@ namespace Popolo.IO.Climate.Weather
         sb[offset + i] = value[i];
     }
 
-    /// <summary>符号付き固定幅: 例 "-066" or "  25"</summary>
+    /// <summary>Signed fixed width: e.g. "-066" or "  25"</summary>
     private static void WritePadSigned(StringBuilder sb, int offset, int width, int value, CultureInfo ci)
     {
       string s = value.ToString(ci);

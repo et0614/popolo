@@ -31,7 +31,7 @@ namespace Popolo.Core.ThermalComfort
       private class bodyPart
     {
 
-      #region クラス変数
+      #region Class variables
 
       /// <summary>Weight ratio 1 for body segment scaling.</summary>
       private static readonly Dictionary<Node, double> rWeight1;
@@ -80,7 +80,7 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region インスタンス変数
+      #region Instance variables
 
       /// <summary>Represents a single body segment node with multi-layer thermal properties.</summary>
       private IReadOnlyTanabeMultiNodeModel body;
@@ -103,7 +103,7 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region プロパティ
+      #region Properties
 
       /// <summary>True while the model is being initialized.</summary>
       internal bool initializing { get; set; }
@@ -194,13 +194,13 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region staticコンストラクタ
+      #region Static constructor
 
       /// <summary>Static constructor: initializes body segment constants.</summary>
       static bodyPart()
       {
-        //クラス変数初期化処理
-        //重量比1
+        //Initialize class variables
+        //Weight ratio 1
         rWeight1 = new Dictionary<TanabeMultiNodeModel.Node, double>();
         rWeight1.Add(Node.Head, 0.0427);
         rWeight1.Add(Node.Neck, 0.0113);
@@ -220,7 +220,7 @@ namespace Popolo.Core.ThermalComfort
         rWeight1.Add(Node.RightLeg, 0.0449);
         rWeight1.Add(Node.RightFoot, 0.0064);
 
-        //表面積比
+        //Surface area ratio
         rSurface = new Dictionary<Node, double>();
         rSurface.Add(Node.Head, 0.0559);
         rSurface.Add(Node.Neck, 0.0151);
@@ -240,7 +240,7 @@ namespace Popolo.Core.ThermalComfort
         rSurface.Add(Node.RightLeg, 0.0566);
         rSurface.Add(Node.RightFoot, 0.0327);
 
-        //円柱長さ[m]
+        //Cylinder length [m]
         cLength = new Dictionary<Node, double>();
         cLength.Add(Node.Head, 0);
         cLength.Add(Node.Neck, 0.075);
@@ -260,7 +260,7 @@ namespace Popolo.Core.ThermalComfort
         cLength.Add(Node.RightLeg, 0.267);
         cLength.Add(Node.RightFoot, 0.625);
 
-        //重量比2
+        //Weight ratio 2
         rWeight2 = new Dictionary<Node, double[]>();
         rWeight2.Add(Node.Head, new double[] { 0.303, 0.341, 0.071, 0.092, 0.067, 0.029, 0.097, 0, 0 });
         rWeight2.Add(Node.Neck, rWeight2[Node.Head]);
@@ -280,7 +280,7 @@ namespace Popolo.Core.ThermalComfort
         rWeight2.Add(Node.RightLeg, rWeight2[Node.LeftLeg]);
         rWeight2.Add(Node.RightFoot, rWeight2[Node.LeftFoot]);
 
-        //基礎代謝配分比
+        //Basal metabolic rate distribution ratio
         bMetRate = new Dictionary<Node, double[]>();
         bMetRate.Add(Node.Head, new double[] { 0.19580, 0.00252, 0.00127, 0.00123 });
         bMetRate.Add(Node.Neck, new double[] { 0.00318, 0.00004, 0.00002, 0.00033 });
@@ -300,7 +300,7 @@ namespace Popolo.Core.ThermalComfort
         bMetRate.Add(Node.RightLeg, bMetRate[Node.LeftLeg]);
         bMetRate.Add(Node.RightFoot, bMetRate[Node.LeftFoot]);
 
-        //基礎血流比
+        //Basal blood flow ratio
         bBFRate = new Dictionary<Node, double[]>();
         bBFRate.Add(Node.Head, new double[] { 0.10822, 0.00210, 0.00081, 0.01974 });
         bBFRate.Add(Node.Neck, new double[] { 0.05118, 0.00099, 0.00038, 0.00112 });
@@ -320,7 +320,7 @@ namespace Popolo.Core.ThermalComfort
         bBFRate.Add(Node.RightLeg, bBFRate[Node.LeftLeg]);
         bBFRate.Add(Node.RightFoot, bBFRate[Node.LeftFoot]);
 
-        //血管の熱コンダクタンス[W/K]
+        //Thermal conductance of blood vessels [W/K]
         hCdBLD = new Dictionary<Node, double[]>();
         hCdBLD.Add(Node.Head, new double[] { 0, 0, 0 });
         hCdBLD.Add(Node.Neck, hCdBLD[Node.Head]);
@@ -340,7 +340,7 @@ namespace Popolo.Core.ThermalComfort
         hCdBLD.Add(Node.RightLeg, hCdBLD[Node.LeftLeg]);
         hCdBLD.Add(Node.RightFoot, hCdBLD[Node.LeftFoot]);
 
-        //行列のオフセット
+        //Matrix offset
         mOffset = new Dictionary<Node, int>();
         mOffset.Add(Node.Head, 1);
         mOffset.Add(Node.Neck, 7);
@@ -360,7 +360,7 @@ namespace Popolo.Core.ThermalComfort
         mOffset.Add(Node.RightLeg, 101);
         mOffset.Add(Node.RightFoot, 108);
 
-        //立位の対流熱伝達率[W/(m2 K)]
+        //Convective heat transfer coefficient in standing posture [W/(m2 K)]
         cHTransferStand = new Dictionary<Node, double>();
         cHTransferStand.Add(Node.Head, 4.48);
         cHTransferStand.Add(Node.Neck, 4.48);
@@ -380,7 +380,7 @@ namespace Popolo.Core.ThermalComfort
         cHTransferStand.Add(Node.RightLeg, 2.04);
         cHTransferStand.Add(Node.RightFoot, 2.04);
 
-        //座位の対流熱伝達率[W/(m2 K)]
+        //Convective heat transfer coefficient in seated posture [W/(m2 K)]
         cHTransferSit = new Dictionary<Node, double>();
         cHTransferSit.Add(Node.Head, 4.75);
         cHTransferSit.Add(Node.Neck, 4.75);
@@ -400,7 +400,7 @@ namespace Popolo.Core.ThermalComfort
         cHTransferSit.Add(Node.RightLeg, 2.98);
         cHTransferSit.Add(Node.RightFoot, 2.62);
 
-        //温冷感信号の重み付け係数[-]
+        //Weighting coefficient for the thermal sensation signal [-]
         skinSignal = new Dictionary<Node, double>();
         skinSignal.Add(Node.Head, 0.0547);
         skinSignal.Add(Node.Neck, 0.0146);
@@ -420,7 +420,7 @@ namespace Popolo.Core.ThermalComfort
         skinSignal.Add(Node.RightLeg, 0.0251);
         skinSignal.Add(Node.RightFoot, 0.0167);
 
-        //発汗信号の重み付け係数[-]
+        //Weighting coefficient for the sweating signal [-]
         sweatSignalR = new Dictionary<Node, double>();
         sweatSignalR.Add(Node.Head, 0.0640);
         sweatSignalR.Add(Node.Neck, 0.0170);
@@ -440,7 +440,7 @@ namespace Popolo.Core.ThermalComfort
         sweatSignalR.Add(Node.RightLeg, 0.00360);
         sweatSignalR.Add(Node.RightFoot, 0.00175);
 
-        //ふるえ信号の重み付け係数[-]
+        //Weighting coefficient for the shivering signal [-]
         shivSignalR = new Dictionary<Node, double>();
         shivSignalR.Add(Node.Head, 0.0339);
         shivSignalR.Add(Node.Neck, 0.0436);
@@ -460,7 +460,7 @@ namespace Popolo.Core.ThermalComfort
         shivSignalR.Add(Node.RightLeg, 0.0018);
         shivSignalR.Add(Node.RightFoot, 0.0004);
 
-        //血管収縮信号の重み付け係数[-]
+        //Weighting coefficient for the vasoconstriction signal [-]
         dilSignalR = new Dictionary<Node, double>();
         dilSignalR.Add(Node.Head, 0.1042);
         dilSignalR.Add(Node.Neck, 0.0277);
@@ -480,7 +480,7 @@ namespace Popolo.Core.ThermalComfort
         dilSignalR.Add(Node.RightLeg, 0.0230);
         dilSignalR.Add(Node.RightFoot, 0.0500);
 
-        //血管拡張信号の重み付け係数[-]
+        //Weighting coefficient for the vasodilation signal [-]
         strSignalR = new Dictionary<Node, double>();
         strSignalR.Add(Node.Head, 0.0213);
         strSignalR.Add(Node.Neck, 0.0213);
@@ -503,7 +503,7 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region コンストラクタ
+      #region Constructors
 
       /// <summary>Initializes a new instance of the Tanabe multi-node model.</summary>
       /// <param name="body">Body segment instance.</param>
@@ -535,7 +535,7 @@ namespace Popolo.Core.ThermalComfort
         double len = cLength[node] * Math.Pow(bodyHeight / 1.72, 0.725);
         hCdBLD[node].CopyTo(hConductance, 3);
 
-        //脂肪率による重量調整
+        //Weight adjustment based on fat percentage
         double rFat;
         if (fatPercentage < 0.15) rFat = rWt[3] * fatPercentage / 0.15;
         else rFat = (rWt[3] * (1 - fatPercentage) + fatPercentage - 0.15) / (1 - 0.15);
@@ -544,19 +544,19 @@ namespace Popolo.Core.ThermalComfort
         rWt[3] = rFat * weight;
         muscleWeight = rWt[2];
 
-        //基礎代謝[W]の計算
+        //Compute the basal metabolic rate [W]
         basalMetabolicRate[Layer.Core] = metabolicRate * rMb[0];
         basalMetabolicRate[Layer.Muscle] = metabolicRate * rMb[1];
         basalMetabolicRate[Layer.Fat] = metabolicRate * rMb[2];
         basalMetabolicRate[Layer.Skin] = metabolicRate * rMb[3];
 
-        //基礎血流[mL/s]の計算//核と脂肪は固定値
+        //Compute the basal blood flow [mL/s] //core and fat are fixed values
         bloodFlow[Layer.Core] = basalBloodFlow * rBFb[0];
         basalBloodFlow_Muscle = basalBloodFlow * rBFb[1];
         bloodFlow[Layer.Fat] = basalBloodFlow * rBFb[2];
         basalBloodFlow_Skin = basalBloodFlow * rBFb[3];
 
-        //熱容量[J/K]の計算
+        //Compute the heat capacity [J/K]
         heatCapacity[Layer.Core] = rWt[0] * SPECIFIC_HEAT_BORN + rWt[1] * SPECIFIC_HEAT_ELSE;
         heatCapacity[Layer.Muscle] = rWt[2] * SPECIFIC_HEAT_ELSE;
         heatCapacity[Layer.Fat] = rWt[3] * SPECIFIC_HEAT_FAT;
@@ -566,24 +566,24 @@ namespace Popolo.Core.ThermalComfort
         heatCapacity[Layer.SuperficialVein] = rWt[7] * SPECIFIC_HEAT_ELSE;
         centralBloodHeatCapacity = rWt[8] * SPECIFIC_HEAT_ELSE;
 
-        //各層の体積[m3]の計算
+        //Compute the volume of each layer [m3]
         double[] wt = new double[4];
-        wt[0] = 0.001 * (rWt[0] + rWt[1] + rWt[5] + rWt[6] + rWt[8]); //核の体積[m3]
-        wt[1] = rWt[2] / 1000d; //筋肉の体積[m3]
-        wt[2] = rWt[3] / 1000d; //脂肪の体積[m3]
-        wt[3] = 0.001 * (rWt[4] + rWt[7]);  //皮膚の体積[m3]
+        wt[0] = 0.001 * (rWt[0] + rWt[1] + rWt[5] + rWt[6] + rWt[8]); //Core volume [m3]
+        wt[1] = rWt[2] / 1000d; //Muscle volume [m3]
+        wt[2] = rWt[3] / 1000d; //Fat volume [m3]
+        wt[3] = 0.001 * (rWt[4] + rWt[7]);  //Skin volume [m3]
 
-        //四肢末端部の場合にはAVA最大流量を計算
+        //For distal limb extremities, compute the maximum AVA flow rate
         if ((node & TERMINAL_NODE) != 0) maxAVA = wt[3] * 5000;
 
-        //熱コンダクタンス[W/K]の計算
-        double[] lmda = new double[] { 0.4184, 0.4184, 0.3347, 0.3347 };  //熱伝導率[W/mK]
+        //Compute the thermal conductance [W/K]
+        double[] lmda = new double[] { 0.4184, 0.4184, 0.3347, 0.3347 };  //Thermal conductivity [W/mK]
         double[] rads = new double[7];
         rads[0] = wt[0] / 2;
         for (int i = 1; i < rads.Length; i++) rads[i] = rads[i - 1] + wt[i / 2] / 2;
         if (node == Node.Head)
         {
-          //球とみなして計算
+          //Compute treating the segment as a sphere
           for (int i = 0; i < rads.Length; i++) rads[i] = Math.Pow(rads[i] * 3d / (4d * Math.PI), 1d / 3d);
           for (int i = 0; i < 3; i++)
             hConductance[i] = 4d * Math.PI / ((1 / rads[2 * i] - 1 / rads[2 * i + 1]) / lmda[i]
@@ -591,7 +591,7 @@ namespace Popolo.Core.ThermalComfort
         }
         else
         {
-          //多層円管とみなして計算
+          //Compute treating the segment as a multi-layer cylinder
           for (int i = 0; i < rads.Length; i++) rads[i] = Math.Sqrt(rads[i] / (Math.PI * len));
           for (int i = 0; i < 3; i++)
             hConductance[i] = 2d * Math.PI * len / (Math.Log(rads[2 * i + 1] / rads[2 * i]) / lmda[i] 
@@ -601,7 +601,7 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region internalメソッド
+      #region Internal methods
 
       /// <summary>Sets matrix elements for this body segment.</summary>
       /// <param name="bMatrix">B-matrix (thermal conductance matrix).</param>
@@ -609,41 +609,41 @@ namespace Popolo.Core.ThermalComfort
       internal void makeMatrix(IMatrix bMatrix, IVector zVector)
       {
         double tStep = body.TimeStep;
-        int os = mOffset[node]; //行列のオフセット
+        int os = mOffset[node]; //Matrix offset
 
-        //BM行列を生成
-        //核
+        //Build the BM matrix
+        //Core
         bMatrix[os + 0, os + 0] = heatCapacity[Layer.Core] / tStep
           + BodySpecificHeat * bloodFlow[Layer.Core] + 2d * hConductance[3] + hConductance[0];
         bMatrix[os + 0, os + 1] = -hConductance[0];
         bMatrix[os + 0, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Core] - hConductance[3];
         bMatrix[os + 0, os + 5] = -hConductance[3];
-        //筋肉
+        //Muscle
         bMatrix[os + 1, os + 0] = -hConductance[0];
         bMatrix[os + 1, os + 1] = heatCapacity[Layer.Muscle] / tStep
           + BodySpecificHeat * bloodFlow[Layer.Muscle] + hConductance[0] + hConductance[1];
         bMatrix[os + 1, os + 2] = -hConductance[1];
         bMatrix[os + 1, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Muscle];
-        //脂肪
+        //Fat
         bMatrix[os + 2, os + 1] = -hConductance[1];
         bMatrix[os + 2, os + 2] = heatCapacity[Layer.Fat] / tStep
           + BodySpecificHeat * bloodFlow[Layer.Fat] + hConductance[1] + hConductance[2];
         bMatrix[os + 2, os + 3] = -hConductance[2];
         bMatrix[os + 2, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Fat];
-        //皮膚
+        //Skin
         bMatrix[os + 3, os + 2] = -hConductance[2];
         bMatrix[os + 3, os + 3] = heatCapacity[Layer.Skin] / tStep
           + BodySpecificHeat * bloodFlow[Layer.Skin] + hConductance[2]
           + contactPortionRate * hConductance[6] + (1 - contactPortionRate) * hConductance[7];
         if ((node & LIMBS) != 0) bMatrix[os + 3, os + 3] += hConductance[4];
         bMatrix[os + 3, os + 4] = -BodySpecificHeat * bloodFlow[Layer.Skin];
-        //動脈
+        //Artery
         double upperFlow = bloodFlow[Layer.DeepVein] + bloodFlow[Layer.SuperficialVein];
         bMatrix[os + 4, os + 0] = -hConductance[3];
         bMatrix[os + 4, os + 4] = heatCapacity[Layer.Artery] / tStep +
           BodySpecificHeat * upperFlow + hConductance[3] + hConductance[5];
         bMatrix[os + 4, os + 5] = -hConductance[5];
-        //静脈
+        //Vein
         bMatrix[os + 5, os + 0] = -BodySpecificHeat * bloodFlow[Layer.Core] - hConductance[3];
         bMatrix[os + 5, os + 1] = -BodySpecificHeat * bloodFlow[Layer.Muscle];
         bMatrix[os + 5, os + 2] = -BodySpecificHeat * bloodFlow[Layer.Fat];
@@ -653,7 +653,7 @@ namespace Popolo.Core.ThermalComfort
           + BodySpecificHeat * bloodFlow[Layer.DeepVein] + hConductance[3] + hConductance[5];
         if (node == Node.Pelvis)
           bMatrix[os + 5, os + 5] += BodySpecificHeat * bloodFlow[Layer.SuperficialVein];
-        //四肢部位のみ（表在静脈）
+        //Limb segments only (superficial vein)
         if ((node & LIMBS) != 0)
         {
           bMatrix[os + 6, os + 3] = -hConductance[4];
@@ -665,23 +665,23 @@ namespace Popolo.Core.ThermalComfort
           if ((node & LIMBS) != 0) bMatrix[os + 3, os + 6] = -hConductance[4];
         }
 
-        //上流部位の動脈血流入
+        //Arterial blood inflow from the upstream segment
         if (upperStreamPart != null)
           bMatrix[os + 4, mOffset[upperStreamPart.node] + 4] = -BodySpecificHeat * upperFlow;
         else bMatrix[os + 4, 0] = -BodySpecificHeat * upperFlow;
 
-        //下流部位の静脈血流入
+        //Venous blood inflow from the downstream segment
         foreach (bodyPart bp in downStreamParts)
         {
-          //深部静脈
+          //Deep vein
           bMatrix[os + 5, mOffset[bp.node] + 5] = -BodySpecificHeat * bp.bloodFlow[Layer.DeepVein];
-          //表在静脈
+          //Superficial vein
           double downFlow = -BodySpecificHeat * bp.bloodFlow[Layer.SuperficialVein];
           if (node == Node.Pelvis) bMatrix[os + 5, mOffset[bp.node] + 6] += downFlow;
           else bMatrix[os + 6, mOffset[bp.node] + 6] = downFlow;
         }
 
-        //Zベクトルを生成
+        //Build the Z vector
         zVector[os + 0] = heatCapacity[Layer.Core] / tStep * temperatures[Layer.Core]
           + basalMetabolicRate[Layer.Core];
         zVector[os + 1] = heatCapacity[Layer.Muscle] / tStep * temperatures[Layer.Muscle]
@@ -695,7 +695,7 @@ namespace Popolo.Core.ThermalComfort
         zVector[os + 4] = heatCapacity[Layer.Artery] / tStep * temperatures[Layer.Artery];
         zVector[os + 5] = heatCapacity[Layer.DeepVein] / tStep
           * temperatures[Layer.DeepVein];
-        //四肢部位のみ（表在静脈）
+        //Limb segments only (superficial vein)
         if ((node & LIMBS) != 0) zVector[os + 6] =
           heatCapacity[Layer.SuperficialVein] / tStep * temperatures[Layer.SuperficialVein];
       }
@@ -711,11 +711,11 @@ namespace Popolo.Core.ThermalComfort
         (double signal, double sweatSignal, double shiveringSignal,
         double vasodilatationSignal, double vasoconstrictionSignal, double avaRate)
       {
-        //最大蒸発熱損失[W]
+        //Maximum evaporative heat loss [W]
         double wvSk = Water.GetSaturationPressure(temperatures[Layer.Skin]);
         double eMax = (1 - contactPortionRate) * hConductance[8] * (wvSk - waterVaporPressure);
 
-        //制御OFFの場合
+        //When control is off
         if (initializing)
         {
           evaporativeHeatLoss_Sweat = 0;
@@ -726,23 +726,23 @@ namespace Popolo.Core.ThermalComfort
           return;
         }
 
-        //係数計算
+        //Compute coefficients
         double dsp = temperatures[Layer.Skin] - setpoint_Skin;
         double pow1 = sweatSignal * Math.Pow(2, dsp / 10d);
         double pow2 = Math.Pow(2, dsp / 6d);
 
-        //蒸発熱損失[W]
+        //Evaporative heat loss [W]
         evaporativeHeatLoss_Sweat = pow1 * sweatSignalR[node];
         latentHeatLoss = eMax * Math.Min(0.85, 0.06 + 0.94 * evaporativeHeatLoss_Sweat / eMax);
 
-        //ふるえによる熱産生[W]
+        //Heat production due to shivering [W]
         shiveringLoad = shiveringSignal * shivSignalR[node];
 
-        //皮膚血流量[mL/s]
+        //Skin blood flow rate [mL/s]
         bloodFlow[Layer.Skin] = (basalBloodFlow_Skin + dilSignalR[node]
           * vasodilatationSignal) / (1 + strSignalR[node] * vasoconstrictionSignal) * pow2;
 
-        //AVA血流量[mL/s]
+        //AVA blood flow rate [mL/s]
         bloodFlow[Layer.AVA] = maxAVA * Math.Max(0, Math.Min(1, avaRate));
       }
 
@@ -757,11 +757,11 @@ namespace Popolo.Core.ThermalComfort
       /// <summary>Updates blood flow rates based on current control signals.</summary>
       internal void updateBloodFlow()
       {
-        //血流の計算
+        //Compute blood flow
         bloodFlow[Layer.Muscle] = basalBloodFlow_Muscle + 0.239 * (externalWork + shiveringLoad);
         double bfSum = bloodFlow[Layer.Core] + bloodFlow[Layer.Muscle] + bloodFlow[Layer.Fat] + bloodFlow[Layer.Skin];
 
-        //下流部位の血流を更新して静脈を計算
+        //Update downstream segment blood flow and compute the veins
         Layer dv = Layer.DeepVein;
         Layer sv = Layer.SuperficialVein;
         bloodFlow[dv] = bloodFlow[sv] = 0;
@@ -837,7 +837,7 @@ namespace Popolo.Core.ThermalComfort
 
       #endregion
 
-      #region 境界条件設定処理
+      #region Boundary condition setting methods
 
       /// <summary>Sets up thermal contact between this body segment and an object.</summary>
       /// <param name="temperature">Object surface temperature [°C].</param>
@@ -876,7 +876,7 @@ namespace Popolo.Core.ThermalComfort
       /// <summary>Updates sensible and latent heat transfer coefficients at the skin surface.</summary>
       private void UpdateSkinHeatConductance()
       {
-        //着衣面積率[-]の計算
+        //Compute the clothing area factor [-]
         double fcl = 1 + 0.25 * clothingIndex;
         double rcl = 0.155 * clothingIndex;
 
@@ -884,7 +884,7 @@ namespace Popolo.Core.ThermalComfort
         if (body.IsStanding) cht = cHTransferStand[node];
         else cht = cHTransferSit[node];
 
-        //放射熱伝達率[W/(m2 K)]を更新する(衣服の表面温度を収束計算)
+        //Update the radiative heat transfer coefficient [W/(m2 K)] (iteratively solve the clothing surface temperature)
         double vel = Math.Max(0.15, velocity);
         double ra, eff;
         clothTemperature = 30;
@@ -893,34 +893,34 @@ namespace Popolo.Core.ThermalComfort
         while (true)
         {
           double ctOld = clothTemperature;
-          //放射熱伝達率[W/(m2K)]の計算
+          //Compute the radiative heat transfer coefficient [W/(m2K)]
           radiativeHeatTransferCoefficient = 4d * PhysicsConstants.StefanBoltzmannConstant * eff 
             * Math.Pow(PhysicsConstants.ToKelvin((clothTemperature + meanRadiantTemperature) / 2d), 3);
-          //対流熱伝達率[W/(m2K)の計算]
+          //Compute the convective heat transfer coefficient [W/(m2K)]
           if (initializing) convectiveHeatTransferCoefficient = cht;
           else
           {
             convectiveHeatTransferCoefficient = cht * Math.Max(2.58 * Math.Sqrt(vel),
               (clothTemperature - dryBulbTemperature) / (setpoint_Skin - 28.8));
           }
-          //総合熱伝達率[W/(m2K)]の計算
+          //Compute the combined heat transfer coefficient [W/(m2K)]
           double hcr = radiativeHeatTransferCoefficient + convectiveHeatTransferCoefficient;
-          //空気層顕熱抵抗[(m2K)/W]の計算
+          //Compute the sensible heat resistance of the air layer [(m2K)/W]
           ra = 1 / (fcl * hcr);
-          //作用温度[C]の計算
+          //Compute the operative temperature [C]
           operatingTemperature = (radiativeHeatTransferCoefficient * meanRadiantTemperature
             + convectiveHeatTransferCoefficient * dryBulbTemperature) / hcr;
-          //衣服温度[C]の計算
+          //Compute the clothing temperature [C]
           clothTemperature = (ra * temperatures[Layer.Skin] + rcl * operatingTemperature) / (ra + rcl);
-          //衣服温度の更新量が0.01C以下で収束と判定
+          //Converged when the clothing temperature update is 0.01C or less
           if (Math.Abs(ctOld - clothTemperature) < 0.01) break;
         }
 
-        //顕熱伝達率[W/K]の計算
+        //Compute the sensible heat transfer coefficient [W/K]
         hConductance[7] = surfaceArea / (rcl + 1d / (fcl 
           * (radiativeHeatTransferCoefficient + convectiveHeatTransferCoefficient)));
 
-        //潜熱伝達率[W/K]の計算
+        //Compute the latent heat transfer coefficient [W/K]
         double lewis = 0.0555 * (PhysicsConstants.ToKelvin(temperatures[Layer.Skin]));
         hConductance[8] = surfaceArea * lewis / (1 / (fcl * convectiveHeatTransferCoefficient) + rcl / I_CLS);
       }

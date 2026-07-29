@@ -48,7 +48,7 @@ namespace Popolo.Core.Climate
   public class Incline : IReadOnlyIncline
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>
     /// Specifies one of 16 compass directions for surface orientation.
@@ -91,14 +91,14 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Precomputed sine and cosine of the azimuth and tilt angles (cached for performance).</summary>
     private double _sinBeta, _cosBeta, _sinAlpha, _cosAlpha;
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>
     /// Gets the horizontal (azimuth) angle [radian].
@@ -120,7 +120,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with the specified azimuth and tilt angles.
@@ -133,17 +133,17 @@ namespace Popolo.Core.Climate
     /// </param>
     public Incline(double horizontalAngle, double verticalAngle)
     {
-      //方位角を -π〜π に正規化する
+      //Normalize the azimuth to the range [-π, π]
       double pi2 = Math.PI * 2;
       horizontalAngle = horizontalAngle % pi2;
       if (Math.PI < horizontalAngle) HorizontalAngle = horizontalAngle - pi2;
       else if (horizontalAngle < -Math.PI) HorizontalAngle = horizontalAngle + pi2;
       else HorizontalAngle = horizontalAngle;
 
-      //傾斜角を 0〜π に正規化する
+      //Normalize the tilt angle to the range [0, π]
       //VerticalAngle = verticalAngle % Math.PI;
       //if (Math.PI < VerticalAngle) VerticalAngle = Math.PI - VerticalAngle;
-      //傾斜角を 0〜π に正規化する（π は下向き水平面として保持する）2026.04.18 Bug fix.
+      //Normalize the tilt angle to the range [0, π] (π is kept as a downward-facing horizontal surface) 2026.04.18 Bug fix.
       verticalAngle = verticalAngle % pi2;            // (-2π, 2π)
       if (verticalAngle < 0) verticalAngle += pi2;    // [0, 2π)
       if (Math.PI < verticalAngle) verticalAngle = pi2 - verticalAngle; // [0, π]
@@ -151,7 +151,7 @@ namespace Popolo.Core.Climate
 
       ConfigurationFactorToSky = GetConfigurationFactorToSky(VerticalAngle);
 
-      //三角関数を事前計算
+      //Precompute trigonometric functions
       _sinBeta = Math.Sin(VerticalAngle);
       _cosBeta = Math.Cos(VerticalAngle);
       _sinAlpha = Math.Sin(HorizontalAngle);
@@ -177,7 +177,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 傾斜面日射量の計算
+    #region Solar radiation on inclined surfaces
 
     /// <summary>
     /// Gets the cosine of the angle of incidence of direct solar radiation
@@ -285,7 +285,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 傾斜面照度の計算
+    #region Illuminance on inclined surfaces
 
     /// <summary>
     /// Gets the direct solar illuminance on the tilted surface [lx].
@@ -307,7 +307,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region プロファイル角の計算
+    #region Profile angle calculation
 
     /// <summary>
     /// Gets the tangent of the profile angle (apparent solar altitude) [-].
@@ -352,7 +352,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region その他のインスタンスメソッド
+    #region Other instance methods
 
     /// <summary>
     /// Creates a new <see cref="Incline"/> facing the reverse direction.
@@ -378,7 +378,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>
     /// Gets the view factor from a tilted surface to the sky [-].

@@ -30,7 +30,7 @@ namespace Popolo.Core.Numerics
     /// <summary>Static constructor.</summary>
     static CubicEquation()
     {
-      //機械イプシロン初期化
+      //Initialize machine epsilon
       MECH_EPS = 1.0;
       while (true)
       {
@@ -51,7 +51,7 @@ namespace Popolo.Core.Numerics
     /// <param name="hasMultiSolution">Output: true if there are three distinct real roots.</param>
     public static void Solve(double[] a, out double x0, out double x1, out double x2, out bool hasMultiSolution)
     {
-      //p,qを計算
+      //Compute p and q
       double bf = a[1] / (3 * a[0]);
       double p = - bf * bf + a[2] / (3 * a[0]);
       double q = bf * (2 * bf * bf - a[2] / a[0]) + a[3] / a[0];
@@ -63,9 +63,9 @@ namespace Popolo.Core.Numerics
         return;
       }
 
-      //根の数の判定
+      //Determine the number of roots
       double pq = q * q + 4 * p * p * p;
-      //実数根3つ
+      //Three real roots
       if (pq < 0)
       {
         hasMultiSolution = true;
@@ -75,7 +75,7 @@ namespace Popolo.Core.Numerics
         x1 = sqp2 * Math.Cos((2 * Math.PI + theta) / 3d) - bf;
         x2 = sqp2 * Math.Cos((4 * Math.PI + theta) / 3d) - bf;
       }
-      //実数根1つ
+      //One real root
       else
       {
         hasMultiSolution = false;

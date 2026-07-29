@@ -32,7 +32,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     /// </remarks>
     public class HorizontalAirChamberTests
     {
-        #region テスト用ヘルパー
+        #region Test helpers
 
         /// <summary>代表的な天井裏エアチャンバを生成する（厚み0.3m, 放射率0.9）</summary>
         private static HorizontalAirChamber MakeTypicalChamber()
@@ -40,7 +40,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>コンストラクタでプロパティが正しく設定される</summary>
         [Fact]
@@ -75,7 +75,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 対流のテスト
+        #region Convection tests
 
         /// <summary>
         /// 上面温度 > 下面温度（逆転なし）のとき対流が生じない。
@@ -166,7 +166,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 放射のテスト
+        #region Radiation tests
 
         /// <summary>放射熱伝達率は正の値である</summary>
         [Fact]
@@ -209,7 +209,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 更新判定のテスト
+        #region Update decision tests
 
         /// <summary>温度変化がRECALC_TMP（0.1K）未満のとき更新されない</summary>
         [Fact]

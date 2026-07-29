@@ -36,7 +36,7 @@ namespace BESTEST_2023
   /// <summary>Std 140-2023 Section 6 (Weather Drivers Tests) ランナー。</summary>
   internal static class Section6Runner
   {
-    #region 型定義
+    #region Type definitions
 
     /// <summary>WD ケース定義 (Std 140-2023 Table 6-1 ～ 6-6)。</summary>
     private record WdCase(
@@ -124,7 +124,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 公開エントリ
+    #region Public entry points
 
     /// <summary>Section 6 全6ケースを実行する。</summary>
     /// <param name="weatherDir">EPW/TMY3 が置かれているディレクトリ。</param>
@@ -161,7 +161,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 1ケース実行
+    #region Single case execution
 
     /// <summary>1ケース分: 毎時 CSV 出力 + 行バッファ蓄積 + 年平均統計。</summary>
     private static WdRunResult RunCase(WdCase c, string weatherDir, string csvPath)
@@ -336,7 +336,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region サマリ表示
+    #region Summary display
 
     /// <summary>
     /// 全ケースの年平均をまとめて表示。
@@ -402,7 +402,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region xlsx テンプレ書込み
+    #region xlsx template writing
 
     /// <summary>
     /// Std140_WD_Output.xlsx テンプレート (Read Me / Program Info / WD100..WD600
@@ -509,7 +509,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 補助関数
+    #region Helper functions
 
     /// <summary>Std140-2023 Table 6-2 の10面（azimuth, tilt）。</summary>
     private static (string Name, Incline Inc)[] MakeBESTEST2023Surfaces()

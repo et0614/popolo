@@ -142,7 +142,7 @@ namespace Popolo.IO.Climate.Weather
         NominalInterval = TimeSpan.FromHours(1),
       };
 
-      // --- 8 行のヘッダ ---
+      // --- 8 header lines ---
       string? line = reader.ReadLine();
       if (line == null)
         throw new PopoloArgumentException("EPW file is empty.", "stream");
@@ -159,7 +159,7 @@ namespace Popolo.IO.Climate.Weather
       double elevation = double.Parse(locParts[9].Trim(), ci);
       data.Station = new WeatherStationInfo(name, latitude, longitude, elevation);
 
-      // 残り 7 行のヘッダをスキップ (DESIGN CONDITIONS ... DATA PERIODS)
+      // Skip the remaining 7 header lines (DESIGN CONDITIONS ... DATA PERIODS)
       for (int i = 0; i < 7; i++)
       {
         if (reader.ReadLine() == null)
@@ -167,14 +167,14 @@ namespace Popolo.IO.Climate.Weather
               "EPW file header is truncated (expected 8 header lines).", "stream");
       }
 
-      // --- データ行 ---
+      // --- Data lines ---
       var raws = new List<RawRecord>();
       int lineNo = 8;
       int skippedBadDate = 0;
-      // EPW convention: hour=24 は「その時点まで」の 1 時間分を表す。
-      // 一部の生成系では hour=24 の行の日付フィールドが前日でなく翌月先頭近辺の
-      // 誤った日付になっていることがある。そのため hour=24 行は直前の行から
-      // 時刻を前進させる方式でパースする。
+      // EPW convention: hour=24 represents the one hour ending at that point.
+      // Some generators write an incorrect date field on hour=24 rows — near the
+      // start of the next month instead of the previous day. Therefore hour=24
+      // rows are parsed by advancing the time from the preceding row.
       DateTime lastSourceTime = DateTime.MinValue;
       bool hasPrev = false;
 
@@ -184,7 +184,7 @@ namespace Popolo.IO.Climate.Weather
         if (line.Length == 0) continue;
 
         string[] f = line.Split(',');
-        if (f.Length < 22) continue;  // データ行として短すぎる
+        if (f.Length < 22) continue;  // too short to be a data line
 
         try
         {
@@ -196,12 +196,12 @@ namespace Popolo.IO.Climate.Weather
           DateTime sourceTime;
           if (hour1Based == 24 && hasPrev)
           {
-            // 前行の次の時刻とみなす (EPW 仕様に沿った解釈、不正な日付ラベルを回避)
+            // Treat as the hour following the previous row (interpretation per the EPW spec, avoiding invalid date labels)
             sourceTime = lastSourceTime.AddHours(1);
           }
           else
           {
-            // 日付フィールドの妥当性チェック
+            // Validate the date fields
             if (month < 1 || month > 12 || day < 1 || day > 31)
             {
               skippedBadDate++;
@@ -227,56 +227,56 @@ namespace Popolo.IO.Climate.Weather
 
           var builder = new WeatherRecordBuilder();
 
-          // [6] 乾球温度 [°C], 欠測: 99.9
+          // [6] Dry-bulb temperature [°C], missing: 99.9
           if (TryParseDouble(f[6], ci, out double dbt) && dbt < 99.0)
             builder.SetDryBulbTemperature(dbt);
 
-          // [8] 相対湿度 [%], 欠測: 999
-          // EPW は RH を記録するので RH のまま格納し、絶対湿度 (HumidityRatio) への
-          // 変換は WeatherCompleter に委譲する。圧力フォールバック等の整合性を
-          // 補完段に集約するため。
+          // [8] Relative humidity [%], missing: 999
+          // EPW records RH, so store RH as-is and delegate the conversion to
+          // humidity ratio (HumidityRatio) to WeatherCompleter, concentrating
+          // consistency concerns such as pressure fallback in the completion stage.
           if (TryParseDouble(f[8], ci, out double rh) && rh >= 0.0 && rh <= 110.0)
             builder.SetRelativeHumidity(rh);
 
-          // [9] 大気圧 [Pa], 欠測: 999999
+          // [9] Atmospheric pressure [Pa], missing: 999999
           if (TryParseDouble(f[9], ci, out double patm) && patm > 0 && patm < 200000)
             builder.SetAtmosphericPressure(patm / 1000.0);
 
-          // [12] 大気(下向き)放射量 [W/m²], 欠測: 9999
+          // [12] Atmospheric (downwelling) radiation [W/m²], missing: 9999
           if (TryParseDouble(f[12], ci, out double atm) && atm > 0 && atm < 9000)
             builder.SetAtmosphericRadiation(atm);
 
-          // [13] 全天日射 [W/m²] (単位は W/m² であり Wh/m² という表記は誤導的)
+          // [13] Global horizontal solar radiation [W/m²] (the unit is W/m²; the Wh/m² notation is misleading)
           if (TryParseDouble(f[13], ci, out double ghi) && ghi >= 0 && ghi < 9000)
             builder.SetGlobalHorizontalRadiation(ghi);
 
-          // [14] 直達日射 [W/m²]
+          // [14] Direct normal solar radiation [W/m²]
           if (TryParseDouble(f[14], ci, out double dni) && dni >= 0 && dni < 9000)
             builder.SetDirectNormalRadiation(dni);
 
-          // [15] 天空日射 [W/m²]
+          // [15] Diffuse (sky) solar radiation [W/m²]
           if (TryParseDouble(f[15], ci, out double dhi) && dhi >= 0 && dhi < 9000)
             builder.SetDiffuseHorizontalRadiation(dhi);
 
-          // [20] 風向 [deg], 欠測: 999
+          // [20] Wind direction [deg], missing: 999
           if (TryParseDouble(f[20], ci, out double windDir) && windDir >= 0 && windDir <= 360)
             builder.SetWindDirection(WindDirectionUtil.FromNorthBearingDegrees(windDir));
 
-          // [21] 風速 [m/s], 欠測: 999
+          // [21] Wind speed [m/s], missing: 999
           if (TryParseDouble(f[21], ci, out double windSpeed) && windSpeed >= 0 && windSpeed < 99)
             builder.SetWindSpeed(windSpeed);
 
-          // [22] 全天雲量 [0..10], 欠測: 99
+          // [22] Total sky cloud cover [0..10], missing: 99
           if (f.Length > 22 && TryParseDouble(f[22], ci, out double tcc)
               && tcc >= 0 && tcc <= 10)
             builder.SetCloudCover(tcc / 10.0);
 
-          // [23] 不透明雲量 [0..10], 欠測: 99
+          // [23] Opaque cloud cover [0..10], missing: 99
           if (f.Length > 23 && TryParseDouble(f[23], ci, out double occ)
               && occ >= 0 && occ <= 10)
             builder.SetOpaqueCloudCover(occ / 10.0);
 
-          // [33] 降水量 [mm], 欠測: 999
+          // [33] Precipitation [mm], missing: 999
           if (f.Length > 33 && TryParseDouble(f[33], ci, out double precip)
               && precip >= 0 && precip < 999)
             builder.SetPrecipitation(precip);
@@ -292,7 +292,7 @@ namespace Popolo.IO.Climate.Weather
         }
       }
 
-      // --- TMY 判定と時刻ラベル付け ---
+      // --- TMY detection and time labelling ---
       bool isTypicalYear = DetectTypicalYear(raws);
       data.IsTypicalYear = isTypicalYear;
 

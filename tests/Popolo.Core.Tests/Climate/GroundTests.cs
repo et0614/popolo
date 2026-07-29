@@ -41,7 +41,7 @@ namespace Popolo.Core.Tests.Climate
     private const double TempRange = WarmMax - ColdMin;
     private const double MeanTemp = 15.4;
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>コンストラクタで正しくプロパティが設定される</summary>
     [Fact]
@@ -57,7 +57,7 @@ namespace Popolo.Core.Tests.Climate
 
     #endregion
 
-    #region 地中温度の物理的妥当性テスト
+    #region Physical plausibility tests of ground temperature
 
     /// <summary>年平均気温より振幅は小さい (地中は外気より変動が小さい)</summary>
     [Theory]

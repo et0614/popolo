@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.Storage
   public class SimpleGroundHeatExchanger : IReadOnlySimpleGroundHeatExchanger
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Ground heat exchanger installation type.</summary>
     public enum Type
@@ -41,7 +41,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Near-field soil temperature at the previous time step [°C].</summary>
     private double prevNearTemp;
@@ -93,7 +93,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with default parameters from the reference paper.</summary>
     /// <param name="nominalFlowRate">Nominal fluid mass flow rate [kg/s].</param>
@@ -108,7 +108,7 @@ namespace Popolo.Core.HVAC.Storage
       FluidSpecificHeat = fluidSpecificHeat;
       double emc = effectiveness * nominalFlowRate * fluidSpecificHeat;
 
-      //デフォルトパラメータ設定。詳細は文献参照
+      //Default parameter settings. See the literature for details
       if (type == Type.Horizontal)
       {
         NearGroundHeatConductance = 0.217 * emc;
@@ -135,7 +135,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 状態更新処理
+    #region State update methods
 
     /// <summary>Advances the ground temperature state by one time step (forecast mode).</summary>
     public void ForecastState(double fluidInletTemperature, double fluidMassFlowRate)

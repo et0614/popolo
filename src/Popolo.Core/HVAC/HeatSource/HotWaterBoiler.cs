@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class HotWaterBoiler: IReadOnlyHotWaterBoiler
   {
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Excess air ratio [-].</summary>
     private double airRatio = 1.1;
@@ -107,7 +107,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated operating conditions.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
@@ -124,7 +124,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double fuelConsumption, double electricConsumption, double ambientTemperature,
       double airRatio, Boiler.Fuel fuel, double smokeTemperature)
     {
-      //プロパティ保存
+      //Store properties
       Fuel = fuel;
       AirRatio = airRatio;
       nominalSmokeTemperature = smokeTemperature;
@@ -135,41 +135,41 @@ namespace Popolo.Core.HVAC.HeatSource
       MaxWaterFlowRate  = WaterFlowRate = waterFlowRate;
       NominalCapacity = (outletWaterTemperature - inletWaterTemperature) * WaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
-      //熱損失係数の計算
+      //Compute the heat loss coefficient
       heatLossCoefficient = Boiler.GetHeatLossCoefficient
         (NominalCapacity, outletWaterTemperature, AmbientTemperature, fuel,
         nominalSmokeTemperature, AirRatio, NominalFuelConsumption, AmbientTemperature);
 
-      //停止させる
+      //Shut off the boiler
       ShutOff();
     }
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the boiler state for the given inlet conditions and flow rate.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
     /// <param name="waterFlowRate">Water flow rate [kg/s].</param>
     public void Update(double inletWaterTemperature, double waterFlowRate)
     {
-      //入力条件保存
+      //Store input conditions
       InletWaterTemperature = inletWaterTemperature;
       WaterFlowRate = waterFlowRate;
 
-      //流量0、設定温度<入口温度で停止
+      //Shut off when flow rate is zero or setpoint temperature < inlet temperature
       if (WaterFlowRate <= 0 || OutletWaterSetpointTemperature < InletWaterTemperature)
       {
         ShutOff();
         return;
       }
 
-      //燃料消費量を計算
+      //Compute the fuel consumption
       double hl = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * waterFlowRate * (OutletWaterSetpointTemperature - inletWaterTemperature);
       FuelConsumption = Boiler.GetFuelConsumption(hl, OutletWaterSetpointTemperature, AmbientTemperature, Fuel,
         nominalSmokeTemperature, airRatio, heatLossCoefficient, AmbientTemperature, nomOutletWaterTemperature);
 
-      //過負荷の場合には成り行き計算
+      //Compute the uncontrolled outlet state when overloaded
       IsOverLoad = NominalFuelConsumption < FuelConsumption;
       if (IsOverLoad)
       {

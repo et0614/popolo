@@ -24,7 +24,7 @@ namespace Popolo.Core.Geometry
   /// <summary>Represents a triangular polygon.</summary>
   public class Trigon
   {
-    #region プロパティ
+    #region Properties
 
     private readonly Point vertA, vertB, vertC;
 
@@ -48,7 +48,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="vertA">Vertex A.</param>
@@ -77,7 +77,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Determines whether the triangle intersects the specified line.</summary>
     /// <param name="line">The line to test.</param>
@@ -116,7 +116,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>Builds a 3x3 rotation matrix that rotates <paramref name="vec1"/> to align with <paramref name="vec2"/>.</summary>
     /// <param name="vec1">Source vector.</param>

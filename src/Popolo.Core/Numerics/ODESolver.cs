@@ -26,7 +26,7 @@ namespace Popolo.Core.Numerics
   public static class ODESolver
   {
 
-    #region デリゲート定義
+    #region Delegate definitions
 
     /// <summary>Scalar differential equation dy/dt = f(t, y).</summary>
     /// <param name="t">Current time.</param>
@@ -48,7 +48,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 静的フィールドとコンストラクタ
+    #region Static fields and constructors
 
     /// <summary>Coefficients for the Runge-Kutta-Fehlberg (RKF45) method.</summary>
     private static readonly double[][] RKF45;
@@ -67,7 +67,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region Runge-Kutta法
+    #region Runge-Kutta methods
 
     /// <summary>Advances the scalar ODE by one step using the classical fourth-order Runge-Kutta method.</summary>
     /// <param name="dEqn">Differential equation.</param>
@@ -195,7 +195,7 @@ namespace Popolo.Core.Numerics
 
         if (tend <= t || tFnc(t, yt)) return yt;
 
-        // r=0 のときゼロ除算を避ける（delta=Infinityとなりdt=4*dtに上限処理される）
+        // Avoid division by zero when r=0 (delta would become Infinity and dt would be capped at 4*dt)
         double delta = r > 0
             ? Math.Pow(errTol / (2 * r), 0.25)
             : 4.0;

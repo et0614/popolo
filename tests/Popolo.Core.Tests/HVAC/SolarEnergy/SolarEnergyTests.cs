@@ -41,7 +41,7 @@ namespace Popolo.Core.Tests.HVAC.SolarEnergy
   /// </remarks>
   public class SolarEnergyTests
   {
-    #region 定数・ヘルパー
+    #region Constants and helpers
 
     /// <summary>
     /// 南向き 30° 傾斜面（サンプルコードの SimpleSolarCollectorTest と同条件）。

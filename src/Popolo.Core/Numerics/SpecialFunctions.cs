@@ -27,7 +27,7 @@ namespace Popolo.Core.Numerics
   public static class SpecialFunctions
   {
 
-    #region 不完全ガンマ関数
+    #region Incomplete gamma function
 
     /// <summary>Computes the regularized incomplete gamma function P(a, x).</summary>
     /// <param name="a">Shape parameter (must be positive).</param>

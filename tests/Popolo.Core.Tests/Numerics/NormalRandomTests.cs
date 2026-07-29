@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class NormalRandomTests
     {
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>平均・標準偏差が正しく設定される</summary>
         [Fact]
@@ -63,7 +63,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region NextDouble のテスト
+        #region NextDouble tests
 
         /// <summary>同じシードで同じ乱数列が生成される（再現性）</summary>
         [Fact]
@@ -136,7 +136,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region CumulativeDistribution のテスト
+        #region CumulativeDistribution tests
 
         /// <summary>標準正規分布で CDF(0) = 0.5 となる</summary>
         [Fact]
@@ -174,7 +174,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region CumulativeDistributionInverse のテスト
+        #region CumulativeDistributionInverse tests
 
         /// <summary>CumulativeDistributionInverse(0.5) = 0.0（標準正規分布）</summary>
         [Fact]

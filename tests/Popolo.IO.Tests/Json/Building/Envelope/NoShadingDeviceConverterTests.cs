@@ -44,7 +44,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         }
 
         // ================================================================
-        #region シリアライズ
+        #region Serialization
 
         [Fact]
         public void Write_ProducesSinglePropertyObject()
@@ -60,7 +60,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region デシリアライズ
+        #region Deserialization
 
         [Fact]
         public void Read_WellFormedJson_ProducesInstance()
@@ -81,7 +81,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ
+        #region Round trip
 
         [Fact]
         public void RoundTrip_ProducesValidInstance()
@@ -105,7 +105,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingKind_Throws()

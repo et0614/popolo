@@ -44,7 +44,7 @@ namespace Popolo.Core.HVAC.AirSide
   public class HumidifierUnit : IReadOnlyHumidifierUnit
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Fan.</summary>
     private readonly CentrifugalFan fan;
@@ -81,7 +81,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="humidifier">Humidifier.</param>
@@ -99,7 +99,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Sets the air mass flow rate [kg/s].</summary>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
@@ -175,7 +175,7 @@ namespace Popolo.Core.HVAC.AirSide
     private double ComputeFanOutletTemperature()
     {
       fan.UpdateState(AirFlowRate / PhysicsConstants.NominalMoistAirDensity);
-      //消費電力は[kW]、比熱は[J/(kg・K)]のため0.001を乗じて単位を整合させる
+      //Electric consumption is in [kW] and specific heat in [J/(kg·K)], so multiply by 0.001 to make the units consistent
       double tRise = fan.GetElectricConsumption()
         / (AirFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
       return InletAirTemperature + tRise;

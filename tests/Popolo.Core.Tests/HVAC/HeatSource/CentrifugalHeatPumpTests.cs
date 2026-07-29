@@ -30,7 +30,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class CentrifugalHeatPumpTests
     {
-        #region 検証データ（カタログ）と共有フィクスチャ
+        #region Verification data (catalog) and shared fixture
 
         private const double CapacityN = 3341.0;                  // 定格冷却能力 [kW]
         private const double CopN = 6.2;                          // 定格COP
@@ -126,7 +126,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region パラメータ推定（冷却モード）
+        #region Parameter estimation (cooling mode)
 
         /// <summary>6係数が論文の検証例と一致し、制約（0 ≤ a, 0 ≤ d）が非活性で満たされる。</summary>
         [Fact]
@@ -203,7 +203,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 順モデル（冷却モード）
+        #region Forward model (cooling mode)
 
         /// <summary>需要が無い（入口温度=設定値）ときは停止し、消費電力0を返す。</summary>
         [Fact]
@@ -256,7 +256,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 容量制御範囲外（ϕ_min + Eq.13）
+        #region Out of capacity control range (ϕ_min + Eq.13)
 
         /// <summary>ϕ_minは容量制御下限の1点から、θは範囲外6点から、参照値どおり同定される。</summary>
         [Fact]
@@ -323,7 +323,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 加熱モード（特性の援用）
+        #region Heating mode (reusing the cooling characteristics)
 
         /// <summary>αが1.0に近い値で同定され、加熱定格点の消費電力を再現する。</summary>
         [Fact]
@@ -353,7 +353,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 構築・検証（E_max、コンストラクタ、モード選択）
+        #region Construction and validation (E_max, constructor, mode selection)
 
         /// <summary>E_maxの既定値は各モード定格消費電力の最大値。明示値は定格以上1.5倍未満に制限。</summary>
         [Fact]

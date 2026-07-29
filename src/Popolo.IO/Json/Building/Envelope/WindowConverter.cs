@@ -97,7 +97,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class WindowConverter : JsonConverter<Window>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropArea = "area";
@@ -109,18 +109,18 @@ namespace Popolo.IO.Json.Building.Envelope
     private const string PropShadingDevices = "shadingDevices";
     private const string PropSunShade = "sunShade";
 
-    // glazings 内のキー
+    // Keys inside glazings
     private const string PropTransmittanceF = "transmittanceF";
     private const string PropReflectanceF = "reflectanceF";
     private const string PropTransmittanceB = "transmittanceB";
     private const string PropReflectanceB = "reflectanceB";
     private const string PropResistance = "resistance";
 
-    // surfaceF/surfaceB 内のキー
+    // Keys inside surfaceF/surfaceB
     private const string PropConvectiveCoefficient = "convectiveCoefficient";
     private const string PropLongWaveEmissivity = "longWaveEmissivity";
 
-    // shadingDevices の kind 値
+    // kind values for shadingDevices
     private const string KindNoShadingDevice = "noShadingDevice";
     private const string KindSimpleShadingDevice = "simpleShadingDevice";
     private const string KindVenetianBlind = "venetianBlind";
@@ -129,7 +129,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region 内部型
+    #region Internal types
 
     /// <summary>One glazing layer's optical and thermal properties.</summary>
     private readonly struct Glazing
@@ -165,7 +165,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="Window"/> from JSON.</summary>
     public override Window Read(
@@ -225,12 +225,12 @@ namespace Popolo.IO.Json.Building.Envelope
         }
       }
 
-      // kind 検証
+      // Validate kind
       if (kind != ExpectedKind)
         throw new JsonException(
           $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(Window)}, but got '{kind ?? "(missing)"}'.");
 
-      // 必須項目検証
+      // Validate required properties
       if (area is null)
         throw new JsonException($"Required property '{PropArea}' is missing from {nameof(Window)} JSON.");
       if (outsideIncline is null)
@@ -240,14 +240,14 @@ namespace Popolo.IO.Json.Building.Envelope
       if (glazings.Count == 0)
         throw new JsonException($"Property '{PropGlazings}' must contain at least one glazing layer.");
 
-      // airGapResistances のデフォルトは空リスト(single-glazed windows は airGap 不要)
+      // airGapResistances defaults to an empty list (single-glazed windows need no airGap)
       airGapResistances ??= new List<double>();
       if (airGapResistances.Count != glazings.Count - 1)
         throw new JsonException(
           $"'{PropAirGapResistances}' must have {glazings.Count - 1} entries " +
           $"(one less than '{PropGlazings}'), but got {airGapResistances.Count}.");
 
-      // 光学特性配列を構築
+      // Build the optical property arrays
       int n = glazings.Count;
       var tauF = new double[n];
       var rhoF = new double[n];
@@ -261,18 +261,18 @@ namespace Popolo.IO.Json.Building.Envelope
         rhoB[i] = glazings[i].ReflectanceB;
       }
 
-      // Window 生成(本コンストラクタが角度依存特性を Transparent で初期化)
+      // Create the Window (this constructor initializes the angle-dependent characteristics to Transparent)
       var window = new Window(area.Value, tauF, rhoF, tauB, rhoB, outsideIncline);
 
-      // ガラス抵抗を設定
+      // Set the glass resistances
       for (int i = 0; i < n; i++)
         window.SetGlassResistance(i, glazings[i].Resistance);
 
-      // 空気層抵抗を設定
+      // Set the air gap layer resistances
       for (int i = 0; i < airGapResistances.Count; i++)
         window.SetAirGapResistance(i, airGapResistances[i]);
 
-      // 表面係数(オプション)
+      // Surface coefficients (optional)
       if (surfaceF is not null)
       {
         window.ConvectiveCoefficientF = surfaceF.Value.ConvectiveCoefficient;
@@ -284,8 +284,8 @@ namespace Popolo.IO.Json.Building.Envelope
         window.LongWaveEmissivityB = surfaceB.Value.LongWaveEmissivity;
       }
 
-      // 日射遮蔽(オプション)。省略時は Window コンストラクタが既に
-      // NoShadingDevice で全位置を初期化している。
+      // Shading devices (optional). When omitted, the Window constructor has already
+      // initialized all positions with NoShadingDevice.
       if (shadingDevices is not null)
       {
         int expectedSdCount = n + 1;
@@ -297,8 +297,8 @@ namespace Popolo.IO.Json.Building.Envelope
           window.SetShadingDevice(i, shadingDevices[i]);
       }
 
-      // 日除け(オプション)。省略時は Window コンストラクタが既に
-      // MakeEmptySunShade() で初期化している。
+      // Sun shade (optional). When omitted, the Window constructor has already
+      // initialized it with MakeEmptySunShade().
       if (sunShade is not null)
         window.SunShade = sunShade;
 
@@ -317,7 +317,7 @@ namespace Popolo.IO.Json.Building.Envelope
       writer.WriteString(PropKind, ExpectedKind);
       writer.WriteNumber(PropArea, value.Area);
 
-      // outsideIncline(IReadOnlyIncline を Incline にコピーしてシリアライズ)
+      // outsideIncline (copy the IReadOnlyIncline into an Incline for serialization)
       writer.WritePropertyName(PropOutsideIncline);
       JsonSerializer.Serialize(writer, new Incline(value.OutsideIncline), options);
 
@@ -336,7 +336,7 @@ namespace Popolo.IO.Json.Building.Envelope
       }
       writer.WriteEndArray();
 
-      // airGapResistances(GlazingCount - 1 個)
+      // airGapResistances (GlazingCount - 1 entries)
       writer.WritePropertyName(PropAirGapResistances);
       writer.WriteStartArray();
       for (int i = 0; i < value.GlazingCount - 1; i++)
@@ -357,7 +357,7 @@ namespace Popolo.IO.Json.Building.Envelope
       writer.WriteNumber(PropLongWaveEmissivity, value.LongWaveEmissivityB);
       writer.WriteEndObject();
 
-      // shadingDevices(全部 NoShadingDevice なら省略)
+      // shadingDevices (omitted when all are NoShadingDevice)
       int sdCount = value.GlazingCount + 1;
       bool anyNonDefault = false;
       for (int i = 0; i < sdCount; i++)
@@ -377,7 +377,7 @@ namespace Popolo.IO.Json.Building.Envelope
         writer.WriteEndArray();
       }
 
-      // sunShade(None なら省略)
+      // sunShade (omitted when None)
       if (value.SunShade.Shape != SunShade.ShapeType.None)
       {
         writer.WritePropertyName(PropSunShade);
@@ -389,7 +389,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region glazing 配列の読み取り
+    #region Reading the glazing array
 
     /// <summary>Reads the <c>glazings</c> array.</summary>
     private static List<Glazing> ReadGlazingArray(ref Utf8JsonReader reader)
@@ -457,7 +457,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region 表面係数オブジェクトの読み取り
+    #region Reading surface coefficient objects
 
     /// <summary>Reads a nested <c>surfaceF</c> or <c>surfaceB</c> object.</summary>
     private static SurfaceCoefficients ReadSurfaceCoefficients(
@@ -497,7 +497,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region 日射遮蔽配列の読み書き
+    #region Reading and writing the shading device array
 
     /// <summary>Reads the <c>shadingDevices</c> array with kind-based dispatch.</summary>
     private static List<IShadingDevice> ReadShadingDeviceArray(
@@ -513,7 +513,7 @@ namespace Popolo.IO.Json.Building.Envelope
         if (reader.TokenType != JsonTokenType.StartObject)
           throw new JsonException($"Each '{PropShadingDevices}' entry must be an object, but got {reader.TokenType}.");
 
-        // プリスキャンで kind を取得
+        // Pre-scan to obtain kind
         Utf8JsonReader peek = reader;
         string? deviceKind = PeekKind(ref peek);
 
@@ -540,7 +540,7 @@ namespace Popolo.IO.Json.Building.Envelope
     private static void WriteShadingDevice(
       Utf8JsonWriter writer, IShadingDevice device, JsonSerializerOptions options)
     {
-      // ランタイム型で分岐して、具象型のコンバータを使う。
+      // Dispatch on the runtime type and use the concrete-type converter.
       switch (device)
       {
         case NoShadingDevice nd:

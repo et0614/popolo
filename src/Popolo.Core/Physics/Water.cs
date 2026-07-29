@@ -36,7 +36,7 @@ namespace Popolo.Core.Physics
     public static class Water
     {
 
-        #region 定数
+        #region Constants
 
         /// <summary>Critical temperature of water [K].</summary>
         public const double CriticalTemperature = 647.096;
@@ -58,7 +58,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 非公開メソッド
+        #region Private methods
 
         /// <summary>Computes the reduced temperature (dimensionless distance from the critical temperature).</summary>
         private static double GetReducedTemperature(double saturationTemperature)
@@ -69,7 +69,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 飽和水蒸気圧・飽和温度
+        #region Saturation vapor pressure and temperature
 
         /// <summary>
         /// Gets the saturation pressure [kPa] from the saturation temperature [°C].
@@ -104,11 +104,11 @@ namespace Popolo.Core.Physics
 
             double ts = PhysicsConstants.ToKelvin(saturationTemperature);
 
-            //-100~0.01°C：三重点以下はWexler-Hylandの式
+            //-100~0.01°C: Wexler-Hyland equation below the triple point
             if (saturationTemperature < 0.01)
                 return Math.Exp(C1 / ts + C2 + C3 * ts + C4 * Math.Pow(ts, 2)
                     + C5 * Math.Pow(ts, 3) + C6 * Math.Pow(ts, 4) + C7 * Math.Log(ts)) * P_CONVERT;
-            //~647.096K：臨界温度まではIAPWS-IF97実用国際状態式
+            //~647.096K: IAPWS-IF97 industrial formulation up to the critical temperature
             else
             {
                 double alpha = ts + N9 / (ts - N10);
@@ -149,13 +149,13 @@ namespace Popolo.Core.Physics
             const double N9 = -0.23855557567849e0d;
             const double N10 = 0.65017534844798e3d;
 
-            //~0°C：Wexler-Hylandの計算値を近似した式
+            //~0°C: approximation fitted to Wexler-Hyland values
             if (saturationPressure < 0.611213)
             {
                 double y = Math.Log(saturationPressure / P_CONVERT);
                 return D1 + y * (D2 + y * (D3 + y * D4));
             }
-            //0°C~：臨界圧力まではIAPWS-IF97実用国際状態式
+            //0°C~: IAPWS-IF97 industrial formulation up to the critical pressure
             else
             {
                 double ps = saturationPressure * P_CONVERT;
@@ -172,7 +172,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 蒸発潜熱
+        #region Latent heat of vaporization
 
         /// <summary>
         /// Gets the latent heat of vaporization [kJ/kg] from the saturation temperature [°C].
@@ -190,7 +190,7 @@ namespace Popolo.Core.Physics
             const double C = 4.62668;
             const double D = -1.07931;
 
-            //0°C以上とする
+            //Clamp to 0°C or above
             saturationTemperature = Math.Max(0, saturationTemperature);
 
             double tr = GetReducedTemperature(saturationTemperature);
@@ -203,7 +203,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 飽和水の物性値
+        #region Saturated water properties
 
         /// <summary>
         /// Gets the specific volume of saturated liquid water [m³/kg]
@@ -237,7 +237,7 @@ namespace Popolo.Core.Physics
         /// <returns>Specific enthalpy of saturated liquid [kJ/kg]</returns>
         public static double GetSaturatedLiquidEnthalpy(double saturationTemperature)
         {
-            //273.16<Ts<300の係数
+            //Coefficients for 273.16<Ts<300
             const double E11 = 624.698837;
             const double E21 = -2343.85369;
             const double E31 = -9508.12101;
@@ -245,7 +245,7 @@ namespace Popolo.Core.Physics
             const double E51 = -163535.221;
             const double E61 = 166531.093;
             const double E71 = -64785.4585;
-            //300<Ts<600の係数
+            //Coefficients for 300<Ts<600
             const double A2 = 0.8839230108;
             const double E12 = -2.67172935;
             const double E22 = 6.22640035;
@@ -254,7 +254,7 @@ namespace Popolo.Core.Physics
             const double E52 = 68.793763;
             const double E62 = -124.819906;
             const double E72 = 72.1435404;
-            //600<Tsの係数
+            //Coefficients for 600<Ts
             const double A3 = 1.0;
             const double B3 = -0.441057805;
             const double C3 = -5.52255517;
@@ -284,7 +284,7 @@ namespace Popolo.Core.Physics
         /// <returns>Specific entropy of saturated liquid [kJ/(kg·K)]</returns>
         public static double GetSaturatedLiquidEntropy(double saturationTemperature)
         {
-            //273.16<Ts<300の係数
+            //Coefficients for 273.16<Ts<300
             const double E11 = -1836.92956;
             const double E21 = 14706.6352;
             const double E31 = -43146.6046;
@@ -292,7 +292,7 @@ namespace Popolo.Core.Physics
             const double E51 = 7997.5096;
             const double E61 = -58333.9887;
             const double E71 = 33140.0718;
-            //300<Ts<600の係数
+            //Coefficients for 300<Ts<600
             const double A2 = 0.912762917;
             const double E12 = -1.75702956;
             const double E22 = 1.68754095;
@@ -301,7 +301,7 @@ namespace Popolo.Core.Physics
             const double E52 = 188.076546;
             const double E62 = -252.344531;
             const double E72 = 128.058531;
-            //600<Tsの係数
+            //Coefficients for 600<Ts
             const double A3 = 1.0;
             const double B3 = -0.324817650;
             const double C3 = -2.990556709;
@@ -325,7 +325,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 飽和蒸気の物性値
+        #region Saturated vapor properties
 
         /// <summary>
         /// Gets the specific volume of saturated vapor [m³/kg]
@@ -403,7 +403,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 液体水の物性値
+        #region Liquid water properties
 
         /// <summary>
         /// Gets the density of liquid water [kg/m³] from the temperature [°C].
@@ -513,7 +513,7 @@ namespace Popolo.Core.Physics
 
         #endregion
 
-        #region 過熱蒸気の物性値（HVACSIM+(J)から移植）
+        #region Superheated vapor properties (ported from HVACSIM+(J))
 
         /// <summary>
         /// Gets the specific volume of superheated steam [m³/kg]
@@ -649,16 +649,16 @@ namespace Popolo.Core.Physics
             const double e4 = -387.592d;
             const double e5 = -12587.5d;
             const double e6 = -15.2578d;
-            //e1, e4 は飽和温度近似式の定数（絶対温度ではない）ため CelsiusToKelvinOffset で補正する
+            //e1 and e4 are constants of the saturation temperature approximation (not absolute temperatures), so correct with CelsiusToKelvinOffset
             const double tabs = PhysicsConstants.CelsiusToKelvinOffset;
 
-            //エントロピーの入力値と飽和値を比較
+            //Compare the input entropy with the saturation value
             double t0 = e1 - tabs + e2 / (Math.Log(pressure * pcnv) + e3);
             if (pressure >= 12330.0d) t0 = e4 - tabs + e5 / (Math.Log(pressure * pcnv) + e6);
             double s0 = GetSaturatedVaporEntropy(t0);
             if (s0 >= entropy) return t0;
 
-            //初期推定：定比熱を仮定してケルビン換算で計算
+            //Initial estimate: assume constant specific heat and compute in Kelvin
             double tac = PhysicsConstants.ToKelvin(t0)
                 * (1.0d + (entropy - s0) / GetSuperheatedVaporIsobaricSpecificHeat(t0));
             double ta = PhysicsConstants.ToCelsius(tac);
@@ -733,9 +733,9 @@ namespace Popolo.Core.Physics
             const double a5 = -2590.5815d;
             const double a6 = 113.95968d;
 
-            //摂氏→ランキン温度に変換
+            //Convert Celsius to Rankine temperature
             double tr = 9.0d / 5.0d * temperature + 32.0d + tfr;
-            //SI比体積→英国単位に変換
+            //Convert SI specific volume to imperial units
             double ve = (specificVolume - b1) / 0.062428d;
             return (a0 + a1 / Math.Sqrt(tr) + a2 / tr
                 - a3 * Math.Pow(a4, 2) * tr / Math.Pow(tc, 2)

@@ -43,7 +43,7 @@ namespace Popolo.Core.Geometry
   public static class ShadingViewFactor
   {
 
-    #region 庇 (overhang) による窓→天空遮蔽
+    #region Window-to-sky shading by overhang
 
     /// <summary>
     /// Computes the view factor from a vertical rectangular window to a
@@ -81,8 +81,8 @@ namespace Popolo.Core.Geometry
       if (windowWidth <= 0 || windowHeight <= 0 || overhangDepth <= 0) return 0;
       if (gap < 0) gap = 0;
 
-      // ViewFactor.GetViewFactorPerpendicularRectangles の deltaZ=gap で
-      // 「窓の上部から gap だけ離れた庇」の F_window→overhang を計算。
+      // Compute F_window→overhang for an overhang offset by gap above the window top
+      // using ViewFactor.GetViewFactorPerpendicularRectangles with deltaZ=gap.
       return ViewFactor.GetViewFactorPerpendicularRectangles(
           windowWidth, windowHeight, overhangDepth, gap);
     }
@@ -115,13 +115,13 @@ namespace Popolo.Core.Geometry
       double blocked = GetViewFactorWindowToOverhang(
           windowWidth, windowHeight, overhangDepth, gap);
       double f = 0.5 - blocked;
-      // 数値誤差で僅かに負になる可能性に保険。
+      // Guard against slightly negative values due to numerical error.
       return f < 0 ? 0 : f;
     }
 
     #endregion
 
-    #region 縦フィン (vertical fin) による窓→天空遮蔽
+    #region Window-to-sky shading by vertical fin
 
     /// <summary>
     /// Computes the view factor from a vertical rectangular window to a vertical
@@ -144,12 +144,12 @@ namespace Popolo.Core.Geometry
       if (windowWidth <= 0 || windowHeight <= 0 || finDepth <= 0) return 0;
       if (lateralGap < 0) lateralGap = 0;
 
-      // 形態係数の共有エッジは窓の縦辺 (高さ H_window)。窓の "perpendicular" 寸法は W (横方向)、
-      // フィンの "perpendicular" 寸法はフィン深さ D (壁から外向き)。
-      // ViewFactor.GetViewFactorPerpendicularRectangles(width=共有エッジ長,
-      //                                                  height=surface1垂直寸法,
-      //                                                  depth=surface2垂直寸法,
-      //                                                  deltaZ=横方向オフセット)
+      // The shared edge of the view factor is the window's vertical side (height H_window). The window's "perpendicular" dimension is W (horizontal),
+      // and the fin's "perpendicular" dimension is the fin depth D (outward from the wall).
+      // ViewFactor.GetViewFactorPerpendicularRectangles(width=shared edge length,
+      //                                                  height=surface1 perpendicular dimension,
+      //                                                  depth=surface2 perpendicular dimension,
+      //                                                  deltaZ=lateral offset)
       return ViewFactor.GetViewFactorPerpendicularRectangles(
           windowHeight, windowWidth, finDepth, lateralGap);
     }
@@ -196,7 +196,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region 庇 + 縦フィンの組合せ (grid louver)
+    #region Combination of overhang and vertical fins (grid louver)
 
     /// <summary>
     /// Returns the combined sky-view-factor reduction for a grid (egg-crate)

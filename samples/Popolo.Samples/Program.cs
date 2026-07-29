@@ -47,7 +47,7 @@ namespace Popolo.Samples
   public static class Program
   {
 
-    #region レジストリ
+    #region Registry
 
     /// <summary>Registry of all available demos. Add new demos here.</summary>
     private static readonly IDemo[] Demos =
@@ -115,7 +115,7 @@ namespace Popolo.Samples
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static void PrintListing()
     {

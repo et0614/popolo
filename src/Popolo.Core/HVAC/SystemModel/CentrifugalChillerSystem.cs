@@ -31,12 +31,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class CentrifugalChillerSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Centrifugal chiller.</summary>
     private ICentrifugalChiller chiller;
@@ -88,7 +88,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get; private set; }
@@ -185,7 +185,7 @@ namespace Popolo.Core.HVAC.SystemModel
       chiller.ChilledWaterOutletSetpointTemperature = ChilledWaterSupplyTemperatureSetpoint;
       while (true)
       {
-        //冷水・冷却水流量を計算
+        //Calculate the chilled and cooling water flow rates
         double chwFlow = chilledWaterFlowRate / ActiveChillerCount;
         double pLoad = chwFlow / chiller.MaxChilledWaterFlowRate;
         double cdwFlow;
@@ -196,14 +196,14 @@ namespace Popolo.Core.HVAC.SystemModel
         if (!OperateCoolingTowerOneOnOne) cdwFlow /= ChillerCount;
         cTower.WaterFlowRate = cdwFlow / CoolingTowerCount;
 
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pumps
         cdwPump.UpdateState(0.001 * cdwFlow);
         double dCDT = cdwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * cdwFlow);
         chwPump.UpdateState(0.001 * chwFlow);
         double twi = ChilledWaterReturnTemperature
           + chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow);
 
-        //冷却塔と冷凍機の連成計算（冷却水温度の計算）
+        //Coupled calculation of the cooling tower and the chiller (cooling water temperature)
         bool needIteration = !ControlCoolingWaterTemperature;
         if (ControlCoolingWaterTemperature)
         {
@@ -212,7 +212,7 @@ namespace Popolo.Core.HVAC.SystemModel
           cTower.Update(chiller.CoolingWaterOutletTemperature, true);
           if (cTower.IsOverLoad) needIteration = true;
         }
-        //過負荷または冷却水温度成行の場合には収束計算
+        //When overloaded or the cooling water temperature is free-run, iterate to convergence
         if (needIteration)
         {
           Roots.ErrorFunction eFnc = delegate (double cdt)
@@ -240,7 +240,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="chiller">Centrifugal chiller.</param>

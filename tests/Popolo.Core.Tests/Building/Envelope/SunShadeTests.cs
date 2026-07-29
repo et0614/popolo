@@ -34,7 +34,7 @@ namespace Popolo.Core.Tests.Building.Envelope
   /// </remarks>
   public class SunShadeTests
   {
-    #region テスト用ヘルパー
+    #region Test helpers
 
     private const double WinWidth = 1.0;  // 窓幅[m]
     private const double WinHeight = 1.5;  // 窓高さ[m]
@@ -54,7 +54,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region MakeEmptySunShadeのテスト
+    #region MakeEmptySunShade tests
 
     /// <summary>日除けなし（Shape=None）では影率が0</summary>
     [Fact]
@@ -77,7 +77,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 日没後のテスト
+    #region After-sunset tests
 
     /// <summary>太陽高度が0以下（日没後）では影率が1</summary>
     [Theory]
@@ -95,7 +95,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 無限長水平庇（LongHorizontal）のテスト
+    #region Infinite horizontal overhang (LongHorizontal) tests
 
     /// <summary>無限長水平庇のShapeがLongHorizontal</summary>
     [Fact]
@@ -172,7 +172,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 有限長水平庇（Horizontal）のテスト
+    #region Finite horizontal overhang (Horizontal) tests
 
     /// <summary>有限長水平庇のShapeがHorizontal</summary>
     [Fact]
@@ -199,7 +199,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 袖壁（LongVertical）のテスト
+    #region Wing wall (LongVertical) tests
 
     /// <summary>左袖壁のShapeがLongVerticalLeft</summary>
     [Fact]
@@ -238,7 +238,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region コピーコンストラクタのテスト
+    #region Copy constructor tests
 
     /// <summary>コピーコンストラクタで全プロパティが複製される</summary>
     [Fact]

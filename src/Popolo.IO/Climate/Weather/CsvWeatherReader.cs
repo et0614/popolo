@@ -89,7 +89,7 @@ namespace Popolo.IO.Climate.Weather
       double lat = 0, lon = 0, ele = 0;
       bool stationSeen = false;
 
-      // ========== メタデータヘッダ読み込み ==========
+      // ========== Read the metadata header ==========
       string? line;
       while ((line = reader.ReadLine()) != null)
       {
@@ -98,7 +98,7 @@ namespace Popolo.IO.Climate.Weather
 
         string content = line.Substring(1).Trim();
         int colonIdx = content.IndexOf(':');
-        if (colonIdx < 0) continue;                  // Popolo Weather Data v3 magic 行はここを通る
+        if (colonIdx < 0) continue;                  // the Popolo Weather Data v3 magic line takes this path
         string key = content.Substring(0, colonIdx).Trim();
         string value = content.Substring(colonIdx + 1).Trim();
 
@@ -130,14 +130,14 @@ namespace Popolo.IO.Climate.Weather
             if (TimeSpan.TryParse(value, ci, out var ts))
               data.NominalInterval = ts;
             break;
-          // 他のキーは無視 (将来拡張余地)
+          // Other keys are ignored (room for future extension)
         }
       }
 
       if (stationSeen)
         data.Station = new WeatherStationInfo(name ?? "", lat, lon, ele);
 
-      // line には最初のメタデータ以外の行が入っている。これがカラムヘッダのはず。
+      // line now holds the first non-metadata line, which should be the column header.
       if (line == null)
         throw new PopoloArgumentException(
             "CSV contains no column header after metadata.", "stream");
@@ -151,7 +151,7 @@ namespace Popolo.IO.Climate.Weather
       columnIndex.TryGetValue("SourceTime", out int sourceTimeCol);
       if (!columnIndex.ContainsKey("SourceTime")) sourceTimeCol = -1;
 
-      // 各 WeatherField とカラム index の対応を作る
+      // Build the mapping between each WeatherField and its column index
       var fieldColumnMap = new List<(WeatherField Field, int Column)>();
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.DryBulbTemperature,         "DryBulbTemperature[C]");
       AddFieldIfPresent(columnIndex, fieldColumnMap, WeatherField.HumidityRatio,              "HumidityRatio[g/kg]");
@@ -168,7 +168,7 @@ namespace Popolo.IO.Climate.Weather
 
       var builder = new WeatherRecordBuilder();
 
-      // ========== データ行読み込み ==========
+      // ========== Read the data rows ==========
       while ((line = reader.ReadLine()) != null)
       {
         if (line.Length == 0) continue;
@@ -193,12 +193,12 @@ namespace Popolo.IO.Climate.Weather
           builder.SetSourceTime(st);
         }
 
-        // 観測量カラム
+        // Measurement columns
         foreach (var (field, col) in fieldColumnMap)
         {
           if (col >= cells.Length) continue;
           string cell = cells[col];
-          if (string.IsNullOrWhiteSpace(cell)) continue;  // 空欄 = 欠測
+          if (string.IsNullOrWhiteSpace(cell)) continue;  // blank cell = missing value
           double v = double.Parse(cell, NumberStyles.Float, ci);
           SetField(builder, field, v);
         }

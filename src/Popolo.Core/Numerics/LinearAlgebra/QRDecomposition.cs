@@ -33,7 +33,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="pivot">True to perform column pivoting.</param>
     public void Decompose(IMatrix matrix, bool pivot)
     {
-      //各列のユークリッドノルムを計算
+      //Compute the Euclidean norm of each column
       for (int i = 0; i < matrix.Columns; i++)
       {
         acnorm[i] = rdiag[i] = wa[i] =
@@ -44,7 +44,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       int min = Math.Min(matrix.Rows, matrix.Columns);
       for (int i = 0; i < min; i++)
       {
-        //ユークリッドノルム最大の列を先頭の列と入れ替える
+        //Swap the column with the largest Euclidean norm into the leading position
         if (pivot)
         {
           int iMax = i;

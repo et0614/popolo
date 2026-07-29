@@ -30,7 +30,7 @@ namespace Popolo.Webpro.Tests.Conversion
     /// <summary>Unit tests for <see cref="RoomTypeMapper"/>.</summary>
     public class RoomTypeMapperTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private const string SampleMappingJson = """
             {
@@ -48,7 +48,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region ロード
+        #region Loading
 
         [Fact]
         public void LoadFromString_ParsesEntries()
@@ -171,7 +171,7 @@ namespace Popolo.Webpro.Tests.Conversion
         #endregion
 
         // ================================================================
-        #region Default - 埋め込みリソース
+        #region Default - embedded resource
 
         [Fact]
         public void Default_Has265Entries()

@@ -29,7 +29,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
   /// <summary>Unit tests for <see cref="SimpleShadingDeviceConverter"/>.</summary>
   public class SimpleShadingDeviceConverterTests
   {
-    #region ヘルパー
+    #region Helpers
 
     private static JsonSerializerOptions CreateOptions()
     {
@@ -51,7 +51,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region シリアライズ
+    #region Serialization
 
     [Fact]
     public void Write_ProducesExpectedJson()
@@ -69,7 +69,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region デシリアライズ
+    #region Deserialization
 
     [Fact]
     public void Read_WellFormedJson_ProducesExpectedValues()
@@ -106,7 +106,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region ラウンドトリップ
+    #region Round trip
 
     [Fact]
     public void RoundTrip_PreservesValues()
@@ -133,7 +133,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     #endregion
 
     // ================================================================
-    #region エラー処理
+    #region Error handling
 
     [Fact]
     public void Read_MissingKind_Throws()

@@ -42,7 +42,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     /// </remarks>
     public class SimpleGroundHeatExchangerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private const double FlowRate = 0.02;   // 定格流量 [kg/s]
         private const double Cp       = 4.186;  // 比熱 [kJ/(kg·K)]
@@ -69,7 +69,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
         #endregion
 
         // ================================================================
-        #region 初期化
+        #region Initialization
 
         /// <summary>InitTemperature で Tcnt・Tfar が指定温度になる。</summary>
         [Fact]
@@ -109,7 +109,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
         #endregion
 
         // ================================================================
-        #region Update — 採熱運転
+        #region Update — heat extraction operation
 
         /// <summary>
         /// 流入水温 &lt; 地中温度のとき HeatExchange が正（採熱）。
@@ -170,7 +170,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
         #endregion
 
         // ================================================================
-        #region 連続運転による地中温度変化
+        #region Ground temperature change under continuous operation
 
         /// <summary>
         /// 採熱運転を連続すると地中温度（Tcnt）が低下する。
@@ -273,7 +273,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
         #endregion
 
         // ================================================================
-        #region 垂直型 vs 水平型
+        #region Vertical vs horizontal type
 
         /// <summary>
         /// 垂直型は Kcnt が大きく Ccnt が小さいため、

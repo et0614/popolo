@@ -62,7 +62,7 @@ namespace Popolo.Core.Building.AirQuality
   public class MultiZoneCO2Model : IReadOnlyMultiZoneCO2Model
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Zones of the model.</summary>
     private readonly CO2ModelZone[] zones;
@@ -97,7 +97,7 @@ namespace Popolo.Core.Building.AirQuality
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance without a thermal model link.</summary>
     /// <param name="zones">Zones of the model.</param>
@@ -123,7 +123,7 @@ namespace Popolo.Core.Building.AirQuality
       this.zones = zones;
       this.bModel = buildingModel;
 
-      //紐づけゾーンの(MultiRoom, Zone)インデックスを解決
+      //Resolve the (MultiRoom, Zone) indices of the bound zones
       rmIndices = new int[zones.Length];
       znIndices = new int[zones.Length];
       for (int i = 0; i < zones.Length; i++)
@@ -162,7 +162,7 @@ namespace Popolo.Core.Building.AirQuality
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Advances the CO2 concentrations of all zones by one time step.
@@ -179,18 +179,18 @@ namespace Popolo.Core.Building.AirQuality
 
       int n = zones.Length;
 
-      //後退Euler法の連立一次方程式を構築
+      //Build the system of linear equations for the backward Euler method
       //V_i/Δt (C_i' - C_i) = Σ_j q_ji (C_j' - C_i') + qA_i (C_OA - C_i') + qB_i (C_B,i - C_i') + G_i
       for (int i = 0; i < n; i++)
       {
         CO2ModelZone zn = zones[i];
 
-        //A系統: 紐づけゾーンはVentilationRate[kg/s]を体積流量に換算して外気濃度で流入
+        //Path A: for bound zones, convert VentilationRate[kg/s] to volumetric flow entering at the outdoor concentration
         double qA = 0.0;
         if (zn.BoundZone != null)
           qA = Math.Max(0, zn.BoundZone.VentilationRate) / PhysicsConstants.NominalMoistAirDensity;
 
-        //B系統: 任意濃度の追加換気
+        //Path B: additional ventilation at an arbitrary concentration
         double qB = Math.Max(0, zn.AuxiliaryVentilationRate);
 
         double diag = zn.Volume / timeStep + qA + qB;
@@ -199,7 +199,7 @@ namespace Popolo.Core.Building.AirQuality
           + qB * zn.AuxiliaryVentilationCO2Level
           + zn.CO2Generation;
 
-        //ゾーン間移流（紐づけ済みペアのみ）
+        //Inter-zone advection (bound pairs only)
         for (int j = 0; j < n; j++)
         {
           if (i == j || rmIndices[i] < 0 || rmIndices[j] < 0)
@@ -215,7 +215,7 @@ namespace Popolo.Core.Building.AirQuality
         matA[i, i] = diag;
       }
 
-      //求解して濃度を更新
+      //Solve the equations and update concentrations
       LinearAlgebraOperations.SolveLinearEquations(matA, vecB);
       for (int i = 0; i < n; i++) zones[i].CO2Level = vecB[i];
     }

@@ -67,7 +67,7 @@ namespace Popolo.Webpro.Conversion
   public static class WebproToBuildingThermalModel
   {
 
-    #region 床・天井の固定 6 層構成
+    #region Fixed 6-layer construction of floor and ceiling
 
     /// <summary>
     /// Creates the fixed 6-layer floor/ceiling construction used by every
@@ -93,7 +93,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 変換結果
+    #region Conversion results
 
     /// <summary>
     /// Output of <see cref="Convert(WebproModel)"/>.
@@ -141,7 +141,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region エントリポイント
+    #region Entry points
 
     /// <summary>
     /// Converts the given WEBPRO model into a
@@ -289,7 +289,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 個別生成処理
+    #region Individual creation methods
 
     /// <summary>Builds a Popolo <see cref="Zone"/> for a WEBPRO room.</summary>
     private static Zone BuildZone(string roomName, WebproRoom room)
@@ -479,7 +479,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 方位変換
+    #region Orientation conversion
 
     /// <summary>
     /// Converts a WEBPRO <see cref="WebproOrientation"/> to a Popolo.Core

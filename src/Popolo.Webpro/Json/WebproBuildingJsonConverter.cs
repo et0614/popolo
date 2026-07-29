@@ -58,7 +58,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproBuildingJsonConverter : JsonConverter<WebproBuilding>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropName = "Name";
     private const string PropRegion = "Region";
@@ -67,7 +67,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproBuilding Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

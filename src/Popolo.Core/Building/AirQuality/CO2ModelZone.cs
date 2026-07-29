@@ -49,7 +49,7 @@ namespace Popolo.Core.Building.AirQuality
   public class CO2ModelZone : IReadOnlyCO2ModelZone
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <inheritdoc />
     public string Name { get; }
@@ -88,7 +88,7 @@ namespace Popolo.Core.Building.AirQuality
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance without a thermal model binding.</summary>
     /// <param name="name">Zone name.</param>

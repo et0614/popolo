@@ -27,7 +27,7 @@ namespace Popolo.Core.Tests.Numerics
   /// <summary>GaussLegendreIntegrator のテスト</summary>
   public class GaussLegendreIntegratorTests
   {
-    #region インスタンスメソッドのテスト
+    #region Instance method tests
 
     /// <summary>∫[0,1] 1 dx = 1（定数関数）</summary>
     [Fact]
@@ -130,7 +130,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region 静的メソッドのテスト
+    #region Static method tests
 
     /// <summary>ComputeNodesAndWeights が正しい分点数の配列を返す</summary>
     [Theory]

@@ -248,7 +248,7 @@ namespace Popolo.IO.Climate.Weather
         }
         catch (ArgumentOutOfRangeException)
         {
-          // うるう年不一致 (logicalYear が非うるうで 2/29 が来た等) はスキップ
+          // Skip leap-year mismatches (e.g. 2/29 appears while logicalYear is a non-leap year)
           continue;
         }
 

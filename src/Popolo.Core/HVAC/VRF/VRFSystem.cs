@@ -37,12 +37,12 @@ namespace Popolo.Core.HVAC.VRF
   public class VRFSystem : IReadOnlyVRFSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Temperature conversion constant.</summary>
     private const double KTOC = PhysicsConstants.CelsiusToKelvinOffset;
 
-    #region JIS8616, JIS8615-3条件
+    #region JIS8616 and JIS8615-3 conditions
 
     /// <summary>JIS 8615-3 standard outdoor dry-bulb temperature in cooling mode [°C].</summary>
     private const double JIS_OA_DBT_NOM_C = 35;
@@ -102,14 +102,14 @@ namespace Popolo.Core.HVAC.VRF
     private const double SUB_COOL_NOM = 1;
 
     /// <summary>Minimum head efficiency ratio during on/off operation [-].</summary>
-    private const double MIN_ER_RATE = 0.20;//NEDO試験によればこのくらいで発停の消費電力が実測に合う
+    private const double MIN_ER_RATE = 0.20;//Per NEDO tests, this level makes on/off electric consumption match measurements
 
     /// <summary>Minimum compression ratio [-].</summary>
     private const double MIN_COMPRESSION_RATIO = 1.5;
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>VRF system operating mode.</summary>
     [Flags]
@@ -127,9 +127,9 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
-    #region VRFシステム全体
+    #region Whole VRF system
 
     /// <summary>Gets or sets a value indicating whether thermo-off time is controlled based on sensible heat.</summary>
     /// <remarks>When false, the supply air temperature may deviate from the setpoint, but the total heat transfer matches.</remarks>
@@ -295,7 +295,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 冷房・暖房運転関連のプロパティ
+    #region Cooling/heating operation properties
 
     /// <summary>
     /// Parameters and state specific to one operating mode (cooling or heating).
@@ -368,7 +368,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance as a heat-pump (cooling/heating switchable) machine.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
@@ -578,7 +578,7 @@ namespace Popolo.Core.HVAC.VRF
       double heatingLongPipeLength, double heatingPipeCorrectionFactor,
       VRFUnit iHex, double totalEfficiency)
     {
-      //プロパティ設定
+      //Set properties
       var heating = new ModeParameters
       {
         NominalCapacity = heatingNominalCapacity,
@@ -592,7 +592,7 @@ namespace Popolo.Core.HVAC.VRF
       PipeLength = nominalPipeLength;
       TotalEfficiencyOfGasEngineHeatpump = totalEfficiency;
 
-      //暖房定格運転時のパラメータ推定
+      //Estimate parameters at rated heating operation
       double pResist, nomHead;
       EstimateHeatingOutdoorUnitNominalParameters(
         refrigerant, heatingOutdoorHexAirFlow, heatingOutdoorHexFanElectricity,
@@ -602,7 +602,7 @@ namespace Popolo.Core.HVAC.VRF
       heating.PipeResistanceCoefficient = pResist;
       heating.NominalHead = nomHead;
 
-      //部分負荷時の特性推定
+      //Estimate partial load characteristics
       double midHead;
       EstimateHeatingPartialLoadParameters(
         refrigerant, nominalPipeLength, heating.PipeResistanceCoefficient, heating.NominalHead,
@@ -615,7 +615,7 @@ namespace Popolo.Core.HVAC.VRF
       heating.HeadEfficiencyRatioCoefB = cB;
       heating.NominalEfficiency = heating.NominalHead / heatingNominalElectricity;
 
-      //入口空気をJIS定格標準条件に戻す
+      //Reset inlet air to the JIS standard rated condition
       heating.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_H;
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       heating.outdoorUnit.InletAirHumidityRatio = oHmd;
@@ -641,13 +641,13 @@ namespace Popolo.Core.HVAC.VRF
       double nominalPipeLength, double coolingLongPipeLength, double coolingPipeCorrectionFactor,
       VRFUnit iHex)
     {
-      //プロパティ設定
+      //Set properties
       this.refrigerant = refrigerant;
       Cooling.NominalCapacity = coolingNominalCapacity;
       Cooling.NominalElectricity = coolingNominalElectricity;
       PipeLength = nominalPipeLength;
 
-      //定格運転時のパラメータ推定
+      //Estimate parameters at rated operation
       double pResist, nomHead;
       EstimateCoolingOutdoorUnitNominalParameters(
         refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
@@ -657,7 +657,7 @@ namespace Popolo.Core.HVAC.VRF
       Cooling.PipeResistanceCoefficient = pResist;
       Cooling.NominalHead = nomHead;
 
-      //部分負荷時の特性推定
+      //Estimate partial load characteristics
       EstimateCoolingPartialLoadParameters(
         refrigerant, nominalPipeLength, Cooling.PipeResistanceCoefficient, Cooling.NominalHead,
         coolingNominalCapacity, Cooling.outdoorUnit, iHex, coolingMidLoadCapacity, out double midHead1);
@@ -667,7 +667,7 @@ namespace Popolo.Core.HVAC.VRF
       Cooling.HeadEfficiencyRatioCoefB = cB;
       Cooling.NominalEfficiency = Cooling.NominalHead / coolingNominalElectricity;
 
-      //入口空気をJIS定格標準条件に戻す
+      //Reset inlet air to the JIS standard rated condition
       Cooling.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_C;
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Cooling.outdoorUnit.InletAirHumidityRatio = oHmd;
@@ -696,13 +696,13 @@ namespace Popolo.Core.HVAC.VRF
       double nominalPipeLength, double coolingLongPipeLength, double coolingPipeCorrectionFactor,
       VRFUnit iHex)
     {
-      //プロパティ設定
+      //Set properties
       this.refrigerant = refrigerant;
       Cooling.NominalCapacity = coolingNominalCapacity;
       Cooling.NominalElectricity = coolingNominalElectricity;
       PipeLength = nominalPipeLength;
 
-      //定格運転時のパラメータ推定
+      //Estimate parameters at rated operation
       double pResist, nomHead;
       EstimateCoolingOutdoorUnitNominalParameters(
         refrigerant, coolingOutdoorHexAirFlow, coolingOutdoorHexFanElectricity,
@@ -712,7 +712,7 @@ namespace Popolo.Core.HVAC.VRF
       Cooling.PipeResistanceCoefficient = pResist;
       Cooling.NominalHead = nomHead;
 
-      //部分負荷時の特性推定
+      //Estimate partial load characteristics
       double midHead1, midHead2;
       EstimateCoolingPartialLoadParameters(
         refrigerant, nominalPipeLength, Cooling.PipeResistanceCoefficient, Cooling.NominalHead,
@@ -724,7 +724,7 @@ namespace Popolo.Core.HVAC.VRF
       Cooling.HeadEfficiencyRatioCoefB = cB;
       Cooling.NominalEfficiency = Cooling.NominalHead / coolingNominalElectricity;
 
-      //入口空気をJIS定格標準条件に戻す
+      //Reset inlet air to the JIS standard rated condition
       Cooling.outdoorUnit.InletAirTemperature = JIS_OA_DBT_NOM_C;
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Cooling.outdoorUnit.InletAirHumidityRatio = oHmd;
@@ -732,7 +732,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 状態更新処理および制御有り無し共通の補助関数
+    #region State update methods and helper functions common to controlled/uncontrolled operation
 
     /// <summary>Updates the system state for the current conditions and setpoints.</summary>
     /// <param name="controlHeatload">
@@ -741,15 +741,15 @@ namespace Popolo.Core.HVAC.VRF
     /// </param>
     public void UpdateState(bool controlHeatload = true)
     {
-      //屋外機停止時
+      //Outdoor unit stopped
       if (CurrentMode == Mode.ShutOff || CurrentMode == Mode.ThermoOff) UpdateNoLoad();
-      //冷房時
+      //Cooling mode
       else if (CurrentMode == Mode.Cooling)
       {
         if (controlHeatload) UpdateCoolingStateWithControl();
         else UpdateCoolingStateWithoutControl();
       }
-      //暖房時
+      //Heating mode
       else
       {
         if (controlHeatload) UpdateHeatingStateWithControl();
@@ -768,7 +768,7 @@ namespace Popolo.Core.HVAC.VRF
       Cooling.outdoorUnit.ThermoOff();
       Heating?.outdoorUnit.ThermoOff();
 
-      //室内機
+      //Indoor units
       for (int i = 0; i < indoorUnits.Count; i++)
         indoorUnits[i].ThermoOff();
     }
@@ -785,17 +785,17 @@ namespace Popolo.Core.HVAC.VRF
       (double headAssumption, double coolingLoad, double compressorInletEnthalpy, double compressorInletDensity,
       double evaporatingPressure, out double condensingPressure)
     {
-      //必要凝縮圧力の計算
+      //Compute the required condensing pressure
       double qCnd = -coolingLoad + headAssumption;
       VRFUnit oUnt = Cooling.outdoorUnit;
       oUnt.SolveHeatLoad(qCnd, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, false);
 
-      //凝縮器出口冷媒状態の計算
+      //Compute the condenser outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC,
         out double _, out double _, out condensingPressure);
       if (refrigerant.MaxPressure < condensingPressure)
-        return condensingPressure - refrigerant.MaxPressure; //冷媒計算可能範囲を上回る場合には過剰分を誤差として出力
-      //圧縮比の制限
+        return condensingPressure - refrigerant.MaxPressure; //If beyond the refrigerant property calculation range, output the excess as the error
+      //Limit the compression ratio
       refrigerant.GetSaturatedPropertyFromTemperature(Cooling.MinCondensingTemperature + KTOC, out _, out _, out double minCondensingPressure);
       minCondensingPressure = Math.Max(minCondensingPressure, evaporatingPressure * MIN_COMPRESSION_RATIO);
       if (condensingPressure < minCondensingPressure)
@@ -810,15 +810,15 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature(condensingPressure, oUnt.RefrigerantTemperature + KTOC - SubCoolDegree,
         out _, out _, out double oUnitOutletEnthalpy, out _);
 
-      //冷媒循環量の計算
+      //Compute the refrigerant circulation rate
       double mR = -coolingLoad / (compressorInletEnthalpy - oUnitOutletEnthalpy);
       double vR = mR / compressorInletDensity;
 
-      //圧力損失[kPa]の計算
+      //Compute the pressure loss [kPa]
       double dP = Cooling.PipeResistanceCoefficient * mR * vR * PipeLength;
       dP += 0.001 * IndoorUnitHeight * 9.8 * compressorInletDensity;
 
-      //圧縮ヘッド[kW]の計算
+      //Compute the compression head [kW]
       CompressorInletPressure = Math.Max(evaporatingPressure - dP, refrigerant.MinPressure);
       refrigerant.GetStateFromPressureAndEnthalpy(CompressorInletPressure, compressorInletEnthalpy,
         out double tmp, out double rhoVap, out _, out _);
@@ -836,7 +836,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <returns>Compression head error [kW]; a positive value means the nominal head is insufficient.</returns>
     private double CalcEvaporatingTemperatureError(double evaporatingTemperature, bool controlIndoorUnits, out double evaporatingPressure)
     {
-      //蒸発温度にもとづいて屋内機を更新
+      //Update indoor units based on the evaporating temperature
       refrigerant.GetSaturatedPropertyFromTemperature(evaporatingTemperature + KTOC, out _, out _, out evaporatingPressure);
       double qEvpSum = 0;
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -848,38 +848,38 @@ namespace Popolo.Core.HVAC.VRF
 
         qEvpSum += unt.HeatTransfer;
       }
-      //蒸発器出口比エンタルピーの計算
+      //Compute the evaporator outlet specific enthalpy
       refrigerant.GetStateFromPressureAndTemperature(evaporatingPressure, evaporatingTemperature + KTOC + SuperHeatDegree,
         out _, out double iUnitOutletDensity2, out double iUnitOutletEnthalpy2, out _);
 
-      //必要凝縮圧力の計算
+      //Compute the required condensing pressure
       double qCnd = -qEvpSum + Cooling.NominalHead;
       VRFUnit oUnt = Cooling.outdoorUnit;
       oUnt.SolveHeatLoad(qCnd, oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, false);
-      //2025.01.19: 臨界点近傍で冷媒物性計算が不安定になることに対応
+      //2025.01.19: Handle unstable refrigerant property calculation near the critical point
       if (refrigerant.CriticalTemperature * 0.98 < oUnt.RefrigerantTemperature + KTOC)
-        return (oUnt.RefrigerantTemperature + KTOC) - refrigerant.CriticalTemperature * 0.98; //冷媒の計算範囲外に飛び出した場合には、不足分を誤差として出力
+        return (oUnt.RefrigerantTemperature + KTOC) - refrigerant.CriticalTemperature * 0.98; //If outside the refrigerant property calculation range, output the shortfall as the error
 
-      //凝縮器出口冷媒状態の計算
+      //Compute the condenser outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC,
         out _, out _, out double cndPressure);
       if (refrigerant.MaxPressure < cndPressure)
-        return cndPressure - refrigerant.MaxPressure; //冷媒の計算範囲外に飛び出した場合には、不足分を誤差として出力
+        return cndPressure - refrigerant.MaxPressure; //If outside the refrigerant property calculation range, output the shortfall as the error
       CompressorOutletPressure = cndPressure;
       refrigerant.GetStateFromPressureAndTemperature(CompressorOutletPressure, oUnt.RefrigerantTemperature + KTOC - SubCoolDegree,
         out _, out _, out double oUnitOutletEnthalpy, out _);
 
-      //冷媒循環量の計算
+      //Compute the refrigerant circulation rate
       double mR = -qEvpSum / (iUnitOutletEnthalpy2 - oUnitOutletEnthalpy);
       double vR = mR / iUnitOutletDensity2;
 
-      //圧力損失[kPa]の計算
+      //Compute the pressure loss [kPa]
       double dP = Cooling.PipeResistanceCoefficient * mR * vR * PipeLength;
       dP += 0.001 * IndoorUnitHeight * 9.8 * iUnitOutletDensity2;
 
-      //圧縮ヘッド[kW]の計算
+      //Compute the compression head [kW]
       if (evaporatingPressure - dP < refrigerant.MinPressure)
-        return refrigerant.MinPressure - (evaporatingPressure - dP); //冷媒の計算範囲外に飛び出した場合には、不足分を誤差として出力
+        return refrigerant.MinPressure - (evaporatingPressure - dP); //If outside the refrigerant property calculation range, output the shortfall as the error
       CompressorInletPressure = evaporatingPressure - dP;
       refrigerant.GetStateFromPressureAndEnthalpy(CompressorInletPressure, iUnitOutletEnthalpy2,
         out double tmp, out double rhoVap, out _, out _);
@@ -894,9 +894,9 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="head">Compression head [kW].</param>
     private void CalculateCoolingElectricity(double head)
     {
-      PartialLoadRatio = head / Cooling.NominalHead; //システムとしての負荷率
+      PartialLoadRatio = head / Cooling.NominalHead; //Partial load ratio of the whole system
 
-      //ユニットの運転台数と負荷率を確認
+      //Determine the number of operating units and the per-unit load ratio
       int nOP;
       for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
         if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRatio < PartialLoadRatio)
@@ -905,10 +905,10 @@ namespace Popolo.Core.HVAC.VRF
       double plUnit = PartialLoadRatio * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
-      //連続運転
+      //Continuous operation
       if (MinimumPartialLoadRatio <= plUnit)
         eRate = Cooling.HeadEfficiencyRatioCoefA * plUnit + Cooling.HeadEfficiencyRatioCoefB;
-      //発停運転
+      //On/off operation
       else
       {
         double eMin = Cooling.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Cooling.HeadEfficiencyRatioCoefB;
@@ -930,7 +930,7 @@ namespace Popolo.Core.HVAC.VRF
       (double headAssumption, double heatingLoad, double iUnitOutletEnthalpy,
       out double evaporatingPressure, ref double condensingPressure)
     {
-      //廃熱回収を考慮
+      //Account for waste heat recovery
       double qRcv = 0;
       if (IsGasEngineHeatpump)
       {
@@ -938,17 +938,17 @@ namespace Popolo.Core.HVAC.VRF
         qRcv = headAssumption * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
-      //必要蒸発圧力の計算
+      //Compute the required evaporating pressure
       double qEvp = Math.Max(0, heatingLoad - headAssumption);
       VRFUnit oUnt = Heating!.outdoorUnit;
-      //屋外機の処理熱量計算時には廃熱回収を差し引く（冷媒循環量計算時はひいては駄目）
-      oUnt.SolveHeatLoad(-Math.Max(0, qEvp - qRcv), oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true); //デフロストを反映
+      //Subtract the waste heat recovery when computing the outdoor unit heat transfer (it must not be subtracted when computing the refrigerant circulation rate)
+      oUnt.SolveHeatLoad(-Math.Max(0, qEvp - qRcv), oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true); //Reflect defrost
 
-      //蒸発器出口冷媒状態の計算
+      //Compute the evaporator outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC, out _, out _, out evaporatingPressure);
       if (evaporatingPressure < refrigerant.MinPressure)
-        return refrigerant.MinPressure - evaporatingPressure; //冷媒計算可能範囲を上回る場合には過剰分を誤差として出力
-      //圧縮比の制限
+        return refrigerant.MinPressure - evaporatingPressure; //If beyond the refrigerant property calculation range, output the excess as the error
+      //Limit the compression ratio
       refrigerant.GetSaturatedPropertyFromTemperature(Heating!.MaxEvaporatingTemperature + KTOC, out _, out _, out double maxEvaporatingPressure);
       maxEvaporatingPressure = Math.Min(maxEvaporatingPressure, condensingPressure / MIN_COMPRESSION_RATIO);
       if (maxEvaporatingPressure < evaporatingPressure)
@@ -963,21 +963,21 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature(evaporatingPressure, oUnt.RefrigerantTemperature + KTOC + SuperHeatDegree,
         out _, out double rhoCmpIn, out double oUnitOutletEnthalpy, out _);
 
-      //冷媒循環量の計算
+      //Compute the refrigerant circulation rate
       double mR = (qEvp + oUnt.DefrostLoad) / (oUnitOutletEnthalpy - iUnitOutletEnthalpy);
 
-      //圧縮機出口状態の計算
+      //Compute the compressor outlet state
       double hCmpOut = oUnitOutletEnthalpy + headAssumption / mR;
       double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(
         oUnt.RefrigerantTemperature + KTOC + SuperHeatDegree, rhoCmpIn);
       CompressorOutletPressure = GetHighPressure(headAssumption, kappa, mR / rhoCmpIn, evaporatingPressure);
-      //極低負荷の場合に冷媒圧力と比エンタルピーが以上上昇することを回避
+      //Prevent abnormal rises in refrigerant pressure and specific enthalpy at extremely low load
       CompressorOutletPressure = Math.Min(4000, CompressorOutletPressure);
       hCmpOut = Math.Min(500, hCmpOut);
       refrigerant.GetStateFromPressureAndEnthalpy(Math.Min(CompressorOutletPressure, condensingPressure), hCmpOut,
-        out _, out double rhoVap, out _, out _); //圧力降下後の冷媒密度で計算
+        out _, out double rhoVap, out _, out _); //Use the refrigerant density after the pressure drop
 
-      //凝縮圧力の誤差を出力
+      //Output the condensing pressure error
       double pCnd2 = CompressorOutletPressure
       - Heating!.PipeResistanceCoefficient * mR * (mR / rhoVap) * PipeLength
       + 0.001 * IndoorUnitHeight * 9.8 * rhoVap;
@@ -995,7 +995,7 @@ namespace Popolo.Core.HVAC.VRF
       (double condensingTemperature, double heatRecovery,
       out double heatingLoad, out double condensingPressure, out double evaporatingPressure)
     {
-      //凝縮温度にもとづいて屋内機を更新
+      //Update the indoor units based on the condensing temperature
       refrigerant.GetSaturatedPropertyFromTemperature(condensingTemperature + KTOC,
         out _, out _, out condensingPressure);
       heatingLoad = 0;
@@ -1007,42 +1007,42 @@ namespace Popolo.Core.HVAC.VRF
 
         heatingLoad += unt.HeatTransfer;
       }
-      //凝縮器出口比エンタルピーの計算
+      //Compute the condenser outlet specific enthalpy
       refrigerant.GetStateFromPressureAndTemperature(condensingPressure, condensingTemperature + KTOC - SubCoolDegree,
         out _, out _, out double iUnitOutletEnthalpy2, out _);
 
-      //必要蒸発圧力の計算
+      //Compute the required evaporating pressure
       double qEvp = heatingLoad - Heating!.NominalHead;
-      if (qEvp < 0) //ヘッドだけで負荷が賄える場合
+      if (qEvp < 0) //When the head alone can cover the load
       {
         evaporatingPressure = refrigerant.MinPressure;
         return qEvp; //2023.07.28
       }
       VRFUnit oUnt = Heating!.outdoorUnit;
-      //屋外機の処理熱量計算時には廃熱回収を差し引く（冷媒循環量計算時は引いては駄目）
+      //Subtract the waste heat recovery when computing the outdoor unit heat transfer (it must not be subtracted when computing the refrigerant circulation rate)
       oUnt.SolveHeatLoad(-Math.Max(0, qEvp - heatRecovery), oUnt.NominalAirFlowRate, oUnt.InletAirTemperature, oUnt.InletAirHumidityRatio, true);
 
-      //蒸発器出口冷媒状態の計算
+      //Compute the evaporator outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature(oUnt.RefrigerantTemperature + KTOC,
         out _, out _, out evaporatingPressure);
       if (evaporatingPressure < refrigerant.MinPressure)
-        return refrigerant.MinPressure - evaporatingPressure; //冷媒の計算範囲外に飛び出した場合には、不足分を誤差として出力
+        return refrigerant.MinPressure - evaporatingPressure; //If outside the refrigerant property calculation range, output the shortfall as the error
       CompressorInletPressure = evaporatingPressure;
       refrigerant.GetStateFromPressureAndTemperature(evaporatingPressure, oUnt.RefrigerantTemperature + KTOC + SuperHeatDegree,
         out _, out double rhoCmpIn, out double oUnitOutletEnthalpy, out _);
 
-      //圧縮機出口比エンタルピー[kJ/kg]の計算
-      double mR = (Math.Max(0, qEvp + oUnt.DefrostLoad)) / (oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11 Bugfix:圧縮ヘッドのみで負荷がまかなえてしまう場合に収束計算エラーが発生したため
-      double hCmpOut = oUnitOutletEnthalpy + Math.Min(Heating!.NominalHead / mR, oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11: 低負荷時に極めて大きい比エンタルピーになる場合があったため、圧縮機によるh上昇は蒸発器のΔh以下とした。収束計算破綻回避処理である、物理的な意味はない。
+      //Compute the compressor outlet specific enthalpy [kJ/kg]
+      double mR = (Math.Max(0, qEvp + oUnt.DefrostLoad)) / (oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11 Bugfix: a convergence error occurred when the compression head alone could cover the load
+      double hCmpOut = oUnitOutletEnthalpy + Math.Min(Heating!.NominalHead / mR, oUnitOutletEnthalpy - iUnitOutletEnthalpy2); //2023.04.11: The specific enthalpy sometimes became extremely large at low load, so the h rise across the compressor is capped at the evaporator Δh. This is a safeguard against convergence failure and has no physical meaning.
 
-      //圧縮機出口圧力[kPa]の計算
+      //Compute the compressor outlet pressure [kPa]
       refrigerant.GetStateFromPressureAndEnthalpy(condensingPressure, hCmpOut,
-        out _, out double rhoVap, out _, out _);  //圧力降下後の冷媒密度で計算
+        out _, out double rhoVap, out _, out _);  //Use the refrigerant density after the pressure drop
       CompressorOutletPressure = condensingPressure
       + Heating!.PipeResistanceCoefficient * mR * (mR / rhoVap) * PipeLength
       - 0.001 * IndoorUnitHeight * 9.8 * rhoVap;
 
-      //圧縮ヘッド[kW]の計算
+      //Compute the compression head [kW]
       double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(
         oUnt.RefrigerantTemperature + KTOC + SuperHeatDegree, rhoCmpIn);
       double kp2 = kappa / (kappa - 1);
@@ -1064,9 +1064,9 @@ namespace Popolo.Core.HVAC.VRF
     /// <returns>Compression head efficiency ratio [-].</returns>
     private double CalculateHeatingHeadEfficiency(double head)
     {
-      PartialLoadRatio = head / Heating!.NominalHead; //システムとしての負荷率
+      PartialLoadRatio = head / Heating!.NominalHead; //Partial load ratio of the whole system
 
-      //ユニットの運転台数と負荷率を確認
+      //Determine the number of operating units and the per-unit load ratio
       int nOP;
       for (nOP = OutdoorUnitDivisionCount; 1 < nOP; nOP--)
         if ((double)nOP / OutdoorUnitDivisionCount * MinimumPartialLoadRatio < PartialLoadRatio)
@@ -1075,10 +1075,10 @@ namespace Popolo.Core.HVAC.VRF
       double plUnit = PartialLoadRatio * OutdoorUnitDivisionCount / ActiveOutdoorUnitCount;
 
       double eRate;
-      //連続運転
+      //Continuous operation
       if (MinimumPartialLoadRatio <= plUnit)
         eRate = Heating!.HeadEfficiencyRatioCoefA * plUnit + Heating!.HeadEfficiencyRatioCoefB;
-      //発停運転
+      //On/off operation
       else
       {
         double eMin = Heating!.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Heating!.HeadEfficiencyRatioCoefB;
@@ -1090,12 +1090,12 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 制御有の場合の状態更新処理（熱負荷ないしは給気温度を指定）
+    #region Controlled state update (heat load or supply air temperature specified)
 
     /// <summary>Performs the cooling mode state update with setpoint control.</summary>
     private void UpdateCoolingStateWithControl()
     {
-      //屋内機の計算
+      //Indoor unit calculation
       double lmtTemp = Cooling.MaxEvaporatingTemperature;
       double qEvpSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
@@ -1106,25 +1106,25 @@ namespace Popolo.Core.HVAC.VRF
           (unt.NominalAirFlowRate, unt.InletAirTemperature, unt.InletAirHumidityRatio);
         rfTemps[i] = unt.RefrigerantTemperature;
 
-        lmtTemp = Math.Min(lmtTemp, unt.RefrigerantTemperature);  //最大負荷系統の冷媒温度を保存
+        lmtTemp = Math.Min(lmtTemp, unt.RefrigerantTemperature);  //Keep the refrigerant temperature of the highest-load circuit
         qEvpSum += unt.HeatTransfer;
       }
       lmtTemp = Math.Max(lmtTemp, Cooling.MinEvaporatingTemperature);
 
-      //熱負荷が無い場合にはサーモオフして終了
+      //If there is no heat load, thermo off and exit
       if (0 <= qEvpSum)
       {
         UpdateNoLoad();
         return;
       }
 
-      //蒸発器出口冷媒状態の計算
+      //Compute the evaporator outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature
         (lmtTemp + KTOC, out _, out _, out double evpPressure);
       refrigerant.GetStateFromPressureAndTemperature(evpPressure, lmtTemp + KTOC + SuperHeatDegree,
         out _, out double iUnitOutletDensity, out double iUnitOutletEnthalpy, out _);
 
-      //圧縮ヘッドの収束計算用誤差関数*****************************
+      //Error function for compression head convergence*****************************
       double cndPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
@@ -1132,18 +1132,18 @@ namespace Popolo.Core.HVAC.VRF
         (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, out cndPressure);
       };
 
-      //蒸発温度の収束計算用誤差関数*****************************
+      //Error function for evaporating temperature convergence*****************************
       Roots.ErrorFunction eFncEvpTmp = delegate (double evpT)
       {
         return CalcEvaporatingTemperatureError(evpT, true, out evpPressure);
       };
 
-      //過負荷判定
+      //Overload check
       bool overLoad = 0 < eFncHead(Cooling.NominalHead);
-      //過負荷の場合には蒸発温度を収束計算
+      //If overloaded, iterate on the evaporating temperature
       if (overLoad)
       {
-        //蒸発温度を上げれば定格圧縮動力で冷凍サイクルが形成できる場合
+        //When the refrigeration cycle can be formed at rated compression power by raising the evaporating temperature
         if (0 <= eFncEvpTmp(lmtTemp))
         {
           Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
@@ -1151,17 +1151,17 @@ namespace Popolo.Core.HVAC.VRF
           CompressionHead = Cooling.NominalHead;
           PartialLoadRatio = 1.0;
         }
-        //蒸発温度を低くしないと成立しない場合
+        //When the cycle only holds if the evaporating temperature is lowered
         else
         {
-          //ヘッドを調整して熱量は合わせられる場合
+          //When the heat transfer can be matched by adjusting the head
           if (eFncHead(0) < 0)
           {
             double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
-            eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+            eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
             CalculateCoolingElectricity(hd);
           }
-          //成立しない場合
+          //When the cycle cannot be formed
           else
           {
             eFncHead(Cooling.NominalHead);
@@ -1171,15 +1171,15 @@ namespace Popolo.Core.HVAC.VRF
           }
         }
       }
-      //軽負荷の場合にはヘッドを収束計算
+      //Under light load, iterate on the head
       else
       {
         double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
-        eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+        eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
         CalculateCoolingElectricity(hd);
       }
 
-      //屋内機のサーモオフ時間を調整
+      //Adjust the indoor unit thermo-off time
       for (int i = 0; i < indoorUnits.Count; i++)
       {
         VRFUnit unt = indoorUnits[i];
@@ -1187,7 +1187,7 @@ namespace Popolo.Core.HVAC.VRF
           (lmtTemp, unt.NominalAirFlowRate, unt.InletAirTemperature, unt.InletAirHumidityRatio, true, ControlThermoOffWithSensibleHeat);
       }
 
-      //プロパティ書き込み
+      //Write properties
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
       EvaporatingTemperature = indoorUnits[0].RefrigerantTemperature;
@@ -1197,7 +1197,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Performs the heating mode state update with setpoint control.</summary>
     private void UpdateHeatingStateWithControl()
     {
-      //屋内機の計算
+      //Indoor unit calculation
       double lmtTemp = Heating!.MinCondensingTemperature;
       double qCndSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
@@ -1208,25 +1208,25 @@ namespace Popolo.Core.HVAC.VRF
           (unt.NominalAirFlowRate, unt.InletAirTemperature, unt.InletAirHumidityRatio);
         rfTemps[i] = unt.RefrigerantTemperature;
 
-        lmtTemp = Math.Max(lmtTemp, unt.RefrigerantTemperature);  //最大負荷系統の冷媒温度を保存
+        lmtTemp = Math.Max(lmtTemp, unt.RefrigerantTemperature);  //Keep the refrigerant temperature of the highest-load circuit
         qCndSum += unt.HeatTransfer;
       }
       lmtTemp = Math.Min(Heating!.MaxCondensingTemperature, lmtTemp);
 
-      //熱負荷が無い場合にはサーモオフして終了
+      //If there is no heat load, thermo off and exit
       if (qCndSum <= 0)
       {
         UpdateNoLoad();
         return;
       }
 
-      //凝縮器出口冷媒状態の計算
+      //Compute the condenser outlet refrigerant state
       refrigerant.GetSaturatedPropertyFromTemperature
         (lmtTemp + KTOC, out _, out _, out double cndPressure);
       refrigerant.GetStateFromPressureAndTemperature(cndPressure, lmtTemp + KTOC - SubCoolDegree,
         out _, out _, out double iUnitOutletEnthalpy, out _);
 
-      //定格廃熱回収
+      //Rated waste heat recovery
       double qRcvN = 0;
       if (IsGasEngineHeatpump)
       {
@@ -1234,7 +1234,7 @@ namespace Popolo.Core.HVAC.VRF
         qRcvN = Heating!.NominalHead * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
-      //圧縮ヘッドの収束計算用誤差関数*****************************
+      //Error function for compression head convergence*****************************
       double evpPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
@@ -1242,21 +1242,21 @@ namespace Popolo.Core.HVAC.VRF
         (head, qCndSum, iUnitOutletEnthalpy, out evpPressure, ref cndPressure);
       };
 
-      //蒸発圧力の収束計算用誤差関数*****************************
+      //Error function for evaporating pressure convergence*****************************
       Roots.ErrorFunction eFncCndTmp = delegate (double cndT)
       {
         return CalcCondensingTemperatureError
         (cndT, qRcvN, out qCndSum, out cndPressure, out evpPressure);
       };
 
-      //過負荷判定
+      //Overload check
       bool overLoad;
       if (qCndSum < Heating!.NominalHead + qRcvN) overLoad = false;
       else overLoad = 0 < eFncHead(Heating!.NominalHead);
-      //過負荷の場合には凝縮温度を収束計算
+      //If overloaded, iterate on the condensing temperature
       if (overLoad)
       {
-        //凝縮温度を下げれば定格圧縮動力で冷凍サイクルが形成できる場合
+        //When the refrigeration cycle can be formed at rated compression power by lowering the condensing temperature
         if (0 <= eFncCndTmp(lmtTemp))
         {
           lmtTemp = Roots.Bisection(eFncCndTmp, 15, lmtTemp, 0.001, 0.001, 20);
@@ -1265,17 +1265,17 @@ namespace Popolo.Core.HVAC.VRF
           PartialLoadRatio = 1.0;
           eFncCndTmp(lmtTemp);
         }
-        //凝縮温度を上げないと成立しない場合
+        //When the cycle only holds if the condensing temperature is raised
         else
         {
-          //ヘッドを調整して熱量は合わせられる場合
+          //When the heat transfer can be matched by adjusting the head
           if (eFncHead(0) < 0)
           {
             double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
-            eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+            eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
             CalculateHeatingElectricity(hd);
           }
-          //成立しない場合
+          //When the cycle cannot be formed
           else
           {
             eFncHead(Heating!.NominalHead);
@@ -1285,15 +1285,15 @@ namespace Popolo.Core.HVAC.VRF
           }
         }
       }
-      //軽負荷の場合にはヘッドを収束計算
+      //Under light load, iterate on the head
       else
       {
         double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
-        eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+        eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
         CalculateHeatingElectricity(hd);
       }
 
-      //屋内機のサーモオフ時間を調整
+      //Adjust the indoor unit thermo-off time
       for (int i = 0; i < indoorUnits.Count; i++)
       {
         VRFUnit unt = indoorUnits[i];
@@ -1301,7 +1301,7 @@ namespace Popolo.Core.HVAC.VRF
           (lmtTemp, unt.NominalAirFlowRate, unt.InletAirTemperature, unt.InletAirHumidityRatio, true);
       }
 
-      //プロパティ書き込み
+      //Write properties
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
       EvaporatingTemperature = Heating!.outdoorUnit.RefrigerantTemperature;
@@ -1310,16 +1310,16 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 制御無の場合の状態更新処理（冷媒温度、室内機風量、サーモOn/Off状態を指定：成り行き）
+    #region Uncontrolled state update (refrigerant temperature, indoor unit air flow, and thermo on/off specified: free run)
 
     /// <summary>Performs the cooling mode state update in free-running mode.</summary>
     private void UpdateCoolingStateWithoutControl()
     {
-      //成り行き計算の場合には勝手にファンを落とさない
+      //In free-run calculation, do not shut off the fans automatically
       for (int i = 0; i < indoorUnits.Count; i++)
         indoorUnits[i].ShutoffFanWhenThermoOff = false;
 
-      //蒸発温度が制御できると仮定して屋内機処理熱を計算
+      //Compute the indoor unit heat transfer assuming the evaporating temperature can be controlled
       double qEvpSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -1329,20 +1329,20 @@ namespace Popolo.Core.HVAC.VRF
         qEvpSum += unt.HeatTransfer;
       }
 
-      //熱負荷が無い場合にはサーモオフして終了
+      //If there is no heat load, thermo off and exit
       if (0 <= qEvpSum)
       {
         UpdateNoLoad();
         return;
       }
 
-      //蒸発温度が維持できると仮定して蒸発器出口冷媒状態を計算
+      //Compute the evaporator outlet refrigerant state assuming the evaporating temperature can be maintained
       refrigerant.GetSaturatedPropertyFromTemperature
         (TargetEvaporatingTemperature + KTOC, out _, out _, out double evpPressure);
       refrigerant.GetStateFromPressureAndTemperature(evpPressure, TargetEvaporatingTemperature + KTOC + SuperHeatDegree,
         out _, out double iUnitOutletDensity, out double iUnitOutletEnthalpy, out _);
 
-      //圧縮ヘッドの収束計算用誤差関数*****************************
+      //Error function for compression head convergence*****************************
       double cndPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
@@ -1350,24 +1350,24 @@ namespace Popolo.Core.HVAC.VRF
         (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, out cndPressure);
       };
 
-      //蒸発温度の収束計算用誤差関数*****************************
+      //Error function for evaporating temperature convergence*****************************
       Roots.ErrorFunction eFncEvpTmp = delegate (double evpT)
       {
         return CalcEvaporatingTemperatureError(evpT, false, out evpPressure);
       };
 
-      //過負荷判定
+      //Overload check
       bool overLoad = 0 < eFncHead(Cooling.NominalHead);
-      //過負荷の場合には蒸発温度を収束計算
+      //If overloaded, iterate on the evaporating temperature
       if (overLoad)
       {
-        if (eFncEvpTmp(Cooling.MinEvaporatingTemperature) < 0) //下限蒸発温度にかかるための過負荷
+        if (eFncEvpTmp(Cooling.MinEvaporatingTemperature) < 0) //Overload because the lower evaporating temperature limit is reached
         {
           double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
-          eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+          eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
           CalculateCoolingElectricity(hd);
         }
-        else //圧縮機の能力不足による過負荷
+        else //Overload due to insufficient compressor capacity
         {
           Roots.Bisection(eFncEvpTmp, Cooling.MinEvaporatingTemperature, 30, 0.001, 0.001, 20);
           CompressorElectricity = Cooling.NominalElectricity;
@@ -1375,15 +1375,15 @@ namespace Popolo.Core.HVAC.VRF
           PartialLoadRatio = 1.0;
         }
       }
-      //軽負荷の場合にはヘッドを収束計算
+      //Under light load, iterate on the head
       else
       {
         double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
-        eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+        eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
         CalculateCoolingElectricity(hd);
       }
 
-      //プロパティ書き込み
+      //Write properties
       refrigerant.GetSaturatedPropertyFromTemperature(indoorUnits[0].RefrigerantTemperature + KTOC, out _, out _, out evpPressure);
       refrigerant.GetSaturatedPropertyFromTemperature(Cooling.outdoorUnit.RefrigerantTemperature + KTOC, out _, out _, out cndPressure);
       EvaporatingPressure = evpPressure;
@@ -1395,11 +1395,11 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Performs the heating mode state update in free-running mode.</summary>
     private void UpdateHeatingStateWithoutControl()
     {
-      //成り行き計算の場合には勝手にファンを落とさない
+      //In free-run calculation, do not shut off the fans automatically
       for (int i = 0; i < indoorUnits.Count; i++)
         indoorUnits[i].ShutoffFanWhenThermoOff = false;
 
-      //凝縮温度が制御できると仮定して屋内機処理熱を計算
+      //Compute the indoor unit heat transfer assuming the condensing temperature can be controlled
       double qCndSum = 0;
       double[] rfTemps = new double[indoorUnits.Count];
       for (int i = 0; i < indoorUnits.Count; i++)
@@ -1409,20 +1409,20 @@ namespace Popolo.Core.HVAC.VRF
         qCndSum += unt.HeatTransfer;
       }
 
-      //熱負荷が無い場合にはサーモオフして終了
+      //If there is no heat load, thermo off and exit
       if (qCndSum <= 0)
       {
         UpdateNoLoad();
         return;
       }
 
-      //凝縮温度が維持できると仮定して凝縮器出口冷媒状態を計算
+      //Compute the condenser outlet refrigerant state assuming the condensing temperature can be maintained
       refrigerant.GetSaturatedPropertyFromTemperature
         (TargetCondensingTemperature + KTOC, out _, out _, out double cndPressure);
       refrigerant.GetStateFromPressureAndTemperature(cndPressure, TargetCondensingTemperature + KTOC - SubCoolDegree,
         out _, out double iUnitOutletDensity, out double iUnitOutletEnthalpy, out _);
 
-      //定格廃熱回収
+      //Rated waste heat recovery
       double qRcvN = 0;
       if (IsGasEngineHeatpump)
       {
@@ -1430,7 +1430,7 @@ namespace Popolo.Core.HVAC.VRF
         qRcvN = Heating!.NominalHead * (TotalEfficiencyOfGasEngineHeatpump - effHd) / effHd;
       }
 
-      //圧縮ヘッドの収束計算用誤差関数*****************************
+      //Error function for compression head convergence*****************************
       double evpPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
@@ -1438,27 +1438,27 @@ namespace Popolo.Core.HVAC.VRF
         (head, qCndSum, iUnitOutletEnthalpy, out evpPressure, ref cndPressure);
       };
 
-      //蒸発圧力の収束計算用誤差関数*****************************
+      //Error function for evaporating pressure convergence*****************************
       Roots.ErrorFunction eFncCndTmp = delegate (double cndT)
       {
         return CalcCondensingTemperatureError
         (cndT, qRcvN, out qCndSum, out cndPressure, out evpPressure);
       };
 
-      //過負荷判定
+      //Overload check
       bool overLoad;
       if (qCndSum < Heating!.NominalHead + qRcvN) overLoad = false;
       else overLoad = 0 < eFncHead(Heating!.NominalHead);
-      //過負荷の場合には凝縮温度を収束計算
+      //If overloaded, iterate on the condensing temperature
       if (overLoad)
       {
-        if (eFncCndTmp(Heating!.MaxCondensingTemperature) < 0) //凝縮温度上限値を超えることによる過負荷
+        if (eFncCndTmp(Heating!.MaxCondensingTemperature) < 0) //Overload because the upper condensing temperature limit is exceeded
         {
           double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
-          eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+          eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
           CalculateHeatingElectricity(hd);
         }
-        else //圧縮機能力が不足することによる過負荷
+        else //Overload due to insufficient compressor capacity
         {
           Roots.Bisection(eFncCndTmp, 15, Heating!.MaxCondensingTemperature, 0.001, 0.001, 20);
           CompressorElectricity = Heating!.NominalElectricity;
@@ -1466,15 +1466,15 @@ namespace Popolo.Core.HVAC.VRF
           PartialLoadRatio = 1.0;
         }
       }
-      //軽負荷の場合にはヘッドを収束計算
+      //Under light load, iterate on the head
       else
       {
         double hd = Roots.Bisection(eFncHead, 0, Math.Min(qCndSum, Heating!.NominalHead), 0.001, 0.001, 20);
-        eFncHead(hd - 0.001); //大きい側で収束が終わって圧力が過剰に高くなる場合があったための回避処理。良くないプログラム
+        eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
         CalculateHeatingElectricity(hd);
       }
 
-      //プロパティ書き込み
+      //Write properties
       EvaporatingPressure = evpPressure;
       CondensingPressure = cndPressure;
       EvaporatingTemperature = Heating!.outdoorUnit.RefrigerantTemperature;
@@ -1483,7 +1483,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 屋内機情報設定
+    #region Indoor unit configuration
 
     /// <summary>Sets the supply air temperature setpoint for an indoor unit [°C].</summary>
     /// <param name="indoorUnitIndex">Indoor unit index.</param>
@@ -1546,7 +1546,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 屋内機接続処理
+    #region Indoor unit connection methods
 
     /// <summary>Adds one or more indoor units to the system.</summary>
     /// <param name="iHex">Indoor unit to add.</param>
@@ -1569,7 +1569,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 計算結果取得処理
+    #region Calculation result getters
 
     /// <summary>Gets the total indoor unit heat load [kW] (positive = heating, negative = cooling).</summary>
     /// <returns>Total indoor unit heat load [kW] (positive = heating, negative = cooling).</returns>
@@ -1578,7 +1578,7 @@ namespace Popolo.Core.HVAC.VRF
       double hSum = 0;
       foreach (VRFUnit iHex in indoorUnits)
         hSum += iHex.HeatTransfer;
-      //デフロスト負荷があれば差し引く
+      //Subtract the defrost load if any
       if (CurrentMode == Mode.Heating && Heating!.outdoorUnit.DefrostLoad != 0)
         hSum = Math.Max(0, hSum - Heating!.outdoorUnit.DefrostLoad);
       return hSum;
@@ -1589,7 +1589,7 @@ namespace Popolo.Core.HVAC.VRF
     /// <returns>Indoor unit heat load [kW] (positive = heating, negative = cooling).</returns>
     public double GetHeatLoad(int indoorUnitIndex)
     {
-      //デフロスト負荷があれば負担する
+      //Bear the defrost load if any
       if (CurrentMode == Mode.Heating && Heating!.outdoorUnit.DefrostLoad != 0)
       {
         double hSum = 0;
@@ -1598,7 +1598,7 @@ namespace Popolo.Core.HVAC.VRF
         double rate = indoorUnits[indoorUnitIndex].HeatTransfer / hSum;
         return Math.Max(0, indoorUnits[indoorUnitIndex].HeatTransfer - Heating!.outdoorUnit.DefrostLoad * rate);
       }
-      //なければ室内機負荷をそのまま出力
+      //Otherwise output the indoor unit load as is
       else
         return indoorUnits[indoorUnitIndex].HeatTransfer;
     }
@@ -1622,7 +1622,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 初期化用のstaticメソッド（冷房運転モデル）
+    #region Static initialization methods (cooling operation model)
 
     /// <summary>Estimates the outdoor unit performance parameters for cooling mode from JIS-rated conditions.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
@@ -1642,47 +1642,47 @@ namespace Popolo.Core.HVAC.VRF
       out double pipeResistanceCoefficient, out double nominalHead,
       out VRFUnit outdoorHex)
     {
-      //定格凝縮温度を推定
+      //Estimate the rated condensing temperature
       double cndTemp = 1.449 * (-coolingCapacity / oHexAirFlowRate) + 36.03;
 
-      //基準条件の蒸発器入口比エンタルピー
+      //Evaporator inlet specific enthalpy at the reference condition
       refrigerant.GetSaturatedPropertyFromTemperature(cndTemp + KTOC, out double rhoLiq, out _, out double cndPressureRef);
       double hIHexInRef = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTemp - SUB_COOL_NOM + KTOC, rhoLiq);
 
-      //配管長補正条件の蒸発器入口比エンタルピー
-      double cndTempAdj = JIS_OA_DBT_NOM_C - pipeCorrectionFactor * (JIS_OA_DBT_NOM_C - cndTemp);  //凝縮温度の補正
+      //Evaporator inlet specific enthalpy at the pipe length correction condition
+      double cndTempAdj = JIS_OA_DBT_NOM_C - pipeCorrectionFactor * (JIS_OA_DBT_NOM_C - cndTemp);  //Condensing temperature correction
       double evpTempAdj = JIS_IA_DBT_C - pipeCorrectionFactor * (JIS_IA_DBT_C - NominalEvaporatingTemperature);
       refrigerant.GetSaturatedPropertyFromTemperature(cndTempAdj + KTOC, out rhoLiq, out _, out double cndPressurePC);
       double hIHexInPC = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTempAdj - SUB_COOL_NOM + KTOC, rhoLiq);
 
-      //圧縮機入口冷媒状態
+      //Compressor inlet refrigerant state
       double hIHexOutRef;
       refrigerant.GetSaturatedPropertyFromTemperature(NominalEvaporatingTemperature + KTOC, out _, out _, out double evpPressureRef);
       refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, NominalEvaporatingTemperature + KTOC + SUPER_HEAT_NOM, out _, out _, out hIHexOutRef, out _);
 
-      //配管長補正条件の圧縮機入口冷媒状態
+      //Compressor inlet refrigerant state at the pipe length correction condition
       double hIHexOutPC;
       refrigerant.GetSaturatedPropertyFromTemperature(evpTempAdj + KTOC, out _, out _, out double evpPressurePC);
       refrigerant.GetStateFromPressureAndTemperature(evpPressurePC, evpTempAdj + KTOC + SUPER_HEAT_NOM, out _, out double rhoVap, out hIHexOutPC, out _);
 
-      //圧縮機入口冷媒流量
-      double mRRef = -coolingCapacity / (hIHexOutRef - hIHexInRef);  //冷媒質量流量_基準[kg/s]
-      double mRPC = -coolingCapacity * pipeCorrectionFactor / (hIHexOutPC - hIHexInPC);  //冷媒質量流量_配管長補正[kg/s]
+      //Compressor inlet refrigerant flow rate
+      double mRRef = -coolingCapacity / (hIHexOutRef - hIHexInRef);  //Refrigerant mass flow rate, reference [kg/s]
+      double mRPC = -coolingCapacity * pipeCorrectionFactor / (hIHexOutPC - hIHexInPC);  //Refrigerant mass flow rate, pipe length corrected [kg/s]
       double rvvRef = mRRef * mRRef / rhoVap * nominalPipeLength;
       double rvvPC = mRPC * mRPC / rhoVap * longPipeLength;
 
-      //配管抵抗係数を収束計算
+      //Iterate on the pipe resistance coefficient
       double nmHead = 1;
       Roots.ErrorFunction eFnc1 = delegate (double dpCoef)
       {
-        //基準条件の圧縮ヘッド
+        //Compression head at the reference condition
         double pCmpInRef = evpPressureRef - rvvRef * dpCoef;
         refrigerant.GetStateFromPressureAndEnthalpy(pCmpInRef, hIHexOutRef, out double tmp, out rhoVap, out _, out _);
         double kappaRef = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(tmp, rhoVap);
         double kp2Ref = kappaRef / (kappaRef - 1);
         nmHead = kp2Ref * pCmpInRef * (mRRef / rhoVap) * (Math.Pow(cndPressureRef / pCmpInRef, 1d / kp2Ref) - 1);
 
-        //配管長補正条件の圧縮ヘッド
+        //Compression head at the pipe length correction condition
         double pCmpInPC = evpPressurePC - rvvPC * dpCoef;
         refrigerant.GetStateFromPressureAndEnthalpy(pCmpInPC, hIHexOutPC, out tmp, out rhoVap, out _, out _);
         double kappaPC = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(tmp, rhoVap);
@@ -1694,7 +1694,7 @@ namespace Popolo.Core.HVAC.VRF
       pipeResistanceCoefficient = Roots.Newton(eFnc1, 0, 1, 0.01, 0.01, 20);
       nominalHead = nmHead;
 
-      //屋外機伝熱面積
+      //Outdoor unit heat transfer area
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       outdoorHex = new VRFUnit
         (oHexAirFlowRate, fanElectricity, cndTemp, -coolingCapacity + nmHead, JIS_OA_DBT_NOM_C, oHmd);
@@ -1719,14 +1719,14 @@ namespace Popolo.Core.HVAC.VRF
       VRFUnit outdoorHex, VRFUnit indoorHex,
       double midCapacity1, double midCapacity2, out double midHead1, out double midHead2)
     {
-      double evpPressure, cndPressure;  //蒸発圧力と凝縮圧力
-      double hIHexOut, rhoIHexOut;  //蒸発器出口状態
+      double evpPressure, cndPressure;  //Evaporating and condensing pressures
+      double hIHexOut, rhoIHexOut;  //Evaporator outlet state
 
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       indoorHex.CurrentMode = VRFUnit.Mode.Cooling;
 
-      //中間標準条件の計算*****************************
-      //蒸発器出口状態
+      //Calculation at the intermediate standard condition*****************************
+      //Evaporator outlet state
       double partialRate = midCapacity1 / nominalCapacity;
       indoorHex.SolveHeatLoad
         (indoorHex.NominalCoolingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_C, iHmd, false);
@@ -1735,21 +1735,21 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out rhoIHexOut, out hIHexOut, out _);
 
-      //圧縮ヘッドを収束計算
+      //Iterate on the compression head
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc2 = delegate (double head)
       {
-        //凝縮器出口比エンタルピー
+        //Condenser outlet specific enthalpy
         outdoorHex.SolveHeatLoad(-midCapacity1 + head, outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_C, oHmd, false);
         refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out double rhoVap, out cndPressure);
         double hIHexIn;
         refrigerant.GetStateFromPressureAndTemperature
         (cndPressure, outdoorHex.RefrigerantTemperature + KTOC - SUB_COOL_NOM, out _, out _, out hIHexIn, out _);
 
-        //冷媒質量流量
+        //Refrigerant mass flow rate
         double mR = -midCapacity1 / (hIHexOut - hIHexIn);
 
-        //圧縮ヘッドの誤差を出力
+        //Output the compression head error
         double pCmpIn = evpPressure - pipeResistanceCoefficient * nominalPipeLength * mR * mR / rhoIHexOut;
         refrigerant.GetStateFromPressureAndEnthalpy(pCmpIn, hIHexOut, out double tmp, out rhoVap, out _, out _);
         double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(tmp, rhoVap);
@@ -1758,7 +1758,7 @@ namespace Popolo.Core.HVAC.VRF
       };
       midHead1 = Roots.Brent(0.1 * nominalHead, nominalHead, 0.001, eFnc2);
 
-      //中間中温条件の計算*****************************
+      //Calculation at the intermediate mid-temperature condition*****************************
       partialRate = midCapacity2 / nominalCapacity;
       indoorHex.SolveHeatLoad
         (indoorHex.NominalCoolingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_C, iHmd, false);
@@ -1767,21 +1767,21 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out rhoIHexOut, out hIHexOut, out _);
 
-      //圧縮ヘッドを収束計算
+      //Iterate on the compression head
       oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_MID_C, JIS_OA_WBT_MID_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc3 = delegate (double head)
       {
-        //凝縮器出口比エンタルピー
+        //Condenser outlet specific enthalpy
         outdoorHex.SolveHeatLoad(-midCapacity2 + head, outdoorHex.NominalAirFlowRate, JIS_OA_DBT_MID_C, oHmd, false);
         refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out double rhoVap, out cndPressure);
         double hIHexIn;
         refrigerant.GetStateFromPressureAndTemperature
         (cndPressure, outdoorHex.RefrigerantTemperature + KTOC - SUB_COOL_NOM, out _, out _, out hIHexIn, out _);
 
-        //冷媒質量流量
+        //Refrigerant mass flow rate
         double mR = -midCapacity2 / (hIHexOut - hIHexIn);
 
-        //圧縮ヘッドの誤差を出力
+        //Output the compression head error
         double pCmpIn = evpPressure - pipeResistanceCoefficient * nominalPipeLength * mR * mR / rhoIHexOut;
         refrigerant.GetStateFromPressureAndEnthalpy(pCmpIn, hIHexOut, out double tmp, out rhoVap, out _, out _);
         double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(tmp, rhoVap);
@@ -1811,8 +1811,8 @@ namespace Popolo.Core.HVAC.VRF
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_C, JIS_IA_WBT_C, PhysicsConstants.StandardAtmosphericPressure);
       indoorHex.CurrentMode = VRFUnit.Mode.Cooling;
 
-      //中間標準条件の計算*****************************
-      //蒸発器出口状態
+      //Calculation at the intermediate standard condition*****************************
+      //Evaporator outlet state
       double partialRate = midCapacity1 / nominalCapacity;
       indoorHex.SolveHeatLoad
         (indoorHex.NominalCoolingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_C, iHmd, false);
@@ -1821,21 +1821,21 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature
         (evpPressure, indoorHex.RefrigerantTemperature + SUPER_HEAT_NOM + KTOC, out _, out double rhoIHexOut, out double hIHexOut, out _);
 
-      //圧縮ヘッドを収束計算
+      //Iterate on the compression head
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_C, JIS_OA_WBT_NOM_C, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc2 = delegate (double head)
       {
-        //凝縮器出口比エンタルピー
+        //Condenser outlet specific enthalpy
         outdoorHex.SolveHeatLoad(-midCapacity1 + head, outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_C, oHmd, false);
         refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out _, out double cndPressure);
         double hIHexIn;
         refrigerant.GetStateFromPressureAndTemperature
         (cndPressure, outdoorHex.RefrigerantTemperature + KTOC - SUB_COOL_NOM, out _, out _, out hIHexIn, out _);
 
-        //冷媒質量流量
+        //Refrigerant mass flow rate
         double mR = -midCapacity1 / (hIHexOut - hIHexIn);
 
-        //圧縮ヘッドの誤差を出力
+        //Output the compression head error
         double pCmpIn = evpPressure - pipeResistanceCoefficient * nominalPipeLength * mR * mR / rhoIHexOut;
         refrigerant.GetStateFromPressureAndEnthalpy(pCmpIn, hIHexOut, out double tmp, out double rhoVap, out _, out _);
         double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(tmp, rhoVap);
@@ -1919,7 +1919,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 初期化用のstaticメソッド（暖房運転モデル）
+    #region Static initialization methods (heating operation model)
 
     /// <summary>Estimates the outdoor unit performance parameters for heating mode from JIS-rated conditions.</summary>
     /// <param name="refrigerant">Refrigerant property calculator.</param>
@@ -1940,60 +1940,60 @@ namespace Popolo.Core.HVAC.VRF
       out double pipeResistanceCoefficient, out double nominalHead,
       out VRFUnit outdoorHex)
     {
-      //定格凝縮温度を推定
+      //Estimate the rated condensing temperature
       double evpTempRef = -0.34 * (heatingCapacity / oHexAirFlowRate) + 4.091;
 
-      //基準条件の蒸発器入口比エンタルピー
+      //Evaporator inlet specific enthalpy at the reference condition
       refrigerant.GetSaturatedPropertyFromTemperature(NominalCondensingTemperature + KTOC, out double rhoLiq, out _, out double cndPressureRef);
       double hIHexInRef = refrigerant.GetEnthalpyFromTemperatureAndDensity(NominalCondensingTemperature - SUB_COOL_NOM + KTOC, rhoLiq);
 
-      //配管長補正条件の蒸発器入口比エンタルピー
-      double evpTempAdj = JIS_OA_DBT_NOM_H - pipeCorrectionFactor * (JIS_OA_DBT_NOM_H - evpTempRef);  //蒸発温度の補正
-      double cndTempAdj = JIS_IA_DBT_H - pipeCorrectionFactor * (JIS_IA_DBT_H - NominalCondensingTemperature);  //凝縮温度の補正
+      //Evaporator inlet specific enthalpy at the pipe length correction condition
+      double evpTempAdj = JIS_OA_DBT_NOM_H - pipeCorrectionFactor * (JIS_OA_DBT_NOM_H - evpTempRef);  //Evaporating temperature correction
+      double cndTempAdj = JIS_IA_DBT_H - pipeCorrectionFactor * (JIS_IA_DBT_H - NominalCondensingTemperature);  //Condensing temperature correction
       refrigerant.GetSaturatedPropertyFromTemperature(cndTempAdj + KTOC, out rhoLiq, out _, out double cndPressurePC);
       double hIHexInPC = refrigerant.GetEnthalpyFromTemperatureAndDensity(cndTempAdj - SUB_COOL_NOM + KTOC, rhoLiq);
 
-      //圧縮機入口冷媒状態
+      //Compressor inlet refrigerant state
       double hIHexOutRef;
       refrigerant.GetSaturatedPropertyFromTemperature(evpTempRef + KTOC, out _, out _, out double evpPressureRef);
       refrigerant.GetStateFromPressureAndTemperature(evpPressureRef, evpTempRef + SUPER_HEAT_NOM + KTOC, out _, out double rhoCmpInRef, out hIHexOutRef, out _);
       double kappaRef = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(evpTempRef + SUPER_HEAT_NOM + KTOC, rhoCmpInRef);
       double kp2Ref = kappaRef / (kappaRef - 1);
 
-      //配管長補正時の圧縮機入口冷媒状態
+      //Compressor inlet refrigerant state at the pipe length correction condition
       double hIHexOutPC;
       refrigerant.GetSaturatedPropertyFromTemperature(evpTempAdj + KTOC, out _, out _, out double evpPressurePC);
       refrigerant.GetStateFromPressureAndTemperature(evpPressurePC, evpTempAdj + SUPER_HEAT_NOM + KTOC, out _, out double rhoCmpInPC, out hIHexOutPC, out _);
       double kappaPC = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(evpTempAdj + SUPER_HEAT_NOM + KTOC, rhoCmpInPC);
       double kp2PC = kappaPC / (kappaPC - 1);
 
-      //配管抵抗係数を収束計算
+      //Iterate on the pipe resistance coefficient
       double pipeCoef = 0;
       Roots.ErrorFunction eFnc1 = delegate (double nmHead)
       {
-        //基準条件の配管抵抗係数
-        double mRRef = Math.Max(0, heatingCapacity - nmHead) / (hIHexOutRef - hIHexInRef);  //冷媒質量流量_基準[kg/s]
+        //Pipe resistance coefficient at the reference condition
+        double mRRef = Math.Max(0, heatingCapacity - nmHead) / (hIHexOutRef - hIHexInRef);  //Refrigerant mass flow rate, reference [kg/s]
         double hCmpoRef = hIHexOutRef + nmHead / mRRef;
         double pHRef = GetHighPressure(nmHead, kappaRef, mRRef / rhoCmpInRef, evpPressureRef);
-        refrigerant.GetStateFromPressureAndEnthalpy(cndPressureRef, hCmpoRef, out _, out double rhoVap, out _, out _); //圧力降下後の冷媒密度で計算
+        refrigerant.GetStateFromPressureAndEnthalpy(cndPressureRef, hCmpoRef, out _, out double rhoVap, out _, out _); //Use the refrigerant density after the pressure drop
         double volRef = mRRef / rhoVap;
         pipeCoef = (pHRef - cndPressureRef) / (nominalPipeLength * mRRef * volRef);
 
-        //配管長補正条件の配管抵抗係数
-        double mRPC = Math.Max(0, heatingCapacity * pipeCorrectionFactor - nmHead) / (hIHexOutPC - hIHexInPC);  //冷媒質量流量_配管長補正[kg/s]
+        //Pipe resistance coefficient at the pipe length correction condition
+        double mRPC = Math.Max(0, heatingCapacity * pipeCorrectionFactor - nmHead) / (hIHexOutPC - hIHexInPC);  //Refrigerant mass flow rate, pipe length corrected [kg/s]
         double hCmpoPC = hIHexOutPC + nmHead / mRPC;
         double pHPC = GetHighPressure(nmHead, kappaPC, mRPC / rhoCmpInPC, evpPressurePC);
-        refrigerant.GetStateFromPressureAndEnthalpy(cndPressurePC, hCmpoPC, out _, out rhoVap, out _, out _); //圧力降下後の冷媒密度で計算
+        refrigerant.GetStateFromPressureAndEnthalpy(cndPressurePC, hCmpoPC, out _, out rhoVap, out _, out _); //Use the refrigerant density after the pressure drop
         double volPC = mRPC / rhoVap;
         double kpPC = (pHPC - cndPressurePC) / (longPipeLength * mRPC * volPC);
 
         return pipeCoef - kpPC;
       };
-      //COP=6を初期値にして収束計算
+      //Iterate with COP=6 as the initial value
       nominalHead = Roots.Newton(eFnc1, heatingCapacity / 6d, 0.001, 0.001, 0.001, 10);
       pipeResistanceCoefficient = pipeCoef;
 
-      //屋外機伝熱面積
+      //Outdoor unit heat transfer area
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       double nmRcv = Math.Max(0, totalEnergyRecover - nominalHead);
       outdoorHex = new VRFUnit
@@ -2021,8 +2021,8 @@ namespace Popolo.Core.HVAC.VRF
       indoorHex.CurrentMode = VRFUnit.Mode.Heating;
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
 
-      //中間標準条件の計算*****************************
-      //凝縮器出口状態
+      //Calculation at the intermediate standard condition*****************************
+      //Condenser outlet state
       double partialRate = midCapacity / nominalCapacity;
       indoorHex.SolveHeatLoad
         (indoorHex.NominalHeatingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_H, iHmd, false);
@@ -2031,14 +2031,14 @@ namespace Popolo.Core.HVAC.VRF
       refrigerant.GetStateFromPressureAndTemperature
         (cndPressure, indoorHex.RefrigerantTemperature - SUB_COOL_NOM + KTOC, out _, out _, out double hOHexIn, out _);
 
-      //圧縮ヘッドを収束計算
+      //Iterate on the compression head
       double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
       Roots.ErrorFunction eFnc = delegate (double head)
       {
-        //廃熱回収
+        //Waste heat recovery
         double qRcv = Math.Max(0, totalEnergyRecover - head);
 
-        //蒸発器出口比エンタルピー
+        //Evaporator outlet specific enthalpy
         outdoorHex.SolveHeatLoad(-Math.Max(0, midCapacity - head - qRcv), outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_H, oHmd, false);
         refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out _, out double evpPressure);
         refrigerant.GetStateFromPressureAndTemperature(
@@ -2047,13 +2047,13 @@ namespace Popolo.Core.HVAC.VRF
         double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(
           outdoorHex.RefrigerantTemperature + KTOC + SUPER_HEAT_NOM, rhoVap);
 
-        //冷媒質量流量
+        //Refrigerant mass flow rate
         double mR = (midCapacity - head) / (hOHexOut - hOHexIn);
 
-        //圧縮ヘッドの誤差を出力
+        //Output the compression head error
         double pCmpOut = GetHighPressure(head, kappa, mR / rhoVap, evpPressure);
         double hCmpOut = hOHexOut + head / mR;
-        refrigerant.GetStateFromPressureAndEnthalpy(cndPressure, hCmpOut, out _, out rhoVap, out _, out _);  //圧力降下後の冷媒密度で計算
+        refrigerant.GetStateFromPressureAndEnthalpy(cndPressure, hCmpOut, out _, out rhoVap, out _, out _);  //Use the refrigerant density after the pressure drop
         double pIHexIn = pCmpOut - pipeResistanceCoefficient * nominalPipeLength * mR * (mR / rhoVap);
         return pIHexIn - cndPressure;
       };
@@ -2084,8 +2084,8 @@ namespace Popolo.Core.HVAC.VRF
       midHead1 = midHead2 = 0;
       for (int css = 0; css < 2; css++)
       {
-        //中間標準条件の計算*****************************
-        //凝縮器出口状態
+        //Calculation at the intermediate standard condition*****************************
+        //Condenser outlet state
         double partialRate = (css == 0 ? midCapacity1 : midCapacity2) / nominalCapacity;
         indoorHex.SolveHeatLoad
           (indoorHex.NominalHeatingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_H, iHmd, false);
@@ -2094,11 +2094,11 @@ namespace Popolo.Core.HVAC.VRF
         refrigerant.GetStateFromPressureAndTemperature
           (cndPressure, indoorHex.RefrigerantTemperature - SUB_COOL_NOM + KTOC, out _, out _, out double hOHexIn, out _);
 
-        //圧縮ヘッドを収束計算
+        //Iterate on the compression head
         double oHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_OA_DBT_NOM_H, JIS_OA_WBT_NOM_H, PhysicsConstants.StandardAtmosphericPressure);
         Roots.ErrorFunction eFnc2 = delegate (double head)
         {
-          //凝縮器出口比エンタルピー
+          //Condenser outlet specific enthalpy
           outdoorHex.SolveHeatLoad(-(midCapacity1 - head), outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_H, oHmd, false);
           refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out double rhoVap, out double evpPressure);
           refrigerant.GetStateFromPressureAndTemperature(
@@ -2107,13 +2107,13 @@ namespace Popolo.Core.HVAC.VRF
           double kappa = refrigerant.GetSpecificHeatRatioFromTemperatureAndDensity(
             outdoorHex.RefrigerantTemperature + KTOC + SUPER_HEAT_NOM, rhoVap);
 
-          //冷媒質量流量
+          //Refrigerant mass flow rate
           double mR = (midCapacity1 - head) / (hOHexOut - hOHexIn);
 
-          //圧縮ヘッドの誤差を出力
+          //Output the compression head error
           double pCmpOut = GetHighPressure(head, kappa, mR / rhoVap, evpPressure);
           double hCmpOut = hOHexOut + head / mR;
-          refrigerant.GetStateFromPressureAndEnthalpy(cndPressure, hCmpOut, out _, out rhoVap, out _, out _);  //圧力降下後の冷媒密度で計算
+          refrigerant.GetStateFromPressureAndEnthalpy(cndPressure, hCmpOut, out _, out rhoVap, out _, out _);  //Use the refrigerant density after the pressure drop
           double pIHexIn = pCmpOut - pipeResistanceCoefficient * nominalPipeLength * mR * (mR / rhoVap);
           return pIHexIn - cndPressure;
         };

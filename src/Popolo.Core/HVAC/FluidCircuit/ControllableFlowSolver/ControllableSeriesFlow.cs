@@ -25,7 +25,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
   public class ControllableSeriesFlow : IFlowControllableBranch
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets or sets the target flow rate [m³/s].</summary>
     public double FlowRateSetpoint { get; set; }
@@ -52,7 +52,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="minResistance">Minimum resistance [kPa/(m³/s)²].</param>
@@ -65,7 +65,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     #endregion
 
-    #region IFlowControllableBranch実装
+    #region IFlowControllableBranch implementation
 
     /// <summary>Gets a value indicating whether the composite resistance has changed.</summary>
     public bool HasTotalResistanceChanged { get; private set; }

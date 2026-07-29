@@ -95,7 +95,7 @@ namespace Popolo.IO.Climate.Weather
       var ci = CultureInfo.InvariantCulture;
       var station = data.Station;
 
-      // --- 8 行のヘッダ ---
+      // --- 8 header lines ---
       string name = string.IsNullOrEmpty(station.Name) ? "UNKNOWN" : station.Name;
       writer.WriteLine(string.Format(ci,
           "LOCATION,{0},{1},{2},{3},{4},{5:F2},{6:F2},{7:F1},{8:F1}",
@@ -114,7 +114,7 @@ namespace Popolo.IO.Climate.Weather
           data.Count > 0 ? data.Records[data.Count - 1].Time.Month : 12,
           data.Count > 0 ? data.Records[data.Count - 1].Time.Day : 31));
 
-      // --- データ行 ---
+      // --- Data lines ---
       // EPW convention: hour field is 1..24. hour=24 represents the hour
       // ending at midnight of the labelled day (i.e. last hour of that day).
       // A Popolo record whose Time is 23:00 is the last hour of that day, and
@@ -125,21 +125,21 @@ namespace Popolo.IO.Climate.Weather
         int epwHour = t.Hour + 1;  // 0..23 → 1..24
         int monthLabel = t.Month;
         int dayLabel = t.Day;
-        // TMY では年カラムに元観測年 (SourceTime.Year) を書き、IsTypicalYear が
-        // 再読込時に復元されるようにする。通常データでは SourceTime == Time のため
-        // 結果は同じ。
+        // For TMY, write the original observation year (SourceTime.Year) into the
+        // year column so that IsTypicalYear is restored on re-read. For regular data
+        // SourceTime == Time, so the result is the same.
         int yearLabel = r.SourceTime != default ? r.SourceTime.Year : t.Year;
 
-        // データソース列 (固定プレースホルダ)
+        // Data source column (fixed placeholder)
         writer.Write(string.Format(ci, "{0},{1},{2},{3},60,?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0?0",
             yearLabel, monthLabel, dayLabel, epwHour));
 
-        // [6] 乾球温度 [°C], 欠測99.9
+        // [6] Dry-bulb temperature [°C], missing value 99.9
         writer.Write(',');
         writer.Write(r.Has(WeatherField.DryBulbTemperature)
             ? r.DryBulbTemperature.ToString("F1", ci) : "99.9");
 
-        // [7] 露点温度 [°C] は絶対湿度+気圧から逆算
+        // [7] Dew point temperature [°C] is back-calculated from humidity ratio + atmospheric pressure
         double pressureKPa = r.Has(WeatherField.AtmosphericPressure)
             ? r.AtmosphericPressure : PhysicsConstants.StandardAtmosphericPressure;
         string dewPoint = "99.9";
@@ -158,7 +158,7 @@ namespace Popolo.IO.Climate.Weather
           }
           catch
           {
-            // 物理的に不整合な場合は欠測記号を残す
+            // Leave the missing-value markers when physically inconsistent
           }
         }
         writer.Write(',');
@@ -166,42 +166,42 @@ namespace Popolo.IO.Climate.Weather
         writer.Write(',');
         writer.Write(relHumidity);
 
-        // [9] 気圧 [Pa], 欠測999999
+        // [9] Atmospheric pressure [Pa], missing value 999999
         writer.Write(',');
         writer.Write(r.Has(WeatherField.AtmosphericPressure)
             ? ((int)Math.Round(r.AtmosphericPressure * 1000.0)).ToString(ci) : "999999");
 
-        // [10..11] 外気圏上水平/法線日射 (未サポート) → 9999
+        // [10..11] Extraterrestrial horizontal/normal radiation (unsupported) → 9999
         writer.Write(",9999,9999");
 
-        // [12] 大気放射量 [W/m²], 欠測9999
+        // [12] Atmospheric radiation [W/m²], missing value 9999
         writer.Write(',');
         writer.Write(r.Has(WeatherField.AtmosphericRadiation)
             ? ((int)Math.Round(r.AtmosphericRadiation)).ToString(ci) : "9999");
 
-        // [13] 全天日射
+        // [13] Global horizontal solar radiation
         writer.Write(',');
         writer.Write(r.Has(WeatherField.GlobalHorizontalRadiation)
             ? ((int)Math.Round(r.GlobalHorizontalRadiation)).ToString(ci) : "9999");
 
-        // [14] 直達日射
+        // [14] Direct normal solar radiation
         writer.Write(',');
         writer.Write(r.Has(WeatherField.DirectNormalRadiation)
             ? ((int)Math.Round(r.DirectNormalRadiation)).ToString(ci) : "9999");
 
-        // [15] 天空日射
+        // [15] Diffuse (sky) solar radiation
         writer.Write(',');
         writer.Write(r.Has(WeatherField.DiffuseHorizontalRadiation)
             ? ((int)Math.Round(r.DiffuseHorizontalRadiation)).ToString(ci) : "9999");
 
-        // [16..19] 照度 4 項目 (未サポート)
+        // [16..19] Four illuminance fields (unsupported)
         writer.Write(",999999,999999,999999,9999");
 
-        // [20] 風向 [deg]
+        // [20] Wind direction [deg]
         writer.Write(',');
         if (r.Has(WeatherField.WindDirection))
         {
-          // Popolo rad (南基準, 東負, 西正) → EPW deg (北基準, 時計回り)
+          // Popolo rad (south-based, east negative, west positive) → EPW deg (north-based, clockwise)
           double degFromSouth = r.WindDirection * 180.0 / Math.PI;
           double bearing = degFromSouth + 180.0;
           while (bearing >= 360.0) bearing -= 360.0;
@@ -210,28 +210,28 @@ namespace Popolo.IO.Climate.Weather
         }
         else writer.Write("999");
 
-        // [21] 風速 [m/s]
+        // [21] Wind speed [m/s]
         writer.Write(',');
         writer.Write(r.Has(WeatherField.WindSpeed)
             ? r.WindSpeed.ToString("F1", ci) : "999");
 
-        // [22] 全天雲量 [0..10]
+        // [22] Total sky cloud cover [0..10]
         writer.Write(',');
         writer.Write(r.Has(WeatherField.CloudCover)
             ? ((int)Math.Round(r.CloudCover * 10.0)).ToString(ci) : "99");
 
-        // [23] 不透明雲量 (未サポート) → 99
+        // [23] Opaque cloud cover (unsupported) → 99
         writer.Write(",99");
 
-        // [24..32] 視程、雲高、気象コード、可降水量、大気光学厚、積雪、降雪日数、地表反射率
+        // [24..32] Visibility, ceiling height, weather codes, precipitable water, aerosol optical depth, snow depth, days since last snowfall, ground albedo
         writer.Write(",9999,99999,9,999999999,999,.999,999,99,999");
 
-        // [33] 降水量 [mm]
+        // [33] Precipitation [mm]
         writer.Write(',');
         writer.Write(r.Has(WeatherField.Precipitation)
             ? r.Precipitation.ToString("F1", ci) : "999");
 
-        // [34] 降水時間 (未サポート)
+        // [34] Precipitation hours (unsupported)
         writer.Write(",99");
 
         writer.WriteLine();

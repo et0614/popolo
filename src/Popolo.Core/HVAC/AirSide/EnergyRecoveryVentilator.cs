@@ -49,7 +49,7 @@ namespace Popolo.Core.HVAC.AirSide
   public class EnergyRecoveryVentilator : IReadOnlyEnergyRecoveryVentilator
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Air-to-air fixed-plate heat exchanger.</summary>
     private readonly AirToAirFlatPlateHeatExchanger hex;
@@ -107,7 +107,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="heatExchanger">Air-to-air fixed-plate heat exchanger.</param>
@@ -130,7 +130,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Sets the supply and exhaust air flow rates [kg/s].</summary>
     /// <param name="saFlowRate">Supply air flow rate [kg/s].</param>
@@ -152,28 +152,28 @@ namespace Popolo.Core.HVAC.AirSide
     /// </remarks>
     public void Ventilate()
     {
-      //SA風量が0の場合は停止処理
+      //Shut off when the SA flow rate is 0
       if (SAFlowRate <= 0)
       {
         ShutOff();
         return;
       }
 
-      //ファン昇温を計算
+      //Compute the fan temperature rise
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       eaFan.UpdateState(EAFlowRate / PhysicsConstants.NominalMoistAirDensity);
-      //消費電力は[kW]、比熱は[J/(kg・K)]のため0.001を乗じて単位を整合させる
+      //Electric consumption is in [kW] and specific heat in [J/(kg·K)], so multiply by 0.001 to make the units consistent
       double tRise = saFan.GetElectricConsumption()
         / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
 
       if (!BypassHeatExchanger && 0 < EAFlowRate)
       {
-        //全熱交換
+        //Total heat exchange
         const double cf = 3600 / PhysicsConstants.NominalMoistAirDensity;
         hex.UpdateState(SAFlowRate * cf, EAFlowRate * cf,
           OATemperature, OAHumidityRatio, RATemperature, RAHumidityRatio);
 
-        //給気ファン昇温は熱交換の後に加算。排気ファンの発熱は屋外排気として無視
+        //Add the supply fan temperature rise after the heat exchange. Exhaust fan heat is ignored as it is discharged outdoors
         SATemperature = hex.SupplyAirOutletDryBulbTemperature + tRise;
         SAHumidityRatio = hex.SupplyAirOutletHumidityRatio;
         EATemperature = hex.ExhaustAirOutletDryBulbTemperature;
@@ -181,7 +181,7 @@ namespace Popolo.Core.HVAC.AirSide
       }
       else
       {
-        //バイパス運転（熱回収なし）
+        //Bypass operation (no heat recovery)
         hex.UpdateState(0, 0, OATemperature, OAHumidityRatio, RATemperature, RAHumidityRatio);
         SATemperature = OATemperature + tRise;
         SAHumidityRatio = OAHumidityRatio;

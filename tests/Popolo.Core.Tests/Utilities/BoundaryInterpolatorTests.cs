@@ -10,7 +10,7 @@ namespace Popolo.Core.Tests.Utilities
   public class BoundaryInterpolatorTests
   {
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>ソートされていない日時配列で PopoloArgumentException が発生する</summary>
     [Fact]
@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.Utilities
 
     #endregion
 
-    #region 補間のテスト
+    #region Interpolation tests
 
     /// <summary>ノード点では補間値がデータ値と一致する</summary>
     [Fact]
@@ -152,7 +152,7 @@ namespace Popolo.Core.Tests.Utilities
 
     #endregion
 
-    #region AddSeriesのテスト
+    #region AddSeries tests
 
     /// <summary>長さ不一致のシリーズ追加で PopoloArgumentException が発生する</summary>
     [Fact]

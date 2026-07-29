@@ -192,7 +192,7 @@ namespace Popolo.Core.Tests.Climate
     #endregion
 
     // ================================================================
-    #region Incline 統合
+    #region Incline integration
 
     /// <summary>
     /// <see cref="Incline.GetDiffuseSolarIrradiance(IReadOnlySun, double)"/>

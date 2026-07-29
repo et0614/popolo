@@ -59,7 +59,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproWindowJsonConverter : JsonConverter<WebproWindow>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropWindowId = "WindowID";
     private const string PropWindowNumber = "WindowNumber";
@@ -71,7 +71,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproWindow Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

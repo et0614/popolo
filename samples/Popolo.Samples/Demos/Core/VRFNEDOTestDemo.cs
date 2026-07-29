@@ -68,7 +68,7 @@ namespace Popolo.Samples.Demos.Core
   public sealed class VRFNEDOTestDemo : IDemo
   {
 
-    #region IDemo 実装
+    #region IDemo implementation
 
     public string Name => "vrf-nedo-test";
     public string Category => "Core";
@@ -95,7 +95,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 本体ロジック
+    #region Main logic
 
     /// <summary>Runs the NEDO test cases and writes CSV lines to standard output.</summary>
     /// <param name="useJIS">
@@ -156,7 +156,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 冷房テストケース
+    #region Cooling test cases
 
     /// <summary>Runs the cooling-mode test suite and prints one CSV line per case.</summary>
     private static void RunCoolingSuite(VRFSystem vrfSystem, VRFUnit[] iHexes)
@@ -221,7 +221,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 暖房テストケース
+    #region Heating test cases
 
     /// <summary>Runs the heating-mode test suite and prints one CSV line per case.</summary>
     private static void RunHeatingSuite(VRFSystem vrfSystem, VRFUnit[] iHexes)
@@ -289,7 +289,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 出力ヘルパー
+    #region Output helpers
 
     /// <summary>
     /// Writes one CSV result line.
@@ -326,7 +326,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 冷房テストケース データ
+    #region Cooling test case data
 
     private static Dictionary<string, double[]> CoolingLoads() => new()
     {
@@ -402,7 +402,7 @@ namespace Popolo.Samples.Demos.Core
 
     #endregion
 
-    #region 暖房テストケース データ
+    #region Heating test case data
 
     private static Dictionary<string, double[]> HeatingLoads() => new()
     {

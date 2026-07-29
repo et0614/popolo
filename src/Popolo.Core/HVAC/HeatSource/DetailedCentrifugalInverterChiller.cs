@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class DetailedCentrifugalInverterChiller : ICentrifugalChiller, IReadOnlyCentrifugalChiller
   {
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Evaporator overall heat transfer coefficient [kW/K].</summary>
     private double evaporatorHeatTransferCoefficient;
@@ -107,7 +107,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated conditions.</summary>
     /// <param name="nominalInput">Nominal power input [kW].</param>
@@ -125,7 +125,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       ModelParameters = modelParameters;
 
-      //定格能力などを保存
+      //Store rated capacity and related values
       this.CoolingWaterFlowRate = coolingWaterFlowRate;
       this.ChilledWaterFlowRate = chilledWaterFlowRate;
       this.MaxChilledWaterFlowRate = chilledWaterFlowRate;
@@ -138,14 +138,14 @@ namespace Popolo.Core.HVAC.HeatSource
       this.NominalInput = nominalInput;
       this.MinimumPartialLoadRatio = minimumPartialLoadRatio;
 
-      //蒸発器の熱伝達率[kW/K]を計算
+      //Compute the evaporator heat transfer coefficient [kW/K]
       double tEvp = ChilledWaterOutletSetpointTemperature - 2;
       double dt1 = ChilledWaterInletTemperature - tEvp;
       double dt2 = ChilledWaterOutletSetpointTemperature - tEvp;
       double lmtd = (dt1 - dt2) / Math.Log(dt1 / dt2);
       evaporatorHeatTransferCoefficient = NominalCapacity / lmtd;
 
-      //凝縮器の熱伝達率[kW/K]を計算
+      //Compute the condenser heat transfer coefficient [kW/K]
       double qcd = NominalCapacity + NominalInput;
       CoolingWaterOutletTemperature = CoolingWaterInletTemperature + qcd / mccd;
       double tCnd = CoolingWaterOutletTemperature + 1;
@@ -154,7 +154,7 @@ namespace Popolo.Core.HVAC.HeatSource
       lmtd = (dt1 - dt2) / Math.Log(dt1 / dt2);
       condenserHeatTransferCoefficient = qcd / lmtd;
 
-      //定格断熱圧縮仕事[kW]と冷媒流量[m3/s]を計算      
+      //Compute the rated adiabatic compression work [kW] and refrigerant flow rate [m3/s]
       GetHeadAndFlowVolume(
         qcd, NominalCapacity, CoolingWaterInletTemperature, ChilledWaterInletTemperature,
         condenserHeatTransferCoefficient, evaporatorHeatTransferCoefficient, mccd, mcch,
@@ -179,7 +179,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion    
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the chiller state for the given inlet conditions.</summary>
     /// <param name="coolingWaterInletTemperature">Cooling water inlet temperature [°C].</param>
@@ -190,28 +190,28 @@ namespace Popolo.Core.HVAC.HeatSource
       (double coolingWaterInletTemperature, double chilledWaterInletTemperature,
       double coolingWaterFlowRate, double chilledWaterFlowRate)
     {
-      //状態値を保存
+      //Store state values
       this.ChilledWaterInletTemperature = chilledWaterInletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.ChilledWaterFlowRate = chilledWaterFlowRate;
       this.CoolingWaterFlowRate = coolingWaterFlowRate;
 
-      //非稼働ならば停止処理
+      //Shut off if not operating
       if (!IsOperating)
       {
         ShutOff();
         return;
       }
 
-      //熱容量流量[kW/K]を計算
+      //Compute the heat capacity rates [kW/K]
       double mccd = CoolingWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       double mcch = ChilledWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
-      //必要能力[kW]を計算
+      //Compute the required capacity [kW]
       CoolingLoad = mcch * (ChilledWaterInletTemperature - ChilledWaterOutletSetpointTemperature);
       double partialLoad = Math.Max(MinimumPartialLoadRatio, CoolingLoad / NominalCapacity);
 
-      //過負荷判定
+      //Overload check
       double head, volume;
       GetHeadAndFlowVolume(
         CoolingLoad + NominalInput, CoolingLoad, CoolingWaterInletTemperature, ChilledWaterInletTemperature,
@@ -219,7 +219,7 @@ namespace Popolo.Core.HVAC.HeatSource
         out head, out volume);
       ElectricConsumption = GetElectricity(head, volume, partialLoad);
 
-      //最大能力範囲内:消費電力を収束計算
+      //Within maximum capacity: iterate to convergence on electric consumption
       if (ElectricConsumption < NominalInput)
       {
         IsOverLoad = false;
@@ -230,11 +230,11 @@ namespace Popolo.Core.HVAC.HeatSource
             mccd, mcch, out head, out volume);
           return GetElectricity(head, volume, partialLoad) - econs;
         };
-        double eTol = NominalInput * 1e-4;  //定格消費電力の0.01%までの誤差を許容
+        double eTol = NominalInput * 1e-4;  //Allow an error up to 0.01% of the rated electric consumption
         ElectricConsumption = Roots.Newton(eFnc, ElectricConsumption, 1e-4, eTol, eTol, 10);
         ChilledWaterOutletTemperature = ChilledWaterOutletSetpointTemperature;
       }
-      //過負荷//冷却能力を収束計算
+      //Overloaded//iterate to convergence on cooling capacity
       else
       {
         IsOverLoad = true;
@@ -248,7 +248,7 @@ namespace Popolo.Core.HVAC.HeatSource
         CoolingLoad = Roots.Newton(eFnc, NominalCapacity, 1e-4, NominalInput * 1e-4, NominalCapacity * 1e-4, 10);
         ChilledWaterOutletTemperature = ChilledWaterInletTemperature - CoolingLoad / mcch;
       }
-      //冷却水温度を計算
+      //Compute the cooling water temperature
       CoolingWaterOutletTemperature = coolingWaterInletTemperature + (CoolingLoad + ElectricConsumption) / mccd;
     }
 
@@ -263,7 +263,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region privateメソッド
+    #region Private methods
 
     /// <summary>Computes the electric power consumption [kW].</summary>
     /// <param name="head">Adiabatic compression head [kW].</param>
@@ -292,39 +292,39 @@ namespace Popolo.Core.HVAC.HeatSource
       (double qcd, double qch, double tcdi, double tchi, double kacd, double kach,
       double mccd, double mcch, out double head, out double volume)
     {
-      //冷媒はR134a
+      //Refrigerant is R134a
       Refrigerant r134a = new Refrigerant(Refrigerant.Fluid.R134a);
 
-      //凝縮温度・圧力を計算
+      //Compute the condensing temperature and pressure
       double tCnd = tcdi + qcd / ((1 - Math.Exp(-kacd / mccd)) * mccd);
       double dlCnd, dvCnd, pCnd;
       r134a.GetSaturatedPropertyFromTemperature(PhysicsConstants.ToKelvin(tCnd), out dlCnd, out dvCnd, out pCnd);
       double hoCnd = r134a.GetEnthalpyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tCnd), dlCnd);
 
-      //蒸発温度・圧力を計算
+      //Compute the evaporating temperature and pressure
       double tEvp = tchi - qch / ((1 - Math.Exp(-kach / mcch)) * mcch);
       double dlEvp, dvEvp, pEvp;
       r134a.GetSaturatedPropertyFromTemperature(PhysicsConstants.ToKelvin(tEvp), out dlEvp, out dvEvp, out pEvp);
       double hiCmp1 = r134a.GetEnthalpyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
 
-      //中間圧力を計算
+      //Compute the intermediate pressure
       double pMid = Math.Sqrt(pEvp * pCnd);
       double dlMid, dvMid, tMid;
       r134a.GetSaturatedPropertyFromPressure(pMid, out dlMid, out dvMid, out tMid);
       double hsvMid = r134a.GetEnthalpyFromTemperatureAndDensity(tMid, dvMid);
 
-      //蒸発器冷媒流量を計算
+      //Compute the evaporator refrigerant flow rate
       double hiEvp = r134a.GetEnthalpyFromTemperatureAndDensity(tMid, dlMid);
       double mRevp = qch / (hiCmp1 - hiEvp);
       volume = mRevp / dvEvp;
 
-      //1段目羽根車の断熱ヘッド[kW]と出口比エンタルピー[kJ/kg]を計算
+      //Compute the first-stage impeller adiabatic head [kW] and outlet specific enthalpy [kJ/kg]
       double kappa = r134a.GetSpecificHeatRatioFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
       kappa = (kappa - 1) / kappa;
       double head1 = volume / kappa * pEvp * (Math.Pow(pMid / pEvp, kappa) - 1);
       double hoCmp1 = hiCmp1 + head1 / mRevp;
 
-      //2段目羽根車断熱ヘッド[kW]を計算
+      //Compute the second-stage impeller adiabatic head [kW]
       double mRe = (hoCnd - hiEvp) / (hsvMid - hoCnd) * mRevp;
       double hiCmp2 = (hoCmp1 * mRevp + hsvMid * mRe) / (mRevp + mRe);
       double tiCmp2, diCmp2, siCmp2, uiCmp2;
@@ -334,13 +334,13 @@ namespace Popolo.Core.HVAC.HeatSource
       kappa = (kappa - 1) / kappa;
       double head2 = vRCmp2 / kappa * pMid * (Math.Pow(pCnd / pMid, kappa) - 1);
 
-      //圧縮機入力[kW]の計算
+      //Compute the compressor input [kW]
       head = head1 + head2;
     }
 
     #endregion
 
-    #region パラメータ保持用のインナークラス定義
+    #region Inner class definitions for parameter storage
 
     /// <summary>Model parameters for the detailed centrifugal inverter chiller.</summary>
     public class Parameters

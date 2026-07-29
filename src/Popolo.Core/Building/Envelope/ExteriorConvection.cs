@@ -85,7 +85,7 @@ namespace Popolo.Core.Building.Envelope
     /// </summary>
     public const double MinForcedWindSpeed = 0.5;
 
-    #region MoWiTT (滑面ガラス窓向け)
+    #region MoWiTT (for smooth glass windows)
 
     /// <summary>
     /// MoWiTT exterior convective coefficient [W/(m²·K)] for a smooth glass
@@ -110,7 +110,7 @@ namespace Popolo.Core.Building.Envelope
     {
       const double Ct = 0.84;
       var (a, b) = orientation == WindOrientation.Windward ? (3.26, 0.89) : (3.55, 0.617);
-      // 風速下限 V_min を forced 項のみに適用 (natural 項は無関係)。
+      // Apply the wind speed lower limit V_min to the forced term only (the natural term is unaffected).
       double v = windSpeed > MinForcedWindSpeed ? windSpeed : MinForcedWindSpeed;
       double dT = Math.Abs(surfaceAirDeltaT);
       double natural = Ct * Math.Pow(dT, 1.0 / 3.0);
@@ -120,7 +120,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region Walton TARP 自然対流 (室内・屋外共通)
+    #region Walton TARP natural convection (indoor and outdoor)
 
     /// <summary>
     /// Walton TARP natural-convection coefficient [W/(m²·K)] for an
@@ -149,8 +149,8 @@ namespace Popolo.Core.Building.Envelope
         IReadOnlyIncline incline, double surfaceAirDeltaT)
     {
       const double horizontalTiltThreshold = 5.0 * Math.PI / 180.0;  // 5°
-      // 下限値 ≒ 1.31 × 0.43^(1/3): 垂直式が ΔT=0.43 K で出す値に揃え、
-      // ΔT→0 で h が 0 に発散しないようにする (Walton/EnergyPlus TARP の慣行)。
+      // Lower limit ≒ 1.31 × 0.43^(1/3): matches the value the vertical formula gives at ΔT=0.43 K,
+      // so that h does not collapse to 0 as ΔT→0 (Walton/EnergyPlus TARP practice).
       const double minH = 0.948;
 
       double dT = Math.Abs(surfaceAirDeltaT);
@@ -163,14 +163,14 @@ namespace Popolo.Core.Building.Envelope
       double h;
       if (!isUpward && !isDownward)
       {
-        // 垂直または傾斜面
+        // Vertical or tilted surface
         h = 1.31 * dT13;
       }
       else
       {
-        // 水平面: 上下向きと ΔT 符号で stable/unstable を判定
-        //   上向 + 表面が暖 (ΔT>0) → 上昇プルーム → UNSTABLE
-        //   下向 + 表面が冷 (ΔT<0) → 下降プルーム → UNSTABLE
+        // Horizontal surface: determine stable/unstable from the facing direction and the sign of ΔT
+        //   Facing up + warm surface (ΔT>0) → rising plume → UNSTABLE
+        //   Facing down + cool surface (ΔT<0) → sinking plume → UNSTABLE
         bool unstable = (isUpward && surfaceAirDeltaT > 0)
                      || (isDownward && surfaceAirDeltaT < 0);
         h = unstable ? 1.52 * dT13 : 0.76 * dT13;
@@ -180,7 +180,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region Walton TARP 屋外合成 (粗面不透明壁向け)
+    #region Walton TARP outdoor combination (for rough opaque walls)
 
     /// <summary>
     /// Walton TARP exterior convective coefficient [W/(m²·K)] for an opaque
@@ -207,7 +207,7 @@ namespace Popolo.Core.Building.Envelope
     {
       double hN = GetWaltonTarpNatural(incline, surfaceAirDeltaT);
       var (a, b) = orientation == WindOrientation.Windward ? (3.26, 0.89) : (3.55, 0.617);
-      // 風速下限 V_min を forced 項のみに適用 (natural 項は無関係)。
+      // Apply the wind speed lower limit V_min to the forced term only (the natural term is unaffected).
       double v = windSpeed > MinForcedWindSpeed ? windSpeed : MinForcedWindSpeed;
       double hF = roughnessMultiplier * a * Math.Pow(v, b);
       return Math.Sqrt(hN * hN + hF * hF);

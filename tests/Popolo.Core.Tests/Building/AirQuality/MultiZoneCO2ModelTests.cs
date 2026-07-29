@@ -16,7 +16,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
   /// <summary>Unit tests for <see cref="MultiZoneCO2Model"/>.</summary>
   public class MultiZoneCO2ModelTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>2ゾーンの最小BuildingThermalModel（流量の設定・読み取り用）。</summary>
     private static BuildingThermalModel MakeThermalModel(out Zone znA, out Zone znB)
@@ -29,7 +29,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
 
     #endregion
 
-    #region 単一ゾーン（解析解との照合）
+    #region Single zone (comparison with the analytic solution)
 
     /// <summary>
     /// 単一ゾーン・定常入力の陰解法計算が、時間刻みを細かくすると
@@ -71,7 +71,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
 
     #endregion
 
-    #region 熱モデル連携（A系統・ゾーン間換気）
+    #region Thermal model link (path A and inter-zone ventilation)
 
     /// <summary>
     /// 紐づけゾーンのVentilationRateは毎ステップ読み直される：
@@ -200,7 +200,7 @@ namespace Popolo.Core.Tests.Building.AirQuality
 
     #endregion
 
-    #region プロパティ・例外
+    #region Properties and exceptions
 
     /// <summary>ppmプロパティはm3/m3の主プロパティの10^6倍のビューである。</summary>
     [Fact]

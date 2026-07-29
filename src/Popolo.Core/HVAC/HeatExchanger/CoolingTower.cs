@@ -29,14 +29,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class CoolingTower : IReadOnlyCoolingTower
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Cooling tower characteristic coefficient c [-].</summary>
     private const double EXP_N = -0.6;
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Air flow direction type.</summary>
     public enum AirFlowDirection
@@ -49,7 +49,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Cooling tower characteristic coefficient c [-].</summary>
     private double coefC;
@@ -141,7 +141,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
@@ -156,7 +156,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature, double waterFlowRate,
       double airFlowRate, AirFlowDirection airFlowType, double powerConsumption, bool hasInverter)
     {
-      //定格条件を保存
+      //Store nominal conditions
       OutletWaterSetpointTemperature = outletWaterTemperature;
       MaxAirFlowRate = AirFlowRate = airFlowRate;
       MaxWaterFlowRate = WaterFlowRate = waterFlowRate;
@@ -164,11 +164,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
       AirFlowType = airFlowType;
       NominalPowerConsumption = powerConsumption;
 
-      //定格条件にもとづき特性係数c[-]を初期化
+      //Initialize the characteristic coefficient c [-] from nominal conditions
       coefC = GetCoolingTowerCoefficient
         (inletWaterTemperature, outletWaterTemperature, wetBulbTemperature, waterFlowRate, airFlowRate, airFlowType);
 
-      //出口状態を初期化
+      //Initialize outlet state
       Update(inletWaterTemperature, false);
     }
 
@@ -207,7 +207,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Sets the outdoor air conditions.</summary>
     /// <param name="wetBulbTemperature">Wet-bulb temperature [°C].</param>
@@ -223,11 +223,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
     private void UpdateHeatExchange(double inletWaterTemperature, double airFlowRate)
     {
-      //入力条件設定
+      //Set input conditions
       InletWaterTemperature = inletWaterTemperature;
       AirFlowRate = airFlowRate;
 
-      //除去熱量から冷却水出口温度を計算//2017.03.01 DEBUG
+      //Compute cooling water outlet temperature from heat rejection//2017.03.01 DEBUG
       if (AirFlowRate <= 0 || WaterFlowRate <= 0)
       {
         HeatRejection = 0;
@@ -271,10 +271,10 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="controlOutletWaterTemperature">True to control outlet water temperature to the setpoint.</param>
     public void Update(double inletWaterTemperature, bool controlOutletWaterTemperature)
     {
-      //入力条件設定
+      //Set input conditions
       InletWaterTemperature = inletWaterTemperature;
 
-      //出口温度を制御する場合には風量を調整
+      //When controlling the outlet temperature, adjust the air flow rate
       if (controlOutletWaterTemperature)
       {
         if (InletWaterTemperature <= OutletWaterSetpointTemperature) ShutOff();
@@ -302,11 +302,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
       IsOverLoad = false;
 
-      //最小水温で熱交換が過剰ならば終了
+      //Return if the heat exchange is excessive at the minimum water temperature
       UpdateHeatExchange(MIN_TEMP, AirFlowRate);
       if (heatRejection < HeatRejection) return;
 
-      //最高水温で熱交換が不足ならば終了
+      //Return if the heat exchange is insufficient at the maximum water temperature
       UpdateHeatExchange(MAX_TEMP, AirFlowRate);
       if (HeatRejection < heatRejection)
       {
@@ -332,7 +332,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the cooling tower characteristic coefficient c [-] from operating conditions.</summary>
     /// <param name="inletWaterTemperature">Cooling water inlet temperature [°C].</param>
@@ -346,26 +346,26 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double inletWaterTemperature, double outletWaterTemperature, double wetBulbTemperature,
       double waterFlowRate, double airFlowRate, AirFlowDirection airFlowType)
     {
-      //熱交換量[kW]を計算
+      //Compute heat exchange rate [kW]
       double capacity = (inletWaterTemperature - outletWaterTemperature) * waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
-      //冷却水温度に相当する空気の飽和エンタルピーを計算
+      //Compute saturated air enthalpy at the cooling water temperature
       double hswi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (inletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       double hswo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (outletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      //入口空気の飽和エンタルピーを計算
+      //Compute saturated enthalpy of the inlet air
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
         (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
-      //平均的な比熱で熱容量流量比を計算
+      //Compute heat capacity rate ratio using the average specific heat
       double cs = (hswi - hswo) / (inletWaterTemperature - outletWaterTemperature);
       double mwc = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat / cs;
       double mMin = Math.Min(mwc, airFlowRate);
       double mMax = Math.Max(mwc, airFlowRate);
       double rmc = mMin / mMax;
 
-      //熱通過有効度とNTUの計算
+      //Compute heat transfer effectiveness and NTU
       double epsilon = capacity / mMin / (hswi - hai);
       double ntuMin;
       HeatExchange.FlowType aft;
@@ -373,12 +373,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       else aft = HeatExchange.FlowType.CounterFlow;
       ntuMin = HeatExchange.GetNTU(epsilon, rmc, aft);
 
-      //NTUwの計算
+      //Compute NTUw
       double ntuW;
       if (mwc == mMin) ntuW = ntuMin;
       else ntuW = ntuMin * mwc / airFlowRate;
 
-      //冷却塔の特性係数c[-]を出力
+      //Return the cooling tower characteristic coefficient c [-]
       return ntuW / Math.Pow(waterFlowRate / airFlowRate, EXP_N);
     }
 
@@ -394,27 +394,27 @@ namespace Popolo.Core.HVAC.HeatExchanger
       (double inletWaterTemperature, double wetBulbTemperature, double waterFlowRate, double airFlowRate,
       double coolingTowerCoefficient, AirFlowDirection airFlowType)
     {
-      //冷却水温度に相当する空気の飽和エンタルピーを計算
+      //Compute saturated air enthalpy at the cooling water temperature
       double hswi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (inletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      //入口空気の飽和エンタルピーを計算
+      //Compute saturated enthalpy of the inlet air
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
         (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      //NTUwを計算
+      //Compute NTUw
       double ntuw = coolingTowerCoefficient * Math.Pow(waterFlowRate / airFlowRate, EXP_N);
 
-      //誤差関数を定義
+      //Define error function
       Roots.ErrorFunction eFnc = delegate (double waterOutletTemperature)
       {
-        //平均的な比熱を計算
+        //Compute average specific heat
         double hswo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (waterOutletTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
         double cs = (hswi - hswo) / (inletWaterTemperature - waterOutletTemperature);
 
-        //冷却水の換算流量を計算
+        //Compute equivalent cooling water flow rate
         double mwc = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat / cs;
 
-        //熱通過有効度を計算
+        //Compute heat transfer effectiveness
         double ntu;
         if (airFlowRate < mwc) ntu = ntuw * (mwc / airFlowRate);
         else ntu = ntuw;
@@ -424,12 +424,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
         double epsilon = HeatExchange.GetEffectiveness
         (ntu, Math.Min(airFlowRate, mwc) / Math.Max(airFlowRate, mwc), ft);
 
-        //除去熱量を計算して誤差を評価
+        //Compute heat rejection and evaluate the error
         double hReject = epsilon * (hswi - hai) * Math.Min(airFlowRate, mwc);
         return hReject - (inletWaterTemperature - waterOutletTemperature) * waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       };
 
-      //冷却水出口温度を収束計算
+      //Iterate to find the cooling water outlet temperature
       double wOutT = inletWaterTemperature - 1;
       wOutT = Roots.Newton(eFnc, wOutT, 0.0001, 0.01, 0.001, 10);
 
@@ -451,40 +451,40 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double waterFlowRate, double maxAirFlowRate, double coolingTowerCoefficient,
       AirFlowDirection airFlow, out bool isOverLoad)
     {
-      //冷却水温度に相当する空気の飽和エンタルピーを計算
+      //Compute saturated air enthalpy at the cooling water temperature
       double hswi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (inletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
       double hswo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (outletWaterTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      //入口空気の飽和エンタルピー
+      //Saturated enthalpy of the inlet air
       double hai = MoistAir.GetEnthalpyFromWetBulbTemperatureAndRelativeHumidity
         (wetBulbTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
-      //加熱してしまう条件の場合には風量0とする
+      //Set air flow to zero if the water would be heated instead
       if (hswi < hai)
       {
         isOverLoad = true;
         return 0;
       }
 
-      //熱通過有効度×質量流量：εmの計算
+      //Compute effectiveness times mass flow rate: εm
       double emmi = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat
         * (inletWaterTemperature - outletWaterTemperature) / (hswi - hai);
 
-      //平均的な比熱で冷却水の換算流量を計算
+      //Compute equivalent cooling water flow rate using the average specific heat
       double cs = (hswi - hswo) / (inletWaterTemperature - outletWaterTemperature);
       double mwc = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat / cs;
 
-      //誤差関数を定義
+      //Define error function
       Roots.ErrorFunction eFnc = delegate (double afRate)
       {
-        //NTUを計算
+        //Compute NTU
         double ntuw = coolingTowerCoefficient * Math.Pow(waterFlowRate / afRate, EXP_N);
         double ntu;
         if (afRate < mwc) ntu = ntuw * (mwc / afRate);
         else ntu = ntuw;
 
-        //熱通過有効度を計算
+        //Compute heat transfer effectiveness
         double mmin = Math.Min(mwc, afRate);
         double mmax = Math.Max(mwc, afRate);
         HeatExchange.FlowType ft;
@@ -495,15 +495,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return emmi - epsilon * mmin;
       };
 
-      //風量不足の場合には最大風量を出力する
+      //If the air flow is insufficient, return the maximum air flow rate
       isOverLoad = 0 < eFnc(maxAirFlowRate);
       if (isOverLoad) return maxAirFlowRate;
 
-      //風量比0.1%で過剰処理の場合には0.1%とする
+      //If the heat exchange is still excessive at 0.1% air flow ratio, use 0.1%
       isOverLoad = 0 < eFnc(0.001 * maxAirFlowRate);
       if (!isOverLoad) return 0.001 * maxAirFlowRate;
 
-      //二分法で収束計算//誤差率0.1%未満
+      //Iterate with the bisection method//error ratio below 0.1%
       isOverLoad = false;
       return Roots.Bisection(eFnc, 0.001 * maxAirFlowRate, maxAirFlowRate, 0.001, 0.001 * maxAirFlowRate, 20);
     }
@@ -525,17 +525,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double airFlowRate, double nominalAirFlowRate, double driftWaterRate, double concentrationRatio,
       out double evaporationWater, out double driftWater, out double blowDownWater)
     {
-      //処理熱量から蒸発水を計算
+      //Compute evaporation water from the heat rejection
       double outletHRatio;
       if (heatRejection <= 0 || airFlowRate <= 0) outletHRatio = 0;
       else outletHRatio = MoistAir.GetHumidityRatioFromEnthalpyAndRelativeHumidity
         (airEnthalpy + heatRejection / airFlowRate, 100, PhysicsConstants.StandardAtmosphericPressure);
       evaporationWater = airFlowRate * (outletHRatio - airHumidityRatio);
 
-      //循環量から飛散水を計算
+      //Compute drift water from the circulating flow rate
       driftWater = waterFlowRate * driftWaterRate * (airFlowRate / nominalAirFlowRate);
 
-      //0kg/s以上になるようにブロー水量を調整
+      //Adjust blowdown water so that it does not fall below 0 kg/s
       blowDownWater = Math.Max(0, evaporationWater / (concentrationRatio - 1) - driftWater);
     }
 
@@ -557,12 +557,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public static double GetPowerConsumptionWithInverter
       (double airFlowRate, double nominalAirFlowRate, double nominalPowerConsumption, double minFrequency)
     {
-      //回転数制御範囲内の場合
+      //Within the rotation speed control range
       if (minFrequency <= airFlowRate / nominalAirFlowRate)
         return nominalPowerConsumption * Math.Pow(airFlowRate / nominalAirFlowRate, 3);
       else
       {
-        //INV下限での風量と消費電力
+        //Air flow and power consumption at the inverter lower limit
         double el = nominalPowerConsumption * Math.Pow(minFrequency, 3);
         double af = nominalAirFlowRate * minFrequency;
 

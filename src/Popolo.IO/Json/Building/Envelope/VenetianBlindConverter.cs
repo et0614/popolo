@@ -50,7 +50,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class VenetianBlindConverter : JsonConverter<VenetianBlind>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropSlatAngle = "slatAngle";
@@ -65,7 +65,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="VenetianBlind"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>

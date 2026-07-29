@@ -35,14 +35,14 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
     /// </remarks>
     public class HeatSourceSystemModelTests
     {
-        #region 定数
+        #region Constants
 
         private const double Cp = 4.186;
 
         #endregion
 
         // ================================================================
-        #region Test3-A: CentrifugalChillerSystem — 冷却運転
+        #region Test3-A: CentrifugalChillerSystem — cooling operation
 
         /// <summary>
         /// Test3 (HeatSourceSubsystemTest3) の前半に対応。
@@ -262,7 +262,7 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
         #endregion
 
         // ================================================================
-        #region HotWaterBoilerSystem — 暖房運転
+        #region HotWaterBoilerSystem — heating operation
 
         private static (HeatSourceSystemModel, HotWaterBoiler)
             MakeBoilerSystem()
@@ -329,7 +329,7 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
         #endregion
 
         // ================================================================
-        #region HeatSourceSystemModel — 基本プロパティ
+        #region HeatSourceSystemModel — basic properties
 
         /// <summary>SetOperatingMode で Mode が設定される。</summary>
         [Fact]

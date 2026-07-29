@@ -49,7 +49,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class CentrifugalHeatPump
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Default condenser approach temperature at rated conditions Δt_cnd,app,N [K].</summary>
     public const double DefaultCondenserApproach = 1.0;
@@ -62,7 +62,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Base operation mode of the heat pump.</summary>
     public enum OperationMode
@@ -75,7 +75,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region インスタンス（機器固有情報）
+    #region Instance (equipment-specific data)
 
     private readonly Refrigerant refrigerant;
     private readonly ModeCalibration? coolingCalibration;
@@ -129,7 +129,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region パラメータ推定
+    #region Parameter estimation
 
     /// <summary>
     /// Estimates the model parameters for a single operation mode from catalog data,
@@ -168,8 +168,8 @@ namespace Popolo.Core.HVAC.HeatSource
       if (stageCount < 1) throw new ArgumentOutOfRangeException(nameof(stageCount));
       if (points == null) throw new ArgumentNullException(nameof(points));
 
-      // 定格点は正規化の基準であると同時に回帰点でもある（論文の「定格点＋6点以上」）。
-      // points に含まれていなければ自動的に追加する。
+      // The rated point is both the normalization reference and a regression point (the paper's "rated point + 6 or more points").
+      // It is added automatically if not already contained in points.
       var pts = new List<CatalogPoint>(points);
       if (!pts.Contains(rated)) pts.Add(rated);
       if (pts.Count < MinCurvePoints)
@@ -180,7 +180,7 @@ namespace Popolo.Core.HVAC.HeatSource
       CycleSolution sol = SolveCyclePoints(
         mode, refrigerant, rated, pts, condenserApproach, evaporatorApproach, stageCount);
 
-      // E = W_is·(a·ϕ² + b·ϕ + c·(ϕ⁻¹−1) + d·Rw² + e·Rw + f)：6パラメータに対して線形
+      // E = W_is·(a·ϕ² + b·ϕ + c·(ϕ⁻¹−1) + d·Rw² + e·Rw + f): linear in the 6 parameters
       int n = pts.Count;
       double[] y = new double[n];
       double[][] x = new double[n][];
@@ -203,11 +203,11 @@ namespace Popolo.Core.HVAC.HeatSource
         };
       }
 
-      // 制約付き最小二乗（効率特性の物理条件：a_cmp ≥ 0, c_cmp ≥ 0, d_cmp ≥ 0。
-      // a, d は効率の極大、c は補機類の定常消費に対応する低負荷ペナルティの符号条件）。
-      // 凸二次計画なので、違反し得る係数の部分集合（最大7通り）を有効集合として列挙し、
-      // 該当列を除いた通常のOLSを解いて実行可能解のうちRSS最小を採れば厳密解になる。
-      // {a=0, c=0, d=0} は構成上必ず実行可能なため、解は常に存在する。
+      // Constrained least squares (physical conditions on the efficiency characteristic: a_cmp ≥ 0, c_cmp ≥ 0, d_cmp ≥ 0.
+      // a and d ensure an efficiency maximum; c is the sign condition on the low-load penalty corresponding to steady auxiliary consumption).
+      // Since this is a convex quadratic program, enumerate the subsets of coefficients that may violate the constraints (up to 7) as active sets,
+      // solve ordinary OLS with the corresponding columns removed, and take the feasible solution with the smallest RSS for the exact optimum.
+      // {a=0, c=0, d=0} is feasible by construction, so a solution always exists.
       int[] signCols = [0, 2, 3];
       bool Feasible(double[] c) => 0.0 <= c[0] && 0.0 <= c[2] && 0.0 <= c[3];
       double[] cf = FitOls(y, x, [true, true, true, true, true, true], out double rss);
@@ -217,18 +217,18 @@ namespace Popolo.Core.HVAC.HeatSource
         constrained = true;
         cf = null!;
         rss = double.PositiveInfinity;
-        for (int set = 1; set < 8; set++)   // 空集合（無制約）は解済みのため除く
+        for (int set = 1; set < 8; set++)   // skip the empty set (unconstrained), already solved
         {
           bool[] mask = [true, true, true, true, true, true];
           for (int k = 0; k < signCols.Length; k++)
             if ((set & (1 << k)) != 0) mask[signCols[k]] = false;
           double[] c = FitOls(y, x, mask, out double r);
-          if (!Feasible(c)) continue;   // 自由に残した側が違反 → 棄却
+          if (!Feasible(c)) continue;   // a coefficient left free violates a constraint -> reject
           if (r < rss) { rss = r; cf = c; }
         }
       }
 
-      // 熱回収定格点があれば、回収チューブの熱通過率 KA_cnd,rcv も推定する
+      // If a heat-recovery rated point is available, also estimate the overall heat transfer coefficient of the recovery tubes KA_cnd,rcv
       double kaRcv = double.NaN;
       if (recoveryRated.HasValue)
       {
@@ -298,26 +298,26 @@ namespace Popolo.Core.HVAC.HeatSource
       double evaporatorApproach = DefaultEvaporatorApproach,
       int stageCount = 2, CatalogPoint? recoveryRated = null)
     {
-      // 加熱定格点の理論サイクル（KAは加熱定格から取り直す）
+      // Theoretical cycle at the heating rated point (KA values are re-estimated from the heating rating)
       CycleSolution sol = SolveCyclePoints(
         OperationMode.Heating, refrigerant, rated, [rated],
         condenserApproach, evaporatorApproach, stageCount);
       CyclePoint cyc = sol.Points[0];
 
-      // 冷却モードの正規化座標上での運転点と、実効率から α を閉形式で決める
+      // Determine α in closed form from the operating point on the cooling-mode normalized coordinates and the actual efficiency
       double rv = cyc.VolumetricFlow / coolingCalibration.NominalFlowVolume;
       double rw = cyc.StageOneHead / coolingCalibration.NominalHead;
       double phi = rv / Math.Sqrt(rw);
       double etaActual = cyc.IsentropicPower / rated.PowerInput;
       double alpha = etaActual / coolingCalibration.Parameters.Efficiency(phi, rw);
 
-      // 1/η_ht = (1/α)·(1/η_ch) → 6係数を一律 1/α 倍
+      // 1/η_ht = (1/α)·(1/η_ch) -> scale all 6 coefficients uniformly by 1/α
       Parameters pc = coolingCalibration.Parameters;
       Parameters heating = new Parameters(
         pc.a_cmp / alpha, pc.b_cmp / alpha, pc.c_cmp / alpha,
         pc.d_cmp / alpha, pc.e_cmp / alpha, pc.f_cmp / alpha);
 
-      // 加熱優先熱回収の定格点があれば、蒸発器側の回収チューブ KA も推定する
+      // If a heating-priority heat-recovery rated point is available, also estimate the evaporator-side recovery-tube KA
       double kaRcv = double.NaN;
       if (recoveryRated.HasValue)
       {
@@ -401,8 +401,8 @@ namespace Popolo.Core.HVAC.HeatSource
 
       double phiMin = calibration.MinimumFlowCoefficient;
 
-      // θ=0 なら Solve の消費電力がそのまま E_min になる。呼び出し元の calibration を
-      // 一時的に書き換えるとスレッド安全でないため、θ=0 のクローンで順モデルを解く。
+      // With θ=0, the electric consumption from Solve equals E_min directly. Temporarily mutating
+      // the caller's calibration is not thread-safe, so the forward model is solved on a θ=0 clone.
       ModeCalibration zeroTheta = CloneWithZeroTheta(calibration);
       CentrifugalHeatPump hp = (mode == OperationMode.Cooling)
         ? new CentrifugalHeatPump(refrigerant, maximumPower, zeroTheta, null, stageCount)
@@ -466,7 +466,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 理論サイクルの一括求解
+    #region Simultaneous solution of the theoretical cycle
 
     /// <summary>
     /// Derives the normalization references (w1,N, vR,N) and the heat-transfer coefficients
@@ -505,7 +505,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 熱通過率・正規化基準の推定
+    #region Estimation of overall heat transfer coefficients and normalization references
 
     /// <summary>
     /// Estimates the evaporator/condenser overall heat-transfer coefficients [kW/K] from the
@@ -570,7 +570,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 理論冷凍サイクル
+    #region Theoretical refrigeration cycle
 
     /// <summary>
     /// Solves the steady J-stage theoretical refrigeration cycle for one operating point and
@@ -586,7 +586,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       SplitDuty(mode, capacity, power, out double qEvp, out double qCnd);
 
-      // 蒸発温度（Eq.25）と凝縮温度（Eq.18）を水側の熱収支から求める
+      // Evaporating temperature (Eq.25) and condensing temperature (Eq.18) from the water-side heat balance
       double epsEvp = 1.0 - Math.Exp(-evaporatorKA / evaporatorMc);
       double tEvp = evaporatorInletT - qEvp / (epsEvp * evaporatorMc);
       double epsCnd = 1.0 - Math.Exp(-condenserKA / condenserMc);
@@ -602,24 +602,24 @@ namespace Popolo.Core.HVAC.HeatSource
     private static CyclePoint SolveCycleCore(
       Refrigerant r, int stages, double tEvp, double tCnd, double qEvp)
     {
-      // 蒸発圧力（飽和）と1段目吸込（飽和蒸気）
+      // Evaporating pressure (saturation) and first-stage suction (saturated vapor)
       r.GetSaturatedPropertyFromTemperature(PhysicsConstants.ToKelvin(tEvp),
         out _, out double dvEvp, out double pEvp);
       double hVapEvp = r.GetEnthalpyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
 
-      // 凝縮圧力（飽和）と凝縮器出口（飽和液）
+      // Condensing pressure (saturation) and condenser outlet (saturated liquid)
       r.GetSaturatedPropertyFromTemperature(PhysicsConstants.ToKelvin(tCnd),
         out double dlCnd, out _, out double pCnd);
       double hLiqCnd = r.GetEnthalpyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tCnd), dlCnd);
 
-      // 各段の出口圧力（等圧縮比, Eq.32–33）。pOut[0]=pEvp ... pOut[stages]=pCnd
+      // Outlet pressure of each stage (equal pressure ratio, Eq.32–33). pOut[0]=pEvp ... pOut[stages]=pCnd
       double rp = Math.Pow(pCnd / pEvp, 1.0 / stages);
       double[] pOut = new double[stages + 1];
       pOut[0] = pEvp;
       for (int j = 1; j < stages; j++) pOut[j] = pEvp * Math.Pow(rp, j);
       pOut[stages] = pCnd;
 
-      // 各中間圧の飽和液・飽和蒸気の比エンタルピー（hsl[j], hsv[j] @ pOut[j]）
+      // Saturated-liquid and saturated-vapor specific enthalpies at each intermediate pressure (hsl[j], hsv[j] @ pOut[j])
       double[] hsl = new double[stages + 1];
       double[] hsv = new double[stages + 1];
       for (int j = 1; j <= stages; j++)
@@ -630,11 +630,11 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       hsl[stages] = hLiqCnd;
 
-      // 液のカスケード：flowStage[j] = j段目を流れる冷媒流量 = mR,cmp(j)（Eq.34–36）
-      // flowStage[1]=mR,evp、flowStage[j+1]=flowStage[j]/(1−f[j])、eco[j]=flowStage[j+1]−flowStage[j]
+      // Liquid cascade: flowStage[j] = refrigerant flow through stage j = mR,cmp(j) (Eq.34–36)
+      // flowStage[1]=mR,evp, flowStage[j+1]=flowStage[j]/(1−f[j]), eco[j]=flowStage[j+1]−flowStage[j]
       double[] flowStage = new double[stages + 1];
       double[] eco = new double[stages];               // eco[1..stages-1]
-      flowStage[1] = qEvp / (hVapEvp - hsl[1]);         // mR,evp（蒸発器入口は最下位中間圧の飽和液）
+      flowStage[1] = qEvp / (hVapEvp - hsl[1]);         // mR,evp (evaporator inlet is saturated liquid at the lowest intermediate pressure)
       for (int j = 1; j <= stages - 1; j++)
       {
         double f = (hsl[j + 1] - hsl[j]) / (hsv[j] - hsl[j]);
@@ -642,7 +642,7 @@ namespace Popolo.Core.HVAC.HeatSource
         eco[j] = flowStage[j + 1] - flowStage[j];
       }
 
-      // 段ごとの断熱ヘッドと動力（Eq.14, 38）
+      // Adiabatic head and power of each stage (Eq.14, 38)
       double hIn = hVapEvp;
       double rhoIn = dvEvp;
       double kappaIn = r.GetSpecificHeatRatioFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
@@ -660,11 +660,11 @@ namespace Popolo.Core.HVAC.HeatSource
 
         if (j < stages)
         {
-          double hOut = hIn + w;   // 等エントロピー吐出比エンタルピー
-          // 次段入口＝前段吐出とエコノマイザ蒸気の混合（Eq.37）
+          double hOut = hIn + w;   // isentropic discharge specific enthalpy
+          // Next-stage inlet = mixture of previous-stage discharge and economizer vapor (Eq.37)
           double hMix = (hOut * flowStage[j] + hsv[j] * eco[j]) / flowStage[j + 1];
           r.GetStateFromPressureAndEnthalpy(pou, hMix,
-            out double tMix, out double dMix, out _, out _);   // tMix は [K]
+            out double tMix, out double dMix, out _, out _);   // tMix is in [K]
           hIn = hMix;
           rhoIn = dMix;
           kappaIn = r.GetSpecificHeatRatioFromTemperatureAndDensity(tMix, dMix);
@@ -687,12 +687,12 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       if (mode == OperationMode.Cooling)
       {
-        evaporatorDuty = capacity;            // Q_evp（有効能力）
+        evaporatorDuty = capacity;            // Q_evp (useful capacity)
         condenserDuty = capacity + power;     // Q_cnd = Q_evp + E
       }
       else
       {
-        condenserDuty = capacity;             // Q_cnd（有効能力）
+        condenserDuty = capacity;             // Q_cnd (useful capacity)
         evaporatorDuty = capacity - power;    // Q_evp = Q_cnd − E
       }
     }
@@ -703,7 +703,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 順モデル（消費電力の予測、Figure 6 の計算フロー）
+    #region Forward model (electric power prediction, calculation flow of Figure 6)
 
     /// <summary>Convergence tolerance on the power residual [kW] for the root-finding solves.</summary>
     private const double PowerTolerance = 1.0e-6;
@@ -800,7 +800,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double epsEvp = 1.0 - Math.Exp(-calibration.EvaporatorHeatTransferCoefficient / mcEvp);
       double epsCnd = 1.0 - Math.Exp(-calibration.CondenserHeatTransferCoefficient / mcCnd);
 
-      // 有効側の需要（Eq.40/41）：冷却=蒸発器（冷水）、加熱=凝縮器（温水）。需要が無ければ停止。
+      // Useful-side demand (Eq.40/41): cooling = evaporator (chilled water), heating = condenser (hot water). Stop if there is no demand.
       double qDmd = isCooling
         ? mcEvp * (evaporatorInletTemperature - outletTemperatureSetpoint)
         : mcCnd * (outletTemperatureSetpoint - condenserInletTemperature);
@@ -813,7 +813,7 @@ namespace Popolo.Core.HVAC.HeatSource
           CondensingTemperature = condenserInletTemperature
         };
 
-      // 回収需要（Eq.41）：冷却時の回収水=温水（加熱される）、加熱時の回収水=冷水（冷却される）
+      // Recovery demand (Eq.41): in cooling the recovery water is hot water (being heated); in heating it is chilled water (being cooled)
       HeatRecoveryDemand rcv = recoveryDemand ?? default;
       double dtRcv = isCooling
         ? rcv.OutletTemperature - rcv.InletTemperature
@@ -825,9 +825,9 @@ namespace Popolo.Core.HVAC.HeatSource
           "Heat recovery was demanded, but the recovery-tube heat-transfer coefficient " +
           "has not been calibrated. Pass the heat-recovery rated point to the calibration.");
 
-      // E*計算：仮定した (有効側熱量, E, 回収熱) から消費電力を計算し直す。
-      // 冷却：凝縮温度は放熱側要求（Eq.18）と回収側要求（Eq.22）の大きい方。
-      // 加熱：蒸発温度は熱源側要求と回収側要求の小さい方（鏡像）。回収熱はEq.42で制限。
+      // E* calculation: recompute the electric consumption from the assumed (useful-side heat, E, recovered heat).
+      // Cooling: the condensing temperature is the larger of the heat-rejection requirement (Eq.18) and the recovery-side requirement (Eq.22).
+      // Heating: the evaporating temperature is the smaller of the heat-source-side and recovery-side requirements (mirror image). Recovered heat is limited by Eq.42.
       (double eStar, double tEvp, double tCnd, double qRcv, double phi) EStar(
         double qUseful, double eAssumed, double qRcvTarget)
       {
@@ -841,7 +841,7 @@ namespace Popolo.Core.HVAC.HeatSource
           tCnd = condenserInletTemperature + (qCnd - qRcv) / (epsCnd * mcCnd);      // Eq.18
           if (qRcv > 0.0)
           {
-            double mcR = qRcv / dtRcv;   // 出口温度を設定値とする回収水の熱容量流量 [kW/K]
+            double mcR = qRcv / dtRcv;   // heat-capacity flow rate of recovery water whose outlet temperature equals the setpoint [kW/K]
             double epsR = 1.0 - Math.Exp(-calibration.RecoveryHeatTransferCoefficient / mcR);
             tCnd = Math.Max(tCnd, rcv.InletTemperature + qRcv / (epsR * mcR));      // Eq.22
           }
@@ -850,7 +850,7 @@ namespace Popolo.Core.HVAC.HeatSource
         {
           qCnd = qUseful;
           qEvp = qCnd - eAssumed;
-          qRcv = Math.Min(qRcvTarget, qEvp);                                        // Eq.42（加熱版）
+          qRcv = Math.Min(qRcvTarget, qEvp);                                        // Eq.42 (heating version)
           tCnd = condenserInletTemperature + qCnd / (epsCnd * mcCnd);
           tEvp = evaporatorInletTemperature - (qEvp - qRcv) / (epsEvp * mcEvp);
           if (qRcv > 0.0)
@@ -867,9 +867,9 @@ namespace Popolo.Core.HVAC.HeatSource
         return (calibration.Parameters.PredictPower(cyc.IsentropicPower, phi, rw), tEvp, tCnd, qRcv, phi);
       }
 
-      // E*計算（回収側の冷媒温度を直接指定する版）：回収熱→0の極限では熱通過有効度が1に
-      // 漸近し、回収側の要求温度はちょうど回収水の出口温度になるため、極限の消費電力は
-      // これで厳密に計算できる。
+      // E* calculation (variant that specifies the recovery-side refrigerant temperature directly): in the
+      // limit of recovered heat -> 0 the heat-transfer effectiveness approaches 1 and the recovery-side required
+      // temperature becomes exactly the recovery-water outlet temperature, so the limiting power is computed exactly here.
       double EStarAtLimit(double qUseful, double eAssumed, double tRefrigerant)
       {
         double qEvp, tEvp, tCnd;
@@ -892,8 +892,8 @@ namespace Popolo.Core.HVAC.HeatSource
         return calibration.Parameters.PredictPower(cyc.IsentropicPower, phi, rw);
       }
 
-      // 1) 熱回収を0と仮定して容量を判定する。加熱では E < Q_cnd（COP > 1）が
-      //    成立するため、消費電力の探索上限を需要未満に制限する。
+      // 1) Assess capacity assuming zero heat recovery. In heating, E < Q_cnd (COP > 1)
+      //    holds, so the electric consumption search upper bound is limited below the demand.
       double eUpper = isCooling ? maximumPower : Math.Min(maximumPower, qDmd * (1.0 - 1.0e-9));
       double eStar0 = EStar(qDmd, eUpper, 0.0).eStar;
       double e, qUse = qDmd, qRcv = 0.0;
@@ -902,7 +902,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
       if (eUpper < eStar0)
       {
-        // 過負荷：E = E_max に固定し、E* = E_max となる有効側熱量を求める
+        // Overload: fix E = E_max and find the useful-side heat that gives E* = E_max
         overloaded = true;
         e = maximumPower;
         double qLower = isCooling ? qDmd * 1.0e-6 : maximumPower * (1.0 + 1.0e-6);
@@ -911,17 +911,17 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       else
       {
-        // 軽負荷：有効側熱量を需要に固定し、E* = E となる消費電力を求める
+        // Light load: fix the useful-side heat at the demand and find the electric consumption that gives E* = E
         e = Roots.Brent(eUpper * 1.0e-6, eUpper, PowerTolerance,
           x => EStar(qDmd, x, 0.0).eStar - x);
 
         if (recoveryDemanded)
         {
-          // 回収可否は消費電力で判定する。回収に必要な冷媒温度が現状より不利（冷却:高い、
-          // 加熱:低い）でも、冷凍機は水量を内部で絞ることで冷媒温度を動かせるため、温度の
-          // 大小自体は制約にならず、最大消費電力（E_max）に収まるかだけが問題になる。
-          // 回収水の目標出口温度が現状の冷媒温度で既に満たせる場合は、最小限の回収が現状の
-          // 消費電力のまま可能なことが自明なので、E* 計算をスキップする。
+          // Recovery feasibility is judged by electric consumption. Even if the refrigerant temperature required
+          // for recovery is less favorable than the current one (cooling: higher, heating: lower), the chiller can
+          // shift the refrigerant temperature by internally throttling the water flow, so the temperature ordering
+          // itself is not a constraint; only staying within the maximum power (E_max) matters. If the target recovery-water
+          // outlet temperature is already met at the current refrigerant temperature, minimal recovery is trivially possible at the current consumption, so the E* calculation is skipped.
           (_, double tEvpWst, double tCndWst, _, _) = EStar(qDmd, e, 0.0);
           bool minimalRecoveryFeasible = isCooling
             ? rcv.OutletTemperature < tCndWst
@@ -932,21 +932,21 @@ namespace Popolo.Core.HVAC.HeatSource
 
           if (!minimalRecoveryFeasible)
           {
-            // 回収なし（わずかな回収でも E_max を超える）
+            // No recovery (even a tiny amount of recovery exceeds E_max)
           }
           else if (EStar(qDmd, eUpper, qRcvDmd).eStar <= eUpper)
           {
-            // 全量回収：回収を反映した熱分担のもとで E* = E を解き直す
+            // Full recovery: re-solve E* = E under the heat split that reflects the recovery
             e = Roots.Brent(eUpper * 1.0e-6, eUpper, PowerTolerance,
               x => EStar(qDmd, x, qRcvDmd).eStar - x);
             qRcv = Math.Min(qRcvDmd, isCooling ? qDmd + e : qDmd - e);
-            // Eq.42 で制限された場合は需要全量には満たない（回収飽和）
+            // If limited by Eq.42, the full demand is not met (recovery saturated)
             level = (qRcv < qRcvDmd) ? HeatRecoveryLevel.Partial : HeatRecoveryLevel.Full;
           }
           else
           {
-            // 部分回収：E = E_max に固定し、E* = E_max となる回収熱を求める。
-            // 下限側は最小回収チェックにより E* < E_max が保証されているため、根は必ず括り込める。
+            // Partial recovery: fix E = E_max and find the recovered heat that gives E* = E_max.
+            // The minimal-recovery check guarantees E* < E_max at the lower end, so the root can always be bracketed.
             e = eUpper;
             qRcv = Roots.Brent(qRcvDmd * 1.0e-9, qRcvDmd, PowerTolerance,
               q => EStar(qDmd, eUpper, q).eStar - eUpper);
@@ -955,14 +955,14 @@ namespace Popolo.Core.HVAC.HeatSource
         }
       }
 
-      // 確定した運転点の温度と出力を計算する
+      // Compute temperatures and outputs at the finalized operating point
       (_, double tEvpFin, double tCndFin, double qRcvFin, double phiFin) = EStar(qUse, e, qRcv);
 
-      // 容量制御範囲外（発停／ホットガスバイパス領域）の判定と補正（Eq.13）。
-      // E < E_max で解けた運転点の ϕ が校正済みの ϕ_min を下回る場合、現在の水側条件で
-      // ϕ = ϕ_min となる容量制御下限の負荷 Q_min を収束計算で求め（ϕ は負荷に対して
-      // 単調増加）、そのときの消費電力 E_min を基準に重み θ で消費電力を補正する。
-      // 冷媒温度は連続運転を仮想した値のまま報告する。
+      // Detection and correction of operation below the capacity control range (on-off cycling / hot-gas bypass region) (Eq.13).
+      // If ϕ at the operating point solved with E < E_max falls below the calibrated ϕ_min, iteratively find
+      // the load Q_min at the capacity control lower limit where ϕ = ϕ_min under the current water-side
+      // conditions (ϕ increases monotonically with load), and correct the electric consumption with weight θ based on the consumption E_min at that point.
+      // Refrigerant temperatures are reported as the values assuming hypothetical continuous operation.
       bool belowRange = false;
       double qMinLoad = double.NaN;
       if (!overloaded && e < maximumPower
@@ -972,9 +972,9 @@ namespace Popolo.Core.HVAC.HeatSource
         belowRange = true;
         double phiMin = calibration.MinimumFlowCoefficient;
 
-        // 内側（E）の求解：残差 E* − E は縮小写像（dE*/dE = ∂E*/∂t_cnd / (ε·mc) ≪ 1）
-        // なので、逐次代入（Picard反復）が数回で収束する。縮小が確認できない場合のみ
-        // 有界区間のBrent法にフォールバックし、大域収束の保証を維持する。
+        // Inner solve (E): the residual E* − E is a contraction mapping (dE*/dE = ∂E*/∂t_cnd / (ε·mc) ≪ 1),
+        // so successive substitution (Picard iteration) converges within a few steps. Only when contraction
+        // cannot be confirmed does it fall back to Brent's method on a bounded interval, preserving the global convergence guarantee.
         double eWarm = e;
         (double e, double phi) AtLoad(double q)
         {
@@ -988,7 +988,7 @@ namespace Popolo.Core.HVAC.HeatSource
             double delta = Math.Abs(eNew - ec);
             ec = eNew;
             if (delta < PowerTolerance) { eWarm = ec; return (ec, phi); }
-            if (prev <= delta) break;   // 縮小していない → フォールバック
+            if (prev <= delta) break;   // not contracting -> fall back
             prev = delta;
           }
           double eb = Roots.Brent(eu * 1.0e-6, eu, PowerTolerance,
@@ -997,9 +997,9 @@ namespace Popolo.Core.HVAC.HeatSource
           return (eb, EStar(q, eb, qRcv).phi);
         }
 
-        // 外側（Q_min）の求解：ϕ は負荷にほぼ比例するため、相似則にもとづく推定値 q0 の
-        // 近傍から括り込みを始める。ϕ(q) の単調性を利用して符号を確認し、必要なら拡張する。
-        // ϕ(qUse) < ϕ_min は判定済みなので、下端は常に qUse まで戻せば括り込める。
+        // Outer solve (Q_min): since ϕ is nearly proportional to load, start bracketing near the
+        // similarity-law-based estimate q0. Use the monotonicity of ϕ(q) to check signs and expand if needed.
+        // ϕ(qUse) < ϕ_min has already been established, so the lower end can always be pulled back to qUse to bracket the root.
         double q0 = qUse * (phiMin / phiFin);
         double qLo = Math.Max(qUse, 0.8 * q0);
         double qHi = 1.25 * q0;
@@ -1015,7 +1015,7 @@ namespace Popolo.Core.HVAC.HeatSource
           qLo = qHi;
           qHi *= 1.25;
         }
-        // 残差はϕの次元。1e-4·ϕ_min は Q_min 換算で 0.1 kW 未満に相当する。
+        // The residual has the dimension of ϕ. 1e-4·ϕ_min corresponds to less than 0.1 kW in terms of Q_min.
         qMinLoad = Roots.Brent(qLo, qHi, 1.0e-4 * phiMin, q => AtLoad(q).phi - phiMin);
         double eMin = AtLoad(qMinLoad).e;
         e = eMin * (1.0 + calibration.CyclingPowerWeight * (phiFin / phiMin - 1.0));   // Eq.13
@@ -1047,7 +1047,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 公開データ構造
+    #region Public data structures
 
     /// <summary>
     /// One catalog operating point (the rated point is also expressed with this type).

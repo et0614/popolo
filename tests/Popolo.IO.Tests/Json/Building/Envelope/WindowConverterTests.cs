@@ -31,7 +31,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     /// <summary>Unit tests for <see cref="WindowConverter"/>.</summary>
     public class WindowConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>Creates options with all converters required by WindowConverter.</summary>
         private static JsonSerializerOptions CreateOptions()
@@ -88,7 +88,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region シリアライズ (基本構造)
+        #region Serialization (basic structure)
 
         [Fact]
         public void Write_SinglePane_ProducesExpectedStructure()
@@ -198,7 +198,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region デシリアライズ
+        #region Deserialization
 
         [Fact]
         public void Read_MinimalSinglePane_Succeeds()
@@ -312,7 +312,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ
+        #region Round trip
 
         [Fact]
         public void RoundTrip_SinglePane_PreservesBasicFields()
@@ -400,7 +400,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingKind_Throws()

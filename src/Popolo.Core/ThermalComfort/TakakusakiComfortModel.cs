@@ -32,7 +32,7 @@ namespace Popolo.Core.ThermalComfort
   public class TakakusakiComfortModel : IComparable<TakakusakiComfortModel>
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Standard deviation of individual optimum PMV values [-] across occupants.</summary>
     public const double SigmaM = 0.85;
@@ -42,7 +42,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Thermal sensation vote reported by the occupant.</summary>
     public enum ThermalSensation
@@ -57,7 +57,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Random number generator.</summary>
     private readonly MersenneTwister rnd;
@@ -82,7 +82,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with a random optimum PMV drawn from N(0, σ_M).</summary>
     /// <param name="rndSeed">Random seed.</param>
@@ -112,7 +112,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Sets the current environmental PMV and updates dissatisfaction probabilities (Takakusaki eq. 3).</summary>
     /// <param name="pmv">Environmental PMV value [-].</param>
@@ -143,7 +143,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region IComparable実装
+    #region IComparable implementation
 
     /// <summary>Compares optimum PMV values for sorting purposes.</summary>
     /// <param name="other">The other instance to compare with.</param>

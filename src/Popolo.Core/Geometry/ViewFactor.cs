@@ -36,7 +36,7 @@ namespace Popolo.Core.Geometry
   public static class ViewFactor
   {
 
-    #region 公開メソッド
+    #region Public methods
 
     /// <summary>Computes the view factor between two parallel facing rectangles.</summary>
     /// <param name="width">Surface width (Y direction).</param>
@@ -103,7 +103,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region 非公開メソッド
+    #region Private methods
 
     private static double ViewParallelRectangle2FromRectangle1(
         double width, double height, double distance)
@@ -134,7 +134,7 @@ namespace Popolo.Core.Geometry
 
       // Hamilton-Morgan formula for two perpendicular rectangles sharing an edge.
       // Reference: Howell, Mengüç, Siegel, Thermal Radiation Heat Transfer.
-      // 対数項の係数導出に誤りがあったため修正 (3項展開)。
+      // Fixed an error in deriving the logarithm term coefficients (3-term expansion).
       double x = width / depth;
       double y = height / depth;
       double rx = Math.Sqrt(1 + x * x);

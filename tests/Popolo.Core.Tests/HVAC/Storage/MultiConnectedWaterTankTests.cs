@@ -36,7 +36,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
   /// </remarks>
   public class MultiConnectedWaterTankTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// 均一容量の n タンクを 20°C で初期化して返す。
@@ -53,7 +53,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 初期化
+    #region Initialization
 
     /// <summary>構築直後のタンク数が指定値と一致する。</summary>
     [Fact]
@@ -96,7 +96,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region ForecastState（順流）
+    #region ForecastState (forward flow)
 
     /// <summary>
     /// 冷水を流入させると順流で最初のタンクが最も冷える。
@@ -226,7 +226,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 蓄熱量・蓄熱流
+    #region Heat storage and heat flow
 
     /// <summary>
     /// 基準温度と同じ温度のタンクでは蓄熱量がゼロ。
@@ -291,7 +291,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 熱損失係数
+    #region Heat loss coefficient
 
     /// <summary>熱損失係数を設定・取得できる。</summary>
     [Fact]

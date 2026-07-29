@@ -29,7 +29,7 @@ namespace Popolo.Core.Tests.Climate
         private const double Pi = Math.PI;
         private const double HalfPi = Math.PI / 2.0;
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>水平面（傾斜角0）で正しく初期化される</summary>
         [Fact]
@@ -86,7 +86,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 形態係数のテスト
+        #region View factor tests
 
         /// <summary>形態係数の合計は常に1</summary>
         [Theory]
@@ -114,7 +114,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 直達日射入射率のテスト
+        #region Direct solar incidence tests
 
         /// <summary>水平面に対して真上からの太陽（高度π/2）のcosθは1</summary>
         [Fact]
@@ -149,7 +149,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 傾斜面日射量のテスト
+        #region Solar radiation on inclined surface tests
 
         /// <summary>水平面の全天日射量は太陽の直達と天空の合計と一致する</summary>
         [Fact]
@@ -191,7 +191,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region MakeReverseInclineのテスト
+        #region MakeReverseIncline tests
 
         /// <summary>逆向き面の方位角は反対方向</summary>
         [Fact]
@@ -205,7 +205,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region CopyのテストI
+        #region Copy tests
 
         /// <summary>Copyで全プロパティが正しくコピーされる</summary>
         [Fact]

@@ -33,7 +33,7 @@ namespace Popolo.Core.HVAC.SystemModel
   public class AHUSystem : IAirConditioningSystemModel
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>AHU operating mode.</summary>
     public enum OperatingMode
@@ -50,7 +50,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Outdoor air conditions.</summary>
     private IReadOnlyMoistAir outdoorAir = new MoistAir(35, 0.0185);
@@ -81,7 +81,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="bModel">Building thermal load calculation model.</param>
@@ -104,7 +104,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンスメソッド（モデル構築関連）
+    #region Instance methods (model construction)
 
     /// <summary>Sets the outdoor air flow rate for the AHU.</summary>
     /// <param name="ahuIndex">AHU index.</param>
@@ -172,7 +172,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IAirConditioningSystemModel実装
+    #region IAirConditioningSystemModel implementation
 
     /// <summary>Gets or sets the current date and time.</summary>
     public DateTime CurrentDateTime { get; set; }
@@ -245,15 +245,15 @@ namespace Popolo.Core.HVAC.SystemModel
       for (int i = 0; i < ahu.Length; i++)
         if (Controllers[i].Mode != OperatingMode.ShutOff) ahu[i].RAHumidityRatio = hrAHUs[i];
 
-      //AHUの冷温水と風量初期化
+      //Initialize chilled/hot water and airflow rates of the AHUs
       bool isAllAHUShutoff = true;
       for (int i = 0; i < ahu.Length; i++)
       {
-        //冷温水コイルに通水する
+        //Supply water to the chilled/hot water coils
         ahu[i].ChilledWaterInletTemperature = chilledWaterSupplyTemperature;
         ahu[i].HotWaterInletTemperature = hotWaterSupplyTemperature;
 
-        //給気風量を初期化
+        //Initialize the supply airflow rate
         double maxSA = 0;
         double maxRA = 0;
         if (Controllers[i].Mode != OperatingMode.ShutOff)
@@ -266,7 +266,7 @@ namespace Popolo.Core.HVAC.SystemModel
             maxSA += ctrl.MaxSAFlow;
             maxRA += ctrl.MaxRAFlow;
           }
-          //全VAV,CAVが停止の場合にはAHUも停止させる
+          //If all VAV/CAV units are shut off, shut off the AHU as well
           if (allClosed) Controllers[i].Mode = OperatingMode.ShutOff;
           else ahu[i].SetAirFlowRate(maxRA, maxSA);
         }
@@ -275,7 +275,7 @@ namespace Popolo.Core.HVAC.SystemModel
         {
           ahu[i].ShutOff();
           ctrlFixed[i] = true;
-          for (int j = 0; j < vlmCtrl[i].Length; j++) vlmCtrl[i][j].SAFlow = 0; //2017.12.02追加
+          for (int j = 0; j < vlmCtrl[i].Length; j++) vlmCtrl[i][j].SAFlow = 0; //Added 2017.12.02
         }
         else
         {
@@ -284,7 +284,7 @@ namespace Popolo.Core.HVAC.SystemModel
         }
       }
 
-      //すべてのAHUが非稼働の場合には給気量0で成行計算を1回実行して終了
+      //If all AHUs are off, run one free-run calculation with zero supply airflow and finish
       if (isAllAHUShutoff)
       {
         for (int i = 0; i < ahu.Length; i++)
@@ -302,10 +302,10 @@ namespace Popolo.Core.HVAC.SystemModel
         return;
       }
 
-      //顕熱平衡の収束計算
+      //Convergence calculation of the sensible heat balance
       SolveHeatTransfer();
 
-      //水分平衡の計算
+      //Calculate the moisture balance
       for (int i = 0; i < ahu.Length; i++)
       {
         foreach (VolumeController vc in vlmCtrl[i])
@@ -320,7 +320,7 @@ namespace Popolo.Core.HVAC.SystemModel
       }
       bModel.ForecastWaterTransfer();
 
-      //冷温水量を更新
+      //Update the chilled/hot water flow rates
       UpdateReturnWaterState();
     }
 
@@ -329,12 +329,12 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンスメソッド（平衡状態計算関連）
+    #region Instance methods (equilibrium state calculation)
 
     /// <summary>Solves the sensible heat balance for all zones.</summary>
     private void SolveHeatTransfer()
     {
-      //完全に制御した場合の負荷にもとづいて収束計算初期値を作成
+      //Create initial values for the convergence iteration based on the loads under perfect control
       double[] initVec = new double[ahu.Length];
       for (int i = 0; i < ahu.Length; i++)
       {
@@ -349,7 +349,7 @@ namespace Popolo.Core.HVAC.SystemModel
             bModel.ControlDryBulbTemperature(vc.RoomIndex, vc.ZoneIndex, sp);
             bModel.SetSupplyAir(vc.RoomIndex, vc.ZoneIndex, 0, 0, 0); //DEBUG
 
-            //加湿系統は潜熱負荷を計算する
+            //Calculate the latent heat load for humidified systems
             if (Controllers[i].Mode == OperatingMode.Heating
               && ahu[i].Humidifier != null)
               bModel.ControlHumidityRatio(vc.RoomIndex, vc.ZoneIndex, Controllers[i].MinHumidity);
@@ -374,7 +374,7 @@ namespace Popolo.Core.HVAC.SystemModel
           mRA += ctrl.MaxRAFlow;
           mSA += ctrl.MaxSAFlow;
 
-          //加湿系統のAHU出口湿度を計算する
+          //Calculate the AHU outlet humidity for humidified systems
           if (Controllers[i].Mode == OperatingMode.Heating
             && ahu[i].Humidifier != null)
           {
@@ -385,11 +385,11 @@ namespace Popolo.Core.HVAC.SystemModel
         initVec[i] = initVec[i] / mRA + sHL / (mSA * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
       }
 
-      //過負荷に変化するAHUがなくなるまで繰り返し計算
+      //Iterate until no more AHUs switch to the overloaded state
       bool lastCalc = false;
       while (true)
       {
-        //収束計算対象の給気温度を初期化
+        //Initialize the supply air temperatures subject to the convergence iteration
         List<double> vars = new List<double>();
         for (int i = 0; i < ahu.Length; i++)
         {
@@ -399,20 +399,20 @@ namespace Popolo.Core.HVAC.SystemModel
             vars.Add(initVec[i]);
         }
 
-        //収束計算実行
+        //Execute the convergence iteration
         IVector tandh = new Vector(vars.Count);
         IVector fx = new Vector(vars.Count);
         if (vars.Count != 0)
         {
           int iter;
           for (int i = 0; i < tandh.Length; i++) tandh[i] = vars[i];
-          //絶対誤差0.01度未満まで収束計算
+          //Iterate until the absolute error falls below 0.01 degC
           double err;
           MultiRoots.Newton(ErrorFnc, ref tandh, 1e-3, 1e-3, 50, out iter, out err);
         }
         else ErrorFnc(tandh, ref fx);
 
-        //過負荷に変化する系統がなくなればVAV風量を最小化して最終の計算処理
+        //Once no more systems switch to overloaded, minimize the VAV airflow rates and run the final calculation
         if (!OverLoadAHUChanged(tandh))
         {
           if (lastCalc) return;
@@ -427,7 +427,7 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="vecF">Error vector.</param>
     private void ErrorFnc(IVector vecX, ref IVector vecF)
     {
-      //制御点確定済・換気・CAV制御の場合には給気温度が収束計算対象
+      //For fixed control points, ventilation, or CAV control, the supply air temperature is the convergence variable
       int indx = 0;
       for (int i = 0; i < ahu.Length; i++)
       {
@@ -443,17 +443,17 @@ namespace Popolo.Core.HVAC.SystemModel
           indx++;
         }
       }
-      //顕熱平衡を更新
+      //Update the sensible heat balance
       bModel.ForecastHeatTransfer();
 
-      //誤差集計
+      //Aggregate the errors
       indx = 0;
       for (int i = 0; i < ahu.Length; i++)
       {
         AHUController ctr = Controllers[i];
         if (ctr.Mode != OperatingMode.ShutOff)
         {
-          //還気温度を計算
+          //Calculate the return air temperature
           double tra = 0;
           double mra = 0;
           foreach (VolumeController ctrl in vlmCtrl[i])
@@ -465,18 +465,18 @@ namespace Popolo.Core.HVAC.SystemModel
           tra /= mra;
           ahu[i].RATemperature = tra;
 
-          //制御点確定済または換気のみのAHUの給気温度の誤差を計算
+          //Calculate the supply air temperature error for AHUs with fixed control points or ventilation only
           if (ctrlFixed[i] || ctr.Mode == OperatingMode.Ventilation)
           {
-            //AHU成行計算処理
+            //Free-run calculation of the AHU
             if (ctr.Mode == OperatingMode.Cooling) ahu[i].CoolAir();
             else if (ctr.Mode == OperatingMode.Heating) ahu[i].HeatAir();
             else ahu[i].Ventilate();
-            //誤差評価
+            //Evaluate the error
             vecF[indx] = Math.Abs(ahu[i].SATemperature - vecX[indx]);
             indx++;
           }
-          //軽負荷CAV系統の制御誤差評価
+          //Evaluate the control error of lightly loaded CAV systems
           else if (ctr.IsCAVControl)
           {
             double sp = ctr.SetpointTemperature;
@@ -505,7 +505,7 @@ namespace Popolo.Core.HVAC.SystemModel
         if (ctr.Mode != OperatingMode.ShutOff && !ctrlFixed[i]
           && (ctr.Mode == OperatingMode.Cooling || ctr.Mode == OperatingMode.Heating))
         {
-          //還気温度を計算
+          //Calculate the return air temperature
           ahu[i].RATemperature = 0;
           double mra = 0;
           foreach (VolumeController ctrl in vlmCtrl[i])
@@ -516,11 +516,11 @@ namespace Popolo.Core.HVAC.SystemModel
           }
           ahu[i].RATemperature /= mra;
 
-          //過負荷判定
+          //Overload judgment
           double tSP;
-          //CAV制御の場合には収束計算対象の状態変数が出口温度設定値
+          //For CAV control, the state variable of the convergence iteration is the outlet temperature setpoint
           if (ctr.IsCAVControl) tSP = vec[indx];
-          //VAVの場合には顕熱負荷にもとづき出口温度設定値を計算
+          //For VAV, calculate the outlet temperature setpoint based on the sensible heat load
           else
           {
             if (ctr.Mode == OperatingMode.Cooling) tSP = 60;
@@ -533,7 +533,7 @@ namespace Popolo.Core.HVAC.SystemModel
               else tSP = Math.Max(tSP, bf);
             }
           }
-          //出口温度実現可能か
+          //Check whether the outlet temperature is achievable
           if (ctr.Mode == OperatingMode.Cooling) ctrlFixed[i] = !ahu[i].CoolAir(tSP, 0);
           else ctrlFixed[i] = !ahu[i].HeatAir(tSP, ctr.splyHumidSP);
           if (ctrlFixed[i]) incrsd = true;
@@ -553,7 +553,7 @@ namespace Popolo.Core.HVAC.SystemModel
       bool hasVAV = false;
       for (int i = 0; i < ahu.Length; i++)
       {
-        //制御点未確定でVAV制御のAHUについて計算
+        //Calculate for AHUs under VAV control with unfixed control points
         if (Controllers[i].Mode != OperatingMode.ShutOff && !Controllers[i].IsCAVControl && !ctrlFixed[i])
         {
           bool isCooling = (Controllers[i].Mode == OperatingMode.Cooling);
@@ -582,12 +582,12 @@ namespace Popolo.Core.HVAC.SystemModel
             (isCooling, Controllers[i].splyHumidSP, vavSt, znT, znW, znHL, minSA, maxSA, maxRA, out sc);
           for (int j = 0; j < vlmCtrl[i].Length; j++) vlmCtrl[i][j].SAFlow = aFlow[j];          
 
-          //過剰処理系統があれば制御点を確定して収束計算実施
+          //If any system is over-processing, fix its control point and run the convergence iteration
           if (!sc)
           {
             hasVAV = true;
             ctrlFixed[i] = true;
-            initVec[i] = ahu[i].SATemperature; //収束計算用給気温度仮定値を更新
+            initVec[i] = ahu[i].SATemperature; //Update the assumed supply air temperature for the convergence iteration
           }
         }
       }
@@ -614,7 +614,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インナークラスの定義
+    #region Inner class definitions
 
     /// <summary>VAV or CAV volume controller.</summary>
       public class VolumeController

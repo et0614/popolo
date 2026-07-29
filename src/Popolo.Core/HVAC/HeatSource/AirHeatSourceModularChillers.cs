@@ -28,12 +28,12 @@ namespace Popolo.Core.HVAC.HeatSource
   public class AirHeatSourceModularChillers: IReadOnlyAirHeatSourceModularChillers
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Operating mode.</summary>
     public enum OperatingMode
@@ -48,7 +48,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 特性係数
+    #region Characteristic coefficients
 
     /// <summary>Maximum capacity ratio approximation coefficients for cooling mode.</summary>
     private readonly double[] aMax_C = new double[] { -4.1557e-04, 1.0518e-01, 1.5448e-01, -3.8823e01 };
@@ -67,7 +67,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Nominal theoretical (Carnot) COP [-].</summary>
     private readonly double copFLRT_C, copFLRT_H;
@@ -191,7 +191,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated conditions.</summary>
     /// <param name="coolingCapacity">Nominal cooling capacity per unit [kW].</param>
@@ -228,21 +228,21 @@ namespace Popolo.Core.HVAC.HeatSource
       this.MinChilledWaterFlowRate = chilledWaterFlowRate * 0.4;
       this.MinHotWaterFlowRate = hotWaterFlowRate * 0.4;
 
-      //冷房運転COPの計算
+      //Compute the cooling mode COP
       double mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       double mcma = (1.005 + 1.846 * 0.020) * coolingAirFlowRate;
       double tao = coolingAirTemperature + (coolingElectricity + coolingCapacity) / mcma;
       copFLRT_C = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature) / (tao - chilledWaterOutletTemperature);
       NominalCoolingCOP = coolingCapacity / coolingElectricity;
 
-      //暖房運転COPの計算
+      //Compute the heating mode COP
       mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate;
       mcma = (1.005 + 1.846 * 0.002) * heatingAirFlowRate;
       tao = heatingAirTemperature + (heatingElectricity - heatingCapacity) / mcma;
       copFLRT_H = PhysicsConstants.ToKelvin(hotWaterOutletTemperature) / (hotWaterOutletTemperature - tao);
       NominalHeatingCOP = heatingCapacity / heatingElectricity;
 
-      //停止させる
+      //Shut off the unit
       ShutOff();
     }
 
@@ -268,20 +268,20 @@ namespace Popolo.Core.HVAC.HeatSource
       this.auxElec = auxiliaryElectricConsumption;
       this.heatingAirFlowRate = this.NominalHeatingCapacity = 0;
 
-      //冷房運転COPの計算
+      //Compute the cooling mode COP
       double mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       double mcma = (1.005 + 1.846 * 0.020) * coolingAirFlowRate;
       double tao = coolingAirTemperature + (coolingElectricity + coolingCapacity) / mcma;
       copFLRT_C = PhysicsConstants.ToKelvin(chilledWaterOutletTemperature) / (tao - chilledWaterOutletTemperature);
       NominalCoolingCOP = coolingCapacity / coolingElectricity;
 
-      //停止させる
+      //Shut off the unit
       ShutOff();
     }
 
     #endregion
 
-    #region 機器の停止処理
+    #region Equipment shut-off methods
 
     /// <summary>Shuts off all units.</summary>
     public void ShutOff()
@@ -301,7 +301,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 最大能力計算処理
+    #region Maximum capacity calculation methods
 
     /// <summary>Computes the maximum capacity per unit [kW] at the given conditions.</summary>
     /// <param name="waterOutletTemperature">Water outlet temperature [°C].</param>
@@ -326,7 +326,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 運転台数計算処理
+    #region Operating unit number calculation methods
 
     /// <summary>Computes the number of units to operate for the given load.</summary>
     /// <param name="load">Required load [kW].</param>
@@ -334,7 +334,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <returns>Number of units to operate.</returns>
     private int GetActiveUnitCount(double load, double mCap)
     {
-      //部分負荷運転により機器効率を最大化させる場合
+      //Maximize equipment efficiency by partial load operation
       if (MaximizeEfficiency)
       {
         double optCap = mCap * (-0.5 * a_PL[1] / a_PL[0]);
@@ -348,7 +348,7 @@ namespace Popolo.Core.HVAC.HeatSource
           else return optNum;
         }
       }
-      //最大負荷で運転時間を最小化させる場合（機器寿命重視）
+      //Minimize operating hours by running at maximum load (prioritizing equipment life)
       else return (int)Math.Min(Math.Ceiling(load / mCap), UnitCount);
     }
 
@@ -365,7 +365,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 状態更新処理
+    #region State update methods
 
     /// <summary>Updates the unit state for the given inlet conditions and ambient temperature.</summary>
     /// <param name="waterInletTemperature">Water inlet temperature [°C].</param>
@@ -373,34 +373,34 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="ambientTemperature">Ambient air dry-bulb temperature [°C].</param>
     public void Update(double waterInletTemperature, double waterFlowRate, double ambientTemperature)
     {
-      //状態値を保存
+      //Store state values
       this.WaterInletTemperature = waterInletTemperature;
       this.WaterFlowRate = waterFlowRate;
       this.AmbientTemperature = ambientTemperature;
 
-      //必要能力を計算
-      double load = 0;  //ShutOffの場合には0になる
+      //Compute the required capacity
+      double load = 0;  //Remains 0 in case of ShutOff
       double mcw = WaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
       if (Mode == OperatingMode.Cooling)
         load = mcw * (WaterInletTemperature - WaterOutletSetpointTemperature);
       else if (Mode == OperatingMode.Heating && IsHeatPumpModel)
         load = mcw * (WaterOutletSetpointTemperature - WaterInletTemperature);
 
-      //負荷0ならば停止処理
+      //Stay idle if there is no load
       if (load <= 0)
       {
         StayIdle();
         return;
       }
 
-      //過負荷判定//最適運転台数を計算する
+      //Overload check//compute the optimal number of operating units
       double cap = GetMaxCapacity(WaterOutletSetpointTemperature, AmbientTemperature);
       ActiveUnitCount = GetActiveUnitCount(load, cap);
       double qLD = load / ActiveUnitCount;
       IsOverLoad = cap < qLD;
       if (IsOverLoad) qLD = cap;
 
-      //冷暖切替係数
+      //Cooling/heating switching coefficient
       double sg, copFLRT, copFLR, mcma;
       double[] aCOP;
       if (Mode == OperatingMode.Cooling)
@@ -409,7 +409,7 @@ namespace Popolo.Core.HVAC.HeatSource
         copFLRT = copFLRT_C;
         copFLR = NominalCoolingCOP;
         aCOP = aCop_C;
-        mcma = AirFlowRate * (1.005 + 1.846 * 0.020); //夏季絶対湿度は20g/kgとする
+        mcma = AirFlowRate * (1.005 + 1.846 * 0.020); //Summer humidity ratio is assumed to be 20 g/kg
       }
       else
       {
@@ -417,10 +417,10 @@ namespace Popolo.Core.HVAC.HeatSource
         copFLRT = copFLRT_H;
         copFLR = NominalHeatingCOP;
         aCOP = aCop_H;
-        mcma = AirFlowRate * (1.005 + 1.846 * 0.002); //冬季絶対湿度は2g/kgとする
+        mcma = AirFlowRate * (1.005 + 1.846 * 0.002); //Winter humidity ratio is assumed to be 2 g/kg
       }
 
-      //3次方程式の係数計算
+      //Compute the coefficients of the cubic equation
       WaterOutletTemperature = WaterInletTemperature + sg * qLD * ActiveUnitCount / mcw;
       double abf0 = copFLRT / PhysicsConstants.ToKelvin(WaterOutletTemperature);
       double abf1 = 2 * aCOP[0] * copFLRT + sg * aCOP[1];
@@ -450,7 +450,7 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       else tao = PhysicsConstants.ToCelsius(x1);
 
-      //出力設定
+      //Set outputs
       ElectricConsumption = mcma * (tao - AmbientTemperature) + sg * qLD;
       AuxiliaryElectricConsumption = auxElec;
     }

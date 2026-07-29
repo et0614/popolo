@@ -63,7 +63,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
       erv.RAHumidityRatio = RAW_S;
     }
 
-    #region 換気運転
+    #region Ventilation operation
 
     /// <summary>冬季は外気が予熱・加湿されて給気される（+給気ファン昇温）。</summary>
     [Fact]
@@ -113,7 +113,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region バイパス運転
+    #region Bypass operation
 
     /// <summary>バイパス時は熱回収されず、給気=外気+ファン昇温となる。</summary>
     [Fact]
@@ -145,7 +145,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region 消費電力・停止処理
+    #region Electric consumption and shut-off
 
     /// <summary>運転中は給気・排気ファンの消費電力が正となる。</summary>
     [Fact]

@@ -32,7 +32,7 @@ namespace Popolo.IO.Tests.Json
     /// <summary>Unit tests for <see cref="PopoloJsonSerializer"/>.</summary>
     public class PopoloJsonSerializerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static BuildingThermalModel MakeModel()
         {
@@ -84,7 +84,7 @@ namespace Popolo.IO.Tests.Json
         #endregion
 
         // ================================================================
-        #region Serialize/Deserialize 文字列 API
+        #region Serialize/Deserialize string API
 
         [Fact]
         public void Serialize_ProducesJsonWithTopLevelSchemaVersion()
@@ -159,7 +159,7 @@ namespace Popolo.IO.Tests.Json
         #endregion
 
         // ================================================================
-        #region ファイル I/O
+        #region File I/O
 
         [Fact]
         public void SerializeToFile_AndDeserializeFromFile_RoundTrip()
@@ -227,7 +227,7 @@ namespace Popolo.IO.Tests.Json
         #endregion
 
         // ================================================================
-        #region 完全ラウンドトリップ(ファサード経由)
+        #region Full round trip (via facade)
 
         [Fact]
         public void FullRoundTrip_PreservesWallConfiguration()

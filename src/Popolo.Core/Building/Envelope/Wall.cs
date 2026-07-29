@@ -61,7 +61,7 @@ namespace Popolo.Core.Building.Envelope
   public class Wall : OpticalLayeredEnvelope, IReadOnlyWall
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Latent heat of vaporization of water at the triple point [J/kg].
     /// Converted from Water.VaporizationHeatAtTriplePoint [kJ/kg].</summary>
@@ -69,7 +69,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンス変数・publicプロパティ
+    #region Instance variables and public properties
 
     /// <summary>Array of wall layers.</summary>
     private WallLayer[] layers;
@@ -199,7 +199,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region internalプロパティ（多数室計算用）
+    #region Internal properties (for multi-room calculation)
 
     /// <summary>Inverse-matrix–derived F-side humidity contribution to the next-step nodal solution.</summary>
     internal override double IF3_F => _if3_F; private double _if3_F;
@@ -255,7 +255,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="area">Surface area [m²].</param>
@@ -288,22 +288,22 @@ namespace Popolo.Core.Building.Envelope
       ComputeMoistureTransfer = computeMoistureTransfer;
       SurfaceF = new EnvelopeSurface(this, true);
       SurfaceB = new EnvelopeSurface(this, false);
-      // 既定は典型的な壁の外装 (Rough; R_f=1.67)。
-      // 屋外側のみ風暴露時に効くため B 側も同値で揃える (内装側でも consistent)。
+      // Default is a typical exterior wall finish (Rough; R_f=1.67).
+      // It only takes effect when the outdoor side is wind-exposed, so side B uses the same value (consistent even on the interior side).
       SetSurfaceRoughnessF(SurfaceRoughness.Rough);
       SetSurfaceRoughnessB(SurfaceRoughness.Rough);
 
-      //計算領域を確保
+      //Allocate work arrays
 
-      int mNum = this.layers.Length + 1; //質点数
+      int mNum = this.layers.Length + 1; //Number of mass nodes
       capS = new double[mNum];
       resS = new double[mNum + 1];
       solarAbsorption = new double[mNum];
       qCoefS = new double[mNum];
-      int ssNum = mNum; //未知変数の数
+      int ssNum = mNum; //Number of unknowns
       if (ComputeMoistureTransfer)
       {
-        ssNum *= 2; //絶対湿度も未知のため倍
+        ssNum *= 2; //Doubled because humidity ratios are also unknown
         uSF2 = new double[mNum];
         uSB2 = new double[mNum];
         uSF3 = new double[mNum];
@@ -331,7 +331,7 @@ namespace Popolo.Core.Building.Envelope
       uPM = new double[mNum];
       uPB = new double[mNum];
 
-      //物性変化があり得る層の番号を保存
+      //Store the indices of layers whose properties may change
       List<int> tal = new List<int>();
       for (int i = 0; i < layers.Length; i++) if (layers[i].IsVariableProperties) tal.Add(i);
       variableLayers = tal.ToArray();
@@ -343,7 +343,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 温湿度計算関連の処理
+    #region Temperature and humidity calculation methods
 
     /// <summary>Advances the wall's internal state by one time step using the current sol-air conditions.</summary>
     /// <remarks>
@@ -360,10 +360,10 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public override void Update()
     {
-      //逆行列を更新
+      //Update the inverse matrix
       UpdateInverseMatrix();
 
-      //相当温度と絶対湿度で係数ベクトルを作成
+      //Build the coefficient vector from sol-air temperatures and humidity ratios
       int mNum = layers.Length + 1;
       int last = mNum - 1;
       Vector tempAndHumid2 = new Vector(tempAndHumid.Length);
@@ -387,20 +387,20 @@ namespace Popolo.Core.Building.Envelope
         for (int i = 0; i < tempAndHumid2.Length; i++)
           if (capS[i] != 0) tempAndHumid2[i] += tempAndHumid[i];
       }
-      //埋設配管の影響を加える
+      //Add the effect of buried pipes
       foreach (int key in bPipes.Keys)
       {
         if (key == 0) tempAndHumid2[0] += uPF[0] * SolAirTemperatureF;
         if (key == last) tempAndHumid2[last] += uPB[last] * SolAirTemperatureB;
         tempAndHumid2[key] += uP[key] * bPipes[key].InletWaterTemperature;
       }
-      //層別吸収日射の影響を加える (sensible 行のみ)
+      //Add the effect of layer-by-layer absorbed solar radiation (sensible rows only)
       for (int i = 0; i < mNum; i++)
         if (solarAbsorption[i] != 0) tempAndHumid2[i] += qCoefS[i] * solarAbsorption[i];
-      //逆行列で解を求める
+      //Solve using the inverse matrix
       LinearAlgebraOperations.Multiply(uxMatrix, tempAndHumid2, tempAndHumid, 1, 0);
 
-      //物性変化があり得る層の状態を計算して行列更新の要否を確認
+      //Evaluate the state of layers whose properties may change and check whether the matrix needs updating
       for (int i = 0; i < variableLayers.Length; i++)
       {
         int lnum = variableLayers[i];
@@ -411,7 +411,7 @@ namespace Popolo.Core.Building.Envelope
         else flg = layers[lnum].UpdateState(tempAndHumid[lnum], tempAndHumid[lnum + 1]);
         if (flg) needToUpdateUMatrix = true;
 
-        //PCMの場合には温度を調整
+        //Adjust the temperature in the case of PCM
         const PCMWallLayer.State sOrE = PCMWallLayer.State.Solid | PCMWallLayer.State.Equilibrium;
         PCMWallLayer? pwl = layers[lnum] as PCMWallLayer;
         if (flg && (pwl != null))
@@ -449,7 +449,7 @@ namespace Popolo.Core.Building.Envelope
         }
       }
 
-      //係数IFを更新
+      //Update coefficient IF
       UpdateIFCoefficients();
     }
 
@@ -585,7 +585,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 埋設配管関連の処理
+    #region Buried pipe methods
 
     /// <summary>Embeds a buried radiant pipe at the specified node.</summary>
     /// <param name="node">
@@ -612,7 +612,7 @@ namespace Popolo.Core.Building.Envelope
     public void AddPipe(int node, double pitch, double length, int branchCount,
       double iDiameter, double oDiameter, double tubeConductivity)
     {
-      UpdateUMatrix();  //resSを設定
+      UpdateUMatrix();  //Set resS
       needToUpdateUINVMatrix = true;
       double lambdaUF, lambdaLF, thkUF, thkLF;
       if (node == 0)
@@ -710,7 +710,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region privateメソッド
+    #region Private methods
 
     /// <inheritdoc/>
     /// <remarks>
@@ -740,8 +740,8 @@ namespace Popolo.Core.Building.Envelope
       if (!needToUpdateUMatrix) return;
       needToUpdateUINVMatrix = true;
 
-      int mNum = layers.Length + 1; //質点数
-      //熱容量,熱抵抗,水分容量,透湿抵抗の配列を作成
+      int mNum = layers.Length + 1; //Number of mass nodes
+      //Create arrays of heat capacity, thermal resistance, moisture capacity, and vapor resistance
       for (int i = 0; i < mNum; i++)
       {
         capS[i] = 0;
@@ -774,11 +774,11 @@ namespace Popolo.Core.Building.Envelope
         resL[resL.Length - 1] = PhysicsConstants.NominalMoistAirIsobaricSpecificHeat / cCoefB;
       }
 
-      //係数行列[U]を作成
+      //Build coefficient matrix [U]
       uMatrix.Initialize(0);
       if (ComputeMoistureTransfer)
       {
-        //熱水分同時移動
+        //Coupled heat and moisture transfer
         for (int i = 0; i < mNum; i++)
         {
           if (capS[i] == 0 && capL[i] == 0)
@@ -826,7 +826,7 @@ namespace Popolo.Core.Building.Envelope
       }
       else
       {
-        //顕熱流のみ
+        //Sensible heat flow only
         for (int i = 0; i < mNum; i++)
         {
           if (capS[i] == 0)
@@ -879,15 +879,15 @@ namespace Popolo.Core.Building.Envelope
     /// </remarks>
     public override void UpdateInverseMatrix()
     {
-      //係数行列（配管の影響を除く）を更新
+      //Update the coefficient matrix (excluding pipe effects)
       UpdateUMatrix();
 
-      //逆行列を更新
+      //Update the inverse matrix
       if (needToUpdateUINVMatrix)
       {
         needToUpdateUINVMatrix = false;
 
-        //埋設配管の影響を行列に反映
+        //Apply the effect of buried pipes to the matrix
         umWithTubeEffect.Initialize(0);
         for (int i = 0; i < uMatrix.Rows; i++)
           for (int j = 0; j < uMatrix.Columns; j++)
@@ -911,10 +911,10 @@ namespace Popolo.Core.Building.Envelope
           if (key != layers.Length) umWithTubeEffect[key, key + 1] -= uPB[key];
           umWithTubeEffect[key, key] += uPM[key];
         }
-        //逆行列を計算
+        //Compute the inverse matrix
         LinearAlgebraOperations.GetInverse(umWithTubeEffect, uxMatrix);
 
-        //係数FFとBFを更新
+        //Update coefficients FF and BF
         if (ComputeMoistureTransfer)
         {
           IMatrix ux = uxMatrix;
@@ -947,7 +947,7 @@ namespace Popolo.Core.Building.Envelope
           BFS2_B = uxMatrix[num, num] * (uSB[num] + uPB[num]);
         }
 
-        //逆行列変更フラグON
+        //Turn on the inverse matrix changed flag
         InverseMatrixUpdated = true;
       }
     }
@@ -956,17 +956,17 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="sender"></param>
     public void OnDeserialization(object sender)
     {
-      needToUpdateUMatrix = true; //逆行列再計算フラグをONに
+      needToUpdateUMatrix = true; //Turn on the inverse matrix recalculation flag
 
-      int mNum = this.layers.Length + 1; //質点数
+      int mNum = this.layers.Length + 1; //Number of mass nodes
       capS = new double[mNum];
       resS = new double[mNum + 1];
       solarAbsorption = new double[mNum];
       qCoefS = new double[mNum];
-      int ssNum = mNum; //未知変数の数
+      int ssNum = mNum; //Number of unknowns
       if (ComputeMoistureTransfer)
       {
-        ssNum *= 2; //絶対湿度も未知のため倍
+        ssNum *= 2; //Doubled because humidity ratios are also unknown
         uSF2 = new double[mNum];
         uSB2 = new double[mNum];
         uSF3 = new double[mNum];

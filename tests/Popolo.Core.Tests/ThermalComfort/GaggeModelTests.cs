@@ -47,7 +47,7 @@ namespace Popolo.Core.Tests.ThermalComfort
   /// </remarks>
   public class GaggeModelTests
   {
-    #region 定数
+    #region Constants
 
     // 代謝量 [W/m²]（静的APIで使用）
     private const double Met_SeatedQuiet = 58.2;  // ≈ 1.0 met
@@ -57,7 +57,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// GetSteadyState（標準体格）を呼び出す。
@@ -78,7 +78,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region 定常状態テスト
+    #region Steady state tests
 
     /// <summary>ニュートラル条件でコア温度が生理的範囲にある。</summary>
     [Fact]
@@ -175,7 +175,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region SET* テスト
+    #region SET* tests
 
     /// <summary>ニュートラル条件の SET* が概ね作用温度に近い。</summary>
     [Fact]
@@ -221,7 +221,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
     #endregion
 
-    #region インスタンスAPI（UpdateState）テスト
+    #region Instance API (UpdateState) tests
 
     /// <summary>
     /// UpdateState の metabolicRate は BasalMetabolism に対する比率 [-]。

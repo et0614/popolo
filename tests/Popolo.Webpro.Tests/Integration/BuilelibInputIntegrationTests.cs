@@ -44,7 +44,7 @@ namespace Popolo.Webpro.Tests.Integration
             Path.Combine(AppContext.BaseDirectory, "TestData", "builelib_input.json");
 
         // ================================================================
-        #region ファイルアクセス
+        #region File access
 
         [Fact]
         public void TestFile_Exists()
@@ -57,7 +57,7 @@ namespace Popolo.Webpro.Tests.Integration
         #endregion
 
         // ================================================================
-        #region 全体読み込み
+        #region Whole file reading
 
         [Fact]
         public void Read_FullFile_Succeeds()
@@ -92,7 +92,7 @@ namespace Popolo.Webpro.Tests.Integration
         #endregion
 
         // ================================================================
-        #region Rooms の中身
+        #region Contents of Rooms
 
         [Fact]
         public void Read_FirstRoom_1F_風除け室()
@@ -124,7 +124,7 @@ namespace Popolo.Webpro.Tests.Integration
         #endregion
 
         // ================================================================
-        #region EnvelopeSet の中身
+        #region Contents of EnvelopeSet
 
         [Fact]
         public void Read_Envelope_1F_ロビー()
@@ -227,7 +227,7 @@ namespace Popolo.Webpro.Tests.Integration
         #endregion
 
         // ================================================================
-        #region すべての Wall の WallSpec が WallConfigurations に解決できる
+        #region Every Wall's WallSpec resolves to WallConfigurations
 
         [Fact]
         public void Read_AllWallSpecs_ResolveAgainstWallConfigurations()
@@ -269,7 +269,7 @@ namespace Popolo.Webpro.Tests.Integration
         #endregion
 
         // ================================================================
-        #region Read(Stream) 経由も同じ結果
+        #region Same result via Read(Stream)
 
         [Fact]
         public void Read_ViaStream_SameResult()

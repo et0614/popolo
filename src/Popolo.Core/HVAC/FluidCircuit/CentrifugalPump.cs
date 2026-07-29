@@ -25,7 +25,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class CentrifugalPump : FluidMachinery, IReadOnlyCentrifugalPump
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets the bypass flow rate [m³/s].</summary>
     public double BypassFlowRate { get; private set; }
@@ -38,7 +38,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Flow control method for a pump system.</summary>
     public enum ControlMethod
@@ -53,7 +53,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="nomPressure">Nominal head [kPa].</param>
@@ -67,10 +67,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
        base(nomPressure, nomFlowRate, designPressure, designFlowRate, actualHead,
          control != ControlMethod.ConstantPressureWithBypass)
     {
-      //制御方式を保存
+      //Store the control method
       Control = control;
 
-      //効率・圧力特性係数を計算
+      //Compute the efficiency and pressure characteristic coefficients
       efficiencyCoefficient = new double[3];
       pressureCoefficient = new double[3];
       GetGeneralParameters(nomFlowRate, nomPressure, ref efficiencyCoefficient, ref pressureCoefficient);
@@ -95,13 +95,13 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Updates the state.</summary>
     /// <param name="flowRate">Volumetric flow rate [m³/s].</param>
     public void UpdateState(double flowRate)
     {
-      //停止判定
+      //Shutoff check
       VolumetricFlowRate = flowRate;
       if (VolumetricFlowRate <= 0)
       {
@@ -109,29 +109,29 @@ namespace Popolo.Core.HVAC.FluidCircuit
         return;
       }
 
-      //バイパスによる吐出圧一定制御の場合：最大回転数・設計圧力で状態更新
+      //Constant discharge pressure control by bypass: update the state at maximum rotational speed and design pressure
       if (Control == ControlMethod.ConstantPressureWithBypass)
       {
         updateWithRotationRatioAndPressure(1.0, PressureSetpoint);
         BypassFlowRate = VolumetricFlowRate - flowRate;
       }
-      //INVによる吐出圧一定制御の場合：必要流量・圧力を満たすように回転数を調整
+      //Constant discharge pressure control by inverter: adjust the rotational speed to satisfy the required flow rate and pressure
       else if (Control == ControlMethod.ConstantPressureWithInverter)
       {
         updateWithFlowRateAndPressure(flowRate, PressureSetpoint);
-        //最小回転数比[-]未満の場合は最小回転数にしてバイパス流量を計算
+        //Below the minimum rotational speed ratio [-], run at minimum rotational speed and compute the bypass flow rate
         if (RotationRatio < MinRotationRatio)
         {
           updateWithRotationRatioAndPressure(MinRotationRatio, PressureSetpoint);
           BypassFlowRate = VolumetricFlowRate - flowRate;
         }
       }
-      //INVによる最小吐出圧制御の場合：抵抗曲線に合う圧力と流量で計算
+      //Minimum discharge pressure control by inverter: compute at the pressure and flow rate matching the resistance curve
       else
       {
         double ps = flowRate * flowRate * resistanceCoefficient + ActualHead;
         updateWithFlowRateAndPressure(flowRate, ps);
-        //最小回転数比[-]未満の場合は最小回転数にしてバイパス流量を計算
+        //Below the minimum rotational speed ratio [-], run at minimum rotational speed and compute the bypass flow rate
         if (RotationRatio < MinRotationRatio)
         {
           updateWithResistanceAndRotationRatio(MinRotationRatio);
@@ -157,7 +157,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes characteristic coefficients for a general-purpose pump.</summary>
     /// <param name="flowRate">Design flow rate [m³/s].</param>
@@ -169,14 +169,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       double vf2 = flowRate * flowRate;
 
-      //効率特性
+      //Efficiency characteristic
       double lnm = Math.Log(flowRate);
       double maxEff = -0.01618 * lnm * lnm - 0.05662 * lnm + 0.78179;
       efficiencyCoef[0] = -0.929 * maxEff / vf2;
       efficiencyCoef[1] = 1.795 * maxEff / flowRate;
       efficiencyCoef[2] = 0.109 * maxEff;
 
-      //圧力特性
+      //Pressure characteristic
       pressureCoef[0] = -0.395 * pressure / vf2;
       pressureCoef[1] = 0.096 * pressure / flowRate;
       pressureCoef[2] = 1.294 * pressure;

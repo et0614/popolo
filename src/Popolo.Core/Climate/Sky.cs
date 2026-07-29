@@ -74,7 +74,7 @@ namespace Popolo.Core.Climate
   public static class Sky
   {
 
-    #region 放射関連
+    #region Radiation
 
     /// <summary>
     /// Gets the nocturnal (outgoing longwave) radiation [W/m²].
@@ -169,10 +169,10 @@ namespace Popolo.Core.Climate
                       + 0.013   * Math.Cos(2.0 * Math.PI * hour / 24.0)
                       + 0.00012 * (atmosphericPressure - 1000.0);
 
-      // Martin-Berdahl 規約:
-      //   通常: Γ_opaque = exp(−CeilHgt/8200)
-      //   天井未測 (NaN, 例: 雲は報告されているがその底面が測定不能): exp(2000/82000) ≈ 1.025
-      //     (= 雲底を非常に低い高さとして扱う近似)
+      // Martin-Berdahl convention:
+      //   Normal: Γ_opaque = exp(−CeilHgt/8200)
+      //   Unmeasured ceiling (NaN, e.g. clouds reported but base height unmeasurable): exp(2000/82000) ≈ 1.025
+      //     (= approximation treating the cloud base as a very low height)
       double gammaOpaque = double.IsNaN(ceilingHeight)
           ? Math.Exp(2000.0 / 82000.0)
           : Math.Exp(-ceilingHeight / 8200.0);
@@ -257,7 +257,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 降水量関連
+    #region Precipitation
 
     /// <summary>
     /// Estimates the precipitable water [mm] from the elevation and dew point temperature.
@@ -286,7 +286,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region Perez 全天候型異方性モデル
+    #region Perez all-weather anisotropic model
 
     /// <summary>Upper limits of the sky-clearness bins (Perez 1990, Table II).</summary>
     /// <remarks>
@@ -413,12 +413,12 @@ namespace Popolo.Core.Climate
       double sinBeta = Math.Sin(surfaceTilt);
       double viewFactorToSky = 0.5 * (1.0 + cosBeta);
 
-      // 太陽が地平線以下で DNI=0 のとき、clearness ε の定義が退化する。
-      // 等方項のみ (F1=F2=0) に倒して評価する。
+      // When the sun is below the horizon and DNI=0, the definition of clearness ε degenerates.
+      // Fall back to the isotropic term only (F1=F2=0).
       if (solarZenith >= 0.5 * Math.PI && directNormalRadiation <= 0)
         return diffuseHorizontalRadiation * viewFactorToSky;
 
-      // sky clearness ε と brightness Δ
+      // sky clearness ε and brightness Δ
       const double kappa = 1.041;
       double z = solarZenith;
       double z3 = z * z * z;
@@ -428,7 +428,7 @@ namespace Popolo.Core.Climate
       double delta = airMass * diffuseHorizontalRadiation
                      / extraterrestrialNormalRadiation;
 
-      // ε bin の決定
+      // Determine the ε bin
       int bin = 0;
       while (bin < _perezEpsilonUpper.Length - 1 && epsilon > _perezEpsilonUpper[bin])
         bin++;
@@ -443,7 +443,7 @@ namespace Popolo.Core.Climate
       double f1 = Math.Max(0.0, f11 + f12 * delta + f13 * z);
       double f2 =                f21 + f22 * delta + f23 * z;
 
-      // 周囲光成分 (circumsolar) の比率 a / b
+      // Circumsolar component ratio a / b
       //   a = max(0, cos θ_i)    b = max(cos 85°, cos z)
       const double cos85 = 0.0871557427476582;     // = cos(85°)
       double a = Math.Max(0.0, cosIncidenceAngle);

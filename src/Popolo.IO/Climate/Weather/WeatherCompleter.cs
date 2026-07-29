@@ -79,17 +79,17 @@ namespace Popolo.IO.Climate.Weather
       if (data == null || options == null) return;
       if (data.Count == 0) return;
 
-      // ファイルが station を持たず、options にフォールバックが設定されていれば
-      // 補完処理に先立って反映する (HASP / TMY1 で solar 補完を動かすため)
+      // If the file has no station and a fallback is set in options,
+      // apply it before the completion steps (so solar completion works for HASP / TMY1)
       if (options.Station.HasValue && !HasStationLocation(data.Station))
         data.Station = options.Station.Value;
 
       if (options.EstimateAtmosphericPressureFromElevation)
         CompletePressureFromElevation(data);
 
-      // 湿度補完は無条件で実行する。物理計算層は HumidityRatio (絶対湿度) しか
-      // 読まないので、RH のみ与えられたデータは w を埋めないと下流が動かない。
-      // 双方向に補完するので、w のみ与えられたデータでも RH を取得可能になる。
+      // Humidity completion always runs. The physics layer reads only
+      // HumidityRatio, so data given only RH would break downstream unless w is filled in.
+      // The completion is bidirectional, so RH also becomes available for data given only w.
       CompleteHumidity(data);
 
       if (options.CompleteRadiationComponentsByGeometry
@@ -100,12 +100,12 @@ namespace Popolo.IO.Climate.Weather
         CompleteAtmosphericRadiation(data);
     }
 
-    #region 気圧の補完
+    #region Atmospheric pressure completion
 
     private static void CompletePressureFromElevation(WeatherData data)
     {
-      // 標準大気モデル。標高 0 m でも 101.325 kPa を返すので
-      // 駅情報が未設定のデータセットにも一応は適用できる。
+      // Standard atmosphere model. It returns 101.325 kPa even at elevation 0 m,
+      // so it can still be applied to datasets with no station information.
       double pressure = MoistAir.GetAtmosphericPressure(data.Station.Elevation);
 
       for (int i = 0; i < data.Count; i++)
@@ -123,17 +123,17 @@ namespace Popolo.IO.Climate.Weather
 
     #endregion
 
-    #region 湿度の補完 (HumidityRatio ↔ RelativeHumidity)
+    #region Humidity completion (HumidityRatio ↔ RelativeHumidity)
 
     /// <summary>
-    /// DBT が与えられている行について、HumidityRatio と RelativeHumidity の
-    /// 一方のみが記録されていれば他方を導出する。両方とも記録されていなければ
-    /// (DBT 無し含む) 何もしない。圧力は <c>r.AtmosphericPressure</c> があれば
-    /// それを、なければ標準大気圧 (101.325 kPa) を使う。
+    /// For rows where DBT is given, derives the other of HumidityRatio and
+    /// RelativeHumidity when only one is recorded. Does nothing when neither
+    /// is recorded (including no DBT). Uses <c>r.AtmosphericPressure</c> if
+    /// available; otherwise the standard atmospheric pressure (101.325 kPa).
     /// </summary>
     /// <remarks>
-    /// MoistAir API は湿度を [kg/kg(DA)] で扱うのに対し WeatherRecord は
-    /// [g/kg(DA)] で保持するため、両側で 1000 倍の換算を行う。
+    /// The MoistAir API handles humidity in [kg/kg(DA)] while WeatherRecord
+    /// stores it in [g/kg(DA)], so a factor-of-1000 conversion is applied on both sides.
     /// </remarks>
     private static void CompleteHumidity(WeatherData data)
     {
@@ -145,7 +145,7 @@ namespace Popolo.IO.Climate.Weather
         bool hasW  = r.Has(WeatherField.HumidityRatio);
         bool hasRh = r.Has(WeatherField.RelativeHumidity);
 
-        if (hasW == hasRh) continue;   // 両方無 / 両方有 → 何もしない
+        if (hasW == hasRh) continue;   // both missing / both present → do nothing
 
         double pKPa = r.Has(WeatherField.AtmosphericPressure)
             ? r.AtmosphericPressure
@@ -174,7 +174,7 @@ namespace Popolo.IO.Climate.Weather
 
     #endregion
 
-    #region 日射の補完 (geometry / Erbs)
+    #region Solar radiation completion (geometry / Erbs)
 
     /// <summary>
     /// Below this effective sin(altitude), DNI back-transforms become
@@ -182,7 +182,7 @@ namespace Popolo.IO.Climate.Weather
     /// number). Geometry's DNI reconstruction is skipped; Erbs is allowed
     /// to run (it produces 0 for all three components and is self-consistent).
     /// </summary>
-    private const double MinEffectiveSinH = 0.02;     // ≈ 1.15° 以上が太陽寄与
+    private const double MinEffectiveSinH = 0.02;     // solar contribution counted above ≈ 1.15°
 
     private static void CompleteRadiation(WeatherData data, WeatherReadOptions options)
     {
@@ -192,7 +192,7 @@ namespace Popolo.IO.Climate.Weather
       double longitude = data.Station.Longitude;
       double standardLongitude = 15.0 * Math.Round(longitude / 15.0);
 
-      // 区間長とラベル規約から、実効 sinH のサンプリング方法を決める
+      // Decide how to sample the effective sinH from the interval length and label convention
       TimeSpan? interval = data.NominalInterval;
       bool canIntegrate = interval.HasValue
                           && options.TimestampConvention != TimestampConvention.Instant;
@@ -232,7 +232,7 @@ namespace Popolo.IO.Climate.Weather
         DateTime time, TimeSpan interval, TimestampConvention convention,
         double latitude, double longitude, double standardLongitude)
     {
-      // 区間 (tStart, tEnd) を決める
+      // Determine the interval (tStart, tEnd)
       DateTime tStart, tEnd;
       switch (convention)
       {
@@ -249,12 +249,12 @@ namespace Popolo.IO.Climate.Weather
           tEnd = tStart + interval;
           break;
         default:
-          // Instant はこの関数に入らない前提
+          // Instant is assumed never to enter this function
           return Math.Max(0, Math.Sin(
               Sun.GetSunAltitude(latitude, longitude, standardLongitude, time)));
       }
 
-      // サンプル数: おおむね 10 分おき、最低 2 点
+      // Sample count: roughly every 10 minutes, at least 2 points
       int n = Math.Max(2, (int)Math.Ceiling(interval.TotalMinutes / 10.0));
 
       double sum = 0;
@@ -301,7 +301,7 @@ namespace Popolo.IO.Climate.Weather
             .MarkEstimated(WeatherField.DiffuseHorizontalRadiation));
       }
 
-      // !hasDni — 実効 sinH が極小のときは (GHI − DHI) / sinH が発散するので skip
+      // !hasDni — skip when the effective sinH is tiny, since (GHI − DHI) / sinH diverges
       if (sinHeff < MinEffectiveSinH) return r;
       double dni = Math.Max(0, (r.GlobalHorizontalRadiation - r.DiffuseHorizontalRadiation) / sinHeff);
       return RebuildWith(r, b => b
@@ -331,7 +331,7 @@ namespace Popolo.IO.Climate.Weather
 
       if (ghi <= 0 || sinHeff <= 0)
       {
-        // 夜間、あるいは GHI=0 の区間: 直散ともゼロ
+        // Night-time, or an interval with GHI=0: both direct and diffuse are zero
         dni = 0;
         dhi = 0;
       }
@@ -340,7 +340,7 @@ namespace Popolo.IO.Climate.Weather
         double io = Sun.GetExtraterrestrialRadiation(dayOfYear);
         double kt = ghi / (io * sinHeff);
 
-        // Erbs (1982) の区分多項式で拡散率 K_d = DHI/GHI を求める
+        // Compute the diffuse fraction K_d = DHI/GHI with the Erbs (1982) piecewise polynomial
         double kd;
         if (kt < 0.22)
           kd = 1.0 - 0.09 * kt;
@@ -352,8 +352,8 @@ namespace Popolo.IO.Climate.Weather
         kd = Math.Clamp(kd, 0.0, 1.0);
         dhi = ghi * kd;
 
-        // 実効 sinH が小さすぎる場合は DNI 逆変換がノイズで発散するので、
-        // DNI は 0 に倒し、DHI = GHI とする (= 全量拡散とみなす)
+        // When the effective sinH is too small, the DNI back-transform diverges into
+        // noise, so force DNI to 0 and set DHI = GHI (= treat everything as diffuse)
         if (sinHeff < MinEffectiveSinH)
         {
           dhi = ghi;
@@ -384,7 +384,7 @@ namespace Popolo.IO.Climate.Weather
 
     #endregion
 
-    #region 大気放射の補完
+    #region Atmospheric radiation completion
 
     private static void CompleteAtmosphericRadiation(WeatherData data)
     {
@@ -395,8 +395,8 @@ namespace Popolo.IO.Climate.Weather
         var r = data.Records[i];
         if (r.Has(WeatherField.AtmosphericRadiation)) continue;
         if (!r.Has(WeatherField.DryBulbTemperature)) continue;
-        // Martin-Berdahl は Tdp を、フォールバック式は HumidityRatio を要する。
-        // どちらも無ければ IR を求めるすべがないのでスキップ。
+        // Martin-Berdahl requires Tdp; the fallback formula requires HumidityRatio.
+        // With neither, there is no way to compute IR, so skip.
         bool hasTdp = r.Has(WeatherField.DewPointTemperature);
         bool hasW = r.Has(WeatherField.HumidityRatio);
         if (!hasTdp && !hasW) continue;
@@ -405,13 +405,13 @@ namespace Popolo.IO.Climate.Weather
             ? r.AtmosphericPressure
             : fallbackPressure;
 
-        // 気象レコードの絶対湿度は [g/kg(DA)]、MoistAir は [kg/kg(DA)]
+        // Weather record humidity ratio is in [g/kg(DA)]; MoistAir uses [kg/kg(DA)]
         double wKgKg = hasW ? r.HumidityRatio / 1000.0 : 0.0;
 
         double atmRad;
-        // 不透明雲量・シーリング高さ・雲量がそろっていれば Martin-Berdahl 1984 を使用
-        // (ANSI/ASHRAE 140-2023 Tsky-Informative と同じ式)。
-        // 雲量だけしか無い場合は従来の単純式にフォールバック。
+        // Use Martin-Berdahl 1984 when opaque cloud cover, ceiling height, and cloud cover
+        // are all available (the same formula as ANSI/ASHRAE 140-2023 Tsky-Informative).
+        // Fall back to the conventional simple formula when only cloud cover is available.
         bool canUseMartinBerdahl =
                r.Has(WeatherField.CloudCover)
             && r.Has(WeatherField.OpaqueCloudCover)
@@ -419,15 +419,15 @@ namespace Popolo.IO.Climate.Weather
 
         if (canUseMartinBerdahl && (hasTdp || hasW))
         {
-          // Tdp が weather record に直接記録されている場合 (例: TMY3 col 34) はそれを優先。
-          // 無ければ HumidityRatio 経由で再計算する。
-          // 理由: TMY3 等は RH と Tdp を独立処理しており Magnus round-trip しない時刻が
-          // あり、Std 140-2023 の Tsky-Informative は TMY3 Tdp 列を直接使用しているため。
+          // If Tdp is recorded directly in the weather record (e.g. TMY3 col 34), prefer it.
+          // Otherwise recompute it via HumidityRatio.
+          // Reason: TMY3 and the like process RH and Tdp independently, so some hours do not
+          // Magnus round-trip, and Std 140-2023 Tsky-Informative uses the TMY3 Tdp column directly.
           double tdp = hasTdp
               ? r.DewPointTemperature
               : MoistAir.GetDewPointTemperatureFromHumidityRatio(wKgKg, pressure);
-          // Std 140-2023 reference式は気圧 [mbar = hPa] を要求する。
-          // Popolo の AtmosphericPressure は kPa なので 10 倍する。
+          // The Std 140-2023 reference formula requires atmospheric pressure in [mbar = hPa].
+          // Popolo's AtmosphericPressure is in kPa, so multiply by 10.
           double pMbar = pressure * 10.0;
           atmRad = Sky.GetInfraredRadiationFromSky(
               r.DryBulbTemperature,
@@ -450,8 +450,8 @@ namespace Popolo.IO.Climate.Weather
         }
         else
         {
-          // Tdp あるが Martin-Berdahl 必要列 (cloud/ceiling) が揃わず、
-          // HumidityRatio も無い → フォールバック式が使えないのでスキップ。
+          // Tdp is present but the columns Martin-Berdahl needs (cloud/ceiling) are
+          // incomplete, and HumidityRatio is also missing → the fallback formula cannot be used, so skip.
           continue;
         }
 
@@ -464,11 +464,11 @@ namespace Popolo.IO.Climate.Weather
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static bool HasStationLocation(WeatherStationInfo station)
     {
-      // 既定値 (Name="" かつ 緯度経度 0) は location 未設定と見なす。
+      // The default (Name="" and latitude/longitude 0) is treated as location not set.
       if (!string.IsNullOrEmpty(station.Name)) return true;
       return station.Latitude != 0.0 || station.Longitude != 0.0;
     }
@@ -499,7 +499,7 @@ namespace Popolo.IO.Climate.Weather
       if (r.Has(WeatherField.OpaqueCloudCover))          b.SetOpaqueCloudCover(r.OpaqueCloudCover);
       if (r.Has(WeatherField.CeilingHeight))             b.SetCeilingHeight(r.CeilingHeight);
 
-      // 既存の estimated 分類を維持 (Set*は recorded に積むので、後から reclassify する)
+      // Preserve the existing estimated classification (Set* stores into recorded, so reclassify afterwards)
       b.MarkEstimated(r.EstimatedFields);
 
       mutate(b);

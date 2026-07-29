@@ -26,7 +26,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class DirectFiredAbsorptionChillerTests
     {
-        #region 定格条件
+        #region Rated conditions
 
         private static readonly double ChWM = 189.0 / 3.6;
         private static readonly double CdWM = 500.0 / 3.6;
@@ -42,7 +42,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
         #endregion
 
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>サンプルコードと同じ定格条件で初期化。冷却モード。</summary>
         private static DirectFiredAbsorptionChiller MakeChiller()
@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ
+        #region Constructors
 
         /// <summary>NominalCoolingCapacity が正。</summary>
         [Fact]
@@ -91,7 +91,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region Update — 冷却運転（Test2の定格条件）
+        #region Update — cooling operation (rated conditions of Test2)
 
         /// <summary>定格条件で CoolingLoad が正。</summary>
         [Fact]
@@ -217,7 +217,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 加熱運転
+        #region Heating operation
 
         /// <summary>加熱モードで HeatingLoad が正。</summary>
         [Fact]

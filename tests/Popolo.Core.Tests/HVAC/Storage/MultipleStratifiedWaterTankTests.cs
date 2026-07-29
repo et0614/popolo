@@ -43,7 +43,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
   /// </remarks>
   public class MultipleStratifiedWaterTankTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// 標準的な成層型蓄熱槽を生成する。
@@ -59,7 +59,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 初期化・プロパティ
+    #region Initialization and properties
 
     /// <summary>LayerNumber がコンストラクタ指定値と一致する。</summary>
     [Fact]
@@ -98,7 +98,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region ForecastState — 流入温度の影響
+    #region ForecastState — influence of inflow temperature
 
     /// <summary>
     /// 下向き流（isDownFlow=true）で冷水流入すると上層から冷却される。
@@ -167,7 +167,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 温度成層性
+    #region Thermal stratification
 
     /// <summary>
     /// 上部が高温・下部が冷水で初期化した後、ForecastState を行わなければ
@@ -211,7 +211,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 蓄熱量・蓄熱流
+    #region Heat storage and heat flow
 
     /// <summary>基準温度と同じ均一温度では蓄熱量がゼロ。</summary>
     [Fact]
@@ -281,7 +281,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
     #endregion
 
     // ================================================================
-    #region 熱損失
+    #region Heat loss
 
     /// <summary>熱損失係数を正に設定すると周囲温度に向かって収束する。</summary>
     [Fact]

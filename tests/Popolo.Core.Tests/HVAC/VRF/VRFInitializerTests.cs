@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.VRF
   public static class VRFInitializer
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Outdoor unit model identifier.</summary>
     public enum OutdoorUnitModel
@@ -189,7 +189,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region ダイキン初期化
+    #region Daikin initialization
 
     /// <summary>Creates a Daikin indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -333,7 +333,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機VRVX
+    #region Outdoor unit VRVX
 
     /// <summary>Creates a Daikin VRV-X outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -520,7 +520,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 室外機VRVA
+    #region Outdoor unit VRVA
 
     /// <summary>Creates a Daikin VRV-A outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -777,7 +777,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 日立初期化
+    #region Hitachi initialization
 
     /// <summary>Creates a Hitachi indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -924,7 +924,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機SS
+    #region Outdoor unit SS
 
     /// <summary>Creates a Hitachi SS outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -1139,7 +1139,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 東芝初期化
+    #region Toshiba initialization
 
     /// <summary>Creates a Toshiba indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -1239,7 +1239,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機MMY(スーパーモジュールマルチ)
+    #region Outdoor unit MMY (Super Module Multi)
 
     /// <summary>Creates a Toshiba MMY outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>

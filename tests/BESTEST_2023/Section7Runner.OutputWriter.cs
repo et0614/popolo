@@ -20,7 +20,7 @@ namespace BESTEST_2023
 {
   internal static partial class Section7Runner
   {
-    #region xlsx テンプレ書込み
+    #region xlsx template writing
 
     /// <summary>
     /// Std140_TF_Output.xlsx の 'YourData' シートの所定セルに各ケースの集計値を書き込む。
@@ -276,7 +276,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region OpenXml セル書込みヘルパー
+    #region OpenXml cell writing helpers
 
     private static (string col, uint row) SplitCellRef(string cellRef)
     {

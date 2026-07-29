@@ -33,7 +33,7 @@ namespace Popolo.Webpro.Tests.Json
             => WebproJsonReader.CreateDefaultOptions();
 
         // ================================================================
-        #region 正常ケース - 最小
+        #region Normal cases - minimal
 
         [Fact]
         public void Read_OnlyBuilding_WorksAndReturnsEmptyCollections()
@@ -118,7 +118,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region AirConditioningZone は値を無視
+        #region AirConditioningZone ignores the value
 
         [Fact]
         public void Read_AirConditioningZone_ValuesDiscarded()
@@ -154,7 +154,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region 非熱負荷セクションのスキップ
+        #region Skipping non-heat-load sections
 
         [Fact]
         public void Read_NonThermalSectionsIgnored()
@@ -192,7 +192,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingBuilding_Throws()

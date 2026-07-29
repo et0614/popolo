@@ -29,7 +29,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class CircuitNetwork
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>List of circuit branches.</summary>
     private List<ICircuitBranch> branches = new List<ICircuitBranch>();
@@ -66,7 +66,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 回路網構築処理
+    #region Circuit network construction
 
     /// <summary>Adds a node to the network.</summary>
     /// <returns>Node index.</returns>
@@ -85,7 +85,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       if (nodes.Contains(node))
       {
-        //接続中の節点は削除不可
+        //A node still connected to a branch cannot be removed
         foreach (ICircuitBranch br in branches)
           if (br.UpStreamNode == node || br.DownStreamNode == node) return false;
         nodes.Remove(node);
@@ -105,7 +105,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         "Both nodes must be registered to this network before connecting.",
         !nodes.Contains(ndFrom) ? nameof(ndFrom) : nameof(ndTo));
       if (!branches.Contains(branch)) branches.Add(branch);
-      //接続処理
+      //Connection process
       branch.UpStreamNode = ndFrom;
       branch.DownStreamNode = ndTo;
       ndFrom.addOutFlowBranch(branch);
@@ -132,7 +132,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 収束計算処理
+    #region Convergence calculation methods
 
     /// <summary>Solves the circuit network.</summary>
     /// <returns>True if convergence succeeded.</returns>
@@ -141,7 +141,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       if (BasePressureNode == null)
         throw new PopoloInvalidOperationException(nameof(CircuitNetwork), nameof(BasePressureNode));
 
-      //入力値ベクトルを作成する
+      //Build the input value vector
       List<double> inp = new List<double>();
       for (int i = 0; i < nodes.Count; i++)
       {
@@ -151,14 +151,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
       IVector inputs = new Vector(inp.Count);
       for (int i = 0; i < inp.Count; i++) inputs[i] = inp[i];
 
-      //ニュートン法で解く
+      //Solve with the Newton method
       int iter;
       double err;
-      bool success = MultiRoots.Newton(ErrorFNC, ref inputs, ErrorTolerance, CollectionTolerance, 100, out iter, out err); //2016.01.05:E.Togashi 精度変更。1CMH相当。十分のはず。
+      bool success = MultiRoots.Newton(ErrorFNC, ref inputs, ErrorTolerance, CollectionTolerance, 100, out iter, out err); //2016.01.05:E.Togashi Tolerance changed. Equivalent to 1 CMH; should be sufficient.
       Iteration = iter;
       Error = err;
 
-      //基準点に合わせて絶対圧力を調整する
+      //Adjust the absolute pressures to match the reference point
       double dp = BasePressure - BasePressureNode!.Pressure;
       foreach (CircuitNode nd in nodes) nd.Pressure += dp;
 
@@ -173,7 +173,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       if (BasePressureNode == null)
         throw new PopoloInvalidOperationException(nameof(CircuitNetwork), nameof(BasePressureNode));
-      //入力値ベクトルを作成する
+      //Build the input value vector
       List<double> inp = new List<double>();
       for (int i = 0; i < nodes.Count; i++)
       {
@@ -183,14 +183,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
       IVector inputs = new Vector(inp.Count);
       for (int i = 0; i < inp.Count; i++) inputs[i] = inp[i];
 
-      //ニュートン法で解く
+      //Solve with the Newton method
       int iter;
       double err;
       bool success = MultiRoots.Newton(ErrorFNC, ref inputs, ErrorTolerance, CollectionTolerance, 100, antiVibrationC, out iter, out err);
       Iteration = iter;
       Error = err;
 
-      //基準点に合わせて絶対圧力を調整する
+      //Adjust the absolute pressures to match the reference point
       double dp = BasePressure - BasePressureNode!.Pressure;
       foreach (CircuitNode nd in nodes) nd.Pressure += dp;
 
@@ -202,7 +202,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <param name="outputs">Output values.</param>
     private void ErrorFNC(IVector inputs, ref IVector outputs)
     {
-      //節点圧力および固定流出入量を設定
+      //Set node pressures and fixed inflow/outflow rates
       int indx = 0;
       for (int i = 0; i < nodes.Count; i++)
       {
@@ -218,10 +218,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
         }
       }
 
-      //流路流量を更新
+      //Update the branch flow rates
       for (int i = 0; i < branches.Count; i++) branches[i].UpdateFlowRateFromNodePressureDifference();
 
-      //節点の質量保存誤差を計算 
+      //Compute the mass conservation error at each node
       indx = 0;
       for (int i = 0; i < nodes.Count; i++)
         outputs[i] = nodes[i].IntegrateFlow();

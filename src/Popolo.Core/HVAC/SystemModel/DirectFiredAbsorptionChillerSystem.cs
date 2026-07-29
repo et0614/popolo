@@ -31,12 +31,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class DirectFiredAbsorptionChillerSystem: IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
     
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Direct-fired absorption chiller/heater.</summary>
     private DirectFiredAbsorptionChiller chiller;
@@ -88,7 +88,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get; private set; }
@@ -197,7 +197,7 @@ namespace Popolo.Core.HVAC.SystemModel
       chiller.OutletWaterSetpointTemperature = HotWaterSupplyTemperatureSetpoint;
       while (true)
       {
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pumps
         double hwFlow = hotWaterFlowRate / ActiveChillerCount;
         hwPump.UpdateState(0.001 * hwFlow);
         double twi = HotWaterReturnTemperature + hwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hwFlow);
@@ -232,9 +232,9 @@ namespace Popolo.Core.HVAC.SystemModel
       chiller.OutletWaterSetpointTemperature = ChilledWaterSupplyTemperatureSetpoint;
       while (true)
       {
-        //冷水・冷却水流量を計算
+        //Calculate the chilled and cooling water flow rates
         double chwFlow = chilledWaterFlowRate / ActiveChillerCount;
-        //double pLoad = chwFlow / chiller.MaxChilledWaterFlowRate; //2019.06.29 負荷流量ではなく負荷そのもので負荷率を計算
+        //double pLoad = chwFlow / chiller.MaxChilledWaterFlowRate; //2019.06.29 Calculate the partial load ratio from the load itself rather than the load flow rate
         double pLoad = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow * (ChilledWaterReturnTemperature - ChilledWaterSupplyTemperatureSetpoint) / chiller.NominalCoolingCapacity;
         double cdwFlow;
         if (ControlCoolingWaterFlowRate) cdwFlow = cTower.WaterFlowRate 
@@ -242,14 +242,14 @@ namespace Popolo.Core.HVAC.SystemModel
         else cdwFlow = cTower.WaterFlowRate = cTower.MaxWaterFlowRate; //2017.12.15 BugFix
         if (!OperateCoolingTowerOneOnOne) cdwFlow /= ChillerCount;
 
-        //ポンプによる昇温を評価
+        //Evaluate the temperature rise caused by the pumps
         cdwPump.UpdateState(0.001 * cdwFlow);
         double dCDT = cdwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * cdwFlow);
         chwPump.UpdateState(0.001 * chwFlow);
         double twi = ChilledWaterReturnTemperature 
           + chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chwFlow);
 
-        //冷却塔と冷凍機の連成計算（冷却水温度の計算）
+        //Coupled calculation of the cooling tower and the chiller (cooling water temperature)
         bool needIteration = !ControlCoolingWaterTemperature;
         if (ControlCoolingWaterTemperature)
         {
@@ -258,7 +258,7 @@ namespace Popolo.Core.HVAC.SystemModel
           cTower.Update(chiller.CoolingWaterOutletTemperature, true);
           if (cTower.IsOverLoad) needIteration = true;
         }
-        //過負荷または冷却水温度成行の場合には収束計算
+        //When overloaded or the cooling water temperature is free-run, iterate to convergence
         if (needIteration)
         {
           Roots.ErrorFunction eFnc = delegate (double cdt)
@@ -286,7 +286,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="chiller">Direct-fired absorption chiller/heater.</param>
@@ -308,7 +308,7 @@ namespace Popolo.Core.HVAC.SystemModel
       this.ChillerCount = chillerCount;
       this.CoolingTowerCount = coolingTowerCount;
 
-      //加熱運転・冷却運転対応
+      //Supports heating and cooling operation
       SelectableMode = HeatSourceSystemModel.OperatingMode.Cooling | HeatSourceSystemModel.OperatingMode.Heating;
       Mode = HeatSourceSystemModel.OperatingMode.ShutOff;      
     }

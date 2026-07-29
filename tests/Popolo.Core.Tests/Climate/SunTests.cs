@@ -37,7 +37,7 @@ namespace Popolo.Core.Tests.Climate
         private const double TokyoLongitude = 139.75;
         private const double TokyoStandardLongitude = 135.0;
 
-        #region 定数のテスト
+        #region Constant tests
 
         /// <summary>太陽定数が正しい値を持つ</summary>
         [Fact]
@@ -55,7 +55,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>緯度・経度・標準経度で初期化できる</summary>
         [Fact]
@@ -90,7 +90,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 太陽位置のテスト
+        #region Solar position tests
 
         /// <summary>夏至の正午付近で太陽高度が高い（東京）</summary>
         [Fact]
@@ -158,7 +158,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 日の出・日没時刻のテスト
+        #region Sunrise and sunset time tests
 
         /// <summary>夏至の日の出は冬至より早い（東京）</summary>
         [Fact]
@@ -214,7 +214,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 大気圏外日射量のテスト
+        #region Extraterrestrial solar radiation tests
 
         /// <summary>大気圏外日射量は太陽定数の±3.3%以内に収まる</summary>
         [Theory]
@@ -240,7 +240,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 日射相互変換のテスト
+        #region Solar radiation conversion tests
 
         /// <summary>直達・天空・全天日射の相互変換が整合する</summary>
         [Theory]
@@ -259,7 +259,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 直散分離のテスト
+        #region Direct/diffuse separation tests
 
         /// <summary>直散分離後の直達・天空日射量の和が全天日射量と一致する</summary>
         [Theory]
@@ -303,7 +303,7 @@ namespace Popolo.Core.Tests.Climate
 
         #endregion
 
-        #region 日射量のプロパティテスト
+        #region Solar radiation property tests
 
         /// <summary>DirectNormalRadiationに負の値を設定しても0になる</summary>
         [Fact]

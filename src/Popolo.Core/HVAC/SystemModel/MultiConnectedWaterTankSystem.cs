@@ -32,12 +32,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class MultiConnectedWaterTankSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Bypass flow rate [kg/s] for AHP inlet temperature control.</summary>
     private double ahpBypass = 0;
@@ -104,7 +104,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get; private set; }
@@ -190,7 +190,7 @@ namespace Popolo.Core.HVAC.SystemModel
       ChilledWaterFlowRate = chilledWaterFlowRate;
       HotWaterFlowRate = hotWaterFlowRate;
 
-      //水槽内温度分布の一時保存と復元
+      //Temporarily save and restore the temperature distribution in the tank
       if (isForecasting) wTank.InitializeTemperature(oldTemps);
       else
       {
@@ -198,7 +198,7 @@ namespace Popolo.Core.HVAC.SystemModel
         wTank.GetTemperatures(ref oldTemps);
       }
 
-      //AHPのモード設定
+      //Set the AHP operating mode
       if (Mode == HeatSourceSystemModel.OperatingMode.ShutOff) ActiveHeatSourceCount = 0;
       bool charging = (0 < ActiveHeatSourceCount);
       bool isCooling = (Mode == HeatSourceSystemModel.OperatingMode.Cooling);
@@ -219,7 +219,7 @@ namespace Popolo.Core.HVAC.SystemModel
       }
       else ahp.Mode = AirHeatSourceModularChillers.OperatingMode.ShutOff;
 
-      //タイムステップが経過するまで水槽温度更新を続ける
+      //Keep updating the tank temperatures until the time step has elapsed
       double remTime = TimeStep;
       double aveTemp = 0;
       IsOverLoad_C = IsOverLoad_H = false;
@@ -230,11 +230,11 @@ namespace Popolo.Core.HVAC.SystemModel
         if (isLastCalc) wTank.TimeStep = remTime;
         remTime -= wTank.TimeStep;
 
-        //AHP稼働かつ二次側負荷有りの場合はHEX所要流量を収束計算（追掛運転）
+        //If the AHP is running and there is a secondary side load, iterate on the required HEX flow rate (chasing operation)
         double chFlow = Math.Max(ChilledWaterFlowRate, HotWaterFlowRate);
         if (charging && 0 < chFlow)
         {
-          //冷温水ポンプの昇温幅を計算
+          //Calculate the temperature rise across the chilled/hot water pump
           rlsPump1.UpdateState(rlsPump1.DesignFlowRate);
           rlsPump2.UpdateState(0.001 * chFlow);
           double dtCHP = rlsPump2.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chFlow);
@@ -246,11 +246,11 @@ namespace Popolo.Core.HVAC.SystemModel
             else return HotWaterSupplyTemperatureSetpoint - pHex.SupplyTemperature;
           };
 
-          //最大流量で処理可能か
+          //Check whether the load can be handled at the maximum flow rate
           if (eFnc(pHex.MaxHeatSourceFlowRate) < 0)
           {
             IsOverLoad_C = IsOverLoad_H = false;
-            //最小流量で制御可能か
+            //Check whether control is possible at the minimum flow rate
             if (0 < eFnc(pHex.MaxHeatSourceFlowRate * 0.001))
               Roots.Bisection(eFnc, pHex.MaxHeatSourceFlowRate * 0.001,
                 pHex.MaxHeatSourceFlowRate, 0.01, pHex.MaxHeatSourceFlowRate * 0.01, 20);
@@ -261,7 +261,7 @@ namespace Popolo.Core.HVAC.SystemModel
             else IsOverLoad_H = true;
           }
 
-          //水槽内温度更新処理
+          //Update the temperatures in the tank
           double tTNKin;
           bool isFwdFlow = pHex.HeatSourceFlowRate < (ahp.WaterFlowRate - ahpBypass) * ActiveHeatSourceCount;
           if (isFwdFlow) tTNKin = ahp.WaterOutletTemperature;
@@ -269,21 +269,21 @@ namespace Popolo.Core.HVAC.SystemModel
               + rlsPump1.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
           wTank.ForecastState(tTNKin, 0.001 * Math.Abs((ahp.WaterFlowRate - ahpBypass) * ActiveHeatSourceCount - pHex.HeatSourceFlowRate), isFwdFlow);
         }
-        //AHP非稼働+二次側負荷有り（放熱運転）
+        //AHP off + secondary side load present (discharge operation)
         else if (0 < chFlow)
         {
           ahp.ShutOff();
           chgPump.ShutOff();
 
-          //放熱ポンプの昇温幅を計算
+          //Calculate the temperature rise across the discharge pump
           rlsPump2.UpdateState(0.001 * chFlow);
           double dtCHP = rlsPump2.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chFlow);
 
-          //放熱用プレート熱交換器の必要通水量を計算
+          //Calculate the required water flow rate through the discharge plate heat exchanger
           pHex.ControlSupplyTemperature
             (WaterTank.WaterOutletTemperarture, (isCooling ? ChilledWaterReturnTemperature : HotWaterReturnTemperature) + dtCHP, chFlow);
 
-          //水槽内温度を更新
+          //Update the temperatures in the tank
           double tankInletTemp = 0;
           if (0 < pHex.HeatSourceFlowRate)
           {
@@ -296,7 +296,7 @@ namespace Popolo.Core.HVAC.SystemModel
           if (isCooling) IsOverLoad_C = pHex.IsOverLoad;
           else IsOverLoad_H = pHex.IsOverLoad;
         }
-        //AHP稼働+二次側負荷無し（蓄熱運転）
+        //AHP running + no secondary side load (charge operation)
         else if (charging)
         {
           pHex.ShutOff();
@@ -304,7 +304,7 @@ namespace Popolo.Core.HVAC.SystemModel
           rlsPump2.ShutOff();
           chgPump.UpdateState(chgPump.DesignFlowRate);
 
-          //三方弁による熱源入口温度制御
+          //Control the heat source inlet temperature with the three-way valve
           double tAHPout = ahp.WaterOutletSetpointTemperature;
           double rf = GetFirstTankWaterFlowRate(0, 0, tAHPout);
           double ahpIn = rf * tAHPout + (1 - rf) * wTank.GetTemperature(wTank.TankCount - 1);
@@ -313,7 +313,7 @@ namespace Popolo.Core.HVAC.SystemModel
             (ahp.WaterOutletTemperature, chgPump.DesignFlowRate * ActiveHeatSourceCount * (1 - rf), true);
           IsOverLoad_C = IsOverLoad_H = false;
         }
-        //AHP非稼働+二次側負荷無し（蓄熱槽熱損失のみ）
+        //AHP off + no secondary side load (thermal storage tank heat loss only)
         else
         {
           ShutOff();
@@ -326,7 +326,7 @@ namespace Popolo.Core.HVAC.SystemModel
         if (isLastCalc) break;
       }
 
-      //過負荷の場合には平均的な供給水温を出力
+      //When overloaded, output the average supply water temperature
       if (IsOverLoad_C) ChilledWaterSupplyTemperature = aveTemp / TimeStep;
       else ChilledWaterSupplyTemperature = ChilledWaterSupplyTemperatureSetpoint;
       if (IsOverLoad_H) HotWaterSupplyTemperature = aveTemp / TimeStep;
@@ -347,12 +347,12 @@ namespace Popolo.Core.HVAC.SystemModel
         rlsPump1.UpdateState(hexFlowVol);
         double dtRlsPump = rlsPump1.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hexFlow);
 
-        //放熱熱交換器の計算//バイパス流量は0と仮定する
+        //Calculate the discharge heat exchanger//assume zero bypass flow rate
         double rAH = Math.Min(1, chgPump.DesignFlowRate * ActiveHeatSourceCount / rlsPump1.DesignFlowRate);
         double tHexIn = tAHPout * rAH + wTank.FirstTankTemperature * (1 - rAH);
         pHex.Update(tHexIn + dtRlsPump, rtnTmp, hexFlow, chFlow);
 
-        //水槽内の流れ方向を確定
+        //Determine the flow direction in the tank
         double rF = GetFirstTankWaterFlowRate(hexFlowVol, pHex.HeatSourceOutletTemperature, tAHPout);
         ahpBypass = ahp.WaterFlowRate * rF;
         double ahpFlw = (1 - rF) * chgPump.DesignFlowRate * ActiveHeatSourceCount;
@@ -361,12 +361,12 @@ namespace Popolo.Core.HVAC.SystemModel
           (fwdFlw * wTank.LastTankTemperature + hexFlowVol * pHex.HeatSourceOutletTemperature) / (fwdFlw + hexFlowVol) :
           pHex.HeatSourceOutletTemperature;
 
-        //入口水温を仮定してAHPを計算
+        //Calculate the AHP with an assumed inlet water temperature
         double ahpIn = rF * tAHPout + (1 - rF) * tH + dtChgPump;
         ahp.Update(ahpIn, chgPump.DesignFlowRate * 1000, OutdoorAir.DryBulbTemperature);
 
-        if (!ahp.IsOverLoad) break; //AHP出口温度が達成できるなら終了。
-        tAHPout = ahp.WaterOutletTemperature; //過負荷の場合にはもう一回計算
+        if (!ahp.IsOverLoad) break; //Finish if the AHP outlet temperature can be achieved.
+        tAHPout = ahp.WaterOutletTemperature; //When overloaded, recalculate once more
       }
     }
 
@@ -382,25 +382,25 @@ namespace Popolo.Core.HVAC.SystemModel
       if (Mode == HeatSourceSystemModel.OperatingMode.Cooling)
       {
         double tSP = HeatSourceInletChilledWaterTemperatureSP - dtChgPump;
-        //そもそも出口温度が入口温度を満たせない場合//この処理は問題あり
+        //Case where the outlet temperature cannot satisfy the inlet temperature in the first place//this handling is problematic
         if (tSP < tAHPout) return 0.9;
-        //HEX還水量が大きい場合には即、求められる
+        //When the HEX return water flow is large, the ratio is obtained immediately
         if (1.0 <= rr) return Math.Max(0, (tSP - tHexRtn) / (tAHPout - tHexRtn));
-        //HEX還水・終端槽・始端槽の水を混ぜ合わせて水温制御する場合
+        //Case where the water temperature is controlled by mixing HEX return water, last tank, and first tank water
         double th = (1 - rr) * wTank.LastTankTemperature + rr * tHexRtn;
-        if (th <= tSP) return 0.0; //始端槽の水が無くても設定温度未満の入口水温が実現可能の場合
+        if (th <= tSP) return 0.0; //Case where an inlet water temperature below the setpoint is achievable even without first tank water
         return (tSP - wTank.LastTankTemperature - rr * (tHexRtn - wTank.LastTankTemperature)) / (tAHPout - wTank.LastTankTemperature);
       }
       else
       {
         double tSP = HeatSourceInletHotWaterTemperatureSP - dtChgPump;
-        //そもそも出口温度が入口温度を満たせない場合//この処理は問題あり
+        //Case where the outlet temperature cannot satisfy the inlet temperature in the first place//this handling is problematic
         if (tAHPout < tSP) return 0.9;
-        //HEX還水量が大きい場合には即、求められる
+        //When the HEX return water flow is large, the ratio is obtained immediately
         if (1.0 <= rr) return Math.Max(0, (tSP - tHexRtn) / (tAHPout - tHexRtn));
-        //HEX還水・終端槽・始端槽の水を混ぜ合わせて水温制御する場合
+        //Case where the water temperature is controlled by mixing HEX return water, last tank, and first tank water
         double th = (1 - rr) * wTank.LastTankTemperature + rr * tHexRtn;
-        if (tSP <= th) return 0.0; //始端槽の水が無くても設定温度未満の入口水温が実現可能の場合
+        if (tSP <= th) return 0.0; //Case where an inlet water temperature below the setpoint is achievable even without first tank water
         return (tSP - wTank.LastTankTemperature - rr * (tHexRtn - wTank.LastTankTemperature)) / (tAHPout - wTank.LastTankTemperature);
       }
     }
@@ -410,7 +410,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="waterTank">Multi-connected fully-mixed thermal storage tank.</param>
@@ -433,7 +433,7 @@ namespace Popolo.Core.HVAC.SystemModel
       this.HeatSourceCount = this.ActiveHeatSourceCount = ashpCount;
       oldTemps = new double[WaterTank.TankCount];
 
-      //冷凍機ポンプの昇温幅を計算・保存
+      //Calculate and store the temperature rise across the chiller pump
       this.chgPump.UpdateState(chgPump.DesignFlowRate);
       dtChgPump = this.chgPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * 1000 * this.chgPump.DesignFlowRate);
 

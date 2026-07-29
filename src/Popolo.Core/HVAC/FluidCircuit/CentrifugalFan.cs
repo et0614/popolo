@@ -25,7 +25,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class CentrifugalFan : FluidMachinery
   {
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="nomPressure">Nominal (peak efficiency) total pressure [kPa].</param>
@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double designFlowRate, double number, double dynamicPressure, bool hasInverter) :
       base(nomPressure, nomFlowRate, designPressure, designFlowRate, dynamicPressure, hasInverter)
     {
-      //効率・圧力特性係数を計算
+      //Compute the efficiency and pressure characteristic coefficients
       efficiencyCoefficient = new double[4];
       pressureCoefficient = new double[3];
       GetGeneralParameters
@@ -77,7 +77,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Updates the state.</summary>
     /// <param name="flowRate">Volumetric flow rate [m³/s].</param>
@@ -85,21 +85,21 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       VolumetricFlowRate = flowRate;
 
-      //停止判定
+      //Shutoff check
       if (VolumetricFlowRate <= 0)
       {
         ShutOff();
         return;
       }
 
-      //抵抗曲線上の圧力
+      //Pressure on the resistance curve
       double ps = VolumetricFlowRate * VolumetricFlowRate * resistanceCoefficient + ActualHead;
 
-      //インバータ有り
+      //With inverter
       if (HasInverter)
       {
         updateWithFlowRateAndPressure(VolumetricFlowRate, ps);
-        //回転数上限の場合には最大回転数で成り行き計算
+        //At the upper rotational speed limit, compute the resulting flow at maximum rotational speed
         if (1.0 < RotationRatio)
         {
           RotationRatio = 1.0;
@@ -107,14 +107,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
             GetFlowRate(RotationRatio, pressureCoefficient, resistanceCoefficient, ActualHead, 1, DesignFlowRate);
           Pressure = VolumetricFlowRate * VolumetricFlowRate * resistanceCoefficient + ActualHead;
         }
-        //回転数下限の場合には最小回転数でダンパ制御
+        //At the lower rotational speed limit, apply damper control at minimum rotational speed
         else if (RotationRatio < MinRotationRatio)
           UpdateWithFlowRateAndRotationRatio(VolumetricFlowRate, MinRotationRatio);
       }
-      //インバータ無し
+      //Without inverter
       else
       {
-        //過負荷判定
+        //Overload check
         UpdateWithFlowRateAndRotationRatio(VolumetricFlowRate, 1.0);
         if (Pressure < ps)
         {
@@ -128,7 +128,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes characteristic coefficients for a general-purpose fan.</summary>
     /// <param name="flowRate">Air flow rate [m³/s].</param>
@@ -139,20 +139,20 @@ namespace Popolo.Core.HVAC.FluidCircuit
     private static void GetGeneralParameters(double flowRate, double pressure,
       double number, ref double[] efficiencyCoef, ref double[] pressureCoef)
     {
-      //最大効率近似係数
+      //Approximation coefficients for the maximum efficiency
       double[][] aj = new double[3][];
       aj[0] = new double[] { 1.397E-01, 1.303E-01, -1.179E-02, 3.219E-04 };
       aj[1] = new double[] { 7.649E-01, -9.105E-02, -5.345E-03, 1.006E-03 };
       aj[2] = new double[] { -7.141E-01, 1.325E-01, -2.639E-03, -5.690E-04 };
 
-      //最大効率[-]の計算
+      //Compute the maximum efficiency [-]
       double[] act = new double[3];
       for (int i = 0; i < aj.Length; i++)
         for (int j = aj[0].Length - 1; 0 <= j; j--)
           act[i] = (number * act[i] + aj[i][j]);
       double maxEff = act[0] + pressure * (act[1] + act[2] * pressure);
 
-      //効率特性
+      //Efficiency characteristic
       double m2 = flowRate * flowRate;
       double m3 = m2 * flowRate;
       efficiencyCoef[0] = 0.337 * maxEff / m3;
@@ -160,7 +160,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       efficiencyCoef[2] = 2.350 * maxEff / flowRate;
       efficiencyCoef[3] = 0;
 
-      //圧力特性//2017.01.05.係数修正 E.Togashi
+      //Pressure characteristic//2017.01.05. Coefficients revised, E.Togashi
       pressureCoef[0] = -0.203 * pressure / m2;
       pressureCoef[1] = 0.219 * pressure / flowRate;
       pressureCoef[2] = 0.984 * pressure;

@@ -65,7 +65,7 @@ namespace Popolo.IO.Json
   public static class PopoloJsonSerializer
   {
 
-    #region オプション構築
+    #region Option construction
 
     /// <summary>
     /// Creates a new <see cref="JsonSerializerOptions"/> instance pre-configured
@@ -92,7 +92,7 @@ namespace Popolo.IO.Json
         WriteIndented = true,
       };
 
-      // Envelope 系(Popolo.IO.Json.Building.Envelope)
+      // Envelope converters (Popolo.IO.Json.Building.Envelope)
       opts.Converters.Add(new AirGapLayerConverter());
       opts.Converters.Add(new WallLayerConverter());
       opts.Converters.Add(new WallConverter());
@@ -102,11 +102,11 @@ namespace Popolo.IO.Json
       opts.Converters.Add(new SunShadeConverter());
       opts.Converters.Add(new WindowConverter());
 
-      // Climate 系(Popolo.IO.Json.Climate)
+      // Climate converters (Popolo.IO.Json.Climate)
       opts.Converters.Add(new InclineConverter());
       opts.Converters.Add(new SunConverter());
 
-      // Building 系(Popolo.IO.Json.Building)
+      // Building converters (Popolo.IO.Json.Building)
       opts.Converters.Add(new ZoneConverter());
       opts.Converters.Add(new MultiRoomsConverter());
       opts.Converters.Add(new BuildingThermalModelConverter());
@@ -116,7 +116,7 @@ namespace Popolo.IO.Json
 
     #endregion
 
-    #region 文字列 I/O
+    #region String I/O
 
     /// <summary>Serializes a <see cref="BuildingThermalModel"/> to a JSON string.</summary>
     /// <param name="model">Model to serialize.</param>
@@ -168,7 +168,7 @@ namespace Popolo.IO.Json
 
     #endregion
 
-    #region ファイル I/O
+    #region File I/O
 
     /// <summary>Serializes a <see cref="BuildingThermalModel"/> to a file.</summary>
     /// <param name="model">Model to serialize.</param>

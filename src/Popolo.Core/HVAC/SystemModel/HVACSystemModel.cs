@@ -30,12 +30,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class HVACSystemModel
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
     
     /// <summary>Multiplier for each air-conditioning system branch.</summary>
     private int[] acFactor;
@@ -123,7 +123,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="bModel">Building thermal load calculation model.</param>
@@ -141,34 +141,34 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Updates the system state for the current time step.</summary>
     public void Update()
     {
-      //未処理負荷初期化
+      //Initialize the unmet loads
       RemainingCoolingLoad = RemainingHeatingLoad = 0;
 
-      //二次側からの還温度を計算
+      //Calculate the return water temperatures from the secondary side
       CalcReturnWaterState(ChilledWaterSupplyTemperatureSetpoint, HotWaterSupplyTemperatureSetpoint);
 
-      //一次側過負荷判定
+      //Overload judgment on the primary side
       hsModel.ForecastSupplyWaterTemperature
         (ChilledWaterFlowRate, ChilledWaterReturnTemperature, HotWaterFlowRate, HotWaterReturnTemperature);
 
-      //冷却能力不足の場合
+      //When the cooling capacity is insufficient
       if (hsModel.IsOverLoad_C)
       {
-        //往温度上限値で計算
+        //Calculate at the upper limit of the supply water temperature
         CalcReturnWaterState(ChilledWaterUpperLimitTemperature, HotWaterSupplyTemperatureSetpoint);
         hsModel.ForecastSupplyWaterTemperature
           (ChilledWaterFlowRate, ChilledWaterReturnTemperature, HotWaterFlowRate, HotWaterReturnTemperature);
 
-        //未処理負荷発生
+        //Unmet load occurs
         if (ChilledWaterUpperLimitTemperature < hsModel.ChilledWaterSupplyTemperature)
           RemainingCoolingLoad = ChilledWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat *
             (hsModel.ChilledWaterSupplyTemperature - ChilledWaterUpperLimitTemperature);
-        //往温度上昇
+        //Supply water temperature rises
         else
         {
           Roots.ErrorFunction eFnc = delegate (double tcSply)
@@ -184,19 +184,19 @@ namespace Popolo.Core.HVAC.SystemModel
       }
       else ChilledWaterSupplyTemperature = ChilledWaterSupplyTemperatureSetpoint;
 
-      //加熱能力不足の場合
+      //When the heating capacity is insufficient
       if (hsModel.IsOverLoad_H)
       {
-        //往温度下限値で計算
+        //Calculate at the lower limit of the supply water temperature
         CalcReturnWaterState(ChilledWaterSupplyTemperature, HotWaterLowerLimitTemperature);
         hsModel.ForecastSupplyWaterTemperature
           (ChilledWaterFlowRate, ChilledWaterReturnTemperature, HotWaterFlowRate, HotWaterReturnTemperature);
 
-        //未処理負荷発生
+        //Unmet load occurs
         if (hsModel.HotWaterSupplyTemperature < HotWaterLowerLimitTemperature)
           RemainingHeatingLoad = HotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat *
             (HotWaterLowerLimitTemperature - hsModel.HotWaterSupplyTemperature);
-        //往温度低下
+        //Supply water temperature falls
         else
         {
           Roots.ErrorFunction eFnc = delegate (double tcSply)
@@ -212,7 +212,7 @@ namespace Popolo.Core.HVAC.SystemModel
       }
       else HotWaterSupplyTemperature = HotWaterSupplyTemperatureSetpoint;
 
-      //状態確定
+      //Fix the state
       hsModel.FixState();
       foreach (IAirConditioningSystemModel ac in acModels) ac.FixState();
       bModel.FixState();

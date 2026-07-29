@@ -27,7 +27,7 @@ namespace Popolo.Core.Numerics
   public static class Transform
   {
 
-    #region Box-Cox変換
+    #region Box-Cox transform
 
     /// <summary>Finds the optimal Box-Cox transformation parameter λ.</summary>
     /// <param name="data">Original data; on return, transformed with the optimal λ.</param>
@@ -45,7 +45,7 @@ namespace Popolo.Core.Numerics
             "data must not be null or empty.",
             nameof(data));
 
-      // 同じデータ数を持つ標準正規分布の累積分布を計算
+      // Compute the cumulative distribution of a standard normal distribution with the same number of data points
       int dNum = data.Length;
       double[] std = new double[dNum];
       for (int i = 0; i < dNum; i++)
@@ -54,7 +54,7 @@ namespace Popolo.Core.Numerics
       double[] dvStd = std.Select(_ => _ - aveStd).ToArray();
       double stdStd = Math.Sqrt(dvStd.Select(_ => _ * _).Average());
 
-      // 正の数（1以上）に調整
+      // Shift to positive values (1 or greater)
       double minData = data[0];
       for (int i = 1; i < dNum; i++)
         if (data[i] < minData) minData = data[i];
@@ -62,7 +62,7 @@ namespace Popolo.Core.Numerics
       for (int i = 0; i < dNum; i++)
         data[i] += minData;
 
-      // 原データをソート
+      // Sort the original data
       double[] sData = new double[dNum];
       data.CopyTo(sData, 0);
       Array.Sort(sData);

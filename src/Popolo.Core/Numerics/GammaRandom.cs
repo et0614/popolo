@@ -31,7 +31,7 @@ namespace Popolo.Core.Numerics
   public class GammaRandom
   {
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Uniform random number generator.</summary>
     private readonly MersenneTwister random;
@@ -41,7 +41,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the shape parameter α.</summary>
     public double Alpha { get; private set; }
@@ -51,7 +51,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
     /// <param name="seed">Random seed.</param>
@@ -83,7 +83,7 @@ namespace Popolo.Core.Numerics
       this.Alpha = alpha;
       this.Beta = beta;
 
-      // 内部パラメータ初期化
+      // Initialize internal parameters
       if (Alpha <= 0.4) n = 1.0 / Alpha;
       else if (Alpha <= 4) n = 1.0 / Alpha + (Alpha - 0.4) / (3.6 * Alpha);
       else n = 1.0 / Math.Sqrt(Alpha);
@@ -97,7 +97,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region メソッド
+    #region Methods
 
     /// <summary>Returns a sample drawn from the gamma distribution.</summary>
     /// <returns>A random sample from the configured gamma distribution.</returns>

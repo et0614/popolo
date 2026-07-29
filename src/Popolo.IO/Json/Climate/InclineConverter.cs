@@ -46,7 +46,7 @@ namespace Popolo.IO.Json.Climate
   public sealed class InclineConverter : JsonConverter<Incline>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropHorizontalAngle = "horizontalAngle";
@@ -56,7 +56,7 @@ namespace Popolo.IO.Json.Climate
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads an <see cref="Incline"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>

@@ -47,7 +47,7 @@ namespace Popolo.Core.Tests.Numerics
                 + 10.1 * (Math.Pow(x[1] - 1, 2) + Math.Pow(x[3] - 1, 2))
                 + 19.8 * (x[1] - 1) * (x[3] - 1);
 
-        #region QuasiNewton のテスト
+        #region QuasiNewton tests
 
         /// <summary>2次関数の最小点が原点になる</summary>
         [Fact]
@@ -106,7 +106,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region Newton のテスト
+        #region Newton tests
 
         /// <summary>2次関数の最小点が原点になる</summary>
         [Fact]

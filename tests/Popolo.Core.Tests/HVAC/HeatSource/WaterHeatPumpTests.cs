@@ -31,7 +31,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class WaterHeatPumpTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 標準的な水熱源ヒートポンプを生成する。
@@ -61,7 +61,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>NominalCoolingCapacity がコンストラクタ指定値と一致する。</summary>
         [Fact]
@@ -90,7 +90,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region CoolWater — 冷却運転
+        #region CoolWater — cooling operation
 
         /// <summary>冷却負荷が正。</summary>
         [Fact]
@@ -151,7 +151,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region HeatWater — 加熱運転
+        #region HeatWater — heating operation
 
         /// <summary>加熱負荷が正。</summary>
         [Fact]

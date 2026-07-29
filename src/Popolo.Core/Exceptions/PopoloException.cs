@@ -3,7 +3,7 @@
 namespace Popolo.Core.Exceptions
 {
 
-  #region 引数異常の例外クラス定義
+  #region Invalid argument exception class
 
   /// <summary>
   /// Thrown when an argument is physically or numerically invalid.
@@ -22,7 +22,7 @@ namespace Popolo.Core.Exceptions
 
   #endregion
 
-  #region 引数の範囲異常の例外クラス
+  #region Argument out-of-range exception class
 
   /// <summary>
   /// Exception thrown when a parameter value is outside its physically or
@@ -98,7 +98,7 @@ namespace Popolo.Core.Exceptions
 
   #endregion
 
-  #region 数値計算の例外クラス
+  #region Numerical calculation exception class
 
   /// <summary>
   /// Thrown when a numerical solver fails to converge,
@@ -126,7 +126,7 @@ namespace Popolo.Core.Exceptions
 
   #endregion
 
-  #region オブジェクト状態不正の例外クラス
+  #region Invalid object state exception class
 
   /// <summary>
   /// Thrown when a method call is invalid for the current state of the object.
@@ -175,7 +175,7 @@ namespace Popolo.Core.Exceptions
 
   #endregion
 
-  #region 未実装例外クラス
+  #region Not implemented exception class
 
   /// <summary>
   /// Thrown when an unimplemented code path is reached.

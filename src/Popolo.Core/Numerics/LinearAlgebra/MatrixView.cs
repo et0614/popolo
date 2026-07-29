@@ -26,7 +26,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   [Serializable]
   public class MatrixView : IMatrix
   {
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Underlying source matrix.</summary>
     private IMatrix matrix;
@@ -39,7 +39,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the number of rows in the view.</summary>
     public int Rows { get; private set; }

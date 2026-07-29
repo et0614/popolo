@@ -86,7 +86,7 @@ namespace Popolo.IO.Climate.Weather
       var ci = CultureInfo.InvariantCulture;
       bool emitSourceTime = AlwaysEmitSourceTime || data.IsTypicalYear;
 
-      // --- メタデータヘッダ ---
+      // --- Metadata header ---
       writer.WriteLine(CommentPrefix + FormatHeader);
       writer.WriteLine(CommentPrefix + "Station: " + FormatStation(data.Station));
       writer.WriteLine(CommentPrefix + "Source: " + data.Source.ToString());
@@ -96,7 +96,7 @@ namespace Popolo.IO.Climate.Weather
         writer.WriteLine(CommentPrefix + "NominalInterval: "
             + data.NominalInterval.Value.ToString("c", ci));
 
-      // --- カラムヘッダ ---
+      // --- Column header ---
       writer.Write("Time");
       if (emitSourceTime) writer.Write(",SourceTime");
       writer.Write(",DryBulbTemperature[C]");
@@ -113,14 +113,14 @@ namespace Popolo.IO.Climate.Weather
       writer.Write(",CloudCover[0-1]");
       writer.WriteLine();
 
-      // --- データ行 ---
+      // --- Data rows ---
       foreach (var r in data.Records)
       {
         writer.Write(r.Time.ToString("o", ci));
         if (emitSourceTime)
         {
           writer.Write(",");
-          // SourceTime が Time と同じなら空欄にして冗長性を下げる
+          // Leave blank when SourceTime equals Time to reduce redundancy
           if (r.SourceTime != r.Time)
             writer.Write(r.SourceTime.ToString("o", ci));
         }

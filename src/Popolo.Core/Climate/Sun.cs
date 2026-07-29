@@ -63,7 +63,7 @@ namespace Popolo.Core.Climate
   public class Sun : IReadOnlySun
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Solar constant [W/m²].</summary>
     public const double SolarConstant = 1367.0;
@@ -76,7 +76,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>
     /// Specifies the method used for direct/diffuse radiation separation.
@@ -382,14 +382,14 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region クラス変数
+    #region Class variables
 
     /// <summary>Lookup of city locations (latitude, longitude, standard-time longitude).</summary>
     private static readonly Dictionary<City, double[]> _cities = new Dictionary<City, double[]>();
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Direct normal irradiance [W/m²].</summary>
     private double _directNormalRadiation;
@@ -402,7 +402,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets or sets the solar altitude angle [radian].</summary>
     public double Altitude { get; set; }
@@ -457,7 +457,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 静的コンストラクタ・コンストラクタ
+    #region Static constructor and constructors
 
     /// <summary>Static constructor that initializes the city location data.</summary>
     static Sun()
@@ -618,7 +618,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Updates the solar position for the specified date and time.
@@ -733,7 +733,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 太陽位置関連の静的メソッド
+    #region Static methods for solar position
 
     /// <summary>
     /// Gets the solar altitude [radian] and azimuth [radian] for the specified location and time.
@@ -768,7 +768,7 @@ namespace Popolo.Core.Climate
       double cp = Math.Cos(phi);
       double sh = sp * sd + cp * cd * Math.Cos(t);
 
-      //日の出前・日没後
+      //Before sunrise or after sunset
       if (sh <= 0)
       {
         altitude = 0;
@@ -830,7 +830,7 @@ namespace Popolo.Core.Climate
       double sd = 0.397949 * Math.Sin(b);
       double tptd = -Math.Tan(phi) * Math.Tan(Math.Asin(sd));
 
-      //白夜・極夜の場合
+      //Midnight sun or polar night
       if (tptd < -1 || 1 < tptd)
         return new DateTime(dTime.Year, dTime.Month, dTime.Day, 0, 0, 0);
 
@@ -892,7 +892,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 日射相互変換の静的メソッド
+    #region Static methods for solar radiation conversion
 
     /// <summary>
     /// Gets the direct normal irradiance [W/m²] from global and diffuse components.
@@ -929,7 +929,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 直散分離の静的メソッド
+    #region Static methods for direct/diffuse separation
 
     /// <summary>
     /// Separates global horizontal irradiance [W/m²] into direct normal and diffuse components.
@@ -954,13 +954,13 @@ namespace Popolo.Core.Climate
         directSolarRadiation = diffuseHorizontalRadiation = 0;
         return;
       }
-      //誤差拡大を防ぐため太陽高度の下限を3°とする
+      //Limit solar altitude to a minimum of 3° to prevent error amplification
       h = Math.Max(0.05, h);
       double sinH = Math.Sin(h);
       double io = GetExtraterrestrialRadiation(dTime.DayOfYear);
       double dn, dff;
 
-      //宇田川の手法
+      //Udagawa's method
       if (method == SeparationMethod.Udagawa)
       {
         double ktt = globalHorizontalRadiation / (io * sinH);
@@ -969,7 +969,7 @@ namespace Popolo.Core.Climate
         else dn = (2.277 + sinH * (-1.258 + 0.2396 * sinH)) * Math.Pow(ktt, 3) * io;
         dff = globalHorizontalRadiation - dn * sinH;
       }
-      //Erbsの手法
+      //Erbs' method
       else if (method == SeparationMethod.Erbs)
       {
         double ktt = globalHorizontalRadiation / (io * sinH);
@@ -979,7 +979,7 @@ namespace Popolo.Core.Climate
         else dff = 0.1651 * globalHorizontalRadiation;
         dn = (globalHorizontalRadiation - dff) / sinH;
       }
-      //三木の手法
+      //Miki's method
       else if (method == SeparationMethod.Miki)
       {
         double lkt = Math.Min(1, globalHorizontalRadiation / (io * sinH));
@@ -990,10 +990,10 @@ namespace Popolo.Core.Climate
         dn = lkd * io;
         dff = globalHorizontalRadiation - dn * sinH;
       }
-      //数値計算による手法（二分法）
+      //Numerical method (bisection)
       else
       {
-        //大気透過率=0で観測値を上回る場合
+        //Case where the estimate exceeds the observed value at atmospheric transmissivity = 0
         GetDirectAndDiffuseRadiation(0, sinH, io, method, out dn, out dff);
         if (globalHorizontalRadiation < dn * sinH + dff)
         {
@@ -1002,7 +1002,7 @@ namespace Popolo.Core.Climate
           return;
         }
 
-        //大気透過率=1で観測値を下回る場合
+        //Case where the estimate falls below the observed value at atmospheric transmissivity = 1
         GetDirectAndDiffuseRadiation(1, sinH, io, method, out dn, out dff);
         if (dn * sinH + dff < globalHorizontalRadiation)
         {
@@ -1012,7 +1012,7 @@ namespace Popolo.Core.Climate
           return;
         }
 
-        //二分法で大気透過率を収束計算
+        //Solve for atmospheric transmissivity by bisection
         Roots.ErrorFunction eFnc = atmTrans =>
         {
           GetDirectAndDiffuseRadiation(atmTrans, sinH, io, method, out dn, out dff);
@@ -1063,7 +1063,7 @@ namespace Popolo.Core.Climate
     /// </remarks>
     public static double GetAirMass(double altitude)
     {
-      // 地平線以下は地平線 (h = 0°) の値で頭打ちにする。
+      // Below the horizon, cap at the horizon value (h = 0°).
       double h = altitude < 0 ? 0 : altitude;
       double hDeg = h * 180.0 / Math.PI;
       double denom = Math.Sin(h) + 0.50572 * Math.Pow(hDeg + 6.07995, -1.6364);
@@ -1129,7 +1129,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 照度関連の静的メソッド
+    #region Static methods for illuminance
 
     /// <summary>
     /// Gets the luminous efficacy of diffuse sky radiation [lm/W].
@@ -1213,24 +1213,24 @@ namespace Popolo.Core.Climate
         return;
       }
 
-      //基準クラウドレイショ
+      //Reference cloud ratio
       double ces = 0.08302 + 0.5358 * Math.Exp(-17.394 * solarAltitude)
           + 0.3818 * Math.Exp(-3.2899 * solarAltitude);
-      //クラウドレイショ
+      //Cloud ratio
       double ce = diffuseHorizontalRadiation / globalHorizontalRadiation;
-      //澄清指標（0・1は発散するのでクリップ）
+      //Sky clearness index (clipped because 0 and 1 diverge)
       double cle = 1.0 <= ces ? 1.0 : (1.0 - ce) / (1.0 - ces);
       cle = Math.Min(0.99, Math.Max(0.01, cle));
 
-      //大気路程
+      //Optical air mass
       double m = MoistAir.GetAtmosphericPressure(elevation) / PhysicsConstants.StandardAtmosphericPressure
           * Math.Sin(solarAltitude);
       double seeg = 0.84 * GetExtraterrestrialRadiation(dayOfYear) / m * Math.Exp(-0.054 * m);
-      //晴天指標（0・1は発散するのでクリップ）
+      //Clear-sky index (clipped because 0 and 1 diverge)
       double kc = globalHorizontalRadiation / seeg;
       kc = Math.Min(0.99, Math.Max(0.01, kc));
 
-      //可降水量 [cm]
+      //Precipitable water [cm]
       double pWat = 0.1 * Sky.GetPrecipitableWater(elevation, dewpointTemperature);
 
       double[] eff = new double[3];

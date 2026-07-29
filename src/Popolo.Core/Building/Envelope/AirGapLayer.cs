@@ -63,7 +63,7 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="thickness">Layer thickness [m].</param>
     public AirGapLayer(string name, bool isSealed, double thickness)
     {
-      //年平均として常温20C/60%程度の値を採用
+      //Use property values at roughly 20C/60% (typical room conditions) as an annual average
       ThermalConductivity = MoistAir.GetThermalConductivity(20);
       VolSpecificHeat = MoistAir.GetSpecificHeat(0.01) * PhysicsConstants.NominalMoistAirDensity;
 

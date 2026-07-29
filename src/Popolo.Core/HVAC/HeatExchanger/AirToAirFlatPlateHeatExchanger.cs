@@ -29,7 +29,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class AirToAirFlatPlateHeatExchanger : IReadOnlyAirToAirFlatPlateHeatExchanger
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Air flow arrangement.</summary>
     public enum AirFlow
@@ -55,7 +55,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Sensible heat transfer coefficient [kW/K].</summary>
     private double sensibleHeatTransferCoefficient;
@@ -79,7 +79,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets a value indicating whether this is a total heat exchanger (sensible + latent).</summary>
     public bool IsTotalHeatExchanger { get; private set; }
@@ -125,7 +125,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
@@ -178,7 +178,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     {
       GetConditionState(condition, out double saDB, out double saHmd, out double eaDB, out double eaHmd);
 
-      //エンタルピー交換効率が与えられた場合には潜熱交換効率に変換
+      //If an enthalpy exchange efficiency is given, convert it to a latent heat exchange efficiency
       if (isEnthalpyEfficiency)
         latentOrEnthalpyEfficiency = ConvertEnthalpyToLatentEfficiency
           (sensibleEfficiency, latentOrEnthalpyEfficiency, saDB, saHmd, eaDB, eaHmd);
@@ -225,7 +225,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
           $"coolingCondition must be a cooling test condition. Got: {coolingCondition}.",
           nameof(coolingCondition));
 
-      //冷房条件の貫流率を計算して保持
+      //Compute and store the heat transfer coefficients for the cooling condition
       GetConditionState(coolingCondition, out double saDB, out double saHmd, out double eaDB, out double eaHmd);
       double latEffC = isEnthalpyEfficiency
         ? ConvertEnthalpyToLatentEfficiency
@@ -242,7 +242,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       coolingLatentHeatTransferCoefficient = GetLatentHeatTransferCoefficient
         (mSA, mEA, saHmd, eaHmd, latEffC, flow);
 
-      //暖房条件の貫流率を計算して初期化（定格の成り行き計算も暖房条件で実行）
+      //Compute the heat transfer coefficients for the heating condition and initialize (the nominal free-running calculation also uses the heating condition)
       GetConditionState(heatingCondition, out saDB, out saHmd, out eaDB, out eaHmd);
       double latEffH = isEnthalpyEfficiency
         ? ConvertEnthalpyToLatentEfficiency
@@ -328,11 +328,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double sensibleEfficiency, double latentEfficiency,
       AirFlow flow, bool isTotalHeatExchanger)
     {
-      //機器情報を保存
+      //Store equipment information
       IsTotalHeatExchanger = isTotalHeatExchanger;
       Flow = flow;
 
-      //空気の質量流量を計算
+      //Compute air mass flow rates
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
         (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
@@ -340,26 +340,26 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double mSA = supplyAirFlowVolume / (3600 * svSA);
       double mEA = exhaustAirFlowVolume / (3600 * svEA);
 
-      //顕熱貫流率を計算
+      //Compute sensible heat transfer coefficient
       sensibleHeatTransferCoefficient = GetSensibleHeatTransferCoefficient
         (mSA, mEA, inletSADryBulbTemperature, inletSAHumidityRatio,
         inletEADryBulbTemperature, inletEAHumidityRatio, sensibleEfficiency, flow);
 
-      //全熱交換器の場合には潜熱貫流率[kg/(kg/kg)]を計算
+      //For a total heat exchanger, compute the latent heat transfer coefficient [kg/(kg/kg)]
       if (IsTotalHeatExchanger)
       {
         latentHeatTransferCoefficient = GetLatentHeatTransferCoefficient
           (mSA, mEA, inletSAHumidityRatio, inletEAHumidityRatio, latentEfficiency, flow);
       }
 
-      //定格条件で成り行き計算
+      //Run a free-running calculation at nominal conditions
       UpdateState(supplyAirFlowVolume, exhaustAirFlowVolume, inletSADryBulbTemperature,
         inletSAHumidityRatio, inletEADryBulbTemperature, inletEAHumidityRatio);
     }
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Updates the outlet conditions from the given inlet conditions.</summary>
     /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
@@ -373,17 +373,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double inletSADryBulbTemperature, double inletSAHumidityRatio,
       double inletEADryBulbTemperature, double inletEAHumidityRatio)
     {
-      //風量を保存
+      //Store air flow rates
       SupplyAirFlowVolume = supplyAirFlowVolume;
       ExhaustAirFlowVolume = exhaustAirFlowVolume;
 
-      //入口空気状態を保存
+      //Store inlet air states
       SupplyAirInletDryBulbTemperature = inletSADryBulbTemperature;
       SupplyAirInletHumidityRatio = inletSAHumidityRatio;
       ExhaustAirInletDryBulbTemperature = inletEADryBulbTemperature;
       ExhaustAirInletHumidityRatio = inletEAHumidityRatio;
 
-      //風量が0の場合
+      //Case of zero air flow
       if (supplyAirFlowVolume <= 0 || exhaustAirFlowVolume <= 0)
       {
         SensibleEfficiency = 0;
@@ -394,7 +394,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return;
       }
 
-      //空気の質量流量を計算
+      //Compute air mass flow rates
       double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
         (inletSADryBulbTemperature, inletSAHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
@@ -402,7 +402,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double mSA = supplyAirFlowVolume / (3600 * svSA);
       double mEA = exhaustAirFlowVolume / (3600 * svEA);
 
-      //使用する貫流率を選択（2条件初期化の場合には運転方向で暖房用・冷房用を切り替え）
+      //Select the heat transfer coefficients to use (with two-condition initialization, switch between heating and cooling pairs by operating direction)
       double sensKA = sensibleHeatTransferCoefficient;
       double latKA = latentHeatTransferCoefficient;
       if (coolingSensibleHeatTransferCoefficient.HasValue
@@ -412,7 +412,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         latKA = coolingLatentHeatTransferCoefficient ?? latKA;
       }
 
-      //熱通過有効度[-]を計算
+      //Compute heat transfer effectiveness [-]
       double effectiveness, mcMin, capacityRate;
       bool isMcMinSA;
       GetSensibleEffectiveness
@@ -420,7 +420,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         inletEADryBulbTemperature, inletEAHumidityRatio, sensKA, Flow,
         out effectiveness, out mcMin, out capacityRate, out isMcMinSA);
 
-      //熱交換効率[-]を計算
+      //Compute heat exchange efficiency [-]
       double eff2;
       if (isMcMinSA)
       {
@@ -433,23 +433,23 @@ namespace Popolo.Core.HVAC.HeatExchanger
         eff2 = effectiveness;
       }
 
-      //出口空気状態の計算
+      //Compute outlet air states
       SupplyAirOutletDryBulbTemperature =
         SupplyAirInletDryBulbTemperature - SensibleEfficiency *
         (SupplyAirInletDryBulbTemperature - ExhaustAirInletDryBulbTemperature);
       ExhaustAirOutletDryBulbTemperature = ExhaustAirInletDryBulbTemperature -
         eff2 * (ExhaustAirInletDryBulbTemperature - SupplyAirInletDryBulbTemperature);
 
-      //水分交換
+      //Moisture exchange
       if (IsTotalHeatExchanger)
       {
-        //熱通過有効度[-]を計算
+        //Compute heat transfer effectiveness [-]
         GetLatentEffectiveness
           (mSA, mEA, inletSAHumidityRatio, inletEAHumidityRatio,
           latKA, Flow,
           out effectiveness, out mcMin, out capacityRate);
 
-        //熱交換効率[-]を計算
+        //Compute heat exchange efficiency [-]
         if (mcMin == mSA)
         {
           LatentEfficiency = effectiveness;
@@ -477,7 +477,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <returns>Total heat exchange efficiency [-].</returns>
     public double GetTotalEfficiency()
     {
-      //空気の出入口エンタルピーの計算
+      //Compute air inlet and outlet enthalpies
       double hSAi = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
         (SupplyAirInletDryBulbTemperature, SupplyAirInletHumidityRatio);
       double hSAo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
@@ -490,7 +490,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the sensible heat transfer coefficient [kW/K] from rated conditions.</summary>
     /// <param name="supplyAirMassFlowRate">Supply air mass flow rate [kg/s].</param>
@@ -508,22 +508,22 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double exhaustAirDryBulbTemperature, double exhaustAirHumitidyRatio,
       double efficiency, AirFlow flow)
     {
-      //熱容量流量[kW/K]の計算
+      //Compute heat capacity rates [kW/K]
       double cpSA = MoistAir.GetSpecificHeat(supplyAirHumidityRatio);
       double cpEA = MoistAir.GetSpecificHeat(exhaustAirHumitidyRatio);
       double mcSA = supplyAirMassFlowRate * cpSA;
       double mcEA = exhaustAirMassFlowRate * cpEA;
       double mcMin = Math.Min(mcSA, mcEA);
 
-      //熱容量流量比[-]の計算
+      //Compute heat capacity rate ratio [-]
       double capacityRatio = mcMin / Math.Max(mcSA, mcEA);
 
-      //熱通過有効度[-]を計算
+      //Compute heat transfer effectiveness [-]
       double effectiveness;
       if (mcSA < mcEA) effectiveness = efficiency;
       else effectiveness = efficiency / capacityRatio;
 
-      //移動単位数を計算
+      //Compute number of transfer units
       HeatExchange.FlowType fType;
       if (flow == AirFlow.CounterFlow) fType = HeatExchange.FlowType.CounterFlow;
       else fType = HeatExchange.FlowType.CrossFlow_BothFluidsUnmixed;
@@ -545,17 +545,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double supplyAirHumidityRatio, double exhaustAirHumitidyRatio,
       double efficiency, AirFlow flow)
     {
-      //質量流量比[-]の計算
+      //Compute mass flow rate ratio [-]
       double mcMin = Math.Min(supplyAirMassFlowRate, exhaustAirMassFlowRate);
       double massFlowRatio = mcMin / Math.Max
         (supplyAirMassFlowRate, exhaustAirMassFlowRate);
 
-      //熱通過有効度[-]を計算
+      //Compute heat transfer effectiveness [-]
       double effectiveness;
       if (supplyAirMassFlowRate < exhaustAirMassFlowRate) effectiveness = efficiency;
       else effectiveness = efficiency / massFlowRatio;
 
-      //移動単位数を計算
+      //Compute number of transfer units
       HeatExchange.FlowType fType;
       if (flow == AirFlow.CounterFlow) fType = HeatExchange.FlowType.CounterFlow;
       else fType = HeatExchange.FlowType.CrossFlow_BothFluidsUnmixed;
@@ -584,7 +584,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double heatTransferCoefficient, AirFlow flow, out double effectiveness,
       out double mcMin, out double capacityRatio, out bool isMcMinSASide)
     {
-      //熱容量流量[kW/K]の計算
+      //Compute heat capacity rates [kW/K]
       double cpSA = MoistAir.GetSpecificHeat(supplyAirHumidityRatio);
       double cpEA = MoistAir.GetSpecificHeat(exhaustAirHumitidyRatio);
       double mcSA = supplyAirMassFlowRate * cpSA;
@@ -592,10 +592,10 @@ namespace Popolo.Core.HVAC.HeatExchanger
       mcMin = Math.Min(mcSA, mcEA);
       isMcMinSASide = (mcSA == mcMin);
 
-      //熱容量流量比[-]の計算
+      //Compute heat capacity rate ratio [-]
       capacityRatio = mcMin / Math.Max(mcSA, mcEA);
 
-      //熱通過有効度[-]の計算
+      //Compute heat transfer effectiveness [-]
       double ntu = heatTransferCoefficient / mcMin;
       HeatExchange.FlowType fType;
       if (flow == AirFlow.CounterFlow) fType = HeatExchange.FlowType.CounterFlow;
@@ -619,11 +619,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
      double heatTransferCoefficient, AirFlow flow, out double effectiveness,
      out double mMin, out double capacityRatio)
     {
-      //質量流量比[-]の計算
+      //Compute mass flow rate ratio [-]
       mMin = Math.Min(supplyAirMassFlowRate, exhaustAirMassFlowRate);
       capacityRatio = mMin / Math.Max(supplyAirMassFlowRate, exhaustAirMassFlowRate);
 
-      //熱通過有効度[-]の計算
+      //Compute heat transfer effectiveness [-]
       double ntu = heatTransferCoefficient / mMin;
       HeatExchange.FlowType fType;
       if (flow == AirFlow.CounterFlow) fType = HeatExchange.FlowType.CounterFlow;

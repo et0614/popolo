@@ -32,7 +32,7 @@ namespace Popolo.IO.Tests.Json.Building
     /// <summary>Unit tests for <see cref="BuildingThermalModelConverter"/>.</summary>
     public class BuildingThermalModelConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>Options with all converters pre-registered.</summary>
         private static JsonSerializerOptions CreateOptions()
@@ -103,7 +103,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region シリアライズ - 基本構造
+        #region Serialization - basic structure
 
         [Fact]
         public void Write_TopLevel_HasSchemaVersionAndKind()
@@ -195,7 +195,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region デシリアライズ
+        #region Deserialization
 
         [Fact]
         public void Read_SimpleModel_Succeeds()
@@ -233,7 +233,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ
+        #region Round trip
 
         [Fact]
         public void RoundTrip_SimpleModel_PreservesBasics()
@@ -301,7 +301,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingKind_Throws()

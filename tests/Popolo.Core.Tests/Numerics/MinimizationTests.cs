@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.Numerics
         private static readonly Minimization.MinimizeFunction SinFunction =
             x => Math.Sin(x);
 
-        #region GoldenSection のテスト
+        #region GoldenSection tests
 
         /// <summary>温度関数の最小値が既存テストの値と一致する（既存テストの再現）</summary>
         [Fact]

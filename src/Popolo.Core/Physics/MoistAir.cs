@@ -35,7 +35,7 @@ namespace Popolo.Core.Physics
   public class MoistAir : IReadOnlyMoistAir
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Isobaric specific heat of dry air [kJ/(kg·K)].</summary>
     public const double DryAirIsobaricSpecificHeat = 1.006;
@@ -54,7 +54,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>
     /// Gets the isobaric specific heat of dry air [kJ/(kg·K)].
@@ -94,7 +94,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with default conditions (24 °C, humidity ratio 0.0093 kg/kg).
@@ -153,7 +153,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 入力検証
+    #region Input validation
 
     /// <summary>Absolute zero [°C] (physical lower bound of temperature).</summary>
     private const double AbsoluteZero = PhysicsConstants.CelsiusToKelvinOffset * -1.0;
@@ -185,7 +185,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 水蒸気分圧・絶対湿度の変換
+    #region Conversion between water vapor partial pressure and humidity ratio
 
     /// <summary>
     /// Gets the water vapor partial pressure [kPa]
@@ -219,7 +219,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region エンタルピーの計算
+    #region Enthalpy calculation
 
     /// <summary>
     /// Gets the specific enthalpy [kJ/kg]
@@ -268,7 +268,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 湿球温度の計算
+    #region Wet-bulb temperature calculation
 
     /// <summary>
     /// Gets the humidity ratio [kg/kg(DA)]
@@ -334,7 +334,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region エンタルピーと湿球温度の変換
+    #region Conversion between enthalpy and wet-bulb temperature
 
     /// <summary>
     /// Gets the dry-bulb temperature [°C]
@@ -442,7 +442,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 相対湿度の計算
+    #region Relative humidity calculation
 
     /// <summary>
     /// Gets the humidity ratio [kg/kg(DA)]
@@ -459,7 +459,7 @@ namespace Popolo.Core.Physics
       ValidateTemperature(dryBulbTemperature, nameof(dryBulbTemperature));
       ValidateRelativeHumidity(relativeHumidity, nameof(relativeHumidity));
       ValidateAtmosphericPressure(atmosphericPressure, nameof(atmosphericPressure));
-      //飽和水蒸気分圧を計算し、相対湿度から実際の水蒸気分圧を求める
+      //Compute the saturation water vapor partial pressure, then the actual water vapor partial pressure from the relative humidity
       double ps = Water.GetSaturationPressure(dryBulbTemperature);
       double pw = 0.01 * relativeHumidity * ps;
       return GetHumidityRatioFromWaterVaporPartialPressure(pw, atmosphericPressure);
@@ -756,7 +756,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 比体積の計算
+    #region Specific volume calculation
 
     /// <summary>
     /// Gets the dry-bulb temperature [°C]
@@ -890,7 +890,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 飽和状態の計算
+    #region Saturation state calculation
 
     /// <summary>
     /// Gets the dew point temperature [°C] (saturation dry-bulb temperature)
@@ -993,7 +993,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region その他の物性値
+    #region Other physical properties
 
     /// <summary>
     /// Gets the atmospheric pressure [kPa] at the given elevation [m].
@@ -1101,7 +1101,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 空気混合
+    #region Air blending
 
     /// <summary>
     /// Blends multiple moist air streams by volume-weighted averaging.
@@ -1140,11 +1140,11 @@ namespace Popolo.Core.Physics
       }
       else
       {
-        //割合の積算が小さい場合は発散を防ぐために混合空気の数で割る
+        //When the accumulated ratio is small, divide by the number of mixed air streams to prevent divergence
         dryBulbTempOut = tSum / airNum;
         absHumidOut = hSum / airNum;
       }
-      //出口空気状態を計算（飽和した場合の処理は未実装）
+      //Compute the outlet air state (handling of saturated conditions is not implemented)
       return new MoistAir(dryBulbTempOut, absHumidOut);
     }
 
@@ -1172,7 +1172,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 空気状態のコピー
+    #region Copying air states
 
     /// <summary>
     /// Copies this moist air state to the specified <see cref="MoistAir"/> instance.

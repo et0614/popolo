@@ -40,7 +40,7 @@ namespace Popolo.Webpro.Tests.Json
         }
 
         // ================================================================
-        #region 正常ケース
+        #region Normal cases
 
         [Fact]
         public void Read_RealSample_1F_風除け室()
@@ -147,7 +147,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingBuildingType_Throws()

@@ -27,7 +27,7 @@ namespace Popolo.Core.Tests.Geometry
   {
     private const double TOL = 1e-10;
 
-    #region 退化条件
+    #region Degenerate conditions
 
     /// <summary>庇の出が 0 のとき、遮蔽率は 0。</summary>
     [Fact]
@@ -60,7 +60,7 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
-    #region 物理的妥当性の境界条件
+    #region Boundary conditions for physical plausibility
 
     /// <summary>
     /// 非常に大きな庇の出に対して、view factor は単調増加し 0.5 を超えない上限に漸近する。
@@ -123,7 +123,7 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
-    #region 単調性
+    #region Monotonicity
 
     /// <summary>庇の出が深くなるほど遮蔽率は単調増加。</summary>
     [Fact]
@@ -196,7 +196,7 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
-    #region BESTEST 形状の妥当性チェック
+    #region BESTEST geometry validity checks
 
     /// <summary>
     /// BESTEST Case 610 相当 (窓 3m × 2m, 庇深さ 1m, 隙間 0.5m) で view factor が
@@ -237,7 +237,7 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
-    #region 縦フィン (vertical fin)
+    #region Vertical fin
 
     /// <summary>フィン深さ 0 で遮蔽率 0。</summary>
     [Fact]
@@ -343,7 +343,7 @@ namespace Popolo.Core.Tests.Geometry
 
     #endregion
 
-    #region Grid (overhang + 両フィン)
+    #region Grid (overhang + both fins)
 
     /// <summary>Grid 遮蔽 = 庇 + 左右フィンの和。</summary>
     [Fact]

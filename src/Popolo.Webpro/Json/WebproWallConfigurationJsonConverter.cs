@@ -62,7 +62,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproWallConfigurationJsonConverter : JsonConverter<WebproWallConfiguration>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropStructureType = "structureType";
     private const string PropSolarAbsorptionRatio = "solarAbsorptionRatio";
@@ -72,7 +72,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     public override WebproWallConfiguration Read(
       ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -132,7 +132,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region layers の読み取り
+    #region Reading layers
 
     private static void ReadLayers(
       ref Utf8JsonReader reader, WebproWallConfiguration target, JsonSerializerOptions options)

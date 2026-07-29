@@ -26,7 +26,7 @@ namespace Popolo.Core.Numerics
   public class LogNormalRandom
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Underlying normal random number generator.</summary>
     private readonly NormalRandom nRnd;
@@ -39,7 +39,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
     /// <param name="seed">Random seed.</param>

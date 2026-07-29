@@ -37,7 +37,7 @@ namespace Popolo.Webpro.Tests.Integration
         Path.Combine(AppContext.BaseDirectory, "TestData", "builelib_input.json");
 
     // ================================================================
-    #region エントリポイント
+    #region Entry points
 
     [Fact]
     public void Convert_RealSample_Succeeds()
@@ -60,7 +60,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region ゾーン数・壁数の検証
+    #region Zone and wall count verification
 
     [Fact]
     public void Convert_ZoneCountEqualsAirConditionedRoomCount()
@@ -116,7 +116,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region Zone のプロパティ検証
+    #region Zone property verification
 
     [Fact]
     public void Convert_LobbyZone_HasExpectedFloorArea()
@@ -164,7 +164,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region カタログ差し替え
+    #region Catalog replacement
 
     [Fact]
     public void Convert_WithDefaultCatalogs_Works()
@@ -186,7 +186,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region 方位変換の単体テスト
+    #region Orientation conversion unit tests
 
     [Fact]
     public void OrientationToIncline_Horizontal_VerticalAngleZero()
@@ -218,7 +218,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region 「1F_ロビー」の外皮が正しく変換される
+    #region Envelope of the 1F lobby room is converted correctly
 
     [Fact]
     public void Convert_LobbyEnvelope_WallsAndWindowsAdded()
@@ -240,7 +240,7 @@ namespace Popolo.Webpro.Tests.Integration
     #endregion
 
     // ================================================================
-    #region HeatGainScheduler 自動設置
+    #region Automatic HeatGainScheduler installation
 
     [Fact]
     public void Convert_WithDefaultOptions_InstallsHeatGainSchedulers()

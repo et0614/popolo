@@ -34,7 +34,7 @@ namespace Popolo.Core.Tests.Physics
   public class WaterTests
   {
 
-    #region 公開定数のテスト
+    #region Public constant tests
 
     /// <summary>臨界温度が正しい値を持つ</summary>
     [Fact]
@@ -52,7 +52,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region GetSaturationPressure のテスト
+    #region GetSaturationPressure tests
 
     /// <summary>100°C での飽和水蒸気圧は大気圧（101.325 kPa）に近い</summary>
     [Fact]
@@ -91,7 +91,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region GetSaturationTemperature のテスト
+    #region GetSaturationTemperature tests
 
     /// <summary>101.325 kPa（大気圧）での飽和温度は 100°C</summary>
     [Fact]
@@ -116,7 +116,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region GetVaporizationLatentHeat のテスト
+    #region GetVaporizationLatentHeat tests
 
     /// <summary>100°C での蒸発潜熱は約 2256 kJ/kg</summary>
     [Fact]
@@ -146,7 +146,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 飽和液の物性値のテスト
+    #region Saturated liquid property tests
 
     /// <summary>100°C での飽和液エンタルピーは約 419 kJ/kg</summary>
     [Fact]
@@ -168,7 +168,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 飽和蒸気の物性値のテスト
+    #region Saturated vapor property tests
 
     /// <summary>100°C での飽和蒸気エンタルピーは約 2676 kJ/kg</summary>
     [Fact]
@@ -202,7 +202,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 液体水の物性値のテスト
+    #region Liquid water property tests
 
     /// <summary>4°C での液体水密度は約 999.8 kg/m³（最大密度付近）</summary>
     [Fact]
@@ -245,7 +245,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 過熱蒸気の物性値のテスト
+    #region Superheated vapor property tests
 
     /// <summary>100°C, 101.325 kPa での過熱蒸気エンタルピーは飽和蒸気エンタルピーに近い</summary>
     [Fact]

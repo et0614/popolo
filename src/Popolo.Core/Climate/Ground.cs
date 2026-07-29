@@ -18,7 +18,7 @@
  *
  * References:
  *   Watanabe, Y., "Ground Temperatures for Heating and Cooling Design"
- *     (暖冷房設計用地中温度),
+ *     (Danreibo sekkei-yo chichu ondo),
  *     Trans. of SHASE Japan, Vol. 38, No. 2, Feb. 1964, pp. 23-32.
  *     — origin of the damped cosine formula used by GetTemperature and
  *     of the numeric constants 0.526 (depth damping) and 30.556
@@ -91,14 +91,14 @@ namespace Popolo.Core.Climate
   /// </para>
   /// <para>
   /// <b>Primary reference:</b> Watanabe, Y., "Ground Temperatures for
-  /// Heating and Cooling Design" (暖冷房設計用地中温度), Trans. of SHASE
+  /// Heating and Cooling Design" (Danreibo sekkei-yo chichu ondo), Trans. of SHASE
   /// Japan, Vol. 38, No. 2, Feb. 1964, pp. 23-32.
   /// </para>
   /// </remarks>
   public class Ground
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the day of year on which the surface temperature peaks.</summary>
     public int PeakDayOfYear { get; private set; }
@@ -130,7 +130,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with the specified site temperature statistics.
@@ -159,7 +159,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Gets the ground temperature [°C] at the specified depth and day of year.
@@ -176,7 +176,7 @@ namespace Popolo.Core.Climate
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>
     /// Gets the ground temperature [°C] at the specified depth and day of
@@ -279,9 +279,9 @@ namespace Popolo.Core.Climate
       var records = data.Records;
       TimeSpan span = records[records.Count - 1].Time - records[0].Time;
 
-      // 最初と最終レコードの時間差が (ほぼ) 1 年未満なら拒否。365 日ぴったりの
-      // 時系列 (例: 00:00 Jan 1 〜 23:00 Dec 31 の 8760 本) は 364 日 23 時間の
-      // スパンになるため、しきい値は 364 日に緩めている。
+      // Reject if the span between the first and last records is (almost) less than
+      // one year. An exactly-365-day series (e.g. 8760 records from 00:00 Jan 1 to
+      // 23:00 Dec 31) spans 364 days 23 hours, so the threshold is relaxed to 364 days.
       if (span.TotalDays < 364.0)
         throw new PopoloArgumentException(
             "data must span at least one year. "
@@ -290,8 +290,8 @@ namespace Popolo.Core.Climate
 
       DateTime windowEnd = records[0].Time + TimeSpan.FromDays(365);
 
-      // レコードは時系列順なので (WeatherData の不変条件)、単純に 1 パスで
-      // 「日」単位の max/min/sum を畳み込み、日が変わるたびに月累積へ flush する。
+      // Records are in chronological order (a WeatherData invariant), so a single pass
+      // folds per-day max/min/sum and flushes to the monthly totals whenever the day changes.
       double hourlySum = 0.0;
       int hourlyCount = 0;
 
@@ -348,7 +348,7 @@ namespace Popolo.Core.Climate
         throw new PopoloArgumentException(
             "data has no records with dry-bulb temperature.", nameof(data));
 
-      // 12 ヶ月すべてが揃っていないと月平均ベースの推定が意味を持たない。
+      // The monthly-mean-based estimate is meaningless unless all 12 months are present.
       for (int m = 1; m <= 12; m++)
       {
         if (monthDayCount[m] == 0)

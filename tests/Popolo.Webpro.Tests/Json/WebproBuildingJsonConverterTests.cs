@@ -37,7 +37,7 @@ namespace Popolo.Webpro.Tests.Json
         }
 
         // ================================================================
-        #region 正常ケース
+        #region Normal cases
 
         [Fact]
         public void Read_RealSample()
@@ -143,7 +143,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingRegion_Throws()

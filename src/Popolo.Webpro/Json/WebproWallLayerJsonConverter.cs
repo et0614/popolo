@@ -62,7 +62,7 @@ namespace Popolo.Webpro.Json
   public sealed class WebproWallLayerJsonConverter : JsonConverter<WebproWallLayer>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropMaterialId = "materialID";
     private const string PropConductivity = "conductivity";
@@ -71,7 +71,7 @@ namespace Popolo.Webpro.Json
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="WebproWallLayer"/> from JSON.</summary>
     public override WebproWallLayer Read(

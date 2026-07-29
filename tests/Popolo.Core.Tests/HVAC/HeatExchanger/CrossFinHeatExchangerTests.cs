@@ -32,7 +32,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     /// </remarks>
     public class CrossFinHeatExchangerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 冷却コイル（簡易モデル）を生成する。
@@ -69,7 +69,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>SurfaceArea が正の値になる。</summary>
         [Fact]
@@ -98,7 +98,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region UpdateOutletState — 冷却コイル
+        #region UpdateOutletState — cooling coil
 
         /// <summary>冷却コイル: 出口空気温度が入口より低い。</summary>
         [Fact]
@@ -162,7 +162,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region UpdateOutletState — 加熱コイル
+        #region UpdateOutletState — heating coil
 
         /// <summary>加熱コイル: 出口空気温度が入口より高い。</summary>
         [Fact]

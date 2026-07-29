@@ -28,12 +28,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class HeatSourceSystemModel : IReadOnlyHeatSourceSystemModel
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Operating mode.</summary>
     [Flags]
@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Heat source sub-system.</summary>
     private IHeatSourceSubSystem[] subSystems;
@@ -121,7 +121,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance (dual-pump system).</summary>
     /// <param name="subSystems">List of heat source sub-systems.</param>
@@ -148,7 +148,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Forecasts the future state.</summary>
     /// <param name="chilledWaterFlowRate">Chilled water flow rate [kg/s].</param>
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.SystemModel
       HotWaterReturnTemperature = hotWaterReturnTemperature
         - (HotWaterSupplyTemperatureSetpoint - hotWaterReturnTemperature) * PipeHeatLossRate;
 
-      //日時・冷温水往温度・外気条件を設定
+      //Set the date/time, chilled/hot water supply temperatures, and outdoor air conditions
       for (int i = 0; i < subSystems.Length; i++)
       {
         subSystems[i].TimeStep = TimeStep;
@@ -176,7 +176,7 @@ namespace Popolo.Core.HVAC.SystemModel
         subSystems[i].HotWaterSupplyTemperatureSetpoint = HotWaterSupplyTemperatureSetpoint;
       }
 
-      //2次ポンプによる昇温を反映
+      //Account for the temperature rise caused by the secondary pumps
       double tcwi = chilledWaterReturnTemperature;
       double thwi = hotWaterReturnTemperature;
       if (IsSecondaryPumpSystem)
@@ -197,9 +197,9 @@ namespace Popolo.Core.HVAC.SystemModel
         else hotWaterPumps!.ShutOff();
       }
 
-      //負荷流量に応じて最低運転台数を計算
+      //Calculate the minimum number of operating units according to the load flow rate
       int cStage, hStage;
-      double fcsum = 0; //冷却運転
+      double fcsum = 0; //Cooling operation
       if (chilledWaterFlowRate <= 0) cStage = 0;
       else
       {
@@ -210,7 +210,7 @@ namespace Popolo.Core.HVAC.SystemModel
           if (chilledWaterFlowRate < fcsum) break;
         }
       }
-      double fhsum = 0; //加熱運転
+      double fhsum = 0; //Heating operation
       if (hotWaterFlowRate <= 0) hStage = 0;
       else
       {
@@ -222,7 +222,7 @@ namespace Popolo.Core.HVAC.SystemModel
         }
       }
 
-      //過負荷系統が無くなるまで増段
+      //Stage up units until no overloaded system remains
       double bypsC = 0;
       double bypsH = 0;
       while (true)
@@ -230,7 +230,7 @@ namespace Popolo.Core.HVAC.SystemModel
         IsOverLoad_C = false;
         IsOverLoad_H = false;
 
-        //最大絞り流量比を計算
+        //Calculate the maximum turn-down flow ratio
         double minMaxC = 0.0;
         double minMaxH = 0.0;
         for (int i = 0; i < subSystems.Length; i++)
@@ -241,7 +241,7 @@ namespace Popolo.Core.HVAC.SystemModel
             minMaxH = Math.Max(minMaxH, subSystems[i].MinHotWaterFlowRatio);
         }
 
-        //バイパス流量を考慮して熱源入口水温を計算
+        //Calculate the heat source inlet water temperature considering the bypass flow rate
         double cpl, hpl;
         if (chilledWaterFlowRate == 0 || fcsum == 0) cpl = 0;
         else
@@ -262,7 +262,7 @@ namespace Popolo.Core.HVAC.SystemModel
           hpl = Math.Max(minMaxH, hpl);
         }
 
-        //過負荷系統が無いか確認
+        //Check whether any system is overloaded
         for (int i = 0; i < subSystems.Length; i++)
         {
           double cf, hf;
@@ -277,7 +277,7 @@ namespace Popolo.Core.HVAC.SystemModel
         int maxStage = opRankC.Length;
         if ((!IsOverLoad_C || maxStage <= cStage) && (!IsOverLoad_H || maxStage <= hStage)) break;
 
-        //増段処理
+        //Stage-up process
         if (IsOverLoad_C && cStage != maxStage)
         {
           cStage++;
@@ -294,7 +294,7 @@ namespace Popolo.Core.HVAC.SystemModel
       ChilledWaterBypassFlowRate = bypsC * fcsum;
       HotWaterBypassFlowRate = bypsH * fhsum;
 
-      //冷水出口温度を計算
+      //Calculate the chilled water outlet temperature
       if (IsOverLoad_C)
       {
         ChilledWaterSupplyTemperature = 0;
@@ -308,7 +308,7 @@ namespace Popolo.Core.HVAC.SystemModel
       }
       else ChilledWaterSupplyTemperature = ChilledWaterSupplyTemperatureSetpoint;
 
-      //温水出口温度を計算
+      //Calculate the hot water outlet temperature
       if (IsOverLoad_H)
       {
         HotWaterSupplyTemperature = 0;

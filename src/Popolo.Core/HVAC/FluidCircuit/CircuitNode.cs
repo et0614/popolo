@@ -26,7 +26,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class CircuitNode : IReadOnlyCircuitNode
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>List of incoming branches.</summary>
     private List<ICircuitBranch> outFlowBrchs = new List<ICircuitBranch>();
@@ -45,7 +45,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region internalメソッド
+    #region Internal methods
     
     /// <summary>Adds an incoming branch.</summary>
     /// <param name="branch">Incoming branch.</param>
@@ -65,7 +65,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Accumulates the inflow/outflow balance [m³/s].</summary>
     /// <returns>Inflow/outflow balance [m³/s].</returns>
@@ -90,7 +90,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
   }
 
-  #region 読み取り専用インターフェース
+  #region Read-only interface
 
   #endregion
 

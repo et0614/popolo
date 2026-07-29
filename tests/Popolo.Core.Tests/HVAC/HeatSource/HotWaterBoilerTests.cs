@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class HotWaterBoilerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 標準的な温水ボイラを生成する。
@@ -56,7 +56,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>NominalCapacity が正の値になる。</summary>
         [Fact]
@@ -96,7 +96,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region Update — 通常運転
+        #region Update — normal operation
 
         /// <summary>
         /// 設定値より低い入口温度で Update すると出口温度が設定値になる（非過負荷時）。
@@ -171,7 +171,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 過負荷
+        #region Overload
 
         /// <summary>要求熱量が定格能力を超えると IsOverLoad = true。</summary>
         [Fact]

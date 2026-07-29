@@ -27,7 +27,7 @@ namespace Popolo.Core.Numerics
   public class NormalRandom
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Uniform random number generator.</summary>
     private readonly MersenneTwister rnd;
@@ -46,7 +46,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance seeded with a uniform RNG.</summary>
     /// <param name="seed">Random seed.</param>
@@ -79,7 +79,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Returns a sample drawn from the configured normal distribution.</summary>
     /// <returns>A random sample from N(μ, σ).</returns>
@@ -137,7 +137,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>Evaluates the cumulative distribution function (CDF) of the normal distribution.</summary>
     /// <param name="x">Value of the random variable.</param>

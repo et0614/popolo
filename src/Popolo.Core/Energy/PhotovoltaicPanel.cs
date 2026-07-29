@@ -35,7 +35,7 @@ namespace Popolo.Core.Energy
   public class PhotovoltaicPanel : IReadOnlyPhotovoltaicPanel
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>
     /// Specifies the cell material type.
@@ -63,7 +63,7 @@ namespace Popolo.Core.Energy
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Backing field for the inverter efficiency.</summary>
     private double _inverterEfficiency = 0.9;
@@ -89,7 +89,7 @@ namespace Popolo.Core.Energy
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance with the specified orientation and tilt angle.
@@ -126,7 +126,7 @@ namespace Popolo.Core.Energy
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Gets the power output [W] from the ambient conditions and tilted surface irradiance.
@@ -162,7 +162,7 @@ namespace Popolo.Core.Energy
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>
     /// Gets the power output [W] from the specified conditions and panel parameters.
@@ -203,12 +203,12 @@ namespace Popolo.Core.Energy
           a = 50; b = 0.38;
           break;
       }
-      //パネル温度を計算する（湯川ら 式1）
+      //Compute the panel temperature (Yukawa et al., Eq.1)
       double tp = dryBulbTemperature
           + (a / (b * Math.Pow(velocity, 0.8) + 1) + 2) * totalIrradiance / 1000.0
           - 2.0;
 
-      //温度係数: アモルファス -0.2%/°C、結晶 -0.4%/°C（基準温度25°C）
+      //Temperature coefficient: amorphous -0.2%/°C, crystalline -0.4%/°C (reference temperature 25°C)
       return material == MaterialType.Amorphous
           ? 1 - 0.002 * (tp - 25.0)
           : 1 - 0.004 * (tp - 25.0);

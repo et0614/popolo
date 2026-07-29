@@ -39,7 +39,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Metabolic activity types with associated metabolic rates [met].</summary>
     public enum MetabolicActivity
@@ -110,7 +110,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Computes the thermal load on the human body [W/m²] using the Fanger heat balance equation.</summary>
     /// <param name="dryBulbTemperature">Dry-bulb temperature [°C].</param>
@@ -128,25 +128,25 @@ namespace Popolo.Core.ThermalComfort
       double dbtA = CONVERT_C_TO_K + dryBulbTemperature;
       double mrtA = CONVERT_C_TO_K + meanRadiantTemperature;
 
-      //周囲の水蒸気分圧[kPa]の計算
+      //Compute the ambient water vapor partial pressure [kPa]
       double pa = relativeHumidity / 100d * Water.GetSaturationPressure(dryBulbTemperature);
 
-      //代謝量[W/m2]の計算
+      //Compute the metabolic rate [W/m2]
       double m = metabolicRate * CONVERT_MET_TO_W;
       double mw = m - externalWork * CONVERT_MET_TO_W;
 
-      //着衣の熱抵抗[m2K/W]の計算
+      //Compute the clothing thermal resistance [m2K/W]
       double rcl = 0.155 * clothing;
-      //着衣面積率[-]の計算
+      //Compute the clothing area factor [-]
       double fcl;
       if (rcl < 0.078) fcl = 1.0 + 1.29 * rcl;
       else fcl = 1.05 + 0.645 * rcl;
 
-      //強制対流による対流熱伝達率[W/(m2K)]
+      //Convective heat transfer coefficient for forced convection [W/(m2K)]
       double hcf = 12.1 * Math.Sqrt(relativeAirVelocity);
 
-      //着衣表面温度の反復計算
-      double tcla = dbtA + (35.5 - dryBulbTemperature) / (3.5 * rcl + 0.1);//初期値
+      //Iteratively solve the clothing surface temperature
+      double tcla = dbtA + (35.5 - dryBulbTemperature) / (3.5 * rcl + 0.1);//Initial value
       double p1 = rcl * fcl;
       double p2 = p1 * 3.96;
       double p3 = p1 * 100;
@@ -154,33 +154,33 @@ namespace Popolo.Core.ThermalComfort
       double p5 = 308.7 - 0.028 * mw + p2 * Math.Pow(mrtA / 100.0, 4);
       double xn = tcla / 100.0;
       double xf = xn;
-      double hc; //対流熱伝達率[W/(m2K)]
+      double hc; //Convective heat transfer coefficient [W/(m2K)]
       int iterNum = 0;
       while (true)
       {
         if (150 < iterNum) throw new Exceptions.PopoloNumericalException("GetThermalLoad", "PMV iteration did not converge.");
         xf = (xf + xn) / 2d;
-        //対流熱伝達率[W/(m2K)]を更新
+        //Update the convective heat transfer coefficient [W/(m2K)]
         hc = Math.Max(hcf, 2.38 * Math.Pow(Math.Abs(100.0 * xn - dbtA), 0.25));
-        //状態値更新
+        //Update the state value
         xn = (p5 + p4 * hc - p2 * Math.Pow(xf, 4)) / (100d + p3 * hc);
-        //収束判定
+        //Convergence check
         if (Math.Abs(xn - xf) < 0.00015) break;
         iterNum++;
       }
-      //着衣表面温度[C]
+      //Clothing surface temperature [C]
       double tcl = 100.0 * xn - CONVERT_C_TO_K;
 
-      //人体熱負荷の計算
+      //Compute the thermal load on the human body
 
-      double ediff = 3.05 * (5.733 - 0.00699 * mw - pa);      //皮膚表面からの潜熱損失[W/m2]
-      double esw = 0.42 * Math.Max(0, mw - CONVERT_MET_TO_W); //発汗による潜熱損失[W/m2]
-      double lres = 0.017 * m * (5.867 - pa);                 //呼吸による潜熱損失[W/m2]
-      double dres = 0.0014 * m * (34.0 - dryBulbTemperature); //呼吸による顕熱損失[W/m2]
-      double r = 3.96 * fcl * (Math.Pow(xn, 4) - Math.Pow(mrtA / 100.0, 4)); //着衣表面からの放射熱損失[W/m2]      
-      double c = fcl * hc * (tcl - dryBulbTemperature);       //着衣表面からの対流熱損失[W/m2]
+      double ediff = 3.05 * (5.733 - 0.00699 * mw - pa);      //Latent heat loss from the skin surface [W/m2]
+      double esw = 0.42 * Math.Max(0, mw - CONVERT_MET_TO_W); //Latent heat loss due to sweating [W/m2]
+      double lres = 0.017 * m * (5.867 - pa);                 //Latent heat loss due to respiration [W/m2]
+      double dres = 0.0014 * m * (34.0 - dryBulbTemperature); //Sensible heat loss due to respiration [W/m2]
+      double r = 3.96 * fcl * (Math.Pow(xn, 4) - Math.Pow(mrtA / 100.0, 4)); //Radiative heat loss from the clothing surface [W/m2]
+      double c = fcl * hc * (tcl - dryBulbTemperature);       //Convective heat loss from the clothing surface [W/m2]
 
-      //集計
+      //Aggregate
       return mw - (ediff + esw + lres + dres + r + c);
     }
 
@@ -234,11 +234,11 @@ namespace Popolo.Core.ThermalComfort
       (double pmv, double meanRadiantTemperature, double relativeHumidity, double relativeAirVelocity,
       double clothing, double metabolicRate, double externalWork)
     {
-      //乾球温度上下限値
+      //Dry-bulb temperature upper and lower limits
       double MAXDB = 50;
       double MINDB = -10;
 
-      //上下限値確認
+      //Check upper and lower limits
       double pmvh = GetPMV(MAXDB, meanRadiantTemperature, relativeHumidity,
         relativeAirVelocity, clothing, metabolicRate, externalWork);
       if (pmvh < pmv) return MAXDB;
@@ -246,10 +246,10 @@ namespace Popolo.Core.ThermalComfort
         relativeAirVelocity, clothing, metabolicRate, externalWork);
       if (pmv < pmvl) return MINDB;
 
-      //ニュートン・ラフソン法で収束計算
+      //Iterate with the Newton-Raphson method
       Roots.ErrorFunction eFnc = delegate (double dbTemp)
       {
-        //誤差を評価
+        //Evaluate the error
         double pmv2 = GetPMV(dbTemp, meanRadiantTemperature, relativeHumidity,
           relativeAirVelocity, clothing, metabolicRate, externalWork);
         return pmv2 - pmv;
@@ -270,7 +270,7 @@ namespace Popolo.Core.ThermalComfort
       (double pmv, double dryBulbTemperature, double meanRadiantTemperature, double relativeAirVelocity,
       double clothing, double metabolicRate, double externalWork)
     {
-      //上下限値確認
+      //Check upper and lower limits
       double pmvl = GetPMV(dryBulbTemperature, meanRadiantTemperature, 0,
         relativeAirVelocity, clothing, metabolicRate, externalWork);
       if (pmv < pmvl) return 0;
@@ -278,10 +278,10 @@ namespace Popolo.Core.ThermalComfort
         relativeAirVelocity, clothing, metabolicRate, externalWork);
       if (pmvh < pmv) return 100;
 
-      //ニュートン・ラフソン法で収束計算
+      //Iterate with the Newton-Raphson method
       Roots.ErrorFunction eFnc = delegate (double rHumid)
       {
-        //誤差を評価
+        //Evaluate the error
         double pmv2 = GetPMV(dryBulbTemperature, meanRadiantTemperature, rHumid,
           relativeAirVelocity, clothing, metabolicRate, externalWork);
         return pmv2 - pmv;

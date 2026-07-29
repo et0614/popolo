@@ -84,7 +84,7 @@ namespace Popolo.IO.Json.Building
   public sealed class MultiRoomsConverter : JsonConverter<MultiRoom>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropAlbedo = "albedo";
@@ -95,7 +95,7 @@ namespace Popolo.IO.Json.Building
     private const string PropAdjacentSpaces = "adjacentSpaces";
     private const string PropInterZoneAirflows = "interZoneAirflows";
 
-    // 壁参照・隣室・airflow 内のキー
+    // Keys inside wall references, adjacent spaces, and airflow
     private const string PropWallId = "wallId";
     private const string PropSideF = "sideF";
     private const string PropIncline = "incline";
@@ -109,7 +109,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>
     /// Throws — MultiRooms cannot be constructed without the wall table.
@@ -136,7 +136,7 @@ namespace Popolo.IO.Json.Building
       writer.WriteString(PropKind, ExpectedKind);
       writer.WriteNumber(PropAlbedo, value.Albedo);
 
-      // rooms: rooms の数は RoomCount。各 zone の RoomIndex で分類。
+      // rooms: the number of rooms is RoomCount. Classified by the RoomIndex of each zone.
       WriteRooms(writer, value, options);
 
       // outsideWalls / groundWalls / adjacentSpaces
@@ -144,7 +144,7 @@ namespace Popolo.IO.Json.Building
       WriteGroundWalls(writer, value);
       WriteAdjacentSpaces(writer, value);
 
-      // interZoneAirflows(スパース)
+      // interZoneAirflows (sparse)
       WriteInterZoneAirflows(writer, value);
 
       writer.WriteEndObject();
@@ -152,7 +152,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region DTO 読み取り(BuildingThermalModelConverter が利用)
+    #region DTO reading (used by BuildingThermalModelConverter)
 
     /// <summary>
     /// Reads a <see cref="MultiRoom"/> JSON block into an intermediate
@@ -221,7 +221,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region DTO → MultiRooms 構築(BuildingThermalModelConverter が利用)
+    #region DTO → MultiRooms construction (used by BuildingThermalModelConverter)
 
     /// <summary>
     /// Builds a live <see cref="MultiRoom"/> from an intermediate
@@ -235,22 +235,22 @@ namespace Popolo.IO.Json.Building
     internal static MultiRoom BuildMultiRooms(
       MultiRoomsDto dto, IReadOnlyDictionary<int, Wall> wallsById)
     {
-      // 1. Zone / Window / Wall 配列を準備
+      // 1. Prepare the Zone / Window / Wall arrays
       var flatZones = dto.FlattenZones();
       var windows = new List<Window>();
-      // 各 Zone に付随する windows を集める(順序保存)
+      // Collect the windows attached to each Zone (order preserved)
       foreach (var zone in flatZones)
       {
         var ctx = ZoneDeserializationContext.TryGet(zone);
         if (ctx is not null) windows.AddRange(ctx.Windows);
       }
 
-      // Wall[] は wallsById の全てを配列化。順序は ID 昇順で決定。
+      // Wall[] is all of wallsById as an array. The order is fixed as ascending ID.
       var wallsSorted = new List<Wall>(wallsById.Values);
       wallsSorted.Sort((a, b) => a.ID.CompareTo(b.ID));
       var walls = wallsSorted.ToArray();
 
-      // 2. MultiRooms インスタンス生成
+      // 2. Create the MultiRooms instance
       var mRooms = new MultiRoom(
         rmCount: dto.Rooms.Count,
         zones: flatZones.ToArray(),
@@ -258,7 +258,7 @@ namespace Popolo.IO.Json.Building
         windows: windows.ToArray());
       mRooms.Albedo = dto.Albedo;
 
-      // 3. 各 zone を正しい roomIndex に配属
+      // 3. Assign each zone to its correct roomIndex
       for (int zoneIdx = 0; zoneIdx < flatZones.Count; zoneIdx++)
       {
         int roomIdx = dto.FindRoomIndexOf(flatZones[zoneIdx]);
@@ -267,7 +267,7 @@ namespace Popolo.IO.Json.Building
         mRooms.AddZone(roomIdx, zoneIdx);
       }
 
-      // 4. 各 Zone の壁参照を解決して結合
+      // 4. Resolve and connect the wall references of each Zone
       int globalWindowIdx = 0;
       for (int zoneIdx = 0; zoneIdx < flatZones.Count; zoneIdx++)
       {
@@ -275,25 +275,25 @@ namespace Popolo.IO.Json.Building
         var ctx = ZoneDeserializationContext.TryGet(zone);
         if (ctx is null) continue;
 
-        // 壁結合
+        // Connect walls
         foreach (var wallRef in ctx.WallReferences)
         {
           int wallIdx = FindWallIndex(walls, wallRef.WallId);
           mRooms.AddWall(zoneIdx, wallIdx, wallRef.IsSideF);
         }
 
-        // 窓結合
+        // Connect windows
         foreach (var _ in ctx.Windows)
         {
           mRooms.AddWindow(zoneIdx, globalWindowIdx);
           globalWindowIdx++;
         }
 
-        // コンテキストはもう不要
+        // The context is no longer needed
         ZoneDeserializationContext.Clear(zone);
       }
 
-      // 5. 外壁 / 地中壁 / 隣室壁
+      // 5. Outside walls / ground walls / adjacent-space walls
       foreach (var ow in dto.OutsideWalls)
       {
         int wallIdx = FindWallIndex(walls, ow.WallId);
@@ -310,7 +310,7 @@ namespace Popolo.IO.Json.Building
         mRooms.UseAdjacentSpaceFactor(wallIdx, asw.IsSideF, asw.TemperatureDifferenceFactor);
       }
 
-      // 6. Zone 間の換気(スパース)
+      // 6. Inter-zone airflow (sparse)
       foreach (var flow in dto.InterZoneAirflows)
         mRooms.SetAirFlow(flow.FromZoneIndex, flow.ToZoneIndex, flow.FlowRate);
 
@@ -327,7 +327,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region rooms の読み書き
+    #region Reading and writing rooms
 
     private static void ReadRooms(
       ref Utf8JsonReader reader, MultiRoomsDto dto, JsonSerializerOptions options)
@@ -377,7 +377,7 @@ namespace Popolo.IO.Json.Building
     private static void WriteRooms(
       Utf8JsonWriter writer, MultiRoom value, JsonSerializerOptions options)
     {
-      // 各 zone の RoomIndex に基づいて rooms を組み立てる
+      // Assemble the rooms based on the RoomIndex of each zone
       int roomCount = value.RoomCount;
       var byRoom = new List<List<Zone>>();
       for (int i = 0; i < roomCount; i++) byRoom.Add(new List<Zone>());
@@ -409,7 +409,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region outsideWalls の読み書き
+    #region Reading and writing outsideWalls
 
     private static void ReadOutsideWalls(
       ref Utf8JsonReader reader, MultiRoomsDto dto, JsonSerializerOptions options)
@@ -481,7 +481,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region groundWalls の読み書き
+    #region Reading and writing groundWalls
 
     private static void ReadGroundWalls(ref Utf8JsonReader reader, MultiRoomsDto dto)
     {
@@ -548,7 +548,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region adjacentSpaces の読み書き
+    #region Reading and writing adjacentSpaces
 
     private static void ReadAdjacentSpaces(ref Utf8JsonReader reader, MultiRoomsDto dto)
     {
@@ -615,7 +615,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region interZoneAirflows の読み書き
+    #region Reading and writing interZoneAirflows
 
     private static void ReadInterZoneAirflows(ref Utf8JsonReader reader, MultiRoomsDto dto)
     {
@@ -673,7 +673,7 @@ namespace Popolo.IO.Json.Building
         for (int j = 0; j < n; j++)
         {
           double flow = value.GetAirFlow(i, j);
-          if (flow == 0) continue; // スパース
+          if (flow == 0) continue; // sparse
           writer.WriteStartObject();
           writer.WriteNumber(PropFromZoneIndex, i);
           writer.WriteNumber(PropToZoneIndex, j);

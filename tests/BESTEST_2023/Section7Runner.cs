@@ -43,7 +43,7 @@ namespace BESTEST_2023
   /// </summary>
   internal static partial class Section7Runner
   {
-    #region 定数 (Std 140-2023 Annex A1, Table A1-1)
+    #region Constants (Std 140-2023 Annex A1, Table A1-1)
 
     /// <summary>サイト情報 (Sun 位置計算用)。</summary>
     private record SiteInfo(double Latitude, double Longitude, double StdLongitude, double Elevation);
@@ -186,7 +186,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 結果型
+    #region Result types
 
     /// <summary>1 ケース分の集計結果。</summary>
     private class CaseResult
@@ -249,7 +249,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 公開エントリ
+    #region Public entry points
 
     /// <summary>Section 7 全ケースを実行 + xlsx 転記。</summary>
     public static void Run(string weatherDir, string resultsDir)
@@ -317,7 +317,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 1ケース実行
+    #region Single case execution
 
     /// <summary>1 ケース分: 8760 時間シミュレーション + 集計値プリント + 毎時 CSV。</summary>
     private static CaseResult RunCase(

@@ -29,7 +29,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     /// <summary>Unit tests for <see cref="WallConverter"/>.</summary>
     public class WallConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// Options with WallConverter + WallLayerConverter + AirGapLayerConverter.
@@ -82,7 +82,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region シリアライズ
+        #region Serialization
 
         [Fact]
         public void Write_ProducesExpectedTopLevelFields()
@@ -154,7 +154,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region デシリアライズ
+        #region Deserialization
 
         [Fact]
         public void Read_WellFormedJson_ProducesExpectedWall()
@@ -272,7 +272,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ
+        #region Round trip
 
         [Fact]
         public void RoundTrip_ThreeLayerWall_PreservesLayersAndFields()
@@ -312,7 +312,7 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingKind_Throws()

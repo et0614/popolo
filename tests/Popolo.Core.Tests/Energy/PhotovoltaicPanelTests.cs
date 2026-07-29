@@ -36,7 +36,7 @@ namespace Popolo.Core.Tests.Energy
   public class PhotovoltaicPanelTests
   {
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>傾斜角コンストラクタでプロパティが正しく設定される</summary>
     [Fact]
@@ -71,7 +71,7 @@ namespace Popolo.Core.Tests.Energy
 
     #endregion
 
-    #region InverterEfficiencyのテスト
+    #region InverterEfficiency tests
 
     /// <summary>InverterEfficiencyは0〜1にクランプされる</summary>
     [Theory]
@@ -91,7 +91,7 @@ namespace Popolo.Core.Tests.Energy
 
     #endregion
 
-    #region GetPowerのテスト
+    #region GetPower tests
 
     /// <summary>
     /// STC条件（日射1000W/m²、25°C）では出力がPeakPower×InverterEfficiency に近い
@@ -226,7 +226,7 @@ namespace Popolo.Core.Tests.Energy
 
     #endregion
 
-    #region IReadOnlyPhotovoltaicPanelのテスト
+    #region IReadOnlyPhotovoltaicPanel tests
 
     /// <summary>IReadOnlyPhotovoltaicPanelとして参照できる</summary>
     [Fact]

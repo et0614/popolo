@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.Storage
   public class MultiConnectedWaterTank : IReadOnlyMultiConnectedWaterTank
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Tridiagonal coefficient matrix (3×n).</summary>
     private IMatrix wMat;
@@ -88,7 +88,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="volumes">Tank volumes [m³].</param>
@@ -117,7 +117,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 水温設定関連の処理
+    #region Water temperature setting methods
 
     /// <summary>Initializes the tank temperature [°C].</summary>
     /// <param name="temperature">Temperature to initialize [°C].</param>
@@ -153,7 +153,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 水温更新関連の処理
+    #region Water temperature update methods
 
     /// <summary>Advances the state by one time step (forecast mode).</summary>
     /// <param name="waterInletTemperature">Inlet water temperature [°C].</param>
@@ -165,16 +165,16 @@ namespace Popolo.Core.HVAC.Storage
       this.WaterFlowRate = waterFlowRate;
       this.IsForwardFlow = isForwardFlow;
 
-      //既に予測計算中の場合には状態を復元
+      //If a forecast is already in progress, restore the state
       if (isForecasting) RestoreState();
       else
       {
-        //現在の温度を保存
+        //Save the current temperatures
         isForecasting = true;
         for (int i = 0; i < temperatures.Length; i++) temperatures_Back[i] = temperatures[i];
       }
 
-      //水温更新
+      //Update the water temperatures
       UpdateTemperature(ref temperatures, ref wMat, timeStep, WaterInletTemperature, WaterFlowRate,
         heatLossCoefficients, AmbientTemperature, volumes, IsForwardFlow);
     }
@@ -192,7 +192,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 蓄熱量、蓄放熱流の計算処理
+    #region Heat storage and charge/discharge flow calculations
 
     /// <summary>Computes the stored heat [MJ] relative to a reference temperature (positive for hot, negative for cold storage).</summary>
     /// <param name="referenceTemperature">Reference temperature [°C].</param>
@@ -216,7 +216,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 熱損失係数関連の処理
+    #region Heat loss coefficient methods
 
     /// <summary>Sets the heat loss coefficient [kW/K] for the specified tank.</summary>
     /// <param name="tankIndex">Zero-based tank index.</param>
@@ -232,7 +232,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Updates tank temperatures by solving the tridiagonal system for one time step.</summary>
     /// <param name="temperatures">Tank temperatures [°C].</param>
@@ -254,7 +254,7 @@ namespace Popolo.Core.HVAC.Storage
       double wft = waterFlowRate * timeStep;
       wMat.Initialize(0);
 
-      //対角行列を作成
+      //Build the diagonal matrix
       for (int i = 0; i < num; i++)
       {
         double s = wft / volumes[i];

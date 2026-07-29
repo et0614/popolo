@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
   public class CubicSplineTests
   {
 
-    #region GetParameters のテスト
+    #region GetParameters tests
 
     /// <summary>引数チェック：x が null のとき例外が発生する</summary>
     [Fact]
@@ -73,7 +73,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region Interpolate のテスト
+    #region Interpolate tests
 
     /// <summary>補間点がデータ点と一致する場合、元の値が返る</summary>
     [Fact]

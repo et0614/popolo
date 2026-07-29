@@ -41,7 +41,7 @@ namespace Popolo.IO.Tests.Json.Building
     /// </remarks>
     public class MultiRoomsConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static JsonSerializerOptions CreateOptions()
         {
@@ -137,7 +137,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region シリアライズ
+        #region Serialization
 
         [Fact]
         public void Write_TwoZoneModel_ProducesExpectedTopLevelFields()
@@ -225,7 +225,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region Read 直接は NotSupported
+        #region Direct Read is NotSupported
 
         [Fact]
         public void Read_Direct_ThrowsNotSupported()
@@ -241,7 +241,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region DTO 読み取り
+        #region DTO reading
 
         [Fact]
         public void ReadDto_MinimalModel_Succeeds()
@@ -360,7 +360,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ via DTO + BuildMultiRooms
+        #region Round trip via DTO + BuildMultiRooms
 
         [Fact]
         public void RoundTrip_ViaDto_RestoresBasicStructure()
@@ -488,7 +488,7 @@ namespace Popolo.IO.Tests.Json.Building
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void ReadDto_MissingKind_Throws()

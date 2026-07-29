@@ -30,7 +30,7 @@ namespace Popolo.Core.HVAC.VRF
   public class VRFUnit : IReadOnlyVRFUnit
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Overall heat transfer coefficient for the dry coil section [kW/(m²·K)].</summary>
     /// <remarks>
@@ -51,7 +51,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Operating mode of the VRF unit.</summary>
     [Flags]
@@ -69,7 +69,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the selectable operating modes.</summary>
     public Mode SelectableMode { get; private set; }
@@ -206,7 +206,7 @@ namespace Popolo.Core.HVAC.VRF
         double eRate = IsInverterControlledFan ? AirFlowRate / NominalAirFlowRate : 1.0;
         if (CurrentMode == Mode.Cooling) return NominalCoolingFanElectricity * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
         else if (CurrentMode == Mode.Heating) return NominalHeatingFanElectricity * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate);
-        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalCoolingFanElectricity, NominalHeatingFanElectricity) * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate); //この処理は良くない
+        else if (CurrentMode == Mode.ThermoOff) return Math.Max(NominalCoolingFanElectricity, NominalHeatingFanElectricity) * Math.Max(MinFanElectricityRatio, FanOperatingRatio * eRate); //This handling is not ideal
         else return 0;
       }
     }
@@ -228,7 +228,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance as a dedicated evaporator.</summary>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
@@ -248,7 +248,7 @@ namespace Popolo.Core.HVAC.VRF
         + $"Got: {evpHeatTransfer:F3} kW.",
         nameof(evpHeatTransfer));
 
-      //プロパティ初期化
+      //Initialize properties
       NominalAirFlowRate = AirFlowRate = airFlowRate;
       BorderRelativeHumidity = borderRelativeHumidity;
       InletAirTemperature = OutletAirSetpointTemperature = OutletAirTemperature = evpInletAirTemperature;
@@ -256,12 +256,12 @@ namespace Popolo.Core.HVAC.VRF
       NominalCoolingCapacity = evpHeatTransfer;
       NominalCoolingFanElectricity = fanElectricity;
 
-      //伝熱面積を初期化する
+      //Initialize heat transfer surface areas
       EvaporatorSurfaceArea = GetEvaporatorSurfaceArea(
         airFlowRate, evpTemperature, evpHeatTransfer,
         evpInletAirTemperature, evpInletAirHumidityRatio, borderRelativeHumidity);
 
-      //運転可能モードは停止または蒸発器
+      //Selectable modes: shut-off or evaporator (cooling)
       SelectableMode = Mode.ShutOff | Mode.Cooling;
       CurrentMode = Mode.Cooling;
 
@@ -285,19 +285,19 @@ namespace Popolo.Core.HVAC.VRF
         + $"Got: {cndHeatTransfer:F3} kW.",
         nameof(cndHeatTransfer));
 
-      //プロパティ初期化
+      //Initialize properties
       NominalAirFlowRate = AirFlowRate = airFlowRate;
       InletAirTemperature = OutletAirSetpointTemperature = OutletAirTemperature = cndInletAirTemperature;
       InletAirHumidityRatio = OutletAirHumidityRatio = cndInletAirHumidityRatio;
       NominalHeatingCapacity = cndHeatTransfer;
       NominalHeatingFanElectricity = fanElectricity;
 
-      //伝熱面積を初期化する
+      //Initialize heat transfer surface areas
       CondenserSurfaceArea = GetCondenserSurfaceArea(
         airFlowRate, cndTemperature, cndHeatTransfer,
         cndInletAirTemperature, cndInletAirHumidityRatio);
 
-      //運転可能モードは停止または凝縮器
+      //Selectable modes: shut-off or condenser (heating)
       SelectableMode = Mode.ShutOff | Mode.Heating;
       CurrentMode = Mode.Heating;
 
@@ -333,7 +333,7 @@ namespace Popolo.Core.HVAC.VRF
         "Condenser heat transfer must be positive (condenser releases heat to air). "
         + $"Got: {cndHeatTransfer:F3} kW.", nameof(cndHeatTransfer));
 
-      //プロパティ初期化
+      //Initialize properties
       NominalAirFlowRate = AirFlowRate = airFlowRate;
       BorderRelativeHumidity = borderRelativeHumidity;
       InletAirTemperature = OutletAirSetpointTemperature = OutletAirTemperature = evpInletAirTemperature;
@@ -343,7 +343,7 @@ namespace Popolo.Core.HVAC.VRF
       NominalCoolingFanElectricity = coolingFanElectricity;
       NominalHeatingFanElectricity = heatingFanElectricity;
 
-      //伝熱面積を初期化する
+      //Initialize heat transfer surface areas
       EvaporatorSurfaceArea = GetEvaporatorSurfaceArea(
         airFlowRate, evpTemperature, evpHeatTransfer,
         evpInletAirTemperature, evpInletAirHumidityRatio, borderRelativeHumidity);
@@ -351,7 +351,7 @@ namespace Popolo.Core.HVAC.VRF
         airFlowRate, cndTemperature, cndHeatTransfer,
         cndInletAirTemperature, cndInletAirHumidityRatio);
 
-      //運転可能モードは停止または凝縮器
+      //Selectable modes: shut-off or condenser (heating)
       SelectableMode = Mode.ShutOff | Mode.Heating | Mode.Cooling;
       CurrentMode = Mode.ShutOff;
 
@@ -360,7 +360,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the evaporator heat transfer surface area [m²].</summary>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
@@ -376,23 +376,23 @@ namespace Popolo.Core.HVAC.VRF
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
     {
       double epsilon;
-      heatTransfer = -heatTransfer; //正負反転
+      heatTransfer = -heatTransfer; //Flip sign
 
-      //乾湿境界判定
+      //Determine the dry/wet boundary
       double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
 
-      //湿り空気比熱の計算
+      //Compute the moist air specific heat
       double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
 
-      //乾きコイル面積の計算
+      //Compute the dry coil surface area
       double mca = cpmaWB * airFlowRate;
       double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
         (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double qD = (inletAirTemperature - tWB) * mca;
 
-      //乾きコイルで伝熱が終了する場合
+      //Case: heat transfer completes within the dry coil
       if (heatTransfer < qD)
       {
         epsilon = heatTransfer / (mca * (inletAirTemperature - evpTemperature));
@@ -403,7 +403,7 @@ namespace Popolo.Core.HVAC.VRF
           + $"heatTransfer={heatTransfer:F3} kW.");
         return -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
       }
-      //湿りコイルまで到達する場合
+      //Case: heat transfer extends into the wet coil
       epsilon = qD / (mca * (inletAirTemperature - evpTemperature));
       if (1 <= epsilon) throw new PopoloNumericalException(
           "GetEvaporatorSurfaceArea",
@@ -413,11 +413,11 @@ namespace Popolo.Core.HVAC.VRF
       double sD = -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
 
       double qW, sW, xFB, tFB, cpmaFB;
-      //湿りコイルがある場合
+      //Case: a wet coil section exists
       if (0 < tWB)
       {
         tFB = 0;
-        //湿りコイル面積の計算
+        //Compute the wet coil surface area
         xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
@@ -430,7 +430,7 @@ namespace Popolo.Core.HVAC.VRF
         qW = (hWB - hFB) * airFlowRate;
         double kW = HeatTransferCoefficient / (0.5 * (cpmaWB + cpmaFB));
 
-        //湿りコイルで伝熱が終了する場合
+        //Case: heat transfer completes within the wet coil
         if (heatTransfer - qD < qW)
         {
           epsilon = (heatTransfer - qD) / (airFlowRate * (hWB - hEvp));
@@ -441,7 +441,7 @@ namespace Popolo.Core.HVAC.VRF
           + $"heatTransfer={heatTransfer:F3} kW.");
           return -Math.Log(1 - epsilon) * airFlowRate / kW + sD;
         }
-        //着霜コイルまで到達する場合
+        //Case: heat transfer extends into the frosted coil
         epsilon = qW / (airFlowRate * (hWB - hEvp));
         if (1 <= epsilon) throw new PopoloNumericalException(
           "GetEvaporatorSurfaceArea",
@@ -460,7 +460,7 @@ namespace Popolo.Core.HVAC.VRF
         sW = 0;
       }
 
-      //着霜コイル面積の計算
+      //Compute the frosted coil surface area
       double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
       double hdF = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
@@ -502,12 +502,12 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region その他メソッド
+    #region Other methods
 
     /// <summary>Thermo-off (standby) mode.</summary>
     public void ThermoOff()
     {
-      //停止していなければファンは空回り
+      //Unless the unit is shut off, the fan keeps idling
       if (CurrentMode == Mode.ShutOff || ShutoffFanWhenThermoOff)
       {
         AirFlowRate = 0.0;
@@ -515,7 +515,7 @@ namespace Popolo.Core.HVAC.VRF
       }
       else
       {
-        //AirFlowRate = NominalAirFlowRate; //2023.02.10,これだと成り行き運転の収束計算時に風量がリセットされてしまう
+        //AirFlowRate = NominalAirFlowRate; //2023.02.10, this resets the air flow rate during the convergence iterations of free-run operation
         FanOperatingRatio = 1.0;
       }
 
@@ -525,8 +525,8 @@ namespace Popolo.Core.HVAC.VRF
       DrySurfaceArea = EvaporatorSurfaceArea;
       WetSurfaceArea = 0;
       HeatTransfer = 0;
-      RefrigerantTemperature = InletAirTemperature; //前回の計算に応じて冷媒温度が不確定になってしまうのでしっかりと更新すべき。2024.10.16
-      //RefrigerantTemperature = InletAirTemperature; //これをすると収束計算エラーになる。2023.04.11
+      RefrigerantTemperature = InletAirTemperature; //Must be updated properly, since otherwise the refrigerant temperature would be indeterminate, depending on the previous calculation. 2024.10.16
+      //RefrigerantTemperature = InletAirTemperature; //Doing this causes a convergence error. 2023.04.11
       DefrostLoad = 0;
       WaterSupply = 0;
     }
@@ -553,7 +553,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 冷媒温度を与えた場合の成り行き状態計算
+    #region Free-run state calculation for a given refrigerant temperature
 
     /// <summary>Updates the unit state based on the refrigerant temperature.</summary>
     /// <param name="refrigerantTemperature">Refrigerant temperature [°C].</param>
@@ -604,7 +604,7 @@ namespace Popolo.Core.HVAC.VRF
       if (airFlowRate < 0) throw new PopoloOutOfRangeException(
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
-      //プロパティ設定
+      //Set properties
       FanOperatingRatio = 1.0;
       RefrigerantTemperature = refrigerantTemperature;
       AirFlowRate = airFlowRate;
@@ -613,17 +613,17 @@ namespace Popolo.Core.HVAC.VRF
 
       switch (CurrentMode)
       {
-        //運転停止
+        //Shut-off
         case Mode.ShutOff:
           ThermoOff();
           break;
 
-        //サーモオフ
+        //Thermo-off
         case Mode.ThermoOff:
           ThermoOff();
           break;
 
-        //冷房運転（蒸発器）
+        //Cooling operation (evaporator)
         case Mode.Cooling:
           if ((SelectableMode & Mode.Cooling) == 0 ||
             inletAirTemperature <= refrigerantTemperature ||
@@ -644,14 +644,14 @@ namespace Popolo.Core.HVAC.VRF
           DefrostLoad = dfl;
           WaterSupply = 0;
 
-          //出口空気温度を制御する場合（サーモ発停で調整）
+          //Case: outlet air temperature is controlled (adjusted by thermo on/off cycling)
           if (controlOutletAirState)
           {
             double tRate;
-            //顕熱基準で制御
+            //Control based on sensible heat
             if (controlThermoOffWithSensibleHeat)
               tRate = 1.0 - (InletAirTemperature - OutletAirSetpointTemperature) / (InletAirTemperature - OutletAirTemperature);
-            //全熱基準で制御（一般的ではない）
+            //Control based on total heat (uncommon)
             else
             {
               double inletH = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(InletAirTemperature, InletAirHumidityRatio);
@@ -661,23 +661,23 @@ namespace Popolo.Core.HVAC.VRF
             }
 
             ThermoOffTimeRatio = Math.Max(0.0, Math.Min(1.0, tRate));
-            //100%サーモオフの場合
+            //Case: 100% thermo-off
             if (ThermoOffTimeRatio == 1.0) ThermoOff();
-            else if (0.0 < ThermoOffTimeRatio) //サーモオフ時間で調整する
+            else if (0.0 < ThermoOffTimeRatio) //Adjust with the thermo-off time
             {
               OutletAirTemperature = OutletAirSetpointTemperature;
               OutletAirHumidityRatio = ThermoOffTimeRatio * InletAirHumidityRatio + (1 - ThermoOffTimeRatio) * OutletAirHumidityRatio;
               HeatTransfer *= (1 - ThermoOffTimeRatio);
-              DefrostLoad *= (1 - ThermoOffTimeRatio); //この処理は実際には不要か。
+              DefrostLoad *= (1 - ThermoOffTimeRatio); //This handling may actually be unnecessary.
             }
           }
 
           break;
 
-        //暖房運転（凝縮器）
+        //Heating operation (condenser)
         case Mode.Heating:
           if ((SelectableMode & Mode.Heating) == 0 ||
-            (!UseWaterSpray && refrigerantTemperature <= InletAirTemperature) || //水スプレ無しで冷媒温度が低すぎる場合
+            (!UseWaterSpray && refrigerantTemperature <= InletAirTemperature) || //Case: refrigerant temperature is too low without water spray
             airFlowRate == 0)
           {
             ThermoOff();
@@ -693,14 +693,14 @@ namespace Popolo.Core.HVAC.VRF
           OutletAirHumidityRatio = wo2;
           HeatTransfer = ht2;
           WaterSupply = ws;
-          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //Intentionally set to the evaporator surface area here
           WetSurfaceArea = 0;
           DefrostLoad = 0;
 
-          //出口空気温度を制御する場合（サーモ発停で調整）
+          //Case: outlet air temperature is controlled (adjusted by thermo on/off cycling)
           if (controlOutletAirState)
           {
-            //加湿を行う場合には目標出口温度を変更
+            //When humidifying, change the target outlet temperature
             double newTO = OutletAirSetpointTemperature;
             if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
             {
@@ -712,17 +712,17 @@ namespace Popolo.Core.HVAC.VRF
 
             double tRate = 1.0 - (InletAirTemperature - newTO) / (InletAirTemperature - OutletAirTemperature);
             ThermoOffTimeRatio = Math.Max(0.0, Math.Min(1.0, tRate));
-            //100%サーモオフの場合
+            //Case: 100% thermo-off
             if (ThermoOffTimeRatio == 1.0) ThermoOff();
-            else if (0.0 < ThermoOffTimeRatio) //サーモオフ時間で調整する
+            else if (0.0 < ThermoOffTimeRatio) //Adjust with the thermo-off time
             {
-              //加湿する場合
+              //With humidification
               if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
               {
                 OutletAirTemperature = OutletAirSetpointTemperature;
                 OutletAirHumidityRatio = OutletAirSetpointHumidityRatio;
               }
-              //加湿しない場合
+              //Without humidification
               else
               {
                 OutletAirTemperature = newTO;
@@ -730,7 +730,7 @@ namespace Popolo.Core.HVAC.VRF
               }
               HeatTransfer *= (1 - ThermoOffTimeRatio);
             }
-            //過負荷で加湿する場合には設定絶対湿度に到達しない
+            //Under overload with humidification, the humidity ratio setpoint is not reached
             else if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
             {
               OutletAirTemperature = Math.Min(OutletAirTemperature, OutletAirSetpointTemperature);
@@ -768,19 +768,19 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double sD, out double sW, out double defrostLoad)
     {
-      //乾湿境界判定
+      //Determine the dry/wet boundary
       double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
       double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
         (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-      //湿り空気比熱[kJ/kgK]の計算
+      //Compute the moist air specific heat [kJ/kgK]
       double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpmaWB * airFlowRate;
 
-      //乾きコイルの計算
-      //露点まで冷却するために必要な面積を計算
+      //Dry coil calculation
+      //Compute the surface area required to cool down to the dew point
       double qD = mca * (inletAirTemperature - tWB);
       double epsilonD = qD / (mca * (inletAirTemperature - evpTemperature));
       if (epsilonD <= 1) sD = -Math.Log(1 - epsilonD) * mca / HeatTransferCoefficient;
@@ -790,7 +790,7 @@ namespace Popolo.Core.HVAC.VRF
       double hEvp =
         MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity(evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
 
-      //乾きコイルのみで伝熱が終了する場合
+      //Case: heat transfer completes within the dry coil alone
       if (surfaceArea <= sD || 1 <= epsilonD || hWB < hEvp)
       {
         sD = surfaceArea;
@@ -805,7 +805,7 @@ namespace Popolo.Core.HVAC.VRF
         return;
       }
 
-      //湿りコイルがある場合
+      //Case: a wet coil section exists
       double tFB, qW, xFB, cpmaFB;
       if (0 < tWB)
       {
@@ -814,7 +814,7 @@ namespace Popolo.Core.HVAC.VRF
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
 
-        //凝固点（0C）まで冷却するために必要な面積を計算
+        //Compute the surface area required to cool down to the freezing point (0C)
         double hFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
           (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
@@ -824,7 +824,7 @@ namespace Popolo.Core.HVAC.VRF
         if (epsilonW <= 1) sW = -Math.Log(1 - epsilonW) * airFlowRate / kW;
         else sW = surfaceArea - sD;
 
-        //湿りコイルで伝熱が終了する場合
+        //Case: heat transfer completes within the wet coil
         if (surfaceArea <= sW + sD || 1 <= epsilonW)
         {
           sW = surfaceArea - sD;
@@ -851,7 +851,7 @@ namespace Popolo.Core.HVAC.VRF
         cpmaFB = MoistAir.GetSpecificHeat(xFB);
       }
 
-      //着霜コイルの計算
+      //Frosted coil calculation
       double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
       double hdFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
@@ -862,7 +862,7 @@ namespace Popolo.Core.HVAC.VRF
       double qF = epsilonF * airFlowRate * (hdFB - hdEvp);
       double hdo = hdFB - qF / airFlowRate;
 
-      //出口空気温度を収束計算
+      //Iterate to converge on the outlet air temperature
       double to = tFB;
       double ho = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (to, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
@@ -882,11 +882,11 @@ namespace Popolo.Core.HVAC.VRF
       outletAirHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
         (outletAirTemperature, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-      //除霜負荷を計算
+      //Compute the defrost load
       defrostLoad = airFlowRate * (xFB - outletAirHumidityRatio)
         * (SUBLIMINATION_LATENT_HEAT - ICE_ISOBARIC_SPECIFIC_HEAT * outletAirTemperature);
 
-      //交換熱量[kW]を集計
+      //Sum up the heat transfer [kW]
       heatTransfer = -(qD + qW + qF);
     }
 
@@ -908,14 +908,14 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double waterSupply)
     {
-      //水噴霧がある場合
+      //With water spray
       if (0 < sprayEffectiveness)
         waterSupply = GetWaterSupply
          (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //水噴霧がない場合
+      //Without water spray
       else waterSupply = 0;
 
-      //湿り空気比熱[kJ/kgK]
+      //Moist air specific heat [kJ/kgK]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 
@@ -928,7 +928,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 処理負荷にもとづく状態更新処理
+    #region State update based on processed heat load
 
     /// <summary>Updates the unit state based on the specified heat transfer rate [kW].</summary>
     /// <param name="heatLoad">Heat load [kW] (positive = heating, negative = cooling).</param>
@@ -943,7 +943,7 @@ namespace Popolo.Core.HVAC.VRF
       if (airFlowRate < 0) throw new PopoloOutOfRangeException(
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
-      //プロパティ設定
+      //Set properties
       FanOperatingRatio = 1.0;
       HeatTransfer = heatLoad;
       AirFlowRate = airFlowRate;
@@ -952,17 +952,17 @@ namespace Popolo.Core.HVAC.VRF
 
       switch (CurrentMode)
       {
-        //運転停止
+        //Shut-off
         case Mode.ShutOff:
           ThermoOff();
           break;
 
-        //サーモオフ
+        //Thermo-off
         case Mode.ThermoOff:
           ThermoOff();
           break;
 
-        //冷房運転（蒸発器）
+        //Cooling operation (evaporator)
         case Mode.Cooling:
           if ((SelectableMode & Mode.Cooling) == 0 ||
             0 <= heatLoad || airFlowRate == 0)
@@ -983,7 +983,7 @@ namespace Popolo.Core.HVAC.VRF
           WaterSupply = 0;
           break;
 
-        //暖房運転（凝縮器）
+        //Heating operation (condenser)
         case Mode.Heating:
           if ((SelectableMode & Mode.Heating) == 0 ||
             heatLoad <= 0 || airFlowRate == 0)
@@ -999,7 +999,7 @@ namespace Popolo.Core.HVAC.VRF
           OutletAirHumidityRatio = wo2;
           RefrigerantTemperature = tc;
           WaterSupply = ws;
-          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //Intentionally set to the evaporator surface area here
           WetSurfaceArea = 0;
           DefrostLoad = 0;
           break;
@@ -1026,7 +1026,7 @@ namespace Popolo.Core.HVAC.VRF
       bool deductDefrostLoad, out double evaporatingTemperature, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //蒸発温度を仮定
+      //Initial guess for the evaporating temperature
       evaporatingTemperature = inletAirTemperature + heatTransfer / (airFlowRate * 1.006);
 
       Roots.ErrorFunction eFnc = delegate (double eTemp)
@@ -1073,14 +1073,14 @@ namespace Popolo.Core.HVAC.VRF
       out double outletAirTemperature, out double outletAirHumidityRatio,
       out double waterSupply)
     {
-      //水噴霧がある場合
+      //With water spray
       if (0 < sprayEffectiveness)
         waterSupply = GetWaterSupply
          (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //水噴霧がない場合
+      //Without water spray
       else waterSupply = 0;
 
-      //湿り空気比熱[kJ/kgK]
+      //Moist air specific heat [kJ/kgK]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 
@@ -1092,7 +1092,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 給気温度にもとづく状態更新処理
+    #region State update based on supply air temperature
 
     /// <summary>Controls the supply air dry-bulb temperature using the refrigerant temperature.</summary>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
@@ -1104,7 +1104,7 @@ namespace Popolo.Core.HVAC.VRF
       if (airFlowRate < 0) throw new PopoloOutOfRangeException(
         nameof(airFlowRate), airFlowRate, 0, null, "Air flow rate must be non-negative.");
 
-      //プロパティ設定
+      //Set properties
       FanOperatingRatio = 1.0;
       OutletAirTemperature = OutletAirSetpointTemperature;
       AirFlowRate = airFlowRate;
@@ -1113,17 +1113,17 @@ namespace Popolo.Core.HVAC.VRF
 
       switch (CurrentMode)
       {
-        //運転停止
+        //Shut-off
         case Mode.ShutOff:
           ThermoOff();
           break;
 
-        //サーモオフ
+        //Thermo-off
         case Mode.ThermoOff:
           ThermoOff();
           break;
 
-        //冷房運転（蒸発器）
+        //Cooling operation (evaporator)
         case Mode.Cooling:
           if ((SelectableMode & Mode.Cooling) == 0 ||
             AirFlowRate == 0 ||
@@ -1147,7 +1147,7 @@ namespace Popolo.Core.HVAC.VRF
           WaterSupply = 0;
           break;
 
-        //暖房運転（凝縮器）
+        //Heating operation (condenser)
         case Mode.Heating:
           if ((SelectableMode & Mode.Heating) == 0 ||
             AirFlowRate == 0 ||
@@ -1158,7 +1158,7 @@ namespace Popolo.Core.HVAC.VRF
             return;
           }
 
-          //加湿を行う場合には目標出口温度を変更
+          //When humidifying, change the target outlet temperature
           double newTO = OutletAirSetpointTemperature;
           if (UseHumidifier && InletAirHumidityRatio < OutletAirSetpointHumidityRatio)
           {
@@ -1178,7 +1178,7 @@ namespace Popolo.Core.HVAC.VRF
           else OutletAirHumidityRatio = wo2;
           RefrigerantTemperature = tc;
           WaterSupply = ws;
-          DrySurfaceArea = EvaporatorSurfaceArea; //ここは蒸発器の面積を入れる
+          DrySurfaceArea = EvaporatorSurfaceArea; //Intentionally set to the evaporator surface area here
           WetSurfaceArea = 0;
           DefrostLoad = 0;
           break;
@@ -1204,7 +1204,7 @@ namespace Popolo.Core.HVAC.VRF
       out double evaporatingTemperature, out double heatTransfer,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //蒸発温度を仮定
+      //Initial guess for the evaporating temperature
       evaporatingTemperature = outletAirSetpointTemperature;
 
       Roots.ErrorFunction eFnc = delegate (double eTemp)
@@ -1249,14 +1249,14 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirHumidityRatio,
       out double waterSupply)
     {
-      //水噴霧がある場合
+      //With water spray
       if (0 < sprayEffectiveness)
         waterSupply = GetWaterSupply
          (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //水噴霧がない場合
+      //Without water spray
       else waterSupply = 0;
 
-      //湿り空気比熱[kJ/kgK]
+      //Moist air specific heat [kJ/kgK]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = cpma * airFlowRate;
 

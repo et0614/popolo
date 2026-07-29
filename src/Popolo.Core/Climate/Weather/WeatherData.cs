@@ -44,7 +44,7 @@ namespace Popolo.Core.Climate.Weather
   public class WeatherData : IReadOnlyWeatherData
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     private readonly List<WeatherRecord> _records;
 
@@ -68,7 +68,7 @@ namespace Popolo.Core.Climate.Weather
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes an empty dataset.</summary>
     public WeatherData()
@@ -89,7 +89,7 @@ namespace Popolo.Core.Climate.Weather
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Appends a record. The record's <see cref="WeatherRecord.Time"/> must be
@@ -139,7 +139,7 @@ namespace Popolo.Core.Climate.Weather
       if (records == null) throw new PopoloArgumentException(
           "records must not be null.", nameof(records));
       foreach (var r in records) _records.Add(r);
-      // 安定ソート (LINQ)
+      // Stable sort (LINQ)
       _records.Sort((a, b) => a.Time.CompareTo(b.Time));
     }
 

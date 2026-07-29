@@ -32,15 +32,15 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   public static class LinearAlgebraOperations
   {
 
-    #region LU分解
+    #region LU decomposition
 
     /// <summary>Solves the linear system [A][x] = [b] for x.</summary>
     /// <param name="aMatrix">Coefficient matrix [A].</param>
     /// <param name="bVector">Input: vector [b]. Output: solution vector [x].</param>
     public static void SolveLinearEquations(IMatrix aMatrix, IVector bVector)
     {
-      int[] perm = new int[aMatrix.Rows];     //置換ベクトル
-      IVector wArray = new Vector(aMatrix.Rows);   //作業用記憶領域
+      int[] perm = new int[aMatrix.Rows];     //Permutation vector
+      IVector wArray = new Vector(aMatrix.Rows);   //Working storage
       LUDecompose(aMatrix, perm, wArray);
       FAndBSubstitute(aMatrix, perm, bVector);
     }
@@ -55,7 +55,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <remarks>Adapted from "Numerical Recipes".</remarks>
     public static void LUDecompose(IMatrix matrix, int[] perm, IVector wArray)
     {
-      //行列の行数・列数を取得
+      //Get the number of rows/columns of the matrix
       int num = matrix.Rows;
 
       for (int i = 0; i < num; i++)
@@ -75,8 +75,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         double big = 0.0d;
         int imax = 0;
 
-        //Crout法を適用
-        //i~jまでの繰り返し計算
+        //Apply Crout's method
+        //Iterate from i to j
         for (int i = 0; i < j; i++)
         {
           sum = -matrix[i, j];
@@ -84,14 +84,14 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           matrix[i, j] = -sum;
         }
 
-        //j~Nまでの繰り返し計算
+        //Iterate from j to N
         for (int i = j; i < num; i++)
         {
           sum = -matrix[i, j];
           for (int k = 0; k < j; k++) sum += matrix[i, k] * matrix[k, j];
           matrix[i, j] = -sum;
 
-          //スケーリングを考慮して最大のpivot選択を行う
+          //Select the largest pivot considering scaling
           double dum = wArray[i] * Math.Abs(sum);
           if (big <= dum)
           {
@@ -100,19 +100,19 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           }
         }
 
-        //行交換の必要判定
+        //Check whether row exchange is needed
         if (j != imax)
         {
-          //行の交換
+          //Exchange rows
           for (int k = 0; k < num; k++)
           {
             double dum = matrix[imax, k];
             matrix[imax, k] = matrix[j, k];
             matrix[j, k] = dum;
           }
-          wArray[imax] = wArray[j];   //スケーリング係数の交換
+          wArray[imax] = wArray[j];   //Exchange the scaling factors
         }
-        //行の置換を記憶
+        //Record the row permutation
         perm[j] = imax;
 
         if (matrix[j, j] == 0.0) matrix[j, j] = double.MinValue;
@@ -131,27 +131,27 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="b">Right-hand side vector; overwritten with the solution.</param>
     public static void FAndBSubstitute(IMatrix luMatrix, int[] perm, IVector b)
     {
-      //行列の行数・列数を取得
+      //Get the number of rows/columns of the matrix
       int num = luMatrix.Rows;
 
-      //ベクトルbが0以外の数値をとる位置
+      //Position where vector b first takes a nonzero value
       int ii = 0;
 
       for (int i = 0; i < num; i++)
       {
-        //置換ベクトルに従ってbベクトルを入替え
+        //Reorder vector b according to the permutation vector
         int ip = perm[i];
         double sum = b[ip];
         b[ip] = b[i];
 
-        //前進代入処理
+        //Forward substitution
         if (ii != 0)
           for (int j = ii - 1; j < i; j++) sum -= luMatrix[i, j] * b[j];
         else
           if (sum != 0) ii = i + 1;
         b[i] = sum;
       }
-      //後退代入処理
+      //Back substitution
       for (int i = num - 1; 0 <= i; i--)
       {
         double sum = b[i];
@@ -185,7 +185,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region 帯行列関連
+    #region Band matrix methods
 
     /// <summary>
     /// Solves a tridiagonal linear system using the Thomas algorithm:
@@ -211,7 +211,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region 最小二乗法
+    #region Least squares method
 
     /// <summary>Computes regression coefficients by the least-squares method.</summary>
     /// <param name="y">Response variable vector.</param>
@@ -234,8 +234,8 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     public static double[] LeastSquareFit
       (double[] y, double[,] x, out double sigma2, out double aic)
     {
-      int col = y.Length; //データの数
-      int row = x.GetLength(1); //説明変数の数
+      int col = y.Length; //Number of data points
+      int row = x.GetLength(1); //Number of predictor variables
 
       IMatrix s = new Matrix(col, row + 1);
       for (int i = 0; i < col; i++)
@@ -246,7 +246,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       }
 
       MakeUpperTriangularMatrix(ref s);
-      //残差分散
+      //Residual variance
       sigma2 = s[row, row] * s[row, row] / col;
 
       double[] a = new double[row];
@@ -258,7 +258,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         a[i] = ss / s[i, i];
       }
 
-      //赤池情報量規準
+      //Akaike information criterion
       aic = col * (Math.Log(2 * Math.PI * sigma2) + 1) + 2 * (row + 1);
       return a;
     }
@@ -302,7 +302,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         mA2.CopyTo(mA);
       }
 
-      //下三角部分に0を代入
+      //Set the lower triangular part to zero
       for (int i = 1; i < n; i++)
         for (int j = 0; j < Math.Min(m, i); j++)
           mA[i, j] = 0;
@@ -400,7 +400,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
 
     #endregion
 
-    #region 行列・ベクトル演算
+    #region Matrix and vector operations
 
     /// <summary>Computes the matrix product C = A * B.</summary>
     /// <param name="mA">Matrix A.</param>

@@ -40,7 +40,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class SimpleShadingDeviceConverter : JsonConverter<SimpleShadingDevice>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropTransmittance = "transmittance";
@@ -50,7 +50,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="SimpleShadingDevice"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>

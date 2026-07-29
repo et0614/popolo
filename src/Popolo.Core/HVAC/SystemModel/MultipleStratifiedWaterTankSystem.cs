@@ -32,12 +32,12 @@ namespace Popolo.Core.HVAC.SystemModel
   public class MultipleStratifiedWaterTankSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets a value indicating whether a forecast calculation is in progress.</summary>
     private bool isForecasting = false;
@@ -128,7 +128,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装
+    #region IHeatSourceSubSystem implementation
 
     /// <summary>Gets a value indicating whether the chilled water supply is overloaded.</summary>
     public bool IsOverLoad_C { get; private set; }
@@ -213,7 +213,7 @@ namespace Popolo.Core.HVAC.SystemModel
       HotWaterFlowRate = hotWaterFlowRate;
       cTower.SetOutdoorAirState(OutdoorAir.WetBulbTemperature, OutdoorAir.HumidityRatio);
 
-      //水槽内温度分布の一時保存と復元
+      //Temporarily save and restore the temperature distribution in the tank
       if (isForecasting) wTank.InitializeTemperature(oldTemps);
       else
       {
@@ -221,7 +221,7 @@ namespace Popolo.Core.HVAC.SystemModel
         wTank.GetTemperatures(ref oldTemps);
       }
 
-      //タイムステップが経過するまで水槽温度更新を続ける
+      //Keep updating the tank temperatures until the time step has elapsed
       double remTime = TimeStep;
       double aveTemp = 0;
       IsOverLoad_C = false;
@@ -232,10 +232,10 @@ namespace Popolo.Core.HVAC.SystemModel
         if (isLastCalc) wTank.TimeStep = remTime;
         remTime -= wTank.TimeStep;
 
-        //冷凍機稼働かつ二次側負荷有りの場合はHEX所要流量を収束計算（追掛運転）
+        //If the chiller is running and there is a secondary side load, iterate on the required HEX flow rate (chasing operation)
         if (Charging && 0 < ChilledWaterFlowRate)
         {
-          //冷水ポンプの昇温幅を計算
+          //Calculate the temperature rise across the chilled water pump
           chgPump.UpdateState(chgPump.DesignFlowRate);
           chwPump.UpdateState(0.001 * ChilledWaterFlowRate);
           double dtCHP = chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * ChilledWaterFlowRate);
@@ -246,18 +246,18 @@ namespace Popolo.Core.HVAC.SystemModel
             return pHex.SupplyTemperature - ChilledWaterSupplyTemperatureSetpoint;
           };
 
-          //最大流量で処理可能か
+          //Check whether the load can be handled at the maximum flow rate
           if (eFnc(pHex.MaxHeatSourceFlowRate) < 0)
           {
             IsOverLoad_C = false;
-            //最小流量で制御可能か
+            //Check whether control is possible at the minimum flow rate
             if (0 < eFnc(pHex.MaxHeatSourceFlowRate * 0.001))
               Roots.Bisection(eFnc, pHex.MaxHeatSourceFlowRate * 0.001,
                 pHex.MaxHeatSourceFlowRate, 0.01, pHex.MaxHeatSourceFlowRate * 0.01, 20);
           }
           else IsOverLoad_C = true;
 
-          //水槽内温度更新処理
+          //Update the temperatures in the tank
           double tTNKin;
           bool isDownFlow = chiller.ChilledWaterFlowRate < pHex.HeatSourceFlowRate;
           if (isDownFlow) tTNKin = pHex.HeatSourceOutletTemperature 
@@ -266,7 +266,7 @@ namespace Popolo.Core.HVAC.SystemModel
           wTank.ForecastState
             (tTNKin, 0.001 * Math.Abs(chiller.ChilledWaterFlowRate - pHex.HeatSourceFlowRate), isDownFlow);
         }
-        //冷凍機非稼働+二次側負荷有り（放熱運転）
+        //Chiller off + secondary side load present (discharge operation)
         else if (0 < ChilledWaterFlowRate)
         {
           chiller.ShutOff();
@@ -274,15 +274,15 @@ namespace Popolo.Core.HVAC.SystemModel
           cdwPump.ShutOff();
           cTower.ShutOff();
 
-          //冷水ポンプの昇温幅を計算
+          //Calculate the temperature rise across the chilled water pump
           chwPump.UpdateState(0.001 * ChilledWaterFlowRate);
           double dtCHP = chwPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * ChilledWaterFlowRate);
 
-          //放熱用プレート熱交換器の必要通水量を計算
+          //Calculate the required water flow rate through the discharge plate heat exchanger
           pHex.ControlSupplyTemperature
             (WaterTank.LowerOutletTemperarture, ChilledWaterReturnTemperature + dtCHP, ChilledWaterFlowRate);
 
-          //水槽内温度を更新
+          //Update the temperatures in the tank
           double tankInletTemp = 0;
           if (0 < pHex.HeatSourceFlowRate)
           {
@@ -294,7 +294,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
           IsOverLoad_C = IsOverLoad_C || pHex.IsOverLoad;
         }
-        //冷凍機稼働+二次側負荷無し（蓄熱運転）
+        //Chiller running + no secondary side load (charge operation)
         else if (Charging)
         {
           pHex.ShutOff();
@@ -306,7 +306,7 @@ namespace Popolo.Core.HVAC.SystemModel
             (chiller.ChilledWaterOutletTemperature, 0.001 * chiller.ChilledWaterFlowRate, false);
           IsOverLoad_C = false;
         }
-        //冷凍機非稼働+二次側負荷無し（蓄熱槽熱損失のみ）
+        //Chiller off + no secondary side load (thermal storage tank heat loss only)
         else
         {
           ShutOff();
@@ -318,7 +318,7 @@ namespace Popolo.Core.HVAC.SystemModel
         if (isLastCalc) break;
       }
 
-      //過負荷の場合には平均的な供給水温を出力
+      //When overloaded, output the average supply water temperature
       if (IsOverLoad_C) ChilledWaterSupplyTemperature = aveTemp / TimeStep;
       else ChilledWaterSupplyTemperature = ChilledWaterSupplyTemperatureSetpoint;
     }
@@ -328,11 +328,11 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="rtnTmp">Chilled water return temperature including pump heat gain [°C].</param>
     private void CalcHexHeatTransfer(double hexFlow, double rtnTmp)
     {
-      //水槽内の流れ方向を確定
+      //Determine the flow direction in the tank
       double ttlChilFlow = chiller.MaxChilledWaterFlowRate * ChillerCount;
       bool isDownFlow = ttlChilFlow < hexFlow;
 
-      //ターボ冷凍機供給温度を仮定
+      //Assume the centrifugal chiller supply temperature
       double chilOut = StorageTemperature;
       double chilIn = dtChillingPump;
       if (isDownFlow)
@@ -353,10 +353,10 @@ namespace Popolo.Core.HVAC.SystemModel
           + wTank.UpperOutletTemperarture * (ttlChilFlow - hexFlow)) / ttlChilFlow;
       }
 
-      //冷却塔と冷凍機の連成計算
+      //Coupled calculation of the cooling tower and the chiller
       CalcChillerAndCoolingTower(chilIn);
 
-      //ターボ冷凍機過負荷（冷水出口温度が上昇）の場合には1回だけHEX交換熱量を補正
+      //If the centrifugal chiller is overloaded (chilled water outlet temperature rises), correct the HEX heat transfer once
       if (chiller.IsOverLoad)
       {
         if (isDownFlow)
@@ -374,9 +374,9 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="inletChilledWaterTemp">Chilled water return temperature [°C].</param>
     private void CalcChillerAndCoolingTower(double inletChilledWaterTemp)
     {
-      //冷却塔と冷凍機の連成計算（冷却水温度の計算）
+      //Coupled calculation of the cooling tower and the chiller (cooling water temperature)
       double mch = 1000 * chgPump.DesignFlowRate;
-      // 2026.01.09 修正: 冷却水流量は設定値に従う
+      // Fixed 2026.01.09: the cooling water flow rate follows the setpoint
       double vcd = Math.Min(cdwPump.DesignFlowRate, 0.001 * CoolingWaterFlowSetpoint);
       double mcd = 1000 * vcd;
       cdwPump.UpdateState(vcd);
@@ -391,7 +391,7 @@ namespace Popolo.Core.HVAC.SystemModel
         cTower.Update(chiller.CoolingWaterOutletTemperature, true);
         if (cTower.IsOverLoad) needIteration = true;
       }
-      //過負荷または冷却水温度成行の場合には収束計算
+      //When overloaded or the cooling water temperature is free-run, iterate to convergence
       if (needIteration)
       {
         Roots.ErrorFunction eFnc = delegate (double cdt)
@@ -412,7 +412,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="waterTank">Stratified thermal storage tank.</param>
@@ -442,7 +442,7 @@ namespace Popolo.Core.HVAC.SystemModel
       this.CoolingTowerCount = coolingTowerCount;
       oldTemps = new double[WaterTank.LayerCount];
 
-      //冷凍機ポンプの昇温幅を計算・保存
+      //Calculate and store the temperature rise across the chiller pump
       chgPump.UpdateState(chgPump.DesignFlowRate);
       dtChillingPump = chgPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * 1000 * chgPump.DesignFlowRate);
       cdwPump.UpdateState(cdwPump.DesignFlowRate);

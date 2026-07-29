@@ -106,7 +106,7 @@ namespace Popolo.IO.Climate.Weather
       {
         int dayBase = day * 24;
 
-        // 7 つの値配列を組み立てる: T, H, DNI, DHI, NCR, WDIR, WSPD
+        // Assemble the 7 value arrays: T, H, DNI, DHI, NCR, WDIR, WSPD
         var tempRaws = new int[24];
         var humidRaws = new int[24];
         var dniRaws = new int[24];
@@ -131,7 +131,7 @@ namespace Popolo.IO.Climate.Weather
           double dhi = r.Has(WeatherField.DiffuseHorizontalRadiation) ? r.DiffuseHorizontalRadiation : 0.0;
           dhiRaws[h] = (int)Math.Round(dhi * 3600.0 / 1.0e6 * 100.0);
 
-          // 大気放射 (downwelling) → 夜間放射 (outgoing net)
+          // Atmospheric radiation (downwelling) → nocturnal radiation (outgoing net)
           // NCR = σ(T+273.15)^4 − AtmRad
           double ncr = 0.0;
           if (r.Has(WeatherField.AtmosphericRadiation) && r.Has(WeatherField.DryBulbTemperature))
@@ -141,7 +141,7 @@ namespace Popolo.IO.Climate.Weather
           }
           ncrRaws[h] = (int)Math.Round(ncr * 3600.0 / 1.0e6 * 100.0);
 
-          // 風向: Popolo rad (南基準) → 16 方位
+          // Wind direction: Popolo rad (south-based) → 16-point compass
           int wd16 = 0;
           if (r.Has(WeatherField.WindDirection))
           {
@@ -164,12 +164,12 @@ namespace Popolo.IO.Climate.Weather
           wspdRaws[h] = (int)Math.Round(ws * 10.0);
         }
 
-        // 各行を書き出す
-        int dayOnesDigit = (day + 1) % 10;       // v2 real file に合わせたメタデータの "RTT"
-        // 例: day 1 → 1, day 2 → 2, ..., day 10 → 0, day 11 → 1, ...
-        string rtt1 = dayOnesDigit.ToString(ci) + "0" + "1";  // "X01" 相当はここでは簡略化
-        // 実際には day 1 の場合 meta = " 0 1 101", "112", "113"... なので、ここでは簡易形式 " 0 1 <d>01" 等を使う
-        // 解析側は末尾メタを読み飛ばすだけなので、有効な半角 9 文字でさえあれば問題ない。
+        // Write out each line
+        int dayOnesDigit = (day + 1) % 10;       // "RTT" metadata matching the v2 real file
+        // e.g. day 1 → 1, day 2 → 2, ..., day 10 → 0, day 11 → 1, ...
+        string rtt1 = dayOnesDigit.ToString(ci) + "0" + "1";  // "X01" equivalent, simplified here
+        // A real file for day 1 has meta = " 0 1 101", "112", "113"..., so a simplified form " 0 1 <d>01" etc. is used here
+        // The parser only skips the trailing meta, so any valid 9 half-width characters are fine.
 
         WriteLine24(writer, tempRaws, ci);
         WriteLine24(writer, humidRaws, ci);
@@ -187,15 +187,15 @@ namespace Popolo.IO.Climate.Weather
       {
         writer.Write(Format3(values[i], ci));
       }
-      // 末尾メタ: " 0 1 001" は 8 文字、ただし v2 形式では 9 文字 (" 0 1 RTT") なので、
-      // 実データと同じ " 0 1 001" を統一値として書く (解析側は無視する)
+      // Trailing meta: " 0 1 001" is 8 characters, but the v2 format uses 9 (" 0 1 RTT"),
+      // so write the same " 0 1 001" as in real data as a uniform value (the parser ignores it)
       writer.Write(" 0 1 001");
       writer.Write("\r\n");
     }
 
     private static string Format3(int v, CultureInfo ci)
     {
-      // 値が 0..999 に収まる想定。範囲外はクリッピング。
+      // Values are expected to fall within 0..999. Out-of-range values are clipped.
       if (v < 0) v = 0;
       if (v > 999) v = 999;
       return v.ToString(ci).PadLeft(3, ' ');

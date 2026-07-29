@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class SimpleCentrifugalChiller : ICentrifugalChiller, IReadOnlyCentrifugalChiller
   {
 
-    #region プロパティ・インスタンス変数
+    #region Properties and instance variables
 
     /// <summary>Chiller characteristic coefficients.</summary>
     private readonly double[] coef;
@@ -94,7 +94,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated conditions.</summary>
     /// <param name="nominalInput">Nominal power input [kW].</param>
@@ -120,15 +120,15 @@ namespace Popolo.Core.HVAC.HeatSource
       this.NominalCOP = NominalCapacity / NominalInput;
       this.ChilledWaterOutletSetpointTemperature = chilledWaterOutletTemperature;
 
-      //INV機の特性係数
+      //Characteristic coefficients for inverter driven chillers
       if (HasInverter) coef = new double[] { 4.425e-4, -2.532e-1, 4.256e-1, 3.098e-1, 6.910e-2, 4.482e-1 };
-      //定速機の特性係数
+      //Characteristic coefficients for constant speed chillers
       else coef = new double[] { -4.964e-4, 4.865e-1, 5.053e-1, 1.781e-1, -1.923e-1, 2.292e-2 };
     }
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Shuts off the chiller.</summary>
     public void ShutOff()
@@ -148,27 +148,27 @@ namespace Popolo.Core.HVAC.HeatSource
       (double coolingWaterInletTemperature, double chilledWaterInletTemperature,
       double coolingWaterFlowRate, double chilledWaterFlowRate)
     {
-      //状態値を保存
+      //Store state values
       this.ChilledWaterInletTemperature = chilledWaterInletTemperature;
       this.CoolingWaterInletTemperature = coolingWaterInletTemperature;
       this.ChilledWaterFlowRate = chilledWaterFlowRate;
       this.CoolingWaterFlowRate = coolingWaterFlowRate;
 
-      //非稼働ならば停止処理
+      //Shut off if not operating
       if (!IsOperating)
       {
         ShutOff();
         return;
       }
 
-      //熱容量流量を計算
+      //Compute the heat capacity rates
       double mcch = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * ChilledWaterFlowRate;
       double mccd = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * CoolingWaterFlowRate;
 
-      //負荷[kW]を計算
+      //Compute the load [kW]
       CoolingLoad = mcch * (ChilledWaterInletTemperature - ChilledWaterOutletSetpointTemperature);
 
-      //過負荷の場合には出口温度を補正
+      //Correct the outlet temperature when overloaded
       IsOverLoad = NominalCapacity < CoolingLoad;
       if (IsOverLoad)
       {
@@ -177,10 +177,10 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       else ChilledWaterOutletTemperature = ChilledWaterOutletSetpointTemperature;
 
-      //容量制御下限値未満の場合には下限値として消費電力を計算
+      //Compute the electric consumption at the lower limit when below the minimum capacity control ratio
       double load = Math.Max(MinimumPartialLoadRatio * NominalCapacity, CoolingLoad);
 
-      //冷却水出口温度の計算
+      //Compute the cooling water outlet temperature
       double tcho = PhysicsConstants.ToKelvin(ChilledWaterOutletTemperature);
       double tcdi = PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       double pL = load / NominalCapacity;
@@ -190,10 +190,10 @@ namespace Popolo.Core.HVAC.HeatSource
       double bcd = tcho * (-2 * acd + dcd - (tcho * mccd) / NominalInput);
       double ccd = tcho * tcho * (acd - dcd + ecd + (load + tcdi * mccd) / NominalInput);
 
-      //2次方程式の解の公式
+      //Quadratic formula
       CoolingWaterOutletTemperature = PhysicsConstants.ToCelsius((-bcd - Math.Sqrt(bcd * bcd - 4 * acd * ccd)) / (2d * acd));
 
-      //消費電力の計算
+      //Compute the electric consumption
       double tCop = tcho / (CoolingWaterOutletTemperature - ChilledWaterOutletTemperature);
       ElectricConsumption = NominalInput * ((acd / tCop + dcd) / tCop + ecd);
     }

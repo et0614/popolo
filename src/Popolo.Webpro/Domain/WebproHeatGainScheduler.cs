@@ -28,7 +28,7 @@ namespace Popolo.Webpro.Domain
   public class WebproHeatGainScheduler : IHeatGain
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>人体の顕熱負荷比[-]</summary>
     private const double OCC_SENSIBLE_RATE = 0.5;
@@ -41,7 +41,7 @@ namespace Popolo.Webpro.Domain
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>建物・部屋タイプ</summary>
     public enum RoomType
@@ -390,7 +390,7 @@ namespace Popolo.Webpro.Domain
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>カレンダーを設定・取得する</summary>
     public CalendarPattern Calendar { get; private set; }
@@ -399,7 +399,7 @@ namespace Popolo.Webpro.Domain
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="rType">建物・部屋タイプ</param>
@@ -2341,7 +2341,7 @@ new double[] { 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
 
     #endregion
 
-    #region その他のメソッド
+    #region Other methods
 
     /// <summary>時刻別スケジュールタイプを取得する</summary>
     /// <param name="cPattern"></param>
@@ -2495,7 +2495,7 @@ new double[] { 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
 
     #endregion
 
-    #region IHeatGain実装
+    #region IHeatGain implementation
 
     private double getSensibleHeatGain(IReadOnlyZone zone)
     {
@@ -2569,12 +2569,12 @@ new double[] { 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
 
     #endregion
 
-    #region インナークラスの定義
+    #region Inner class definitions
 
     private class scheduleSet
     {
 
-      #region プロパティ
+      #region Properties
 
       /// <summary>基準照明発熱[W/m2]を取得する</summary>
       public double ReferenceLightingLoad { get; private set; }
@@ -2653,7 +2653,7 @@ new double[] { 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
 
       #endregion
 
-      #region コンストラクタ
+      #region Constructors
 
       public scheduleSet
         (double referenceLightingLoad, double referenceOccupancyLoad, double referencePlugLoad, double ventilationRate,

@@ -25,7 +25,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
   public class ControllableParallelFlow : IFlowControllableBranch
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>List of variable-flow branches controllable by resistance adjustment.</summary>
     private IFlowControllableBranch[] branches;
@@ -41,7 +41,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="branches">List of variable-flow branches controllable by resistance adjustment.</param>
@@ -54,7 +54,7 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
 
     #endregion
 
-    #region IFlowControllableBranch実装
+    #region IFlowControllableBranch implementation
 
     /// <summary>Gets a value indicating whether the composite resistance has changed.</summary>
     public bool HasTotalResistanceChanged
@@ -101,10 +101,10 @@ namespace Popolo.Core.HVAC.FluidCircuit.ControllableFlowSolver
     /// <returns>Composite resistance of the entire circuit [kPa/(m³/s)²].</returns>
     public double GetTotalResistance()
     {
-      //抵抗係数に変更がなければ前回の計算結果を使用
+      //If the resistance coefficients have not changed, use the previous result
       if (!HasTotalResistanceChanged) return ttlResist;
 
-      //最遠方から順に合成する
+      //Combine starting from the farthest branch
       int indx = branches.Length - 1;
       ttlResist = branches[indx].GetTotalResistance() + SupplyResistances[indx] + ReturnResistances[indx];
       for (int i = branches.Length - 2; 0 <= i; i--)

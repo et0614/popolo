@@ -34,7 +34,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
   /// </remarks>
   public class EnergyRecoveryVentilatorLossnayTests
   {
-    #region カタログ値（LGH-15RS4, 100V 50Hz, ロスナイ換気）
+    #region Catalog values (LGH-15RS4, 100V 50Hz, Lossnay ventilation)
 
     //強ノッチ（定格・モデル構築に使用）
     private const double FLOW_H = 150.0;      //処理風量 [m3/h]
@@ -57,7 +57,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>強ノッチのカタログ値のみで構築した全熱交換器（直交流）。</summary>
     private static AirToAirFlatPlateHeatExchanger MakeLossnayHex()
@@ -79,7 +79,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region 定格点の再現（強ノッチ）
+    #region Rated point reproduction (high notch)
 
     /// <summary>暖房定格条件でカタログの温度交換効率とエンタルピ交換効率を再現する。</summary>
     [Fact]
@@ -106,7 +106,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region 部分風量の予測（弱ノッチ）— 物理妥当性の検証
+    #region Partial air flow prediction (low notch) — physical plausibility verification
 
     /// <summary>
     /// 強ノッチのみで構築したモデルが、弱ノッチ（100 m³/h）のカタログ
@@ -148,7 +148,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region 特性曲線図の傾向
+    #region Characteristic curve trends
 
     /// <summary>
     /// 特性曲線図と同様、処理風量の増加に対して交換効率が単調に低下する
@@ -187,7 +187,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region ユニットとしての検証（ファン込み）
+    #region Unit-level verification (including fans)
 
     /// <summary>定格風量におけるユニット消費電力がカタログ値（91 W）に一致する。</summary>
     [Fact]

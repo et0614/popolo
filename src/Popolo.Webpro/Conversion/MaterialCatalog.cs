@@ -67,14 +67,14 @@ namespace Popolo.Webpro.Conversion
   public sealed class MaterialCatalog
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Embedded resource name for the default Materials.json.</summary>
     private const string DefaultResourceName = "Popolo.Webpro.Resources.Materials.json";
 
     #endregion
 
-    #region 内部データ
+    #region Internal data
 
     /// <summary>Discriminator for material entry types.</summary>
     private enum MaterialType
@@ -116,7 +116,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region インスタンス構築
+    #region Instance construction
 
     /// <summary>Initializes a catalog with the provided entries.</summary>
     private MaterialCatalog(Dictionary<string, Entry> entries)
@@ -207,7 +207,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 公開 API
+    #region Public API
 
     /// <summary>Gets the number of materials in the catalog.</summary>
     public int Count => entries.Count;
@@ -267,7 +267,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static double MmToMeters(double mm) => mm * 0.001;
 

@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class TransformTests
     {
 
-        #region BoxCoxTransform のテスト
+        #region BoxCoxTransform tests
 
         /// <summary>lambda=1 のとき f(x) = x - 1 となる</summary>
         [Fact]
@@ -101,7 +101,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region GetOptimumBoxCoxLambda のテスト
+        #region GetOptimumBoxCoxLambda tests
 
         /// <summary>正規分布データに対してラムダが約1.0になる</summary>
         [Fact]

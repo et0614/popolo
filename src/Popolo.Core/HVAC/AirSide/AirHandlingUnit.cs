@@ -30,7 +30,7 @@ namespace Popolo.Core.HVAC.AirSide
   public class AirHandlingUnit : IReadOnlyAirHandlingUnit
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Outdoor air economiser control mode.</summary>
     public enum OutdoorAirCoolingControl
@@ -47,7 +47,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Cooling/dehumidifying coil.</summary>
     private CrossFinHeatExchanger cCoil;
@@ -160,7 +160,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="cCoil">Cooling/dehumidifying coil.</param>
@@ -195,7 +195,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region 冷却運転
+    #region Cooling operation
 
     /// <summary>Cools the supply air in free-running mode (no outlet temperature control).</summary>
     public void CoolAir() { CoolAir_Internal(false, 0, 0); }
@@ -216,23 +216,23 @@ namespace Popolo.Core.HVAC.AirSide
     /// <remarks>The humidity ratio setpoint is used for economiser control. Not required when temperature-based control is used.</remarks>
     private bool CoolAir_Internal(bool controlOutletTemp, double spTemp, double spHumid)
     {
-      //SA風量が0の場合は停止処理（全外気でRA風量=0はありえる）
+      //Shut off when the SA flow rate is 0 (RA flow rate = 0 is possible with 100% outdoor air)
       if (SAFlowRate <= 0)
       {
         ShutOff();
         return false;
       }      
 
-      //ファン昇温を計算
+      //Compute the fan temperature rise
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(RAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
 
-      //ダクト熱損失とファン昇温を考慮して出口温度設定を補正
+      //Correct the outlet temperature setpoint for duct heat loss and fan temperature rise
       double sp2 = Math.Max(LowerTemperatureLimit_C, spTemp);
       double tdCo = (sp2 - RATemperature * DuctHeatLossRate) / (1 - DuctHeatLossRate) - tRise;
 
-      //外気冷房を反映した外気量調整//成り行き計算の場合は外気量は所与
+      //Adjust the outdoor air flow rate for economiser cooling//For free-run calculation, the outdoor air flow rate is given
       if (controlOutletTemp)
       {
         double mOA = MinOAFlowRate;
@@ -263,7 +263,7 @@ namespace Popolo.Core.HVAC.AirSide
         EAFlowRate = RAFlowRate + OAFlowRate - SAFlowRate;
       }
 
-      //全熱交換器による熱回収
+      //Heat recovery by the total heat exchanger
       double tdOA = OATemperature;
       double hrOA = OAHumidityRatio;
       if (regen != null && !BypassRegenerator && 0 < OAFlowRate && 0 < EAFlowRate)
@@ -275,9 +275,9 @@ namespace Popolo.Core.HVAC.AirSide
         if (hRtn < hOA)
         {
           const double cf = 3600 / PhysicsConstants.NominalMoistAirDensity;
-          //成り行き計算を試行
+          //Try a free-run calculation
           regen.UpdateState(OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio);
-          //過剰処理の場合には給気温度を制御
+          //If over-processed, control the supply air temperature
           if (controlOutletTemp && regen.SupplyAirOutletDryBulbTemperature < tdCo)
             regen.ControlOutletTemperature
               (OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio, tdCo);
@@ -287,7 +287,7 @@ namespace Popolo.Core.HVAC.AirSide
         else regen.ShutOff();
       }
 
-      //OAとRAを混合して冷却
+      //Mix OA and RA and cool
       double mr = OAFlowRate / (OAFlowRate + RAFlowRate);
       double tdCi = tdOA * mr + RATemperature * (1 - mr);
       double hrCi = hrOA * mr + RAHumidityRatio * (1 - mr);
@@ -298,7 +298,7 @@ namespace Popolo.Core.HVAC.AirSide
       hCoil.ShutOff();
       humidifier?.ShutOff();
 
-      //SAファンによる昇温とダクト熱損失効果を反映
+      //Apply the SA fan temperature rise and the duct heat loss effect
       SATemperature = cCoil.OutletAirTemperature + tRise;
       SAHumidityRatio = cCoil.OutletAirHumidityRatio;
       ComputeDuctLoss();
@@ -327,7 +327,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region 加熱運転
+    #region Heating operation
 
     /// <summary>Heats and humidifies the supply air in free-running mode.</summary>
     /// <remarks>
@@ -350,30 +350,30 @@ namespace Popolo.Core.HVAC.AirSide
     /// <returns>True if control to the setpoint was achieved.</returns>
     private bool HeatAir_Internal(bool controlOutletState, double spTemp, double spHumid)
     {
-      //SA風量が0の場合は停止処理（全外気でRA風量=0はありえる）
+      //Shut off when the SA flow rate is 0 (RA flow rate = 0 is possible with 100% outdoor air)
       if (SAFlowRate <= 0)
       {
         ShutOff();
         return false;
       }
 
-      //ファン昇温を計算
+      //Compute the fan temperature rise
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(RAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
 
-      //ダクト熱損失とファン昇温を考慮して出口温湿度設定を補正
+      //Correct the outlet temperature and humidity setpoints for duct heat loss and fan temperature rise
       double sp2 = Math.Min(UpperTemperatureLimit_H, spTemp);
       double tdCo = (sp2 - RATemperature * DuctHeatLossRate) / (1 - DuctHeatLossRate) - tRise;
       double wAHUo = (spHumid - RAHumidityRatio * DuctHeatLossRate) / (1 - DuctHeatLossRate);
       double hCo = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(tdCo, wAHUo);
 
-      //外気量は最小値
+      //Outdoor air flow rate is set to the minimum
       //double mOA = MinOAFlowRate;
       OAFlowRate = MinOAFlowRate;
       EAFlowRate = RAFlowRate + OAFlowRate - SAFlowRate;
 
-      //全熱交換器による熱回収
+      //Heat recovery by the total heat exchanger
       double tdOA = OATemperature;
       double hrOA = OAHumidityRatio;
       if (regen != null && !BypassRegenerator && 0 < OAFlowRate && 0 < EAFlowRate)
@@ -385,9 +385,9 @@ namespace Popolo.Core.HVAC.AirSide
         if (hOA < hRtn)
         {
           const double cf = 3600 / PhysicsConstants.NominalMoistAirDensity;
-          //成り行き計算実行
+          //Run a free-run calculation
           regen.UpdateState(OAFlowRate * cf, EAFlowRate * cf, 1.0, tdOA, hrOA, RATemperature, RAHumidityRatio);
-          //過剰処理の場合には給気比エンタルピーを制御
+          //If over-processed, control the supply air specific enthalpy
           double hRego = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
             (regen.SupplyAirOutletDryBulbTemperature, regen.SupplyAirOutletHumidityRatio);
           if (controlOutletState && hCo < hRego)
@@ -399,16 +399,16 @@ namespace Popolo.Core.HVAC.AirSide
         else regen.ShutOff();
       }
 
-      //OAとRAを混合
+      //Mix OA and RA
       double mr = OAFlowRate / (OAFlowRate + RAFlowRate);
       double tdCi = tdOA * mr + RATemperature * (1 - mr);
       double hrCi = hrOA * mr + RAHumidityRatio * (1 - mr);
 
-      //水加湿（断熱加湿）の場合には温水コイル出口温度を比エンタルピーで調整
+      //For water (adiabatic) humidification, adjust the hot water coil outlet temperature by specific enthalpy
       if (hrCi < wAHUo && humidifier != null && humidifier.IsAdiabatic)
         tdCo = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndEnthalpy(hrCi, hCo);
 
-      //加熱
+      //Heating
       if (controlOutletState)
         hCoil.ControlOutletAirTemperature(tdCi, hrCi, HotWaterInletTemperature, SAFlowRate, tdCo);
       else
@@ -416,7 +416,7 @@ namespace Popolo.Core.HVAC.AirSide
       tdCo = hCoil.OutletAirTemperature;
       cCoil.ShutOff();
 
-      //加湿
+      //Humidification
       double tSFi = hCoil.OutletAirTemperature;
       if (humidifier != null)
       {
@@ -429,10 +429,10 @@ namespace Popolo.Core.HVAC.AirSide
         tSFi = humidifier.OutletAirTemperature;
         wAHUo = humidifier.OutletAirHumidityRatio;
       }
-      //加湿器無しの場合には温水コイル出口絶対湿度のまま
+      //Without a humidifier, keep the hot water coil outlet humidity ratio
       else wAHUo = hCoil.OutletAirHumidityRatio;
 
-      //SAファンによる昇温とダクト熱損失効果を反映
+      //Apply the SA fan temperature rise and the duct heat loss effect
       SATemperature = tSFi + tRise;
       SAHumidityRatio = wAHUo;
       ComputeDuctLoss();
@@ -442,19 +442,19 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region 換気運転
+    #region Ventilation operation
 
     /// <summary>Operates the AHU in ventilation mode (no heating/cooling, outdoor air only).</summary>
     public void Ventilate()
     {
-      //SA風量が0の場合は停止処理（全外気でRA風量=0はありえる）
+      //Shut off when the SA flow rate is 0 (RA flow rate = 0 is possible with 100% outdoor air)
       if (SAFlowRate <= 0)
       {
         ShutOff();
         return;
       }
 
-      //ファン昇温とダクト熱損失の計算
+      //Compute the fan temperature rise and the duct heat loss
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
@@ -464,7 +464,7 @@ namespace Popolo.Core.HVAC.AirSide
 
     #endregion
 
-    #region その他インスタンスメソッド
+    #region Other instance methods
 
     /// <summary>Sets the supply and return air flow rates [kg/s].</summary>
     /// <param name="raFlowRate">Return air flow rate [kg/s].</param>
@@ -516,7 +516,7 @@ namespace Popolo.Core.HVAC.AirSide
       (bool isCooling, double supplyHumiditySP, bool[] isVAVShutOff, double[] zoneTemps, double[] zoneHumids, 
       double[] zoneSLoads, double[] minSAFlow, double[] maxSAFlow, double[] maxRAFlow, out bool success)
     {
-      //AHU吹出温度の上下限値を計算
+      //Compute the upper and lower limits of the AHU outlet temperature
       double tAHUoMin, tAHUoMax;
       if (isCooling)
       {
@@ -534,21 +534,21 @@ namespace Popolo.Core.HVAC.AirSide
       {
         if (!isVAVShutOff[i])
         {
-          //最大風量での給気温度とAHU吹出温度
+          //Supply air temperature and AHU outlet temperature at the maximum airflow
           double tMax = zoneTemps[i] + zoneSLoads[i] / (PhysicsConstants.NominalMoistAirIsobaricSpecificHeat * maxSAFlow[i]);
           if (isCooling) tAHUoMax = Math.Min(tAHUoMax, tMax);
           else tAHUoMax = Math.Max(tAHUoMax, tMax);
-          //最小風量での給気温度とAHU吹出温度          
+          //Supply air temperature and AHU outlet temperature at the minimum airflow
           if (0 < minSAFlow[i])
           {
             double tMin = zoneTemps[i] + zoneSLoads[i] / (PhysicsConstants.NominalMoistAirIsobaricSpecificHeat * minSAFlow[i]);
-            //過冷却と過加熱が生じても風量を最小化する
+            //Minimize the airflow even if over-cooling or over-heating occurs
             if (MinimizeAirFlow)
             {
               if (isCooling) tAHUoMin = Math.Min(tAHUoMin, tMin);
               else tAHUoMin = Math.Max(tAHUoMin, tMin);
             }
-            //過冷却と過加熱を発生させないように風量を絞る
+            //Reduce the airflow so that over-cooling and over-heating do not occur
             else
             {
               if (isCooling) tAHUoMin = Math.Max(tAHUoMin, tMin);
@@ -557,7 +557,7 @@ namespace Popolo.Core.HVAC.AirSide
           }
         }
       }
-      //給気制御範囲内に納める
+      //Keep within the supply air control range
       if (isCooling)
       {
         tAHUoMin = Math.Max(LowerTemperatureLimit_C, Math.Min(UpperTemperatureLimit_C, tAHUoMin));
@@ -569,7 +569,7 @@ namespace Popolo.Core.HVAC.AirSide
         tAHUoMax = Math.Max(LowerTemperatureLimit_H, Math.Min(UpperTemperatureLimit_H, tAHUoMax));
       }
 
-      //評価関数を定義
+      //Define the evaluation function
       double mSAMax = 0;
       for (int i = 0; i < maxSAFlow.Length; i++) mSAMax += maxSAFlow[i];
       double[] mSAn = new double[zoneTemps.Length];
@@ -577,7 +577,7 @@ namespace Popolo.Core.HVAC.AirSide
       bool overLoad = true;
       Minimization.MinimizeFunction mFnc = delegate (double tAHUo)
       {
-        //還気条件を計算
+        //Compute the return air conditions
         double mSAsum = 0;
         double mRAsum = 0;
         RATemperature = 0;
@@ -606,11 +606,11 @@ namespace Popolo.Core.HVAC.AirSide
         }
         SetAirFlowRate(mRAsum, mSAsum);
 
-        //誤差を評価
+        //Evaluate the error
         if (isCooling) overLoad = !CoolAir(tAHUo, supplyHumiditySP);
         else
         {
-          //必要な湿度を補正
+          //Correct the required humidity
           double bf = SAFlowRate / mSAMax;
           double hsp = RAHumidityRatio * (1 - bf) + supplyHumiditySP * bf;
           overLoad = !HeatAir(tAHUo, hsp);
@@ -628,14 +628,14 @@ namespace Popolo.Core.HVAC.AirSide
         }
       };
 
-      //最大風量で計算
+      //Compute at the maximum airflow
       mFnc(tAHUoMax);
-      //冷暖逆転の場合には最小風量
+      //Use the minimum airflow when cooling/heating is reversed
       if ((isCooling && RATemperature < tAHUoMax) || (!isCooling && tAHUoMax < RATemperature)) mFnc(tAHUoMin);
-      //最大風量で過負荷の場合には最大風量
+      //Use the maximum airflow when overloaded at the maximum airflow
       else if (!overLoad)
       {
-        //最小風量でAHUが過負荷になるならば処理可能な風量まで修正
+        //If the AHU is overloaded at the minimum airflow, adjust to an airflow it can handle
         mFnc(tAHUoMin);
         if (overLoad)
         {

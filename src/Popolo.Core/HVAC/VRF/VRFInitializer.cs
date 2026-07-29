@@ -26,7 +26,7 @@ namespace Popolo.Core.HVAC.VRF
   public static class VRFInitializer
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Outdoor unit model identifier.</summary>
     public enum OutdoorUnitModel
@@ -189,7 +189,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region ダイキン初期化
+    #region Daikin initialization
 
     /// <summary>Creates a Daikin indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -360,7 +360,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機VRVX
+    #region Outdoor unit VRVX
 
     /// <summary>Creates a Daikin VRV-X outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -371,7 +371,7 @@ namespace Popolo.Core.HVAC.VRF
     private static VRFSystem MakeOutdoorUnit_DaikinVRVX
       (CoolingCapacity coolingCapacity, double indoorUnitHeight, bool useWaterSpray)
     {
-      //冷媒はR410a
+      //The refrigerant is R410a
       Refrigerant r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
       VRFSystem vrfSystem;
@@ -549,7 +549,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 室外機VRVA
+    #region Outdoor unit VRVA
 
     /// <summary>Creates a Daikin VRV-A outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -560,7 +560,7 @@ namespace Popolo.Core.HVAC.VRF
     private static VRFSystem MakeOutdoorUnit_DaikinVRVA
       (CoolingCapacity coolingCapacity, double indoorUnitHeight, bool useWaterSpray)
     {
-      //冷媒はR410a
+      //The refrigerant is R410a
       Refrigerant r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
       VRFSystem vrfSystem;
@@ -771,7 +771,7 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem = new VRFSystem(r410a,
             (254 + 254 + 243) * 1.2 / 60d, 0.49 * 2 * 2 + 0.34 * 2, -140.0, 53.2, -63.0, 14.3, -66.6, 12.3,
             (254 + 254 + 243) * 1.2 / 60d, 0.49 * 2 * 2 + 0.34 * 2, 155.0, 47.6, 69.8, 14.7,
-            10.0, 180, 0.80, 100, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
+            10.0, 180, 0.80, 100, 1.00, iHex); //Parameter estimation fails when the heating pipe-length correction is enabled
           vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
@@ -780,7 +780,7 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem = new VRFSystem(r410a,
             (254 + 254 + 281) * 1.2 / 60d, 0.49 * 2 * 2 + 0.47 * 2, -145.0, 56.2, -65.3, 14.7, -69.1, 12.6,
             (254 + 254 + 281) * 1.2 / 60d, 0.49 * 2 * 2 + 0.47 * 2, 160.0, 49.6, 72.0, 15.0,
-            10.0, 150, 0.80, 50, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
+            10.0, 150, 0.80, 50, 1.00, iHex); //Parameter estimation fails when the heating pipe-length correction is enabled
           vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
@@ -789,7 +789,7 @@ namespace Popolo.Core.HVAC.VRF
           vrfSystem = new VRFSystem(r410a,
             (254 + 254 + 254) * 1.2 / 60d, 0.49 * 2 * 3, -150.0, 58.9, -67.5, 15.6, -71.8, 13.3,
             (254 + 254 + 254) * 1.2 / 60d, 0.49 * 2 * 3, 165.0, 50.5, 74.3, 16.1,
-            10.0, 170, 0.78, 50, 1.00, iHex); //暖房配管長補正を有効にするとパラメータ推定に失敗する
+            10.0, 170, 0.78, 50, 1.00, iHex); //Parameter estimation fails when the heating pipe-length correction is enabled
           vrfSystem.MinimumPartialLoadRatio = 0.03;
           vrfSystem.OutdoorUnitDivisionCount = 3;
           break;
@@ -808,7 +808,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 日立初期化
+    #region Hitachi initialization
 
     /// <summary>Creates a Hitachi indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -933,7 +933,7 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C7_1) return VRFSystem.MakeIndoorUnit(18.5 * 1.2 / 60d, 0.070, -7.1, 0.070, 8.0);
           if (coolingCapacity == CoolingCapacity.C8_0) return VRFSystem.MakeIndoorUnit(20.0 * 1.2 / 60d, 0.080, -8.0, 0.080, 9.0);
           if (coolingCapacity == CoolingCapacity.C9_0) return VRFSystem.MakeIndoorUnit(21.5 * 1.2 / 60d, 0.080, -9.0, 0.080, 10.0);
-          if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(23.0 * 1.2 / 60d, 0.090, -11.2, 0.090, 12.5); //伝熱面積初期化エラー：蒸発器凝縮器、両方ダメ
+          if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(23.0 * 1.2 / 60d, 0.090, -11.2, 0.090, 12.5); //Heat transfer surface area initialization error: both evaporator and condenser fail
           throw new PopoloArgumentException(
             $"No catalogue data for {iType} with cooling capacity {coolingCapacity}.",
             nameof(coolingCapacity));
@@ -963,8 +963,8 @@ namespace Popolo.Core.HVAC.VRF
           if (coolingCapacity == CoolingCapacity.C8_0) return VRFSystem.MakeIndoorUnit(18.5 * 1.2 / 60d, 0.050, -8.0, 0.050, 9.0);
           if (coolingCapacity == CoolingCapacity.C9_0) return VRFSystem.MakeIndoorUnit(22.0 * 1.2 / 60d, 0.080, -9.0, 0.080, 10.0);
           if (coolingCapacity == CoolingCapacity.C11_2) return VRFSystem.MakeIndoorUnit(24.0 * 1.2 / 60d, 0.090, -11.2, 0.090, 12.5);
-          if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(29.0 * 1.2 / 60d, 0.130, -14.0, 0.130, 16.0); //伝熱面積初期化エラー：蒸発器凝縮器、両方ダメ
-          if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(31.0 * 1.2 / 60d, 0.150, -16.0, 0.150, 18.0); //伝熱面積初期化エラー：凝縮器がダメ
+          if (coolingCapacity == CoolingCapacity.C14_0) return VRFSystem.MakeIndoorUnit(29.0 * 1.2 / 60d, 0.130, -14.0, 0.130, 16.0); //Heat transfer surface area initialization error: both evaporator and condenser fail
+          if (coolingCapacity == CoolingCapacity.C16_0) return VRFSystem.MakeIndoorUnit(31.0 * 1.2 / 60d, 0.150, -16.0, 0.150, 18.0); //Heat transfer surface area initialization error: condenser fails
           if (coolingCapacity == CoolingCapacity.C22_4) return VRFSystem.MakeIndoorUnit(49.0 * 1.2 / 60d, 0.330, -22.4, 0.330, 25.0);
           if (coolingCapacity == CoolingCapacity.C28_0) return VRFSystem.MakeIndoorUnit(69.0 * 1.2 / 60d, 0.390, -28.0, 0.390, 31.5);
           throw new PopoloArgumentException(
@@ -976,7 +976,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機SS
+    #region Outdoor unit SS
 
     /// <summary>Creates a Hitachi SS outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -987,7 +987,7 @@ namespace Popolo.Core.HVAC.VRF
     private static VRFSystem MakeOutdoorUnit_HitachiSS
       (CoolingCapacity coolingCapacity, double indoorUnitHeight, bool useWaterSpray)
     {
-      //冷媒はR410a
+      //The refrigerant is R410a
       Refrigerant r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
       VRFSystem vrfSystem;
@@ -1192,7 +1192,7 @@ namespace Popolo.Core.HVAC.VRF
 
     #endregion
 
-    #region 東芝初期化
+    #region Toshiba initialization
 
     /// <summary>Creates a Toshiba indoor unit from catalogue data.</summary>
     /// <param name="iType">Indoor unit type.</param>
@@ -1311,7 +1311,7 @@ namespace Popolo.Core.HVAC.VRF
       }
     }
 
-    #region 室外機MMY(スーパーモジュールマルチ)
+    #region Outdoor unit MMY (Super Module Multi)
 
     /// <summary>Creates a Toshiba MMY outdoor unit from catalogue data.</summary>
     /// <param name="coolingCapacity">Cooling capacity class.</param>
@@ -1322,7 +1322,7 @@ namespace Popolo.Core.HVAC.VRF
     private static VRFSystem MakeOutdoorUnit_ToshibaMMY
       (CoolingCapacity coolingCapacity, double indoorUnitHeight, bool useWaterSpray)
     {
-      //冷媒はR410a
+      //The refrigerant is R410a
       Refrigerant r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
       VRFSystem vrfSystem;
@@ -1335,16 +1335,16 @@ namespace Popolo.Core.HVAC.VRF
             165 * 1.2 / 60d, 1.00, -22.4, 6.65, -10.2, 1.90, -10.4, 1.48,
             165 * 1.2 / 60d, 1.00, 22.4, 5.53, 10.1, 1.89,
             7.5, 100, 0.88, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRatio = 2.2 / 22.4; //技術資料の「能力可変範囲」。連続的に能力変化できる範囲なのかは不明
+          vrfSystem.MinimumPartialLoadRatio = 2.2 / 22.4; //"Capacity modulation range" from the technical data sheet. Unclear whether capacity can be varied continuously over this range
           break;
         case CoolingCapacity.Miyata22_4:
           iHex = MakeIndoorUnit_Toshiba(IndoorUnitType.CeilingFourWay, CoolingCapacity.C5_6);
           vrfSystem = new VRFSystem(r410a,
-            //165 * 1.2 / 60d, 1.00, -20.83, 4.43, -12.15, 1.90, -10.4, 1.48, //中負荷中温条件をカタログ情報で補完した初期化
-            165 * 1.2 / 60d, 1.00, -20.83, 4.43, -12.15, 1.90, //中負荷中温条件を削除した初期化
+            //165 * 1.2 / 60d, 1.00, -20.83, 4.43, -12.15, 1.90, -10.4, 1.48, //Initialization with the mid-load, mid-temperature condition supplemented from catalogue data
+            165 * 1.2 / 60d, 1.00, -20.83, 4.43, -12.15, 1.90, //Initialization with the mid-load, mid-temperature condition removed
             165 * 1.2 / 60d, 1.00, 22.81, 4.62, 11.00, 1.98,
             7.5, 100, 0.88, 100, 1.00, iHex);
-          vrfSystem.MinimumPartialLoadRatio = 0.25; //宮田さんの論文によれば、L条件では発停になったとのこと。
+          vrfSystem.MinimumPartialLoadRatio = 0.25; //According to Miyata's paper, the unit cycled on/off under the L condition.
           break;
 
         default:

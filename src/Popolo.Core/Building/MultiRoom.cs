@@ -41,14 +41,14 @@ namespace Popolo.Core.Building
   public class MultiRoom : IReadOnlyMultiRoom
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Linearized radiative heat transfer coefficient [W/(m²·K)] at a reference temperature of 24°C.</summary>
     private const double RAD_COEF = 4.0 * PhysicsConstants.StefanBoltzmannConstant * 297.15 * 297.15 * 297.15;
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Array of thermal zones.</summary>
     private Zone[] zones = null!;
@@ -152,7 +152,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Calculation time step [s].</summary>
     private double timeStep = 3600;
@@ -382,7 +382,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new multi-room thermal model.</summary>
     /// <param name="rmCount">Total number of rooms.</param>
@@ -403,8 +403,8 @@ namespace Popolo.Core.Building
     /// </remarks>
     public MultiRoom(int rmCount, Zone[] zones, Wall[] walls, Window[] windows)
     {
-      // 旧コンストラクタ: walls + windows を結合した components を構築し、
-      // 共通初期化ヘルパへ流す。components の順序は walls → windows の順。
+      // Legacy constructor: build a components array combining walls + windows and
+      // pass it to the shared initialization helper. Component order is walls → windows.
       var combined = new OpticalLayeredEnvelope[walls.Length + windows.Length];
       for (int i = 0; i < walls.Length; i++) combined[i] = walls[i];
       for (int i = 0; i < windows.Length; i++) combined[walls.Length + i] = windows[i];
@@ -480,7 +480,7 @@ namespace Popolo.Core.Building
         zones[i].Index = i;
       }
 
-      //熱水分同時移動判定//水分透過壁が1つでもあれば
+      //Determine whether to solve coupled heat and moisture transfer//if at least one wall is moisture-permeable
       foreach (Wall wl in this.walls)
       {
         if (wl.ComputeMoistureTransfer)
@@ -503,7 +503,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 構成検証
+    #region Configuration validation
 
     /// <summary>Validates the multi-room configuration and returns any problems found.</summary>
     /// <returns>List of <see cref="ValidationMessage"/> entries; empty when no problems are detected.
@@ -525,7 +525,7 @@ namespace Popolo.Core.Building
       void error(string m) => msgs.Add(ValidationMessage.Error(m));
       void warning(string m) => msgs.Add(ValidationMessage.Warning(m));
 
-      // 1. 全 Zone が Room に所属
+      // 1. Every Zone belongs to a Room
       for (int i = 0; i < ZoneCount; i++)
       {
         int rIdx = zones[i].RoomIndex;
@@ -533,14 +533,14 @@ namespace Popolo.Core.Building
           error($"Zone[{i}] is not assigned to any room (RoomIndex={rIdx}).");
       }
 
-      // 2. 全 Room に 1 つ以上の Zone
+      // 2. Every Room has at least one Zone
       for (int r = 0; r < RoomCount; r++)
       {
         if (rZones[r].Count == 0)
           error($"Room[{r}] has no zones.");
       }
 
-      // 3. 全 Zone に有効表面 (面積>0) が 1 つ以上
+      // 3. Every Zone has at least one effective surface (area > 0)
       for (int i = 0; i < ZoneCount; i++)
       {
         bool hasArea = false;
@@ -550,10 +550,10 @@ namespace Popolo.Core.Building
           error($"Zone[{i}] has no interior surface with area > 0.");
       }
 
-      // 4. 全 Component の F/B が 4 状態 (indoor/outdoor/ground/adjacent) に決定済み
-      // 5. F/B 両面屋外の Component が無い
-      // 6. 屋外面に Incline 設定済み
-      // 7. F/B 両面 Incline がある場合、互いに逆向きである (整合警告)
+      // 4. Every Component's F/B sides are resolved to one of 4 states (indoor/outdoor/ground/adjacent)
+      // 5. No Component has both F and B sides facing outdoor
+      // 6. Outdoor sides have an Incline set
+      // 7. When both F and B sides have an Incline, they face opposite directions (consistency warning)
       for (int i = 0; i < components.Length; i++)
       {
         var c = components[i];
@@ -573,16 +573,16 @@ namespace Popolo.Core.Building
         if (bKind == SideKind.Outdoor && c.SurfaceB.Incline == null)
           error($"Component[{i}] outdoor B side has no Incline.");
 
-        // F/B 両面 Incline がある場合、向きが逆 (= 反対面方向を向いている) かチェック
+        // When both F and B sides have an Incline, check that they are reversed (= facing opposite directions)
         if (c.SurfaceF.Incline != null && c.SurfaceB.Incline != null)
         {
           var inclF = c.SurfaceF.Incline;
           var inclB = c.SurfaceB.Incline;
           var revF  = inclF.MakeReverseIncline();
-          // 逆向きと B 側の方向を角度差で比較 (許容 1°)
+          // Compare the reversed direction with the B side direction by angular difference (tolerance 1°)
           const double tolRad = Math.PI / 180.0;
           double dH = Math.Abs(inclB.HorizontalAngle - revF.HorizontalAngle);
-          if (dH > Math.PI) dH = 2 * Math.PI - dH;   // (-π, π] 周回距離
+          if (dH > Math.PI) dH = 2 * Math.PI - dH;   // wrap-around distance in (-π, π]
           double dV = Math.Abs(inclB.VerticalAngle - revF.VerticalAngle);
           if (dH > tolRad || dV > tolRad)
             warning($"Component[{i}] F and B inclines are not opposite-facing "
@@ -592,7 +592,7 @@ namespace Popolo.Core.Building
         }
       }
 
-      // 8. SW 分配先 Floor: 面積>0 かつ emitter と同 Room
+      // 8. SW distribution target Floor: area > 0 and in the same Room as the emitter
       foreach (var kv in swDistFloor)
       {
         var emitter = kv.Key;
@@ -611,7 +611,7 @@ namespace Popolo.Core.Building
               + $"(emitter room={zones[emitterZone].RoomIndex}, floor room={zones[floorZone].RoomIndex}).");
       }
 
-      // 9. SW 分配率 ∈ [0, 1]
+      // 9. SW distribution rate ∈ [0, 1]
       foreach (var kv in swDistRate)
       {
         int eIdx = Array.IndexOf(components, kv.Key);
@@ -619,7 +619,7 @@ namespace Popolo.Core.Building
           error($"SW distribution rate for component[{eIdx}] = {kv.Value}, must be in [0, 1].");
       }
 
-      // 10. 物性値 ∈ [0, 1]
+      // 10. Physical properties ∈ [0, 1]
       for (int i = 0; i < components.Length; i++)
       {
         var c = components[i];
@@ -637,8 +637,8 @@ namespace Popolo.Core.Building
         }
       }
 
-      // 11. 透過直達日射の最終吸収比率テーブル: 各 fraction ∈ [0, 1]、emitter ごとの合計 ≤ 1、
-      //     receiver は emitter と同 Room
+      // 11. Final absorption fraction table for transmitted direct solar radiation: each fraction ∈ [0, 1],
+      //     per-emitter sum ≤ 1, and each receiver is in the same Room as the emitter
       foreach (var kv in directAbsorption)
       {
         int eIdx = Array.IndexOf(components, kv.Key);
@@ -661,7 +661,7 @@ namespace Popolo.Core.Building
           error($"Transmitted-direct absorption fractions for component[{eIdx}] sum to {sum:F4} > 1.");
       }
 
-      // 9. ユーザ指定の形態係数が構造変更で破棄された場合に警告
+      // 9. Warn when a user-specified view factor matrix was discarded by a structural change
       if (userFormFactorDiscarded)
         warning("User-specified form factor matrix was discarded due to a structural change "
             + "(AddZone / AddWall / AddWindow / SetOutsideWall / SetGroundWall / etc.). "
@@ -677,11 +677,11 @@ namespace Popolo.Core.Building
     /// <summary>Classifies how a surface side is currently bound to its environment.</summary>
     private SideKind ClassifySide(EnvelopeSurface sf)
     {
-      // 屋内 (Zone に所属)
+      // Indoor (belongs to a Zone)
       for (int i = 0; i < ZoneCount; i++)
         if (zones[i].Surfaces.Contains(sf)) return SideKind.Indoor;
 
-      // 境界面のいずれか
+      // One of the boundary surfaces
       if (bndSurfaces.Contains(sf))
       {
         if (sf.IsGroundWall) return SideKind.Ground;
@@ -694,7 +694,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 熱平衡（熱水分同時移動対応）に関する処理
+    #region Heat balance methods (with coupled heat and moisture transfer)
 
     /// <summary>Forecasts the future sensible heat balance state.</summary>
     /// <remarks>
@@ -703,10 +703,10 @@ namespace Popolo.Core.Building
     /// </remarks>
     internal void ForecastHeatTransfer()
     {
-      //準備計算実行
+      //Run preparatory calculations
       PrepareForHeatTransfer();
 
-      //IJ行列作成処理
+      //Build the IJ matrices
       MakeIJMatrix();
 
       bool[] ctrl = new bool[matK.Columns];
@@ -719,14 +719,14 @@ namespace Popolo.Core.Building
       matK.Initialize(0);
       for (int i = 0; i < matI.Rows; i++)
       {
-        //K行列を作成
+        //Build matrix K
         for (int j = 0; j < matI.Columns; j++)
         {
           if (!ctrl[j]) matK[i, j] = matI[i, j];
           else if (ctrl[j] && i == j) matK[i, j] = -1;
         }
 
-        //Lベクトルを作成
+        //Build vector L
         vecTH[i] = vecEJ[i];
         for (int j = 0; j < matI.Columns; j++)
         {
@@ -743,7 +743,7 @@ namespace Popolo.Core.Building
         }
       }
 
-      //連立方程式を解く（温湿度を計算）
+      //Solve the simultaneous equations (compute temperatures and humidity ratios)
       LinearAlgebraOperations.SolveLinearEquations(matK, vecTH);
       for (int i = 0; i < ZoneCount; i++)
       {
@@ -790,7 +790,7 @@ namespace Popolo.Core.Building
     {
       forecastingHeatTransfer = false;
 
-      //壁表面温度を計算
+      //Compute wall surface temperatures
       for (int i = 0; i < ZoneCount; i++)
       {
         vecTH[i] = zones[i].Temperature;
@@ -799,14 +799,14 @@ namespace Popolo.Core.Building
       LinearAlgebraOperations.Multiply(matB, vecTH, vecC, 1, 1);
       LinearAlgebraOperations.Multiply(matAInv, vecC, vecTWS, 1, 0);
 
-      //温湿度条件を設定
+      //Set temperature and humidity conditions
       for (int i = 0; i < RoomCount; i++)
       {
         for (int j = 0; j < wsIndex[i].Length; j++)
         {
           for (int k = 0; k < wsIndex[i][j].Length; k++)
           {
-            //相当温度
+            //Sol-air temperature
             EnvelopeSurface ws1 = surfaces[wsIndex[i][j][k]];
             ws1.SolAirTemperature = 0;
             for (int m = 0; m < wsIndex[i].Length; m++)
@@ -823,7 +823,7 @@ namespace Popolo.Core.Building
             ws1.SolAirTemperature += ws1.AbsorbedSolarFlux;
             ws1.SolAirTemperature /= ws1.FilmCoefficient;
 
-            //絶対湿度
+            //Humidity ratio
             if (SolveMoistureTransferSimultaneously) ws1.HumidityRatio = zones[rZones[i][j]].HumidityRatio;
           }
         }
@@ -848,11 +848,11 @@ namespace Popolo.Core.Building
     /// </remarks>
     private void MakeABMatrix()
     {
-      //AB行列の再計算の要否を確認
-      // (1) 全 surface の境界係数変化フラグ — setter で立つ、即時反映用
-      // (2) コンポーネントの InverseMatrixUpdated — 前 FixState の Update で
-      //     逆行列が再計算された痕跡 (PCM・埋設配管流量変化など、または将来
-      //     窓に熱容量を持たせた際の glass 層プロパティ変化)
+      //Check whether the AB matrices need to be rebuilt
+      // (1) Boundary-coefficient-changed flag on every surface — set by the setters, for immediate effect
+      // (2) InverseMatrixUpdated on components — evidence that the inverse matrix was
+      //     recomputed during Update of the previous FixState (PCM, buried-pipe flow rate
+      //     changes, etc., or glass layer property changes once windows get heat capacity)
       bool needUpdateAB = false;
       for (int i = 0; i < surfaces.Length; i++)
       {
@@ -867,11 +867,12 @@ namespace Popolo.Core.Building
       }
       if (!needUpdateAB) return;
 
-      // 境界係数が変わったコンポーネントの逆行列を同タイムステップで最新化。
-      // uxMatrix を作り直したら IF2/3 も同じ uxMatrix と現状態から再計算
-      // しないと、AB 行列 (FFS/BFS 経由、新 uxMatrix) と C ベクトル
-      // (IF 経由、旧 uxMatrix) で整合性が崩れ、ピーク負荷などで誤差が出る。
-      // 不透明な resistive-only モデル (現在の Window) は両メソッドが no-op。
+      // Refresh, within the same time step, the inverse matrix of components whose boundary
+      // coefficients changed. Once uxMatrix is rebuilt, IF2/3 must also be recomputed from
+      // the same uxMatrix and the current state; otherwise the AB matrices (via FFS/BFS,
+      // new uxMatrix) and the C vector (via IF, old uxMatrix) become inconsistent, causing
+      // errors at peak loads and the like. For opaque resistive-only models (the current
+      // Window) both methods are no-ops.
       for (int i = 0; i < components.Length; i++)
       {
         OpticalLayeredEnvelope c = components[i];
@@ -895,8 +896,8 @@ namespace Popolo.Core.Building
             EnvelopeSurface ws1 = surfaces[s1];
             EnvelopeSurface ws1R = ws1.ReverseSideSurface;
 
-            //行列Aを作成
-            //同一室
+            //Build matrix A
+            //Same room
             for (int m = 0; m < wsIndex[i].Length; m++)
             {
               for (int n = 0; n < wsIndex[i][m].Length; n++)
@@ -915,7 +916,7 @@ namespace Popolo.Core.Building
                 }
               }
             }
-            //裏側室
+            //Room on the reverse side
             if (!isSFboundary[s1])
             {
               int rvRm = zones[ws1R.ZoneIndex].RoomIndex;
@@ -934,7 +935,7 @@ namespace Popolo.Core.Building
               }
             }
 
-            //行列Bを作成
+            //Build matrix B
             for (int q = 0; q < zones.Length; q++)
             {
               int nQ = ZoneCount;
@@ -963,10 +964,10 @@ namespace Popolo.Core.Building
         }
       }
 
-      //Aの逆行列計算
+      //Compute the inverse of A
       LinearAlgebraOperations.GetInverse(matA, matAInv);
 
-      // 全 surface のフラグを下ろす (次の coefficient 変更で再度立つ)
+      // Clear the flag on every surface (it will be raised again by the next coefficient change)
       for (int i = 0; i < surfaces.Length; i++)
         surfaces[i].BoundaryCoefficientChanged = false;
     }
@@ -985,7 +986,7 @@ namespace Popolo.Core.Building
             EnvelopeSurface ws1 = surfaces[s1];
             EnvelopeSurface ws1R = ws1.ReverseSideSurface;
 
-            //ベクトルCを作成
+            //Build vector C
             double rdsl = (radToSurf_L[i] + ws1.AbsorbedSolarFlux) / ws1.FilmCoefficient;
             vecC[s1] = ws1.IF2 + ws1.FFS2 * rdsl;
             if (SolveMoistureTransferSimultaneously) vecC[s1 + nS] = ws1.IF3 + ws1.FFS3 * rdsl;
@@ -1019,7 +1020,7 @@ namespace Popolo.Core.Building
         double capSZN = (zq1.HeatCapacity + zq1.AirMass * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat) / TimeStep;
         double capLZN = (zq1.MoistureCapacity + zq1.AirMass) / TimeStep;
 
-        //行列Dを作成
+        //Build matrix D
         for (int q2 = 0; q2 < ZoneCount; q2++)
         {
           if (q1 == q2)
@@ -1046,7 +1047,7 @@ namespace Popolo.Core.Building
           }
         }
 
-        //ベクトルEを作成
+        //Build vector E
         vecEJ[q1] = capSZN * zq1.Temperature + PhysicsConstants.NominalMoistAirIsobaricSpecificHeat
           * (zq1.VentilationRate * OutdoorTemperature + zq1.SupplyAirFlowRate * zq1.SupplyAirTemperature
           + zq1._supplyAirFlowRate2 * zq1._supplyAirTemperature2) + zq1.IntegrateConvectiveHeatgains();
@@ -1055,7 +1056,7 @@ namespace Popolo.Core.Building
             + zq1.VentilationRate * OutdoorHumidityRatio + zq1.SupplyAirFlowRate * zq1.SupplyAirHumidityRatio
             + zq1._supplyAirFlowRate2 * zq1._supplyAirHumidityRatio2 + zq1.IntegrateMoistureGains();
 
-        //行列Fを作成
+        //Build matrix F
         for (int k = 0; k < zq1.Surfaces.Count; k++)
         {
           EnvelopeSurface ws = zq1.Surfaces[k];
@@ -1064,7 +1065,7 @@ namespace Popolo.Core.Building
         }
       }
 
-      //IJ行列作成処理
+      //Build the IJ matrices
       LinearAlgebraOperations.Multiply(matF, matAInv, matBf);
       LinearAlgebraOperations.Multiply(matBf, matB, matI);
       LinearAlgebraOperations.Subtract(matD, matI);
@@ -1096,7 +1097,7 @@ namespace Popolo.Core.Building
           }
           else
           {
-            //隣室温度差係数を用いる場合
+            //When the adjacent-space temperature difference factor is used
             double ftd = ws.AdjacentSpaceFactor;
             double tmp = zones[ws.ReverseSideSurface.ZoneIndex].Temperature;
             ws.SolAirTemperature = (1 - ftd) * tmp + ftd * OutdoorTemperature;
@@ -1109,59 +1110,62 @@ namespace Popolo.Core.Building
     /// <summary>Performs preparatory calculations required before forecasting the heat balance.</summary>
     private void PrepareForHeatTransfer()
     {
-      //温湿度を復旧
+      //Restore temperatures and humidity ratios
       if (forecastingHeatTransfer) ResetAirState();
       else
       {
-        //温湿度を一時保存
+        //Temporarily store temperatures and humidity ratios
         for (int i = 0; i < ZoneCount; i++)
         {
           zoneTemp[i] = zones[i].Temperature;
           zoneHumid[i] = zones[i].HumidityRatio;
         }
 
-        //ゾーン・表面通し番号付与、形態係数行列初期化
+        //Assign serial numbers to zones and surfaces, initialize view factor matrices
         Initialize();
 
-        //窓の光学特性を更新、ゲブハルト吸収率行列初期化
+        //Update window optical properties, initialize Gebhart absorption factor matrices
         UpdateOpticalProperties();
 
-        //長波長・短波長放射を分配
+        //Distribute long-wave and short-wave radiation
         for (int i = 0; i < radToSurf_S.Length; i++) radToSurf_S[i] = 0;
         for (int i = 0; i < RoomCount; i++) radToSurf_L[i] = 0;
         DistributeShortwaveRad();
         DistributeLongwaveRad();
 
-        //各 surface に表面吸収日射熱流束を反映。
-        //  - 壁: AbsorbedSolarFlux ← radToSurf_S (SolAirTemperature 経由で熱平衡へ)
-        //  - 窓: AbsorbedSolarFlux ← 0 + 各ガラス層の OnIncidentSolarFlux (室内側拡散の
-        //        per-glass 吸収) を solarAbsorption に積算
+        //Apply the absorbed solar heat flux to each surface.
+        //  - Walls: AbsorbedSolarFlux ← radToSurf_S (enters the heat balance via SolAirTemperature)
+        //  - Windows: AbsorbedSolarFlux ← 0 + each glass layer's OnIncidentSolarFlux
+        //        (per-glass absorption of indoor-side diffuse radiation) accumulated into solarAbsorption
         for (int i = 0; i < surfaces.Length; i++) surfaces[i].SetIncidentSolarFlux(radToSurf_S[i]);
 
-        //表面熱伝達率を現状ベースで更新 (各サブフラグが立っている場合のみ)
-        // SetOutdoorAirState は ws.FilmCoefficient を参照して sol-air を組むため、
-        // 必ず動的更新の後に呼ぶ。また下の UpdateInverseMatrix は表面熱伝達率を
-        // 入力に取るので、動的更新後の値で逆行列が組まれるよう順序を整える。
+        //Update surface heat transfer coefficients from the current state (only when the corresponding sub-flags are set)
+        // SetOutdoorAirState builds the sol-air temperature from ws.FilmCoefficient, so it
+        // must be called after the dynamic update. The UpdateInverseMatrix below also takes
+        // the surface heat transfer coefficients as input, so keep this order to ensure the
+        // inverse matrix is built with post-dynamic-update values.
         if (DynamicIndoorRadiativeCoefficient)    UpdateIndoorRadiativeCoefficient();
         if (DynamicOutdoorRadiativeCoefficient)   UpdateOutdoorRadiativeCoefficient();
         if (DynamicIndoorConvectiveCoefficient)   UpdateIndoorConvectiveCoefficient();
         if (DynamicOutdoorConvectiveCoefficient)  UpdateOutdoorConvectiveCoefficient();
 
-        //層別吸収日射と表面熱伝達率が更新されたので IF 係数と逆行列を再計算。
-        //動的更新後に呼ぶことで、逆行列と AB 行列が同じ表面熱伝達率に基づくよう保つ
-        //(この順を逆にすると、FixState 末尾で BuildingThermalModel が
-        // RestoreUserCoefficients を呼んで動的値をユーザー値に戻した後、
-        // 次回 Prepare 開始時に逆行列がユーザー値で組まれてしまい一貫性が崩れる)。
+        //Per-layer absorbed solar radiation and surface heat transfer coefficients have been
+        //updated, so recompute the IF coefficients and inverse matrices. Calling this after
+        //the dynamic update keeps the inverse matrix and the AB matrices based on the same
+        //surface heat transfer coefficients (with the reverse order, after
+        // BuildingThermalModel calls RestoreUserCoefficients at the end of FixState to put
+        // the dynamic values back to user values, the inverse matrix would be built with
+        // user values at the start of the next Prepare, breaking consistency).
         for (int i = 0; i < components.Length; i++)
         {
           components[i].UpdateInverseMatrix();
           components[i].UpdateIFCoefficients();
         }
 
-        //屋外側相当温度を設定
+        //Set outdoor-side sol-air temperatures
         SetOutdoorAirState();
 
-        //ABC行列を計算
+        //Compute the ABC matrices
         MakeABMatrix();
         MakeCVector();
         forecastingHeatTransfer = true;
@@ -1238,7 +1242,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 水分平衡に関する処理
+    #region Moisture balance methods
 
     /// <summary>Forecasts the future moisture balance state.</summary>
     /// <remarks>
@@ -1255,13 +1259,13 @@ namespace Popolo.Core.Building
         forecastingMoistureTransfer = true;
       }
 
-      //熱平衡を計算
+      //Compute the heat balance
       for (int q1 = 0; q1 < ZoneCount; q1++)
       {
         Zone zq1 = zones[q1];
         double capLZN = (zq1.MoistureCapacity + zq1.AirMass) / TimeStep;
 
-        //行列AWを作成
+        //Build matrix AW
         for (int q2 = 0; q2 < ZoneCount; q2++)
         {
           if (q1 == q2)
@@ -1271,30 +1275,30 @@ namespace Popolo.Core.Building
           }
           else matAW[q1, q2] = -zoneVent[q1, q2];
         }
-        //ベクトルBWを作成
+        //Build vector BW
         vecWH[q1] = capLZN * zq1.HumidityRatio
           + zq1.VentilationRate * OutdoorHumidityRatio + zq1.SupplyAirFlowRate * zq1.SupplyAirHumidityRatio
           + zq1._supplyAirFlowRate2 * zq1._supplyAirHumidityRatio2 + zq1.IntegrateMoistureGains();
       }
 
-      //潜熱平衡を計算
+      //Compute the latent heat balance
       matCW.Initialize(0);
       for (int i = 0; i < ZoneCount; i++)
       {
-        //CW行列を作成
+        //Build matrix CW
         for (int j = 0; j < ZoneCount; j++)
         {
           if (!zones[j].HumidityControlled) matCW[i, j] = matAW[i, j];
           else if (zones[j].HumidityControlled && (i == j)) matCW[i, j] = -1;
         }
 
-        //DWベクトルを作成
+        //Build vector DW
         for (int j = 0; j < ZoneCount; j++)
           if (zones[j].HumidityControlled) vecWH[i] -= matAW[i, j] * zones[j].HumidityRatioSetpoint;
         if (!zones[i].HumidityControlled) vecWH[i] += zones[i].MoistureSupply;
       }
 
-      //連立方程式を解く（湿度を計算）
+      //Solve the simultaneous equations (compute humidity ratios)
       LinearAlgebraOperations.SolveLinearEquations(matCW, vecWH);
       for (int i = 0; i < ZoneCount; i++)
       {
@@ -1351,7 +1355,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 初期化処理
+    #region Initialization
 
     /// <summary>Marks the model as requiring structural re-serialization and form-factor / Gebhart
     /// re-computation. Also discards any user-specified form factor matrices since the structure
@@ -1384,7 +1388,7 @@ namespace Popolo.Core.Building
       if (!needSerialize) return;
       MakeSerialNumber();
       needSerialize = false;
-      needFormFactorGebhart = true;   // 構造が変わったので FF/Gebhart も再計算要
+      needFormFactorGebhart = true;   // structure changed, so FF/Gebhart also need recomputation
     }
 
     /// <summary>Initializes internal data structures, form factors, and Gebhart matrices.</summary>
@@ -1414,7 +1418,7 @@ namespace Popolo.Core.Building
         if (userMat != null
             && userMat.GetLength(0) == N && userMat.GetLength(1) == N)
         {
-          //ユーザ指定の形態係数を採用 (Matsuo 法をスキップ)
+          //Adopt the user-specified view factors (skip the Matsuo method)
           IMatrix mat = new Matrix(N, N);
           for (int j = 0; j < N; j++)
             for (int k = 0; k < N; k++)
@@ -1423,7 +1427,7 @@ namespace Popolo.Core.Building
         }
         else
         {
-          //保険: 次元不一致なら user 指定を破棄してから自動推定 (Matsuo)
+          //Safety net: on a dimension mismatch, discard the user specification and fall back to automatic estimation (Matsuo)
           if (userMat != null && userFormFactor != null)
           {
             userFormFactor[i] = null!;
@@ -1432,7 +1436,7 @@ namespace Popolo.Core.Building
           formFactor[i] = ComputeFormFactor(area.ToArray());
         }
       }
-      //ゲブハルトの吸収率行列更新
+      //Update the Gebhart absorption factor matrices
       ComputeGebhartMatrix();
       needFormFactorGebhart = false;
     }
@@ -1486,7 +1490,7 @@ namespace Popolo.Core.Building
     /// <returns>View factor matrix.</returns>
     private static IMatrix ComputeFormFactor(double[] area)
     {
-      //0, 1, 2面の場合は面積関係なし
+      //For 0, 1, or 2 surfaces the areas are irrelevant
       if (area.Length == 0) return new Matrix(0, 0);
 
       if (area.Length == 1)
@@ -1504,46 +1508,47 @@ namespace Popolo.Core.Building
         return mat;
       }
 
-      //面積降順 + 元 index で tie 安定化 + インターリーブ配置
+      //Sort by descending area + stabilize ties by original index + interleaved placement
       //
-      // 配置順: pos 0 = 最大面積、pos 1 = 最小、pos 2 = 2 番目に大、pos 3 = 2 番目に小、…
+      // Placement order: pos 0 = largest area, pos 1 = smallest, pos 2 = 2nd largest, pos 3 = 2nd smallest, …
       //
-      // 旧実装は ascending sort で大面積を円周上の隣接位置に並べていたため、
-      // Matsuo 2D 近似の Hottel cross-string で F_{大-大} (例: 床-天井) を過大評価
-      // する傾向があった。物理的には床と天井のような大面積同士は対面に配置されることが
-      // 多く、円周上では adjacent でなく opposite に近い位置の方が自然。本実装は
-      // 大面積同士を可能な限り離す deterministic な順序を採用する。
+      // The old implementation used an ascending sort that placed large areas at adjacent
+      // positions on the circle, so the Hottel cross-string of the Matsuo 2D approximation
+      // tended to overestimate F_{large-large} (e.g., floor-ceiling). Physically, large
+      // surfaces such as a floor and a ceiling usually face each other, so positions close
+      // to opposite rather than adjacent on the circle are more natural. This implementation
+      // adopts a deterministic order that separates large areas as far as possible.
       //
-      // 面積タイは元 index 昇順で解消することで model 構築順 (Array.Sort の非安定性)
-      // が結果に漏れないことを保証する。
+      // Area ties are broken by ascending original index, guaranteeing that the model
+      // construction order (Array.Sort is not stable) does not leak into the result.
       int N = area.Length;
       int[] descIdx = new int[N];
       for (int i = 0; i < N; i++) descIdx[i] = i;
       Array.Sort(descIdx, (a, b) =>
       {
-        int cmp = area[b].CompareTo(area[a]);   //面積降順
-        return cmp != 0 ? cmp : a.CompareTo(b); //tie は元 index 昇順 (stable)
+        int cmp = area[b].CompareTo(area[a]);   //descending area
+        return cmp != 0 ? cmp : a.CompareTo(b); //ties by ascending original index (stable)
       });
 
-      //インターリーブ: pos 0=descIdx[0] (最大)、pos 1=descIdx[N-1] (最小)、pos 2=descIdx[1]、pos 3=descIdx[N-2]、…
-      int[] index = new int[N];   //index[k] = 元位置 of 並べ替え後 pos k
+      //Interleave: pos 0=descIdx[0] (largest), pos 1=descIdx[N-1] (smallest), pos 2=descIdx[1], pos 3=descIdx[N-2], …
+      int[] index = new int[N];   //index[k] = original position of reordered pos k
       for (int p = 0, lo = 0, hi = N - 1; p < N; p++)
         index[p] = (p % 2 == 0) ? descIdx[lo++] : descIdx[hi--];
 
-      //area を新順序で permute
+      //Permute area into the new order
       double[] origArea = area;
       area = new double[N];
       for (int i = 0; i < N; i++) area[i] = origArea[index[i]];
 
       double[,] ff = new double[N, N];
-      //最大面積は interleave 後 pos 0
+      //After interleaving, the largest area is at pos 0
       const int largestPos = 0;
       double sA = 0;
       for (int i = 0; i < N; i++) if (i != largestPos) sA += area[i];
 
       if (sA < area[largestPos])
       {
-        //最も大きい面積が他の合算よりも大きい場合 (退化)
+        //When the largest area exceeds the sum of the others (degenerate case)
         ff[largestPos, largestPos] = 1.0;
         for (int i = 0; i < N; i++)
         {
@@ -1555,7 +1560,7 @@ namespace Popolo.Core.Building
       }
       else if (N == 3)
       {
-        //3面の場合は半径情報は不要なので解析的に求められる (Hottel cross-string)
+        //With 3 surfaces no radius information is needed, so it can be solved analytically (Hottel cross-string)
         ff[0, 0] = ff[1, 1] = ff[2, 2] = 0.0;
         ff[0, 1] = 0.5 * (area[0] + area[1] - area[2]) / area[1];
         ff[0, 2] = 0.5 * (area[0] + area[2] - area[1]) / area[2];
@@ -1566,7 +1571,7 @@ namespace Popolo.Core.Building
       }
       else
       {
-        //仮想的な半径を収束計算
+        //Iterate to convergence on a virtual radius
         double[] alpha = new double[N];
         Roots.ErrorFunction eFnc = delegate (double r)
         {
@@ -1579,13 +1584,13 @@ namespace Popolo.Core.Building
           }
           return sum - 2 * Math.PI;
         };
-        //面積和=円周と見立てて収束計算の初期値を決定
+        //Set the initial guess for the iteration by treating the area sum as the circumference
         double sumA = 0;
         for (int i = 0; i < N; i++) sumA += area[i];
         double rad = Roots.NewtonBisection(eFnc, 0.5 * (sumA / Math.PI), 0.0001, 0.01, 0.01, 10);
         rad = Roots.Newton(eFnc, rad, 0.00001, 0.00001, 0.00001, 10);
 
-        //形態係数を計算
+        //Compute view factors
         for (int i = 0; i < N - 1; i++)
         {
           ff[i, i] = 0;
@@ -1605,7 +1610,7 @@ namespace Popolo.Core.Building
         }
       }
 
-      //順序を戻す: ff2[元位置 i, 元位置 j] = ff[並替後位置 i', 並替後位置 j']
+      //Restore the original order: ff2[original i, original j] = ff[reordered i', reordered j']
       IMatrix ff2 = new Matrix(N, N);
       for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++)
@@ -1619,7 +1624,7 @@ namespace Popolo.Core.Building
     {
       for (int i = 0; i < RoomCount; i++)
       {
-        //壁番号を保存
+        //Store the wall indices
         List<int> wInd = new List<int>();
         for (int j = 0; j < rZones[i].Count; j++)
           for (int k = 0; k < wsIndex[i][j].Length; k++)
@@ -1656,7 +1661,7 @@ namespace Popolo.Core.Building
             gMatL[wInd[j], wInd[k]] = ffRhoL[j, k] * ws2.LongWaveEmissivity;
             gMatS[wInd[j], wInd[k]] = ffRhoS[j, k] * ws2.ShortWaveAbsorptance;
           }
-          //長波長は基準化して放射熱伝達率を計算 (動的更新用に bf を保存)
+          //For long-wave, normalize and compute the radiative heat transfer coefficient (store bf for dynamic updates)
           double bf = 1 - gMatL[wInd[j], wInd[j]];
           gebhartBF[wInd[j]] = bf;
           ws1.RadiativeCoefficient = bf * ws1.LongWaveEmissivity * RAD_COEF;
@@ -1707,14 +1712,14 @@ namespace Popolo.Core.Building
         throw new ArgumentOutOfRangeException(nameof(roomIndex),
             $"roomIndex must be in [0, {RoomCount}); got {roomIndex}.");
 
-      //Room 内の surface 数と面積列を取得
+      //Get the number of surfaces in the Room and their areas
       List<double> areas = new List<double>();
       for (int j = 0; j < wsIndex[roomIndex].Length; j++)
         for (int k = 0; k < wsIndex[roomIndex][j].Length; k++)
           areas.Add(surfaces[wsIndex[roomIndex][j][k]].Area);
       int N = areas.Count;
 
-      //次元チェック
+      //Dimension check
       if (formFactor.GetLength(0) != N || formFactor.GetLength(1) != N)
         throw new ArgumentException(
             $"Form factor matrix must be {N}×{N} for room {roomIndex}; got "
@@ -1723,7 +1728,7 @@ namespace Popolo.Core.Building
 
       const double tolerance = 1e-3;
 
-      //非負 + 閉包則
+      //Non-negativity + closure rule
       for (int i = 0; i < N; i++)
       {
         double rowSum = 0;
@@ -1742,7 +1747,7 @@ namespace Popolo.Core.Building
               nameof(formFactor));
       }
 
-      //相反法則 (対角を除く)
+      //Reciprocity rule (excluding the diagonal)
       for (int i = 0; i < N; i++)
       {
         for (int j = i + 1; j < N; j++)
@@ -1759,13 +1764,13 @@ namespace Popolo.Core.Building
         }
       }
 
-      //コピーして保存
+      //Store a copy
       if (userFormFactor == null) userFormFactor = new double[RoomCount][,]!;
       double[,] copy = new double[N, N];
       Array.Copy(formFactor, copy, formFactor.Length);
       userFormFactor[roomIndex] = copy;
       needFormFactorGebhart = true;
-      //この設定で確定したので警告フラグをクリア (構造変更が無ければ Validate も clean)
+      //This setting is now committed, so clear the warning flag (Validate is also clean unless the structure changes)
       userFormFactorDiscarded = false;
     }
 
@@ -1826,7 +1831,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 放射分配処理
+    #region Radiation distribution methods
 
     /// <summary>Distributes long-wave radiation among interior surfaces.</summary>
     private void DistributeLongwaveRad()
@@ -1934,7 +1939,7 @@ namespace Popolo.Core.Building
           {
             int idx = wsIndex[i][j][k];
             EnvelopeSurface ws = surfaces[idx];
-            if (ws.Incline == null) continue;   // 未設定の面は静的値を維持
+            if (ws.Incline == null) continue;   // Surfaces without an incline keep their static values
             double dT = ws.SurfaceTemperature - tAir;
             ws.SetConvectiveCoefficientInternal(GetIndoorConvectiveCoefficient(ws.Incline, dT));
           }
@@ -2070,7 +2075,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     private void UpdateOutdoorConvectiveCoefficient()
     {
-      // 風速が記録されていなければ更新を見送り (ユーザ初期値を保持)。
+      // Skip the update if no wind speed has been recorded (keep the user's initial values).
       if (!CurrentWeather.HasValue || !CurrentWeather.Value.Has(WeatherField.WindSpeed)) return;
       var rec = CurrentWeather.Value;
       double vMeteo = rec.WindSpeed;
@@ -2087,7 +2092,7 @@ namespace Popolo.Core.Building
       HashSet<EnvelopeSurface> interiorSet = new HashSet<EnvelopeSurface>(surfaces);
       foreach (OpticalLayeredEnvelope c in components)
       {
-        // 高さ補正: 部品ごとの MidHeight + 全体の station/site 情報が揃った場合のみ。
+        // Height correction: only when both the per-component MidHeight and the overall station/site information are available.
         double v = vMeteo;
         if (stationReady && c.MidHeightAboveGround is double localH && localH > 0)
         {
@@ -2154,23 +2159,23 @@ namespace Popolo.Core.Building
             ShortWaveEmission emit = ws1.Component.EmitShortWaveToIndoor(ws1, Sun, Albedo);
             if (emit.IsZero) continue;
 
-            // Step 0: emitter 自身の室内側面が吸収する分 (例: 窓 B 面ガラス) は常に直行
+            // Step 0: the amount absorbed by the emitter's own indoor surface (e.g., window side-B glass) always goes directly
             radToSurf_S[indx1] += emit.InsideAbsorbedFlux;
 
             double dir2 = emit.TransmittedDirectPower;
             EnvelopeSurface? flr = null;
             double radFromFloor = 0.0;
 
-            // Step 1: ユーザー指定の直達吸収比率テーブルがあれば最優先で適用 (Gebhart スキップ)。
-            //   各 receiver_i に dir2 × fraction_i を投入。Σfraction < 1 の不足分は窓からの損失。
-            //   設定された emitter は Step 2 (床優先) もスキップする。
+            // Step 1: if a user-specified direct absorption fraction table exists, apply it with top priority (skip Gebhart).
+            //   Each receiver_i gets dir2 × fraction_i. Any shortfall (Σfraction < 1) is a loss through the window.
+            //   Emitters configured this way also skip Step 2 (floor priority).
             if (directAbsorption.TryGetValue(ws1.Component, out var distribution))
             {
               foreach (var (recv, frac) in distribution)
                 radToSurf_S[recv.Index] += dir2 * frac / recv.Area;
-              dir2 = 0;  // 直達は全て本ルートで処理 (残り = 損失)
+              dir2 = 0;  // All direct radiation is handled by this route (remainder = loss)
             }
-            // Step 2: 床への優先配分 (既存挙動)。Step 1 が無い場合のみ動作。
+            // Step 2: priority distribution to the floor (existing behavior). Active only when Step 1 is absent.
             else if (swDistFloor.TryGetValue(ws1.Component, out EnvelopeSurface? flrSurface))
             {
               flr = flrSurface;
@@ -2180,10 +2185,10 @@ namespace Popolo.Core.Building
               dir2 *= (1 - flRate);
             }
 
-            // Step 3: 残り直達 + 全拡散 + 床反射を Gebhart で各面に配分
+            // Step 3: distribute the remaining direct + all diffuse + floor reflection to each surface via Gebhart
             double rad = dir2 + emit.TransmittedDiffusePower;
 
-            //同じ室に属する壁表面に分配
+            //Distribute to wall surfaces belonging to the same room
             if (0 < rad)
             {
               for (int j2 = 0; j2 < wsIndex[i].Length; j2++)
@@ -2193,7 +2198,7 @@ namespace Popolo.Core.Building
                   int indx2 = wsIndex[i][j2][k2];
                   EnvelopeSurface wsf2 = surfaces[indx2];
                   double ibsw = gMatS[indx1, indx2] * rad;
-                  //床面からの放射を加算
+                  //Add radiation from the floor surface
                   if (flr != null) ibsw += gMatS[flr.Index, indx2] * radFromFloor;
                   ibsw /= wsf2.Area;
                   ibsw *= wsf2.Component.IndoorDiffuseAbsorptanceFactor;
@@ -2208,7 +2213,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 境界条件設定処理
+    #region Boundary condition setting methods
 
     /// <summary>
     /// Updates outdoor air conditions from scalar values. Internally synthesizes a
@@ -2256,7 +2261,7 @@ namespace Popolo.Core.Building
       CurrentDateTime = dTime;
       Sun = sun;
       CurrentWeather = record;
-      // sol-air 評価で表面ごとに参照されるため、ここで一度だけ σT⁴ − R_atm を計算しキャッシュ。
+      // Referenced per surface in the sol-air evaluation, so compute and cache σT⁴ − R_atm just once here.
       if (record.Has(WeatherField.AtmosphericRadiation))
       {
         double Tk = PhysicsConstants.ToKelvin(record.DryBulbTemperature);
@@ -2401,7 +2406,7 @@ namespace Popolo.Core.Building
           isSideF, distRate);
     }
 
-    #region 透過直達日射の最終吸収比率指定 (Gebhart スキップ経路)
+    #region Final absorption ratios of transmitted direct solar radiation (Gebhart skip path)
 
     /// <summary>
     /// Adds or updates a single (receiver, fraction) entry in the
@@ -2442,7 +2447,7 @@ namespace Popolo.Core.Building
         list = new List<(EnvelopeSurface, double)>();
         directAbsorption[emitter] = list;
       }
-      // 同 receiver-surface の既存エントリは上書き
+      // Existing entries for the same receiver surface are overwritten
       list.RemoveAll(e => ReferenceEquals(e.receiver, receiverSurface));
       list.Add((receiverSurface, fraction));
     }
@@ -2548,7 +2553,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region モデル作成処理
+    #region Model creation methods
 
     /// <summary>Initializes wall and zone temperatures and humidity ratios to the specified values.</summary>
     /// <param name="temperature">Dry-bulb temperature [°C].</param>
@@ -2692,8 +2697,8 @@ namespace Popolo.Core.Building
       ws.Incline = incline;
       ws.ZoneIndex = -1;
       ws.IsGroundWall = false;
-      // 既定では外気側として登録された面は風に晒されると想定。
-      // 庇下面など遮蔽面では呼び出し側が設定後に false へ上書きする。
+      // By default, surfaces registered as outdoor-facing are assumed to be wind-exposed.
+      // For sheltered surfaces such as the underside of an overhang, the caller overrides this to false after setup.
       if (isSideF) w.IsWindExposedF = true;
       else         w.IsWindExposedB = true;
       for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
@@ -2795,7 +2800,7 @@ namespace Popolo.Core.Building
         if (ws.Component is not Wall wall) continue;
         if (ws.IsGroundWall) continue;
         if (ws.AdjacentSpaceFactor >= 0) continue;
-        if (ws.Incline is null) continue; // 予防的チェック
+        if (ws.Incline is null) continue; // Defensive check
         result.Add(new OutsideWallReference(wall.ID, ws.isSideF, ws.Incline));
       }
       return result.ToArray();
@@ -2815,7 +2820,7 @@ namespace Popolo.Core.Building
       {
         if (ws.Component is not Wall wall) continue;
         if (!ws.IsGroundWall) continue;
-        // SetGroundWall は ConvectiveCoefficient に conductance を入れる
+        // SetGroundWall puts a conductance into ConvectiveCoefficient
         result.Add(new GroundWallReference(wall.ID, ws.isSideF, ws.ConvectiveCoefficient));
       }
       return result.ToArray();
@@ -2851,8 +2856,8 @@ namespace Popolo.Core.Building
       zones[zoneIndex].Surfaces.Add(win.InsideSurface);
       win.InsideSurface.ZoneIndex = zoneIndex;
 
-      // 窓の屋外面は壁体の SetOutsideWall と同様に外気境界として扱う
-      // (matrix モデルで SolAir 駆動)。冪等にするため重複登録は避ける。
+      // The outdoor surface of a window is treated as an outdoor air boundary, like SetOutsideWall for walls
+      // (SolAir-driven in the matrix model). Avoid duplicate registration to keep this idempotent.
       EnvelopeSurface outerSurface = win.OutsideSurface;
       outerSurface.AdjacentSpaceFactor = -1.0;
       outerSurface.Incline = win.OutsideIncline;
@@ -2869,15 +2874,15 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 統合 API (Phase D-3)
-    // 設計方針:
-    //   - F=屋外を「原則」とする。1-引数 overload (isSideF を取らない) は
-    //     F=屋外 として動く。
-    //   - 2-引数 overload (isSideF 明示) で Wall は F・B どちらも屋外側に
-    //     設定できる。Window は per-layer 光学モデルが F=屋外 を前提とする
-    //     ため、isSideF が「F=室内」を意味する組合わせを渡すと例外を投げる。
-    //   - 旧 AddWall / AddWindow / SetOutsideWall などは互換のため残置。
-    //     Phase D-3 の段階では [Obsolete] は付けない。
+    #region Integrated API (Phase D-3)
+    // Design policy:
+    //   - F=outdoor is the "rule". The 1-argument overload (without isSideF)
+    //     operates with F=outdoor.
+    //   - With the 2-argument overload (explicit isSideF), a Wall can have either
+    //     F or B set as the outdoor side. For Window, the per-layer optical model
+    //     assumes F=outdoor, so a combination where isSideF implies "F=indoor" throws an exception.
+    //   - The legacy AddWall / AddWindow / SetOutsideWall etc. remain for compatibility.
+    //     At the Phase D-3 stage they are not marked [Obsolete].
 
     /// <summary>Attaches the indoor side of an envelope component to a zone (F-side defaults to outdoor).</summary>
     /// <param name="zoneIndex">Zone index that this component faces.</param>
@@ -2918,10 +2923,10 @@ namespace Popolo.Core.Building
       zones[zoneIndex].Surfaces.Add(sf);
       sf.ZoneIndex = zoneIndex;
 
-      // Window の F=屋外 制約に対応し、屋外側 (= isSideF と逆の側) の
-      // EnvelopeSurface を bndSurfaces に登録する。Window では必ず F が
-      // 屋外なので OutsideSurface (= SurfaceF) を、Wall では必要に応じて
-      // ユーザーが SetOutsideEnvelope / SetGroundWall などで明示する。
+      // In line with the Window F=outdoor constraint, register the outdoor-side
+      // EnvelopeSurface (= the side opposite to isSideF) in bndSurfaces. For a Window,
+      // F is always outdoor, so OutsideSurface (= SurfaceF) is used; for a Wall, the
+      // user specifies it explicitly via SetOutsideEnvelope / SetGroundWall etc. as needed.
       if (c is Window win)
       {
         EnvelopeSurface outerSurface = win.OutsideSurface;
@@ -3014,7 +3019,7 @@ namespace Popolo.Core.Building
       ws.ZoneIndex = -1;
       ws.IsGroundWall = false;
 
-      // 風暴露フラグ: 屋外に登録された側は風に晒されると想定
+      // Wind exposure flag: the side registered as outdoor is assumed to be wind-exposed
       if (c is Wall w)
       {
         if (isSideF) w.IsWindExposedF = true;
@@ -3022,7 +3027,7 @@ namespace Popolo.Core.Building
       }
       else if (c is Window winC)
       {
-        winC.IsWindExposedF = true; // isSideF は必ず true (上のチェックで保証)
+        winC.IsWindExposedF = true; // isSideF is always true (guaranteed by the check above)
       }
 
       for (int i = 0; i < ZoneCount; i++) zones[i].Surfaces.Remove(ws);
@@ -3164,7 +3169,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 内部熱源処理
+    #region Internal heat gain methods
 
     /// <summary>Adds a heat gain element to the specified zone.</summary>
     /// <param name="zoneIndex">Zone index.</param>
@@ -3230,7 +3235,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 制御関連の処理
+    #region Control methods
 
     /// <summary>Switches the specified zone to <b>temperature-setpoint</b> mode.</summary>
     /// <param name="zoneIndex">Zone index.</param>
@@ -3309,7 +3314,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 空調能力設定関連の処理
+    #region Air conditioning capacity setting methods
 
     /// <summary>Sets the maximum heating capacity for the specified zone [W].</summary>
     /// <param name="zoneIndex">Zone index.</param>

@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
   /// </remarks>
   public class FluidCircuitTests
   {
-    #region 定数・ヘルパー
+    #region Constants and helpers
 
     private const double Lcf = 1.5;    // 局部抵抗係数（サンプルコードと同値）
     private const double DesignQ = 0.0225; // AHU 1台あたりの設計流量 [m³/s]
@@ -104,7 +104,7 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
     #endregion
 
     // ================================================================
-    #region Conduit 静的メソッド
+    #region Conduit static methods
 
     /// <summary>
     /// 層流（Re=1000）では Darcy-Weisbach 摩擦係数 f = 64/Re = 0.064。

@@ -40,7 +40,7 @@ namespace Popolo.Core.Tests.Physics
   /// </remarks>
   public class RefrigerantTests
   {
-    #region R32 のテスト
+    #region R32 tests
 
     private readonly Refrigerant _r32 = new Refrigerant(Refrigerant.Fluid.R32);
 
@@ -193,7 +193,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R410A のテスト
+    #region R410A tests
 
     private readonly Refrigerant _r410a = new Refrigerant(Refrigerant.Fluid.R410A);
 
@@ -232,7 +232,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R134a のテスト
+    #region R134a tests
 
     private readonly Refrigerant _r134a = new Refrigerant(Refrigerant.Fluid.R134a);
 
@@ -287,7 +287,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R1234ze(E) のテスト
+    #region R1234ze(E) tests
 
     private readonly Refrigerant _r1234zee = new Refrigerant(Refrigerant.Fluid.R1234zeE);
 
@@ -341,7 +341,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R1234yf のテスト
+    #region R1234yf tests
 
     private readonly Refrigerant _r1234yf = new Refrigerant(Refrigerant.Fluid.R1234yf);
 
@@ -395,7 +395,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R1233zd(E) のテスト
+    #region R1233zd(E) tests
 
     private readonly Refrigerant _r1233zde = new Refrigerant(Refrigerant.Fluid.R1233zdE);
 
@@ -449,7 +449,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R1224yd(Z) のテスト
+    #region R1224yd(Z) tests
 
     private readonly Refrigerant _r1224ydz = new Refrigerant(Refrigerant.Fluid.R1224ydZ);
 
@@ -502,7 +502,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region R290（プロパン）のテスト
+    #region R290 (propane) tests
 
     private readonly Refrigerant _r290 = new Refrigerant(Refrigerant.Fluid.R290);
 
@@ -556,7 +556,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 入力検証のテスト
+    #region Input validation tests
 
     /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R32）</summary>
     [Theory]
@@ -655,7 +655,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 基準状態のテスト
+    #region Reference state tests
 
     /// <summary>
     /// 基準状態（0°C飽和液）でエンタルピー=200kJ/kg, エントロピー=1.0kJ/(kg·K)

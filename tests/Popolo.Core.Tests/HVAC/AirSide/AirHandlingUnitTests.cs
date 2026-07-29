@@ -26,7 +26,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
   /// </remarks>
   public class AirHandlingUnitTests
   {
-    #region 定格条件定数
+    #region Rated condition constants
 
     // 風量 [m3/s]
     private static readonly double Qsa = 7476.0 / 3600;
@@ -40,7 +40,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// AirHandlingUnitTest() / AirHandlingUnitVAVTest() と同じ機器構成で AHU を生成する。
@@ -122,7 +122,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region CoolAir — 冷却運転（AirHandlingUnitTest より）
+    #region CoolAir — cooling operation (from AirHandlingUnitTest)
 
     /// <summary>
     /// 夏季外気（34.4C/0.0194）で CoolAir(15C, 0) を呼ぶと SA 温度が設定値付近になる。
@@ -208,7 +208,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region HeatAir — 加熱運転（AirHandlingUnitTest より）
+    #region HeatAir — heating operation (from AirHandlingUnitTest)
 
     /// <summary>
     /// 冬季外気（2C/0.0014）で HeatAir(35C, 0.010) を呼ぶと SA 温度が設定値付近になる。
@@ -272,7 +272,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     #endregion
 
     // ================================================================
-    #region OptimizeVAV — VAV風量計算（AirHandlingUnitVAVTest より）
+    #region OptimizeVAV — VAV air flow calculation (from AirHandlingUnitVAVTest)
 
     /// <summary>
     /// 冷却運転で OptimizeVAV が成功し、SA 流量が正になる。

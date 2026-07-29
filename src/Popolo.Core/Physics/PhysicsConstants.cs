@@ -25,7 +25,7 @@ namespace Popolo.Core.Physics
   public static class PhysicsConstants
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>
     /// Offset for converting between Celsius and Kelvin [K].
@@ -77,7 +77,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>
     /// Converts a temperature from Celsius [°C] to Kelvin [K].

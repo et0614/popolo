@@ -26,7 +26,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public static class Boiler
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
 
     /// <summary>Specific heat of air at constant pressure [kJ/(kg·K)].</summary>
@@ -44,7 +44,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Fuel type.</summary>
     public enum Fuel
@@ -61,7 +61,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 成り行き状態の計算
+    #region Free-run state calculation
 
     /// <summary>Computes the boiler outlet water temperature and heat output.</summary>
     /// <param name="inletWaterTemperature">Inlet water temperature [°C].</param>
@@ -126,7 +126,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 燃料消費量の計算
+    #region Fuel consumption calculation
 
     /// <summary>Computes the fuel consumption rate [kg/s or Nm³/s] required for the given heat load.</summary>
     /// <param name="heatLoad">Heat load [kW].</param>
@@ -156,7 +156,7 @@ namespace Popolo.Core.HVAC.HeatSource
     
     #endregion
 
-    #region 熱損失係数の計算
+    #region Heat loss coefficient calculation
 
     /// <summary>Computes the heat loss coefficient [kW/K] from rated operating conditions.</summary>
     /// <param name="heatLoad">Heat output [kW].</param>
@@ -184,7 +184,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region その他の計算
+    #region Other calculations
 
     /// <summary>Computes the flue gas mass flow coefficient used in enthalpy calculations.</summary>
     /// <param name="airRatio">Excess air ratio [-].</param>
@@ -198,7 +198,7 @@ namespace Popolo.Core.HVAC.HeatSource
         case Fuel.Gas13A: return (0.293 + 0.268 * am1) * 41d;
         case Fuel.LNG: return (0.376 + 0.296 * am1) * 49.1d - 3.91 - 1.36 * am1;
         case Fuel.LPG: return (0.376 + 0.296 * am1) * 45.7d - 3.91 - 1.36 * am1;
-        default: return (0.0216 + 0.0241 * am1) * 27.6d + 1.67 + 0.56 * am1;  //石炭
+        default: return (0.0216 + 0.0241 * am1) * 27.6d + 1.67 + 0.56 * am1;  //Coal
       }
     }
 
@@ -219,7 +219,7 @@ namespace Popolo.Core.HVAC.HeatSource
         case Fuel.LPG:
           if (isHighValue) return 50.8;
           else return 45.7;
-        default:  //石炭
+        default:  //Coal
           if (isHighValue) return 29.0;
           else return 27.6;
       }
@@ -235,7 +235,7 @@ namespace Popolo.Core.HVAC.HeatSource
         case Fuel.Gas13A: return 10.949;
         case Fuel.LNG: return 13.093;
         case Fuel.LPG: return 12.045;
-        default: return 7.8;  //石炭
+        default: return 7.8;  //Coal
       }
     }
 

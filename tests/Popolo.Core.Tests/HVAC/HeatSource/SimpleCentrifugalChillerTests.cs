@@ -32,7 +32,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// </remarks>
     public class SimpleCentrifugalChillerTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 標準的なターボ冷凍機を生成する（インバータあり）。
@@ -56,7 +56,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>NominalCapacity が正（冷水流量 × cp × ΔT）。</summary>
         [Fact]
@@ -95,7 +95,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region Update — 通常冷却運転
+        #region Update — normal cooling operation
 
         /// <summary>
         /// 冷水出口温度が設定値になる（非過負荷時）。
@@ -187,7 +187,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region 過負荷
+        #region Overload
 
         /// <summary>負荷が定格能力を超えると IsOverLoad = true かつ CoolingLoad = NominalCapacity。</summary>
         [Fact]
@@ -204,7 +204,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         #endregion
 
         // ================================================================
-        #region インバータ vs 定速
+        #region Inverter vs constant speed
 
         /// <summary>インバータ機と定速機でCOPが異なる（特性係数が違う）。</summary>
         [Fact]

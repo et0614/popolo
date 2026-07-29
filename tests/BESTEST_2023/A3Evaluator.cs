@@ -34,7 +34,7 @@ namespace BESTEST_2023
   /// <summary>Std 140-2023 Annex A3 (Normative) Software Acceptance Criteria 評価。</summary>
   internal static class A3Evaluator
   {
-    #region 公差 (B12.2)
+    #region Tolerances (B12.2)
 
     private const double RelativeTolerance = 0.01;   // 1%
     private const double AbsoluteTolerance = 1e-4;
@@ -53,7 +53,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region A3 範囲表 (Std 140-2023 Tables A3-1 〜 A3-4)
+    #region A3 range tables (Std 140-2023 Tables A3-1 to A3-4)
 
     /// <summary>範囲ケース定義: (ラベル, 値計算関数, 下限, 上限)。</summary>
     private sealed record RangeCase(
@@ -124,7 +124,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 評価本体
+    #region Evaluation body
 
     /// <summary>1 つの test group (Tables) を評価し、レポート文字列に書き込む。</summary>
     /// <returns>(合格数, 全数)</returns>

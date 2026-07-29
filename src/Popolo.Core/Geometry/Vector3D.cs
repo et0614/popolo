@@ -26,14 +26,14 @@ namespace Popolo.Core.Geometry
   public class Vector3D
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Tolerance below which a value is treated as zero.</summary>
     public const double GeometryTolerance = 0.00001d;
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the X component.</summary>
     public double X { get; private set; }
@@ -49,7 +49,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="x">X component.</param>
@@ -75,7 +75,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region 静的メソッド
+    #region Static methods
 
     /// <summary>Returns the length (magnitude) of a vector.</summary>
     /// <param name="vector">Input vector.</param>
@@ -108,7 +108,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Returns the dot product with another vector.</summary>
     /// <param name="vector">The other vector.</param>
@@ -147,7 +147,7 @@ namespace Popolo.Core.Geometry
 
     #endregion
 
-    #region 演算子
+    #region Operators
 
     /// <summary>Vector addition.</summary>
     public static Vector3D operator +(Vector3D vec1, Vector3D vec2)

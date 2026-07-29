@@ -115,7 +115,7 @@ namespace Popolo.IO.Climate.Weather
             "stream");
       }
 
-      // --- ヘッダから地点情報 ---
+      // --- Location information from the header ---
       string header = lines[0];
       int sL = header.Length;
       if (sL < 23)
@@ -150,7 +150,7 @@ namespace Popolo.IO.Climate.Weather
         string wdrLine = lines[day * 8 + 5];
         string wspLine = lines[day * 8 + 6];
         string rinLine = lines[day * 8 + 7];
-        // sunshine hours (lines[day*8+8]) — 記録していない
+        // sunshine hours (lines[day*8+8]) — not recorded
 
         for (int hour = 0; hour < 24; hour++)
         {
@@ -169,7 +169,7 @@ namespace Popolo.IO.Climate.Weather
             builder.SetAtmosphericRadiation(Math.Max(0.0, atm * 0.01 * 1.0e6 / 3600.0));
           if (TryParseField(wdrLine, off, 4, ci, out double wdir))
           {
-            if (wdir > 0)  // 0 は calm/不明扱い
+            if (wdir > 0)  // 0 is treated as calm/unknown
               builder.SetWindDirection(WindDirectionUtil.FromNorthBearingDegrees(wdir));
           }
           if (TryParseField(wspLine, off, 4, ci, out double wsp))

@@ -21,7 +21,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
   /// </remarks>
   public class AbsorptionRefrigerationCycleTests
   {
-    #region 定格条件
+    #region Rated conditions
 
     private static readonly double ChWM = 274.9 / 60.0;
     private static readonly double CdWM = 918.0 / 60.0;
@@ -36,7 +36,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     private static void GetRatedKA(
         out double evapKA, out double condKA, out double desorborKA,

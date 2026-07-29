@@ -38,7 +38,7 @@ namespace Popolo.Core.Tests.Building.Envelope
     /// </remarks>
     public class PCMWallLayerTests
     {
-        #region テスト用定数・ヘルパー
+        #region Test constants and helpers
 
         private const double FreezingTemp   = 18.0; // 凝固点[°C]
         private const double MeltingTemp    = 20.0; // 融点[°C]
@@ -70,7 +70,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>コンストラクタでプロパティが正しく設定される</summary>
         [Fact]
@@ -101,7 +101,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 相判定のテスト
+        #region Phase determination tests
 
         /// <summary>凝固点以下では固体になる</summary>
         [Theory]
@@ -159,7 +159,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 相変化検出のテスト
+        #region Phase change detection tests
 
         /// <summary>相変化があった場合にtrueを返す</summary>
         [Fact]
@@ -199,7 +199,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region 熱物性値のテスト
+        #region Thermophysical property tests
 
         /// <summary>固体状態では固体の熱コンダクタンスが適用される</summary>
         [Fact]
@@ -279,7 +279,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
         #endregion
 
-        #region GetHeatCapacityのテスト
+        #region GetHeatCapacity tests
 
         /// <summary>GetHeatCapacityが各相の正しい値を返す</summary>
         [Theory]

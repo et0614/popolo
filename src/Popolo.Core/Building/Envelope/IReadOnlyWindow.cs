@@ -91,8 +91,8 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>Gets the exterior solar shading device.</summary>
     SunShade SunShade { get; }
 
-    // ShortWaveAbsorptanceF/B は IReadOnlyOpticalLayeredEnvelope 側で公開されるため
-    // ここでの再宣言は不要 (旧名 ShortWaveEmissivityF/B は撤去)。
+    // ShortWaveAbsorptanceF/B are exposed by IReadOnlyOpticalLayeredEnvelope,
+    // so no re-declaration is needed here (the old names ShortWaveEmissivityF/B were removed).
 
     /// <summary>Gets the shading device at the specified layer position.</summary>
     /// <param name="number">Layer index (0 = outdoor side, N+1 = indoor side).</param>

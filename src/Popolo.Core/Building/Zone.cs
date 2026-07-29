@@ -53,7 +53,7 @@ namespace Popolo.Core.Building
   public class Zone : IReadOnlyZone
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>List of heat gain elements assigned to this zone.</summary>
     private List<IHeatGain> heatGains = new List<IHeatGain>();
@@ -140,7 +140,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region internalプロパティ
+    #region Internal properties
 
     /// <summary>List of boundary surface elements facing this zone.</summary>
     internal List<EnvelopeSurface> Surfaces { get; set; }
@@ -156,7 +156,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new zone with a specified air mass.</summary>
     /// <param name="name">Zone name.</param>
@@ -182,7 +182,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 温湿度設定・制御関連の処理
+    #region Temperature and humidity setting / control methods
 
     /// <summary>Initializes the zone air temperature and humidity ratio.</summary>
     /// <param name="temperature">Dry-bulb temperature [°C].</param>
@@ -263,7 +263,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 発熱関連の処理
+    #region Heat generation methods
 
     /// <summary>Updates the zone's built-in <see cref="BaseHeatGain"/> slot in place.</summary>
     /// <param name="convectiveHeatGain">Convective sensible heat gain [W].</param>
@@ -325,7 +325,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region その他処理
+    #region Other methods
 
     /// <summary>Gets the total window area facing this zone [m²].</summary>
     /// <returns>Total window area [m²].</returns>

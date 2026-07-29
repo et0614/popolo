@@ -50,14 +50,14 @@ namespace Popolo.Webpro.Conversion
   public sealed class GlazingCatalog
   {
 
-    #region 定数
+    #region Constants
 
     /// <summary>Embedded resource name for the default Glazings.json.</summary>
     private const string DefaultResourceName = "Popolo.Webpro.Resources.Glazings.json";
 
     #endregion
 
-    #region 内部データ
+    #region Internal data
 
     /// <summary>Glazing performance pair (tau, htCoef).</summary>
     public readonly struct GlazingPerformance
@@ -80,7 +80,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region インスタンス構築
+    #region Instance construction
 
     private GlazingCatalog(Dictionary<string, GlazingPerformance> entries)
     {
@@ -144,7 +144,7 @@ namespace Popolo.Webpro.Conversion
 
     #endregion
 
-    #region 公開 API
+    #region Public API
 
     /// <summary>Gets the number of glazings in the catalog.</summary>
     public int Count => entries.Count;

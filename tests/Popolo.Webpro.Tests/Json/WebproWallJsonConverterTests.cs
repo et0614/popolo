@@ -42,7 +42,7 @@ namespace Popolo.Webpro.Tests.Json
         }
 
         // ================================================================
-        #region 正常ケース - 実サンプル
+        #region Normal cases - real sample
 
         [Fact]
         public void Read_RealSample_SouthWall_WithWindow()
@@ -229,7 +229,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingDirection_Throws()

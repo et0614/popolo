@@ -34,7 +34,7 @@ namespace Popolo.Core.Tests.Building.Envelope
   /// </remarks>
   public class WindowTests
   {
-    #region テスト用ヘルパー
+    #region Test helpers
 
     /// <summary>南向き鉛直面の傾斜面を生成する</summary>
     private static Incline MakeSouthVerticalIncline()
@@ -71,7 +71,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>コンストラクタでプロパティが正しく設定される</summary>
     [Fact]
@@ -112,7 +112,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 日射特性の物理的制約テスト
+    #region Physical constraint tests for solar properties
 
     /// <summary>
     /// 直達日射の透過率・反射率はそれぞれ0〜1の範囲内。
@@ -168,7 +168,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 太陽位置による特性変化のテスト
+    #region Property variation with solar position tests
 
     /// <summary>太陽高度が0以下のとき直達透過率が0・反射率が1</summary>
     [Theory]
@@ -225,7 +225,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 多層ガラスの特性テスト
+    #region Multi-pane glazing property tests
 
     /// <summary>2重ガラスは単板より総合透過率が低い</summary>
     [Fact]
@@ -259,7 +259,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 日射遮蔽物のテスト
+    #region Shading device tests
 
     /// <summary>日射遮蔽物（ブラインド）設置後に直達透過率が低下する</summary>
     [Fact]
@@ -304,7 +304,7 @@ namespace Popolo.Core.Tests.Building.Envelope
 
     #endregion
 
-    #region 面積のテスト
+    #region Area tests
 
     /// <summary>面積が正しく設定・取得される</summary>
     [Theory]

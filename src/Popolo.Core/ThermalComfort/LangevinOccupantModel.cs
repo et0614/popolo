@@ -33,9 +33,9 @@ namespace Popolo.Core.ThermalComfort
   public class LangevinOccupantModel
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
-    #region 申告確率に関わるパラメータ
+    #region Parameters for report probability
 
     private readonly static double[] BETA_ASH_HVAC = new double[] { 2.30, 0.64 };
 
@@ -47,7 +47,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 受容確率に関わるパラメータ
+    #region Parameters for acceptance probability
 
     private readonly static double[] BETA_UA_COOL_HVAC = new double[] { 1.79, 0.84, 0.58 };
 
@@ -61,7 +61,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>ASHRAE seven-point thermal sensation scale.</summary>
     public enum AshraeThermalSensation
@@ -84,7 +84,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Random number generator.</summary>
     private readonly MersenneTwister rnd;
@@ -131,7 +131,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance and samples individual acceptable sensation thresholds.</summary>
     /// <param name="randomSeed">Random seed.</param>
@@ -141,9 +141,9 @@ namespace Popolo.Core.ThermalComfort
       this.IsAirConditioned = isAirConditioned;
       rnd = new MersenneTwister(randomSeed);
 
-      //sample initial sensation//閾値の設定は空調ありを前提とするはず
+      //sample initial sensation//The threshold settings presumably assume an air-conditioned building
       int si = 0;
-      //文献ではこのように初期化するが、これだとPMV=0付近で不満足率が上がりすぎる
+      //The literature initializes as follows, but this raises the dissatisfaction rate too much around PMV=0
       /*
       NormalRandom nRnd = new NormalRandom(rnd);
       si = (int)Math.Round(nRnd.NextDouble());
@@ -157,7 +157,7 @@ namespace Popolo.Core.ThermalComfort
         si = (int)Math.Round(nRnd.NextDouble());
       }*/
 
-      //夏季の申告許容上下限値を計算
+      //Compute the acceptable upper and lower vote limits for summer
       HighAcceptableSensationInSummer = si;
       while (HighAcceptableSensationInSummer < 3)
       {
@@ -176,7 +176,7 @@ namespace Popolo.Core.ThermalComfort
       }
       LowAcceptableSensationInSummer++;
 
-      //冬季の申告許容上下限値を計算
+      //Compute the acceptable upper and lower vote limits for winter
       HighAcceptableSensationInWinter = si;
       while (HighAcceptableSensationInWinter < 3)
       {
@@ -198,7 +198,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region インスタンス・メソッド
+    #region Instance methods
 
     /// <summary>Computes the thermal sensation vote distribution for the given PMV.</summary>
     /// <param name="pmv">Environmental PMV value [-].</param>
@@ -215,7 +215,7 @@ namespace Popolo.Core.ThermalComfort
       AshraeThermalSensation[] VOTES = new AshraeThermalSensation[]
       { AshraeThermalSensation.Cold, AshraeThermalSensation.Cool, AshraeThermalSensation.SlightlyCool, AshraeThermalSensation.Neutral, AshraeThermalSensation.SlightlyWarm, AshraeThermalSensation.Warm };
 
-      //温冷感申告値を更新
+      //Update the thermal sensation vote
       double[] vDist = GetVoteDistribution(pmv);
       double cc = rnd.NextDouble();
       Vote = AshraeThermalSensation.Hot;
@@ -229,7 +229,7 @@ namespace Popolo.Core.ThermalComfort
         cc -= vDist[i];
       }
 
-      //快・不快感を更新
+      //Update comfort/discomfort state
       if (IsSummer)
       {
         UncomfortablyWarm = HighAcceptableSensationInSummer < (int)Vote;
@@ -241,7 +241,7 @@ namespace Popolo.Core.ThermalComfort
         UncomfortablyCold = (int)Vote < LowAcceptableSensationInWinter;
       }
 
-      //不満確率を更新
+      //Update dissatisfaction probabilities
       UncomfortablyColdProbability = UncomfortablyWarmProbability = 0;
       for (int i = 0; i < vDist.Length; i++)
       {
@@ -254,7 +254,7 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the thermal sensation vote distribution for the given PMV (static version).</summary>
     /// <param name="pmv">Environmental PMV value [-].</param>

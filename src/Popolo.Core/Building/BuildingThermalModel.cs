@@ -53,7 +53,7 @@ namespace Popolo.Core.Building
   public class BuildingThermalModel : IReadOnlyBuildingThermalModel
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets or sets a value indicating whether parallel computing is enabled.</summary>
     public static bool EnableParallelComputing { get; set; } = true;
@@ -63,7 +63,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>True on the first forecast call after FixState; reset after each FixState.</summary>
     private bool isFirstForecast = true;
@@ -93,7 +93,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the array of multi-room systems.</summary>
     public IReadOnlyMultiRoom[] MultiRoom { get { return mRooms; } }
@@ -271,7 +271,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new building thermal model from a collection of multi-room systems.</summary>
     /// <param name="mRooms">Array of multi-room systems that together make up the building.</param>
@@ -310,12 +310,12 @@ namespace Popolo.Core.Building
         foreach (Window win in mRooms[i].Windows)
           if (!windows.Contains(win)) windows.Add(win);
 
-        //ゾーンの重複確認
+        //Check for duplicated zones
         foreach (IReadOnlyZone zn in mRooms[i].Zones)
           if (zns.Contains(zn)) throw new PopoloArgumentException("A zone belongs to more than one MultiRooms instance.", "mRooms");
         zns.AddRange(mRooms[i].Zones);
 
-        //窓の重複確認
+        //Check for duplicated windows
         foreach (IReadOnlyWindow win in mRooms[i].Windows)
           if (wins.Contains(win)) throw new PopoloArgumentException("A window belongs to more than one MultiRooms instance.", "mRooms");
         wins.AddRange(mRooms[i].Windows);
@@ -324,7 +324,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 熱平衡更新処理
+    #region Heat balance update methods
 
     /// <summary>Computes a tentative new sensible-heat state for every zone and wall without committing it.</summary>
     /// <remarks>
@@ -348,7 +348,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void ForecastHeatTransfer()
     {
-      //初回計算時に他のゾーン温湿度を境界条件に設定
+      //On the first calculation, set the other zones' temperature and humidity as boundary conditions
       if (isFirstForecast)
       {
         SetInterZoneAirFlow();
@@ -379,11 +379,11 @@ namespace Popolo.Core.Building
           }
         }
       }
-      // 動的更新で内部的に上書きされた表面熱伝達係数を、ユーザーが設定した値に復元する。
-      // これにより、複数回の Forecast → 条件再設定 → 再 Forecast の運用において
-      // 各 Forecast 後にユーザーが係数を読み返すと自分の設定値が見える。
-      // FixState 側では FixHeatTransfer / Wall.Update が動的値を必要とするため、
-      // FixState 開始時に RecomputeDynamicCoefficients で再適用する。
+      // Restore the surface heat transfer coefficients, internally overwritten by the dynamic
+      // update, to the user-specified values. This way, in a repeated Forecast → adjust
+      // conditions → re-Forecast workflow, a user who reads back the coefficients after each
+      // Forecast sees their own settings. On the FixState side, FixHeatTransfer / Wall.Update
+      // need the dynamic values, so FixState re-applies them via RecomputeDynamicCoefficients.
       foreach (Wall wl in walls) wl.RestoreUserCoefficients();
       foreach (Window win in windows) win.RestoreUserCoefficients();
     }
@@ -400,7 +400,7 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void ForecastWaterTransfer()
     {
-      //初回計算時に他のゾーン温湿度を境界条件に設定
+      //On the first calculation, set the other zones' temperature and humidity as boundary conditions
       if (isFirstForecast)
       {
         SetInterZoneAirFlow();
@@ -432,9 +432,9 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void FixState()
     {
-      // ForecastHeatTransfer 末尾で coefs はユーザー値に restore されている。
-      // FixHeatTransfer (= 表面温度の逆解) と Wall.Update / Window.Update は
-      // 直近の Forecast で matrix が用いた動的値で読む必要があるため、ここで再適用。
+      // At the end of ForecastHeatTransfer the coefs were restored to the user values.
+      // FixHeatTransfer (= back-solving the surface temperatures) and Wall.Update / Window.Update
+      // must read the dynamic values that the matrix used in the latest Forecast, so re-apply here.
       foreach (MultiRoom mr in mRooms) mr.RecomputeDynamicCoefficients();
 
       foreach (MultiRoom mr in mRooms)
@@ -443,21 +443,21 @@ namespace Popolo.Core.Building
         mr.FixMoistureTransfer();
         hasHTChgd[mr] = hasWTChgd[mr] = true;
       }
-      //壁の熱流を更新 (Wall は moisture+pipe+PCM 含むフルバージョン override)
+      //Update the wall heat flows (Wall overrides with the full version including moisture+pipe+PCM)
       foreach (Wall wl in walls)
       {
         wl.InverseMatrixUpdated = false;
         wl.Update();
       }
-      //窓の節点状態を更新 (ガラス熱容量 = 0 の場合は base.Update が steady-state
-      // 解を返すだけで実質 no-op、熱容量 > 0 の場合は時間進行に伴う tempAndHumid
-      // の遷移を扱う)
+      //Update the window nodal states (when the glass heat capacity = 0, base.Update just
+      // returns the steady-state solution and is effectively a no-op; when the heat capacity
+      // > 0, it handles the transition of tempAndHumid as time advances)
       foreach (Window win in windows)
       {
         win.InverseMatrixUpdated = false;
         win.Update();
       }
-      // 内部的な動的値をユーザー設定値に再復元 (ユーザーが係数を読み返すと自分の値が見える)。
+      // Restore the internal dynamic values to the user-specified values again (a user reading back the coefficients sees their own values).
       foreach (Wall wl in walls) wl.RestoreUserCoefficients();
       foreach (Window win in windows) win.RestoreUserCoefficients();
       isFirstForecast = true;
@@ -537,43 +537,43 @@ namespace Popolo.Core.Building
         ForecastHeatTransfer();
         ForecastWaterTransfer();
 
-        //過負荷系統の制御を解除する
+        //Release the control of overloaded systems
         bool hasOverLoad = false;
         for (int i = 0; i < MultiRoom.Length; i++)
         {
           for (int j = 0; j < MultiRoom[i].ZoneCount; j++)
           {
             IReadOnlyZone zn = MultiRoom[i].Zones[j];
-            if (zn.TemperatureControlled && //温度制御をしている場合で
-              (zn.HeatingCapacity < zn.HeatSupply || zn.HeatSupply < -zn.CoolingCapacity)) //加熱・冷却能力を超えてしまった場合
+            if (zn.TemperatureControlled && //Temperature is being controlled and
+              (zn.HeatingCapacity < zn.HeatSupply || zn.HeatSupply < -zn.CoolingCapacity)) //the heating/cooling capacity has been exceeded
             {
               mrIndex.Add(i);
               znIndex.Add(j);
               isDBTSP.Add(true);
               sPoint.Add(zn.Temperature);
               hasOverLoad = true;
-              //加熱・冷却能力以内におさめる
+              //Limit to within the heating/cooling capacity
               ControlHeatSupply(i, j, 0 < zn.HeatSupply ? zn.HeatingCapacity : -zn.CoolingCapacity);
             }
-            if (zn.HumidityControlled && //湿度制御をしている場合で
-              (zn.HumidifyingCapacity < zn.MoistureSupply || zn.MoistureSupply < -zn.DehumidifyingCapacity)) //加湿・除湿能力を超えてしまった場合
+            if (zn.HumidityControlled && //Humidity is being controlled and
+              (zn.HumidifyingCapacity < zn.MoistureSupply || zn.MoistureSupply < -zn.DehumidifyingCapacity)) //the humidification/dehumidification capacity has been exceeded
             {
               mrIndex.Add(i);
               znIndex.Add(j);
               isDBTSP.Add(false);
               sPoint.Add(zn.HumidityRatio);
               hasOverLoad = true;
-              //加湿・除湿能力以内におさめる
+              //Limit to within the humidification/dehumidification capacity
               ControlMoistureSupply(i, j, 0 < zn.MoistureSupply ? zn.HumidifyingCapacity : -zn.DehumidifyingCapacity);
             }
           }
         }
         if (!hasOverLoad) break;
       }
-      //状態を確定
+      //Commit the state
       FixState();
 
-      //制御解除した系統をもとに戻す
+      //Restore the systems whose control was released
       for (int i = 0; i < mrIndex.Count; i++)
       {
         if (isDBTSP[i])
@@ -634,7 +634,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 境界条件設定処理
+    #region Boundary condition setting methods
 
     /// <summary>Seeds every zone and wall in the building with uniform initial conditions.</summary>
     /// <param name="temperature">Dry-bulb temperature [°C].</param>
@@ -753,9 +753,9 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetCrossVentilation(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2, double airFlowRate)
     {
-      //同一の多数室の場合には連成計算
+      //If within the same multi-room, solve as a coupled calculation
       if (rmIndex1 == rmIndex2) SetCrossVentilation(rmIndex1, znIndex1, znIndex2, airFlowRate);
-      //他の多数室の場合には境界条件として計算
+      //If in another multi-room, handle it as a boundary condition
       else
       {
         zoneVent[rmIndex2][znIndex2].AddAirFlow(rmIndex1, znIndex1, airFlowRate);
@@ -778,9 +778,9 @@ namespace Popolo.Core.Building
     /// </remarks>
     public void SetAirFlow(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2, double airFlowRate)
     {
-      //同一の多数室の場合には連成計算
+      //If within the same multi-room, solve as a coupled calculation
       if (rmIndex1 == rmIndex2) SetAirFlow(rmIndex1, znIndex1, znIndex2, airFlowRate);
-      //他の多数室の場合には境界条件として計算
+      //If in another multi-room, handle it as a boundary condition
       else zoneVent[rmIndex2][znIndex2].AddAirFlow(rmIndex1, znIndex1, airFlowRate);
     }
 
@@ -815,9 +815,9 @@ namespace Popolo.Core.Building
     /// </remarks>
     public double GetAirFlow(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2)
     {
-      //同一の多数室の場合にはMultiRoom内の有向流量
+      //If within the same multi-room, use the directed flow inside the MultiRoom
       if (rmIndex1 == rmIndex2) return mRooms[rmIndex1].GetAirFlow(znIndex1, znIndex2);
-      //他の多数室の場合には境界条件のコレクションから取得
+      //If in another multi-room, get it from the boundary condition collection
       return zoneVent[rmIndex2][znIndex2].GetAirFlow(rmIndex1, znIndex1);
     }
 
@@ -903,7 +903,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 制御関連の処理
+    #region Control methods
 
     /// <summary>Enables dry-bulb temperature control for the specified zone.</summary>
     /// <param name="mRoomIndex">MultiRooms index.</param>
@@ -951,7 +951,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 空調能力設定関連の処理
+    #region Air conditioning capacity setting methods
 
     /// <summary>Sets the maximum heating capacity for the specified zone [W].</summary>
     /// <param name="mRoomIndex">MultiRooms index.</param>
@@ -983,7 +983,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region 構成検証
+    #region Configuration validation
 
     /// <summary>Validates the entire model by running <see cref="MultiRoom.Validate"/> on every MultiRoom.</summary>
     /// <returns>List of <see cref="ValidationMessage"/> entries (severity-tagged) prefixed
@@ -1009,7 +1009,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region その他の処理
+    #region Other methods
 
     /// <summary>Gets all wall assemblies in the model across all MultiRooms.</summary>
     /// <returns>Array of read-only wall assemblies.</returns>
@@ -1031,7 +1031,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region internalメソッド
+    #region Internal methods
 
     /// <summary>Assigns sequential IDs to all walls in the model.</summary>
     internal void SetWallID()
@@ -1046,7 +1046,7 @@ namespace Popolo.Core.Building
 
     #endregion
 
-    #region インナークラス定義
+    #region Inner class definitions
 
     /// <summary>Collects inter-zone air flow entries for a single destination zone.</summary>
       private class InterZoneAirFlowCollection : IEnumerable<InterZoneAirFlow>

@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Geometry
     public class Vector3DTests
     {
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>成分と長さが正しく設定される</summary>
         [Fact]
@@ -55,7 +55,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region GetLength のテスト
+        #region GetLength tests
 
         /// <summary>ゼロベクトルの長さは0</summary>
         [Fact]
@@ -77,7 +77,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region GetDot のテスト
+        #region GetDot tests
 
         /// <summary>平行ベクトルの内積は長さの積になる</summary>
         [Fact]
@@ -99,7 +99,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region GetCross のテスト
+        #region GetCross tests
 
         /// <summary>X×Y = Z（右手系）</summary>
         [Fact]
@@ -125,7 +125,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region Normalize のテスト
+        #region Normalize tests
 
         /// <summary>正規化後の長さは1になる</summary>
         [Fact]
@@ -165,7 +165,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region 演算子のテスト
+        #region Operator tests
 
         /// <summary>加算が正しく動作する</summary>
         [Fact]

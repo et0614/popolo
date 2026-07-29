@@ -69,7 +69,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class WallConverter : JsonConverter<Wall>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropId = "id";
@@ -79,12 +79,12 @@ namespace Popolo.IO.Json.Building.Envelope
     private const string PropSurfaceF = "surfaceF";
     private const string PropSurfaceB = "surfaceB";
 
-    // surfaceF/surfaceB 内のキー
+    // Keys inside surfaceF/surfaceB
     private const string PropConvectiveCoefficient = "convectiveCoefficient";
     private const string PropShortWaveAbsorptance = "shortWaveAbsorptance";
     private const string PropLongWaveEmissivity = "longWaveEmissivity";
 
-    // layers 内の kind 値
+    // kind values inside layers
     private const string KindWallLayer = "wallLayer";
     private const string KindAirGapLayer = "airGapLayer";
 
@@ -92,7 +92,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region 内部型
+    #region Internal types
 
     /// <summary>Bundle of the three surface coefficients for one side of a wall.</summary>
     private readonly struct SurfaceCoefficients
@@ -111,7 +111,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="Wall"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>
@@ -158,12 +158,12 @@ namespace Popolo.IO.Json.Building.Envelope
         }
       }
 
-      // kind 識別子
+      // kind discriminator
       if (kind != ExpectedKind)
         throw new JsonException(
           $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(Wall)}, but got '{kind ?? "(missing)"}'.");
 
-      // 必須フィールド
+      // Required fields
       if (area is null)
         throw new JsonException($"Required property '{PropArea}' is missing from {nameof(Wall)} JSON.");
       if (layers is null)
@@ -171,11 +171,11 @@ namespace Popolo.IO.Json.Building.Envelope
       if (layers.Count == 0)
         throw new JsonException($"Property '{PropLayers}' must contain at least one layer.");
 
-      // Wall 生成
+      // Create the Wall
       bool cmt = computeMoistureTransfer ?? false;
       var wall = new Wall(area.Value, layers.ToArray(), cmt);
 
-      // オプションプロパティ
+      // Optional properties
       if (id is not null) wall.ID = id.Value;
       if (surfaceF is not null)
       {
@@ -223,7 +223,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region レイヤー配列の読み書き
+    #region Reading and writing the layer array
 
     /// <summary>Reads the <c>layers</c> array from JSON. Each element dispatches on its <c>kind</c>.</summary>
     private static List<WallLayer> ReadLayerArray(
@@ -242,8 +242,8 @@ namespace Popolo.IO.Json.Building.Envelope
         if (reader.TokenType != JsonTokenType.StartObject)
           throw new JsonException($"Each '{PropLayers}' entry must be an object, but got {reader.TokenType}.");
 
-        // kind で分岐するため、現在位置をメモして先読み → 巻き戻しはできないので、
-        // コピーの Utf8JsonReader でプリスキャンしてから本体を読む。
+        // To dispatch on kind we would need to note the current position, look ahead,
+        // and rewind — which is impossible, so pre-scan with a copied Utf8JsonReader before reading the body.
         Utf8JsonReader peekReader = reader;
         string? layerKind = PeekKind(ref peekReader);
 
@@ -268,8 +268,8 @@ namespace Popolo.IO.Json.Building.Envelope
     /// </summary>
     private static string? PeekKind(ref Utf8JsonReader reader)
     {
-      // reader は StartObject を指している。そこから EndObject まで走査して
-      // "kind" プロパティを見つける。見つからなければ null を返す。
+      // The reader is pointing at StartObject. Scan from there to EndObject to
+      // find the "kind" property. Return null if it is not found.
       if (reader.TokenType != JsonTokenType.StartObject)
         return null;
 
@@ -280,7 +280,7 @@ namespace Popolo.IO.Json.Building.Envelope
           depth++;
         else if (reader.TokenType == JsonTokenType.EndObject || reader.TokenType == JsonTokenType.EndArray)
         {
-          if (depth == 0) return null; // 外側 EndObject、kind が見つからなかった
+          if (depth == 0) return null; // outer EndObject; kind was not found
           depth--;
         }
         else if (depth == 0 && reader.TokenType == JsonTokenType.PropertyName)
@@ -304,7 +304,7 @@ namespace Popolo.IO.Json.Building.Envelope
       writer.WriteStartArray();
       foreach (var layer in layers)
       {
-        // Runtime type dispatch。AirGapLayer は WallLayer を継承しているので順序が重要。
+        // Runtime type dispatch. AirGapLayer inherits from WallLayer, so the order matters.
         if (layer is AirGapLayer ag)
           JsonSerializer.Serialize(writer, ag, options);
         else if (layer is WallLayer wl)
@@ -318,7 +318,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region 表面係数オブジェクトの読み書き
+    #region Reading and writing surface coefficient objects
 
     /// <summary>Reads a nested <c>surfaceF</c> or <c>surfaceB</c> object.</summary>
     private static SurfaceCoefficients ReadSurfaceCoefficients(

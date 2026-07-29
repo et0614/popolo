@@ -29,7 +29,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
   /// </remarks>
   public class SteamBoilerTests
   {
-    #region ヘルパー
+    #region Helpers
 
     // 定格条件: 標準大気圧 101.325 kPa ≈ 100°C, 流量0.02 kg/s
     private const double NominalPressure = 200.0;  // kPa (約120°C)
@@ -62,7 +62,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     #endregion
 
     // ================================================================
-    #region コンストラクタ・プロパティ
+    #region Constructors and properties
 
     /// <summary>NominalCapacity が正（蒸発潜熱分）。</summary>
     [Fact]
@@ -100,7 +100,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     #endregion
 
     // ================================================================
-    #region Update — 通常運転
+    #region Update — normal operation
 
     /// <summary>HeatLoad が正（蒸発に必要な熱量）。</summary>
     [Fact]

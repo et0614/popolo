@@ -58,7 +58,7 @@ namespace Popolo.Core.Physics
   public class Refrigerant
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>
     /// Specifies the type of refrigerant.
@@ -98,7 +98,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the type of refrigerant.</summary>
     public Fluid FluidType { get; private set; }
@@ -126,7 +126,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 近似係数（プライベートフィールド）
+    #region Approximation coefficients (private fields)
 
     /// <summary>Number of m-direction approximation coefficients.</summary>
     private readonly int _mCount;
@@ -163,7 +163,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 近似係数（静的データ）
+    #region Approximation coefficients (static data)
 
     // R32 coefficients
     // Original (Togashi 2014, Table 2-4): fit against REFPROP 7 via wxMaxima,
@@ -323,7 +323,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance for the specified refrigerant type.
@@ -481,7 +481,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region PVT関係式
+    #region PVT relations
 
     /// <summary>
     /// Gets the pressure [kPa] from the temperature [K] and density [kg/m³].
@@ -540,11 +540,11 @@ namespace Popolo.Core.Physics
 
       try
       {
-        // 2026.05.27: 許容誤差を 1e-3 → 1e-4 に締め、上限反復30回に拡張。
-        // この水準で標準冷凍サイクルの COP 誤差は <0.1%（多くの冷媒で <0.05%）。
-        // Rackett 初期値の ×1.10 持ち上げ（GetGibbsEnergyDifference 側）と
-        // 飽和起点からの単相状態探索により、密度反復は常に安定枝で開始する
-        // ため純 Newton で十分。
+        // 2026.05.27: Tightened tolerance 1e-3 → 1e-4 and extended max iterations to 30.
+        // At this level the COP error of a standard refrigeration cycle is <0.1% (<0.05% for most refrigerants).
+        // Thanks to the ×1.10 bump of the Rackett initial guess (in GetGibbsEnergyDifference)
+        // and single-phase state searches starting from saturation, the density iteration
+        // always starts on the stable branch, so plain Newton is sufficient.
         density = Roots.Newton(eFnc, eFncD, density, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
@@ -559,7 +559,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 飽和状態の計算
+    #region Saturation state calculation
 
     /// <summary>
     /// Gets the saturated liquid density [kg/m³], saturated vapor density [kg/m³],
@@ -582,17 +582,17 @@ namespace Popolo.Core.Physics
       Roots.ErrorFunction eFnc = tmp =>
           GetGibbsEnergyDifference(tmp, pressure, out sld, out svd);
 
-      //飽和温度の初期値を推定（3次多項式近似）
+      //Estimate the initial saturation temperature (cubic polynomial approximation)
       double pr = pressure / CriticalPressure;
       double ts = _cts[0];
       for (int i = 1; i < _cts.Length; i++) ts = ts * pr + _cts[i];
-      //2020.02.23: R410A高圧で収束エラーが出るケースへの対応として -2K オフセット
+      //2020.02.23: -2K offset to handle convergence failures with R410A at high pressure
       ts -= 2.0;
 
       try
       {
-        // 2026.05.27: 許容誤差 (1e-5, 1e-3) → (1e-5, 1e-4)、上限反復 30 に拡張。
-        // この水準で COP 誤差 <0.1%。errTol の 1e-5 (Gibbs diff, kJ/kg) は元のまま。
+        // 2026.05.27: Tightened tolerances (1e-5, 1e-3) → (1e-5, 1e-4) and extended max iterations to 30.
+        // At this level the COP error is <0.1%. The errTol of 1e-5 (Gibbs diff, kJ/kg) is unchanged.
         saturatedTemperature = Roots.Newton(eFnc, ts, 1e-5, 1e-5, 1e-4, 30);
       }
       catch (Exception e)
@@ -627,15 +627,15 @@ namespace Popolo.Core.Physics
       Roots.ErrorFunction eFnc = pres =>
           GetGibbsEnergyDifference(temperature, pres, out sld, out svd);
 
-      //飽和圧力の初期値を推定（3次多項式近似）
+      //Estimate the initial saturation pressure (cubic polynomial approximation)
       double tr = temperature / CriticalTemperature;
       double ps = _cps[0];
       for (int i = 1; i < _cps.Length; i++) ps = ps * tr + _cps[i];
 
       try
       {
-        // 2026.05.27: 許容誤差 (1e-4, 1e-3) → (1e-5, 1e-4)、上限反復 30 に拡張。
-        // この水準で COP 誤差 <0.1%。
+        // 2026.05.27: Tightened tolerances (1e-4, 1e-3) → (1e-5, 1e-4) and extended max iterations to 30.
+        // At this level the COP error is <0.1%.
         saturatedPressure = Roots.Newton(eFnc, ps, 1e-5, 1e-5, 1e-4, 30);
       }
       catch (Exception e)
@@ -659,7 +659,7 @@ namespace Popolo.Core.Physics
     {
       double tr = temperature / CriticalTemperature;
 
-      //液体密度の初期値をRackett式で推定（式15）
+      //Estimate the initial liquid density with the Rackett equation (Eq.15)
       double rc = CriticalPressure / (CriticalDensity * CriticalTemperature * _gasConstant);
       double rhol = 1.0 / (Math.Pow(rc, 1.0 + Math.Pow(1.0 - tr, 2.0 / 7.0))
           / CriticalPressure * _gasConstant * CriticalTemperature);
@@ -672,12 +672,12 @@ namespace Popolo.Core.Physics
       GetDensityFromPressureAndTemperatureInternal(pressure, temperature, ref rhol);
       liquidDensity = rhol;
 
-      //気体密度の初期値を理想気体式で推定（式1）
+      //Estimate the initial vapor density with the ideal gas equation (Eq.1)
       double rhov = pressure / (temperature * _gasConstant);
       GetDensityFromPressureAndTemperatureInternal(pressure, temperature, ref rhov);
       vaporDensity = rhov;
 
-      //ギブスエネルギー差分を計算（式17）
+      //Compute the Gibbs energy difference (Eq.17)
       double gL = GetResidualGibbsFreeEnergy(temperature, liquidDensity);
       double gV = GetResidualGibbsFreeEnergy(temperature, vaporDensity);
       return gL - gV + _gasConstant * temperature * Math.Log(liquidDensity / vaporDensity);
@@ -706,7 +706,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 温度・密度からの物性値計算
+    #region Property calculation from temperature and density
 
     /// <summary>
     /// Gets the specific enthalpy [kJ/kg] from the temperature [K] and density [kg/m³]
@@ -916,7 +916,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 圧力・エンタルピーからの状態計算
+    #region State calculation from pressure and enthalpy
 
     /// <summary>
     /// Gets the thermodynamic state from the pressure [kPa] and specific enthalpy [kJ/kg].
@@ -940,7 +940,7 @@ namespace Popolo.Core.Physics
     {
       ValidatePressure(pressure);
 
-      //飽和状態を計算して相を判定
+      //Compute the saturation state and determine the phase
       GetSaturatedPropertyFromPressure(pressure, out double rhoL, out double rhoV, out double tSat);
       double hl = GetEnthalpyFromTemperatureAndDensity(tSat, rhoL);
       double hv = GetEnthalpyFromTemperatureAndDensity(tSat, rhoV);
@@ -950,7 +950,7 @@ namespace Popolo.Core.Physics
       else if (hv < enthalpy) phase = Phase.Vapor;
       else phase = Phase.Equilibrium;
 
-      //二相域：気液比で加重平均
+      //Two-phase region: weighted average by vapor-liquid ratio
       if (phase == Phase.Equilibrium)
       {
         temperature = tSat;
@@ -966,7 +966,7 @@ namespace Popolo.Core.Physics
         return;
       }
 
-      //単相域：ニュートン法で温度を収束計算
+      //Single-phase region: iterate on temperature with Newton's method
       temperature = phase == Phase.Liquid ? tSat - 3.0 : tSat + 3.0;
       density = phase == Phase.Liquid ? rhoL : rhoV;
 
@@ -979,9 +979,9 @@ namespace Popolo.Core.Physics
 
       try
       {
-        //2023.04.11: 10回で足りないケースがあったため15回に増加
-        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kJ/kg, K) に締め、上限反復30回に拡張
-        //            （COP 誤差 <0.1%）
+        //2023.04.11: Increased from 10 to 15 iterations because 10 was not enough in some cases
+        //2026.05.27: Tightened tolerance 1e-3 → 1e-4 (kJ/kg, K) and extended max iterations to 30
+        //            (COP error <0.1%)
         temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
@@ -998,7 +998,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 圧力・エントロピーからの状態計算
+    #region State calculation from pressure and entropy
 
     /// <summary>
     /// Gets the thermodynamic state from the pressure [kPa] and specific entropy [kJ/(kg·K)].
@@ -1031,7 +1031,7 @@ namespace Popolo.Core.Physics
       else if (sv < entropy) phase = Phase.Vapor;
       else phase = Phase.Equilibrium;
 
-      //二相域：気液比で加重平均
+      //Two-phase region: weighted average by vapor-liquid ratio
       if (phase == Phase.Equilibrium)
       {
         temperature = tSat;
@@ -1047,7 +1047,7 @@ namespace Popolo.Core.Physics
         return;
       }
 
-      //単相域：ニュートン法で温度を収束計算
+      //Single-phase region: iterate on temperature with Newton's method
       temperature = phase == Phase.Liquid ? tSat - 3.0 : tSat + 3.0;
       density = phase == Phase.Liquid ? rhoL : rhoV;
 
@@ -1060,12 +1060,12 @@ namespace Popolo.Core.Physics
 
       try
       {
-        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kJ/(kg·K), K) に締め、上限反復30回に拡張
-        //            （COP 誤差 <0.1%）
-        //2026.07.06: エントロピー残差のみ 1e-4 → 1e-6 に締める。残差 ds は h2 に
-        //            T·ds の誤差を残し、圧縮仕事 W=h2-h1 が小さい高COP冷媒
-        //            （R1234yf: W≈21 kJ/kg）では ds=1e-4 が COP 誤差 ~0.15% に
-        //            増幅されるため。二次収束のため追加コストは1反復程度。
+        //2026.05.27: Tightened tolerance 1e-3 → 1e-4 (kJ/(kg·K), K) and extended max iterations to 30
+        //            (COP error <0.1%)
+        //2026.07.06: Tightened only the entropy residual 1e-4 → 1e-6. A residual ds leaves
+        //            an error of T·ds in h2, and for high-COP refrigerants with small
+        //            compression work W=h2-h1 (R1234yf: W≈21 kJ/kg), ds=1e-4 is amplified
+        //            to a COP error of ~0.15%. Quadratic convergence makes the extra cost about one iteration.
         temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-6, 1e-5, 30);
       }
       catch (Exception e)
@@ -1082,7 +1082,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 圧力・温度からの状態計算
+    #region State calculation from pressure and temperature
 
     /// <summary>
     /// Gets the thermodynamic state from the pressure [kPa] and temperature [K].
@@ -1119,7 +1119,7 @@ namespace Popolo.Core.Physics
       else if (tSat < temperature) phase = Phase.Vapor;
       else phase = Phase.Equilibrium;
 
-      //二相域：圧力・温度のみでは気液比が定まらないため飽和液の物性を返す
+      //Two-phase region: pressure and temperature alone cannot determine the vapor-liquid ratio, so return saturated liquid properties
       if (phase == Phase.Equilibrium)
       {
         density = rhoL;
@@ -1137,8 +1137,8 @@ namespace Popolo.Core.Physics
 
       try
       {
-        //2026.05.27: 許容誤差を 1e-3 → 1e-4 (kg/m³) に締め、上限反復30回に拡張。
-        //            初期密度は飽和液／飽和蒸気密度を基準とするため常に安定枝側にある。
+        //2026.05.27: Tightened tolerance 1e-3 → 1e-4 (kg/m³) and extended max iterations to 30.
+        //            The initial density is based on the saturated liquid/vapor density, so it is always on the stable branch.
         density = Roots.Newton(eFnc, density, 1e-5, 1e-4, 1e-4, 30);
       }
       catch (Exception e)
@@ -1175,7 +1175,7 @@ namespace Popolo.Core.Physics
 
     #endregion
 
-    #region 入力検証
+    #region Input validation
 
     /// <summary>Checks whether the pressure is within the applicable range.</summary>
     private void ValidatePressure(double pressure)

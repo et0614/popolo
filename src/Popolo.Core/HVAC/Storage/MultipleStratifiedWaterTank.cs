@@ -28,14 +28,14 @@ namespace Popolo.Core.HVAC.Storage
   public class MultipleStratifiedWaterTank : IReadOnlyMultipleStratifiedWaterTank
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Gravitational acceleration [m/s²].</summary>
     private const double G_FORCES = 9.8;
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Tridiagonal coefficient matrix (3×layers).</summary>
     private IMatrix wMat;
@@ -97,7 +97,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="waterDepth">Water depth [m].</param>
@@ -123,7 +123,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Initializes the temperature distribution [°C].</summary>
     /// <param name="temperature">Temperature to initialize [°C].</param>
@@ -168,14 +168,14 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region 蓄熱量、蓄放熱流の計算処理
+    #region Heat storage and charge/discharge flow calculations
 
     /// <summary>Computes the stored heat [MJ] relative to a reference temperature (positive for hot, negative for cold storage).</summary>
     /// <param name="referenceTemperature">Reference temperature [°C].</param>
     /// <returns>Stored heat [MJ].</returns>
     public double GetHeatStorage(double referenceTemperature)
     {
-      double dz = WaterDepth / temperatures.Length;  //分割幅
+      double dz = WaterDepth / temperatures.Length;  //Layer thickness
       double sum = 0;
       for (int i = 0; i < temperatures.Length; i++) sum += (temperatures[i] - referenceTemperature);
       double rho = Water.GetLiquidDensity(referenceTemperature);
@@ -195,7 +195,7 @@ namespace Popolo.Core.HVAC.Storage
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Updates the layer temperatures by solving the tridiagonal system for one time step.</summary>
     /// <param name="temperature">Layer temperature distribution [°C].</param>
@@ -217,15 +217,15 @@ namespace Popolo.Core.HVAC.Storage
       double waterInletTemperature, double waterFlowRate, double heatLossCoefficient, double ambientTemperature,
       double waterDepth, double pipeDiameter, double sectionalArea, int pipeInstallationLayer, bool isDownFlow)
     {
-      int layerNum = temperature.Length;  //分割数
-      double dz = waterDepth / layerNum;  //分割幅
+      int layerNum = temperature.Length;  //Number of layers
+      double dz = waterDepth / layerNum;  //Layer thickness
 
-      //平均水温を計算
+      //Compute the average water temperature
       double aveTemp = 0;
       for (int i = 0; i < layerNum; i++) aveTemp += temperature[i];
       aveTemp /= layerNum;
 
-      //混合域の噴流配分の計算
+      //Compute the jet distribution in the mixing region
       IVector phiN = wVec1;
       IVector uN = wVec2;
       if (waterFlowRate == 0)
@@ -233,11 +233,11 @@ namespace Popolo.Core.HVAC.Storage
         phiN.Initialize(0);
         uN.Initialize(0);
       }
-      //温度逆転の場合は混合すると温度が逆転する層まで完全混合とし、噴流は等分割
+      //In case of temperature inversion, fully mix down to the layer where mixing would invert the temperature, and split the jet equally
       else if ((isDownFlow && waterInletTemperature <= temperature[0])
         || (!isDownFlow && temperature[layerNum - 1] <= waterInletTemperature))
       {
-        //温度逆転範囲を求めて平均温度を計算
+        //Find the temperature inversion range and compute the average temperature
         double mixTemp, mixedAve;
         int mixedNum;
         if (isDownFlow)
@@ -272,7 +272,7 @@ namespace Popolo.Core.HVAC.Storage
         mixedAve /= mixedNum;
         double bf = waterFlowRate / (mixedNum * dz);
 
-        //平均温度と噴流配分を設定
+        //Set the average temperature and the jet distribution
         for (int i = 0; i < layerNum; i++)
         {
           int tgtLayer = i;
@@ -295,10 +295,10 @@ namespace Popolo.Core.HVAC.Storage
       else
       {
         double rhowi = Water.GetLiquidDensity(waterInletTemperature);
-        double pipeSA = Math.Pow(pipeDiameter / 2, 2) * Math.PI; //流入口断面積[m2]
-        double uwi2 = Math.Pow(waterFlowRate / pipeSA, 2);//流入速度2乗[(m/s)^2]
+        double pipeSA = Math.Pow(pipeDiameter / 2, 2) * Math.PI; //Inlet port cross-sectional area [m2]
+        double uwi2 = Math.Pow(waterFlowRate / pipeSA, 2);//Squared inlet velocity [(m/s)^2]
 
-        //噴流が到達する層を求める
+        //Find the layer that the jet reaches
         int lmax;
         double tgt = rhowi * uwi2 / (G_FORCES * dz);
         double rr = 0;
@@ -310,20 +310,20 @@ namespace Popolo.Core.HVAC.Storage
         }
         if (!isDownFlow) lmax = layerNum - lmax - 1;
 
-        //混合域深さの計算************
+        //Compute the mixing region depth************
         double tlMax = temperature[lmax];
         double lm;
-        //等温の層まで到達する場合には混合域100%とする
+        //If the jet reaches an isothermal layer, treat the mixing region as 100%
         if (tlMax == waterInletTemperature) lm = waterDepth;
         else
         {
           double rho0 = Water.GetLiquidDensity(tlMax);
-          double ari = pipeDiameter * G_FORCES * Math.Abs(rho0 - rhowi) / (rho0 * uwi2);  //アルキメデス数
+          double ari = pipeDiameter * G_FORCES * Math.Abs(rho0 - rhowi) / (rho0 * uwi2);  //Archimedes number
           double ndt = 0;
           if (isDownFlow)
             for (int i = 0; i < lmax; i++) ndt += (temperature[i] - tlMax);
           else for (int i = lmax; i < layerNum; i++) ndt += (temperature[i] - tlMax);
-          ndt = (ndt * dz) / (waterDepth * (waterInletTemperature - tlMax));  //無次元時間
+          ndt = (ndt * dz) / (waterDepth * (waterInletTemperature - tlMax));  //Dimensionless time
           lm = waterDepth * 0.8 * Math.Pow(ari, -0.5) * pipeDiameter / waterDepth + 0.5 * ndt;
         }
 
@@ -345,7 +345,7 @@ namespace Popolo.Core.HVAC.Storage
         }
       }
 
-      //3重対角行列を解く
+      //Solve the tridiagonal system
       wMat.Initialize(0);
       int outletLayer = pipeInstallationLayer;
       if (!isDownFlow) outletLayer = layerNum - pipeInstallationLayer - 1;

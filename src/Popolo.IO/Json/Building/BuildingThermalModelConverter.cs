@@ -99,7 +99,7 @@ namespace Popolo.IO.Json.Building
   public sealed class BuildingThermalModelConverter : JsonConverter<BuildingThermalModel>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropSchemaVersion = "$schemaVersion";
     private const string PropKind = "kind";
@@ -110,19 +110,19 @@ namespace Popolo.IO.Json.Building
     private const string PropWalls = "walls";
     private const string PropMultiRooms = "multiRooms";
 
-    // initialState 内のキー
+    // Keys inside initialState
     private const string PropTemperature = "temperature";
     private const string PropHumidityRatio = "humidityRatio";
 
     private const string ExpectedKind = "buildingThermalModel";
     private const string CurrentSchemaVersion = "3.0";
 
-    // ISO 8601 形式(タイムゾーンなし) -- "2026-04-18T12:00:00"
+    // ISO 8601 format (no time zone) -- "2026-04-18T12:00:00"
     private const string Iso8601Format = "yyyy-MM-ddTHH:mm:ss";
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads a <see cref="BuildingThermalModel"/> from JSON.</summary>
     public override BuildingThermalModel Read(
@@ -131,14 +131,14 @@ namespace Popolo.IO.Json.Building
       if (reader.TokenType != JsonTokenType.StartObject)
         throw new JsonException($"Expected StartObject at the beginning of a {nameof(BuildingThermalModel)}, but got {reader.TokenType}.");
 
-      // 2 パス処理のために JsonDocument に取り込む
+      // Load into a JsonDocument for two-pass processing
       using var doc = JsonDocument.ParseValue(ref reader);
       var root = doc.RootElement;
 
-      // $schemaVersion と kind の検証
+      // Validate $schemaVersion and kind
       string? schemaVersion = GetOptionalString(root, PropSchemaVersion);
-      // 現時点では $schemaVersion の値を強制チェックしない(将来のために読み取りのみ)
-      // 不正値の場合の扱いは将来バージョンで検討。
+      // The $schemaVersion value is not enforced at this point (read only, for future use).
+      // Handling of invalid values will be considered in a future version.
 
       string? kind = GetOptionalString(root, PropKind);
       if (kind != ExpectedKind)
@@ -189,7 +189,7 @@ namespace Popolo.IO.Json.Building
         throw new JsonException($"Required property '{PropSun}' is missing from {nameof(BuildingThermalModel)} JSON.");
       }
 
-      // walls(先に読む)
+      // walls (read first)
       if (!root.TryGetProperty(PropWalls, out var wallsElem))
         throw new JsonException($"Required property '{PropWalls}' is missing from {nameof(BuildingThermalModel)} JSON.");
       if (wallsElem.ValueKind != JsonValueKind.Array)
@@ -203,7 +203,7 @@ namespace Popolo.IO.Json.Building
         wallList.Add(wall);
       }
 
-      // Wall 辞書構築(ID → Wall)
+      // Build the wall dictionary (ID → Wall)
       var wallsById = new Dictionary<int, Wall>();
       foreach (var w in wallList)
       {
@@ -212,7 +212,7 @@ namespace Popolo.IO.Json.Building
         wallsById[w.ID] = w;
       }
 
-      // multiRooms(DTO 経由で読み、Wall 辞書で解決して MultiRooms を構築)
+      // multiRooms (read via DTOs, resolve against the wall dictionary, then build MultiRooms)
       if (!root.TryGetProperty(PropMultiRooms, out var mRoomsElem))
         throw new JsonException($"Required property '{PropMultiRooms}' is missing from {nameof(BuildingThermalModel)} JSON.");
       if (mRoomsElem.ValueKind != JsonValueKind.Array)
@@ -226,15 +226,15 @@ namespace Popolo.IO.Json.Building
         mRoomsList.Add(mRooms);
       }
 
-      // BuildingThermalModel 構築
+      // Build the BuildingThermalModel
       var model = new BuildingThermalModel(mRoomsList.ToArray());
       model.TimeStep = timeStep;
 
-      // 初期温湿度
+      // Initial temperature and humidity
       model.InitializeAirState(initialTemperature, initialHumidityRatio);
 
-      // 外部条件(Sun と CurrentDateTime を反映)
-      // 屋外気温/湿度/夜間放射は JSON に保存されない。0 で初期化する。
+      // External conditions (apply Sun and CurrentDateTime)
+      // Outdoor temperature/humidity/nocturnal radiation are not stored in JSON. Initialize them to 0.
       model.UpdateOutdoorCondition(currentDateTime, sun, 0.0, 0.0, 0.0);
 
       return model;
@@ -247,8 +247,8 @@ namespace Popolo.IO.Json.Building
       if (value is null)
         throw new ArgumentNullException(nameof(value));
 
-      // シリアライズに備えて Wall に連番 ID を付け直す
-      // (MultiRooms/Zone から参照される ID が確実に Wall 配列内の ID と一致するように)
+      // Reassign sequential IDs to walls in preparation for serialization
+      // (so the IDs referenced from MultiRooms/Zone reliably match the IDs in the walls array)
       AssignSequentialWallIds(value);
 
       writer.WriteStartObject();
@@ -261,22 +261,22 @@ namespace Popolo.IO.Json.Building
       writer.WriteString(PropCurrentDateTime,
         value.CurrentDateTime.ToString(Iso8601Format, CultureInfo.InvariantCulture));
 
-      // initialState(初期温度は任意値。runtime state は保存しないので、
-      // BuildingThermalModel には「初期温湿度」を直接問う API がないが、
-      // 実用上は Temperature / HumidityRatio を使ってよい。MultiRooms 内の
-      // Zone の現在値を読み出す。複数 zone がある場合は最初の Zone を代表値として使用。)
+      // initialState (the initial temperature is arbitrary. Runtime state is not saved,
+      // so BuildingThermalModel has no API that directly reports the "initial
+      // temperature and humidity", but in practice Temperature / HumidityRatio may be used.
+      // Read the current values of the Zones in MultiRooms; with multiple zones, use the first Zone as the representative.)
       WriteInitialState(writer, value);
 
       // sun
       writer.WritePropertyName(PropSun);
       if (value.Sun is IReadOnlySun readOnlySun)
       {
-        // Sun は具象型なのでそのままキャストしてシリアライズ
+        // Sun is a concrete type, so cast directly and serialize
         if (readOnlySun is Sun concreteSun)
           JsonSerializer.Serialize(writer, concreteSun, options);
         else
         {
-          // 別実装があれば Sun にコピー(現状ないが念のため)
+          // If another implementation existed, it would be copied into Sun (none today; just in case)
           throw new JsonException(
             $"Unsupported {nameof(IReadOnlySun)} implementation: {readOnlySun.GetType().FullName}.");
         }
@@ -311,7 +311,7 @@ namespace Popolo.IO.Json.Building
 
     #endregion
 
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>Reads a MultiRooms JSON sub-element into a DTO by re-tokenizing its raw bytes.</summary>
     /// <remarks>
@@ -325,7 +325,7 @@ namespace Popolo.IO.Json.Building
       var raw = element.GetRawText();
       var bytes = System.Text.Encoding.UTF8.GetBytes(raw);
       var innerReader = new Utf8JsonReader(bytes);
-      innerReader.Read(); // StartObject へ移動
+      innerReader.Read(); // Advance to StartObject
       return MultiRoomsConverter.ReadDto(ref innerReader, options);
     }
 
@@ -377,7 +377,7 @@ namespace Popolo.IO.Json.Building
       double temperature = 25.0;
       double humidityRatio = 0.015;
 
-      // 最初の zone の現在状態を代表値として使用
+      // Use the current state of the first zone as the representative value
       if (model.MultiRoom.Length > 0 && model.MultiRoom[0].Zones.Length > 0)
       {
         var firstZone = model.MultiRoom[0].Zones[0];

@@ -30,7 +30,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     /// </remarks>
     public class RotaryRegeneratorTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private const double SA_Flow = 500.0;  // 給気風量 [m³/h]
         private const double EA_Flow = 500.0;  // 排気風量 [m³/h]
@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>簡易モデルでは IsDetailedModel = false。</summary>
         [Fact]
@@ -75,7 +75,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region UpdateState — 加熱時（冬季）
+        #region UpdateState — heating (winter)
 
         /// <summary>
         /// 加熱時（SA &lt; EA）: 給気出口温度が給気入口温度より高い（予熱効果）。
@@ -128,7 +128,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region UpdateState — 冷却時（夏季）
+        #region UpdateState — cooling (summer)
 
         /// <summary>
         /// 冷却時（SA &gt; EA）: 給気出口温度が給気入口温度より低い（予冷効果）。
@@ -145,7 +145,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region RotatingRate（回転数比）
+        #region RotatingRate (rotational speed ratio)
 
         /// <summary>
         /// 回転数比 = 0 のとき出口温度 = 入口温度（熱交換なし）。

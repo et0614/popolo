@@ -26,7 +26,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
   /// </remarks>
   public class CrossFinCondensorTests
   {
-    #region ヘルパー
+    #region Helpers
 
     /// <summary>
     /// 標準的な凝縮器を生成する。
@@ -38,7 +38,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region コンストラクタ・プロパティ
+    #region Constructors and properties
 
     /// <summary>SurfaceArea が正の値になる。</summary>
     [Fact]
@@ -157,7 +157,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region 水噴霧
+    #region Water spray
 
     /// <summary>
     /// 水噴霧あり（UseWaterSpray=true, SprayEffectiveness>0）では

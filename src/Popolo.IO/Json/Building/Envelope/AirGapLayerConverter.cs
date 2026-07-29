@@ -48,7 +48,7 @@ namespace Popolo.IO.Json.Building.Envelope
   public sealed class AirGapLayerConverter : JsonConverter<AirGapLayer>
   {
 
-    #region 定数
+    #region Constants
 
     private const string PropKind = "kind";
     private const string PropName = "name";
@@ -60,7 +60,7 @@ namespace Popolo.IO.Json.Building.Envelope
 
     #endregion
 
-    #region JsonConverter 実装
+    #region JsonConverter implementation
 
     /// <summary>Reads an <see cref="AirGapLayer"/> from JSON.</summary>
     /// <param name="reader">UTF-8 JSON reader positioned at the start of the object.</param>
@@ -111,12 +111,12 @@ namespace Popolo.IO.Json.Building.Envelope
         }
       }
 
-      // kind 識別子の検証
+      // Validate the kind discriminator
       if (kind != ExpectedKind)
         throw new JsonException(
           $"Expected '{PropKind}' = '{ExpectedKind}' for {nameof(AirGapLayer)}, but got '{kind ?? "(missing)"}'.");
 
-      // 必須項目の検証
+      // Validate required properties
       if (name is null)
         throw new JsonException($"Required property '{PropName}' is missing from {nameof(AirGapLayer)} JSON.");
       if (isSealed is null)
@@ -139,7 +139,7 @@ namespace Popolo.IO.Json.Building.Envelope
         throw new ArgumentNullException(nameof(value));
 
       writer.WriteStartObject();
-      writer.WriteString(PropKind, value.Kind); // 具象型から取得("airGapLayer")
+      writer.WriteString(PropKind, value.Kind); // obtained from the concrete type ("airGapLayer")
       writer.WriteString(PropName, value.Name);
       writer.WriteBoolean(PropIsSealed, value.IsSealed);
       writer.WriteNumber(PropThickness, value.Thickness);

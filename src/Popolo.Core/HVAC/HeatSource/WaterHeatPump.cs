@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.HeatSource
   public class WaterHeatPump : IReadOnlyWaterHeatPump
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Operating mode.</summary>
     public enum OperatingMode
@@ -42,7 +42,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Minimum partial load ratio.</summary>
     private const double MIN_PLOAD = 0.5;
@@ -64,7 +64,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
     
-    #region プロパティ
+    #region Properties
     
     /// <summary>Gets the current operating mode.</summary>
     public OperatingMode Mode { get; private set; }
@@ -166,7 +166,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>Theoretical COP under rated cooling conditions.</summary>
     private readonly double copN_C;
@@ -188,7 +188,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance from rated cooling conditions.</summary>
     /// <param name="coolingCapacity">Nominal cooling capacity [kW].</param>
@@ -209,7 +209,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double heatingCapacity, double hotWaterFlowRate, double heatSourceWaterFlowRate,
       double hotWaterOutletTemperature, double heatSourceWaterInletTemperature, double heatingEnergyConsumption)
     {
-      //冷却能力関連の情報初期化
+      //Initialize cooling capacity related information
       NominalCoolingCapacity = coolingCapacity;
       NominalCoolingEnergyConsumption = coolingEnergyConsumption;
       NominalChilledWaterFlowRate = chilledWaterFlowRate;
@@ -220,7 +220,7 @@ namespace Popolo.Core.HVAC.HeatSource
         + PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       copN_C = tEvpoN_C / (tCndoN_C - tEvpoN_C);
 
-      //加熱能力関連の情報初期化
+      //Initialize heating capacity related information
       NominalHeatingCapacity = heatingCapacity;
       NominalHeatingEnergyConsumption = heatingEnergyConsumption;
       NominalHotWaterFlowRate = hotWaterFlowRate;
@@ -231,7 +231,7 @@ namespace Popolo.Core.HVAC.HeatSource
       tCndoN_H = PhysicsConstants.ToKelvin(hotWaterOutletTemperature);
       copN_H = tCndoN_H / (tCndoN_H - tEvpoN_H);
 
-      //特性係数初期化
+      //Initialize characteristic coefficients
       double[] asc = new double[] { -0.7970, 1.0536, -0.2289, 1.2119, -0.2397 };
       double[] ash = new double[] { -0.0685, 0.1965, -0.0150, 1.0006, -0.1136 };
       double copC = NominalCoolingCapacity / NominalCoolingEnergyConsumption;
@@ -247,7 +247,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Updates the chiller state for cooling operation.</summary>
     /// <param name="chilledWaterFlowRate">Chilled water mass flow rate [kg/s].</param>
@@ -258,7 +258,7 @@ namespace Popolo.Core.HVAC.HeatSource
       (double chilledWaterFlowRate, double coolingWaterFlowRate,
       double chilledWaterInletTemperature, double coolingWaterInletTemperature)
     {
-      //負荷が無ければ停止
+      //Shut off if there is no load
       double mcSpy = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
       CoolingLoad = mcSpy * (chilledWaterInletTemperature - ChilledWaterSetpoint);
       if (CoolingLoad <= 0)
@@ -267,7 +267,7 @@ namespace Popolo.Core.HVAC.HeatSource
         return;
       }
 
-      //冷却水出口温度を計算
+      //Compute the cooling water outlet temperature
       double mcSce = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * coolingWaterFlowRate;
       double tScei = PhysicsConstants.ToKelvin(coolingWaterInletTemperature);
       double tSpyi = PhysicsConstants.ToKelvin(chilledWaterInletTemperature);
@@ -280,7 +280,7 @@ namespace Popolo.Core.HVAC.HeatSource
         NominalCoolingCapacity, cBc[1], cBc[0], cAc, out tSceo, out maxQSpy, out isOverLoad);
       if (isOverLoad) CoolingLoad = maxQSpy;
 
-      //状態設定
+      //Set state values
       Mode = OperatingMode.Cooling;
       IsOverLoad = isOverLoad;
       ChilledWaterFlowRate = chilledWaterFlowRate;
@@ -291,9 +291,9 @@ namespace Popolo.Core.HVAC.HeatSource
       ChilledWaterOutletTemperature = PhysicsConstants.ToCelsius(tSpyo);
       CoolingWaterOutletTemperature = PhysicsConstants.ToCelsius(tSceo);
       EnergyConsumption = (mcSce * Math.Abs(tSceo - tScei)) - CoolingLoad;
-      //極低負荷時のCOP補正
+      //COP correction at extremely low partial load
       double pLoad = CoolingLoad / MaxCoolingCapacity;
-      //double pLoad = CoolingLoad / NominalCoolingCapacity; //論文中では上の定義にしたが、発停時に熱源水温度の違いが評価されないため、こちらも有効
+      //double pLoad = CoolingLoad / NominalCoolingCapacity; //The paper uses the definition above, but this one is also valid because it does not account for heat-source water temperature differences at start/stop
       if (pLoad < MIN_PLOAD)
       {
         double minCOP = CoolingLoad / EnergyConsumption;
@@ -301,7 +301,7 @@ namespace Popolo.Core.HVAC.HeatSource
         EnergyConsumption = CoolingLoad / adjCOP;
       }
 
-      //加熱関連の情報初期化
+      //Initialize heating related information
       MaxHeatingCapacity = NominalHeatingCapacity;
       HeatingLoad = 0;
       HeatSourceWaterFlowRate = HotWaterFlowRate = 0.0;
@@ -318,7 +318,7 @@ namespace Popolo.Core.HVAC.HeatSource
       (double hotWaterFlowRate, double heatSourceWaterFlowRate,
       double hotWaterInletTemperature, double heatSourceWaterInletTemperature)
     {
-      //負荷が無ければ停止
+      //Shut off if there is no load
       double mcSpy = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate;
       HeatingLoad = mcSpy * (HotWaterSetpoint - hotWaterInletTemperature);
       if (HeatingLoad <= 0)
@@ -327,7 +327,7 @@ namespace Popolo.Core.HVAC.HeatSource
         return;
       }
 
-      //冷却水出口温度を計算
+      //Compute the heat-source water outlet temperature
       double mcSce = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * heatSourceWaterFlowRate;
       double tScei = PhysicsConstants.ToKelvin(heatSourceWaterInletTemperature);
       double tSpyi = PhysicsConstants.ToKelvin(hotWaterInletTemperature);
@@ -340,7 +340,7 @@ namespace Popolo.Core.HVAC.HeatSource
         NominalHeatingCapacity, cBh[0], cBh[1], cAh, out tSceo, out maxQSpy, out isOverLoad);
       if (isOverLoad) HeatingLoad = maxQSpy;
 
-      //状態設定
+      //Set state values
       Mode = OperatingMode.Heating;
       IsOverLoad = isOverLoad;
       HotWaterFlowRate = hotWaterFlowRate;
@@ -351,9 +351,9 @@ namespace Popolo.Core.HVAC.HeatSource
       HotWaterOutletTemperature = PhysicsConstants.ToCelsius(tSpyo);
       HeatSourceWaterOutletTemperature = PhysicsConstants.ToCelsius(tSceo);
       EnergyConsumption = HeatingLoad - (mcSce * Math.Abs(tSceo - tScei));
-      //極低負荷時のCOP補正
+      //COP correction at extremely low partial load
       double pLoad = HeatingLoad / MaxHeatingCapacity;
-      //double pLoad = HeatingLoad / NominalHeatingCapacity;  //論文中では上の定義にしたが、発停時に熱源水温度の違いが評価されないため、こちらも有効
+      //double pLoad = HeatingLoad / NominalHeatingCapacity;  //The paper uses the definition above, but this one is also valid because it does not account for heat-source water temperature differences at start/stop
       if (pLoad < MIN_PLOAD)
       {
         double minCOP = HeatingLoad / EnergyConsumption;
@@ -361,7 +361,7 @@ namespace Popolo.Core.HVAC.HeatSource
         EnergyConsumption = HeatingLoad / adjCOP;
       }
 
-      //冷却関連の情報初期化
+      //Initialize cooling related information
       MaxCoolingCapacity = NominalCoolingCapacity;
       CoolingLoad = 0;
       CoolingWaterFlowRate = ChilledWaterFlowRate = 0.0;
@@ -392,7 +392,7 @@ namespace Popolo.Core.HVAC.HeatSource
       double mcSce, double mcSpy, double qSpy, double qSpyN, double bSce, double bSpy, double[] alpha,
       out double tSceo, out double maxQSpy, out bool isOverLoad)
     {
-      //冷却水出口温度を計算
+      //Compute the heat-source water outlet temperature
       double dsp = qSpyN / qSpy * (bSpy * (tSpyo - tSpyoN) - bSce * tSceoN + 1.0);
       double esp = qSpyN / qSpy * bSce;
       double fsp = cf * copTN / tSpyo;
@@ -401,17 +401,17 @@ namespace Popolo.Core.HVAC.HeatSource
         + alpha[4] * (dsp * fsp - cf * copTN * esp) - mcSce / qSpy;
       double csp = alpha[0] + dsp * (alpha[1] + alpha[2] * dsp) 
         - cf * copTN * (alpha[3] + alpha[4] * dsp) + (cf * qSpy + mcSce * tScei) / qSpy;
-      //解の存在確認
+      //Check whether a solution exists
       bool isNanoLoad;
       double disc = bsp * bsp - 4 * asp * csp;
       if (0 < disc)
       {
         tSceo = 0.5 * (-bsp - Math.Sqrt(bsp * bsp - 4 * asp * csp)) / asp;
         maxQSpy = qSpyN * (1.0 + bSpy * (tSpyo - tSpyoN) + bSce * (tSceo - tSceoN));
-        isOverLoad = maxQSpy < qSpy;  //過負荷判定
+        isOverLoad = maxQSpy < qSpy;  //Overload check
         isNanoLoad = (qSpy / maxQSpy) < MIN_PLOAD;
       }
-      //極低負荷の場合
+      //Extremely low load
       else
       {
         tSceo = tScei;
@@ -420,7 +420,7 @@ namespace Popolo.Core.HVAC.HeatSource
         isNanoLoad = true;
       }
 
-      //過負荷の場合
+      //Overloaded
       if (isOverLoad)
       {
         double dff = -(cf * mcSpy + bSpy * qSpyN) / (bSce * qSpyN);
@@ -435,7 +435,7 @@ namespace Popolo.Core.HVAC.HeatSource
         tSceo = dff * tSpyo + eff;
         maxQSpy = mcSpy * Math.Abs(tSpyi - tSpyo);
       }
-      //極低負荷の場合
+      //Extremely low load
       else if (isNanoLoad)
       {
         double pl = 1d / MIN_PLOAD;
@@ -450,13 +450,13 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       Mode = OperatingMode.ShutOff;
       EnergyConsumption = 0.0;
-      //冷却関連の情報初期化
+      //Initialize cooling related information
       MaxCoolingCapacity = NominalCoolingCapacity;
       CoolingLoad = 0;
       CoolingWaterFlowRate = ChilledWaterFlowRate = 0.0;
       CoolingWaterOutletTemperature = CoolingWaterInletTemperature;
       ChilledWaterOutletTemperature = ChilledWaterInletTemperature;
-      //加熱関連の情報初期化
+      //Initialize heating related information
       MaxHeatingCapacity = NominalHeatingCapacity;
       HeatingLoad = 0;
       HeatSourceWaterFlowRate = HotWaterFlowRate = 0.0;

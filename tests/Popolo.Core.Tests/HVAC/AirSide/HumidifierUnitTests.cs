@@ -35,7 +35,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
       return unit;
     }
 
-    #region 出口湿度制御
+    #region Outlet humidity control
 
     /// <summary>能力範囲内なら出口絶対湿度が設定値に一致する。</summary>
     [Fact]
@@ -93,7 +93,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region 成り行き運転
+    #region Free-run operation
 
     /// <summary>成り行き運転では現在の飽和効率で加湿される。</summary>
     [Fact]
@@ -124,7 +124,7 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #endregion
 
-    #region 消費電力・停止処理
+    #region Electric consumption and shut-off
 
     /// <summary>運転中のファン消費電力は正となる。</summary>
     [Fact]

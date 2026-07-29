@@ -101,7 +101,7 @@ namespace Popolo.Webpro.Tests.Json.EnumConverters
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_UnknownString_Throws()

@@ -29,7 +29,7 @@ namespace Popolo.Webpro.Tests.Json
     /// <summary>Unit tests for <see cref="WebproWallLayerJsonConverter"/>.</summary>
     public class WebproWallLayerJsonConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static JsonSerializerOptions CreateOptions()
         {
@@ -41,7 +41,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region 正常ケース
+        #region Normal cases
 
         [Fact]
         public void Read_FullyPopulated()
@@ -132,7 +132,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingMaterialId_Throws()

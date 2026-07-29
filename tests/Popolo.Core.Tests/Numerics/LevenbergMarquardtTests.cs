@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
   /// <summary>LevenbergMarquardt のテスト</summary>
   public class LevenbergMarquardtTests
   {
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>numberOfFunctions が numberOfVariables より小さい場合に例外が発生する</summary>
     [Fact]
@@ -61,7 +61,7 @@ namespace Popolo.Core.Tests.Numerics
 
     #endregion
 
-    #region Minimize のテスト
+    #region Minimize tests
 
     /// <summary>線形最小二乗問題を正しく解ける</summary>
     [Fact]

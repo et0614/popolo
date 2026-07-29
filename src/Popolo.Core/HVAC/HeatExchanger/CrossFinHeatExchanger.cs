@@ -28,7 +28,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
   public class CrossFinHeatExchanger : IReadOnlyCrossFinHeatExchanger
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Water flow circuit type.</summary>
     public enum WaterFlowType
@@ -45,7 +45,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンス変数
+    #region Instance variables
 
     /// <summary>True if the detailed geometric model is used.</summary>
     private readonly bool isDetailedModel;
@@ -62,7 +62,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the relative humidity at the dry/wet boundary [%].</summary>
     public double BorderRelativeHumidity { get; private set; }
@@ -150,7 +150,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance using the detailed geometric coil model.</summary>
     /// <param name="depth">Coil depth [m].</param>
@@ -250,15 +250,15 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double maxWaterFlowRate, double ratedInletWaterTemperature, double flowFactor, double heatTransfer,
       bool useCorrectionFactor)
     {
-      //詳細モデルによる初期化
+      //Initialize with the detailed model
       isDetailedModel = true;
 
-      //コイルの幾何学形状を計算
+      //Compute the coil geometry
       double asr, car, eqr, eqd, asa;
       GetGeometricCompfigulation(depth, width, height, rowCount, columnCount, finPitch, finThickness,
         innerDiameter, outerDiameter, out asr, out car, out eqr, out eqd, out asa);
 
-      //コイル仕様を保存
+      //Store the coil specification
       this.airWaterSurfaceRatio = asr;
       this.coreArea = car;
       this.equivalentFinRadius = eqr;
@@ -269,17 +269,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
       this.innerDiameter = innerDiameter;
       this.outerDiameter = outerDiameter;
 
-      //その他のコイル仕様を保存
+      //Store the other coil specifications
       this.RatedAirFlowRate = ratedAirFlowRate;
       this.RatedWaterFlowRate = ratedWaterFlowRate;
       this.MaxWaterFlowRate = maxWaterFlowRate;
 
-      //乾湿境界での空気の相対湿度を保存
+      //Store the air relative humidity at the dry/wet boundary
       this.BorderRelativeHumidity = borderRelativeHumidity;
 
       if (useCorrectionFactor)
       {
-        //熱貫流率を計算する
+        //Compute the overall heat transfer coefficients
         double kd, kw;
         GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius, equivalentDiameter,
           waterPath, finThickness, thermalConductivity, innerDiameter, outerDiameter, RatedAirFlowRate,
@@ -288,7 +288,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         DryHeatTransferCoefficient = kd;
         WetHeatTransferCoefficient = kw;
 
-        //伝熱面積[m2]を取得する
+        //Obtain the heat transfer surface area [m2]
         SurfaceArea = GetSurfaceArea(ratedInletAirTemperature, ratedInletAirHumidityRatio,
           borderRelativeHumidity, ratedInletWaterTemperature, ratedAirFlowRate, ratedWaterFlowRate,
           heatTransfer, kd, kw);
@@ -317,28 +317,28 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double ratedWaterFlowRate, double ratedWaterSpeed, double maxWaterFlowRate,
       double ratedInletWaterTemperature, double heatTransfer)
     {
-      //簡易モデルによる初期化
+      //Initialize with the simplified model
       isDetailedModel = false;
 
-      //簡易モデルのコイル仕様を保存
+      //Store the coil specification for the simplified model
       this.ratedVelocity = ratedVelocity;
       this.ratedWaterSpeed = ratedWaterSpeed;
 
-      //その他のコイル仕様を保存
+      //Store the other coil specifications
       this.RatedAirFlowRate = ratedAirFlowRate;
       this.RatedWaterFlowRate = ratedWaterFlowRate;
       this.MaxWaterFlowRate = maxWaterFlowRate;
 
-      //乾湿境界での空気の相対湿度を保存
+      //Store the air relative humidity at the dry/wet boundary
       this.BorderRelativeHumidity = borderRelativeHumidity;
 
-      //熱貫流率を計算する
+      //Compute the overall heat transfer coefficients
       double kd, kw;
       GetHeatTransferCoefficient(ratedWaterSpeed, ratedVelocity, out kd, out kw);
       DryHeatTransferCoefficient = kd;
       WetHeatTransferCoefficient = kw;
 
-      //伝熱面積[m2]を取得する
+      //Obtain the heat transfer surface area [m2]
       SurfaceArea = GetSurfaceArea(ratedInletAirTemperature, ratedInletAirHumidityRatio,
         borderRelativeHumidity, ratedInletWaterTemperature, ratedAirFlowRate, ratedWaterFlowRate,
         heatTransfer, kd, kw);
@@ -346,7 +346,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Computes the outlet air and water states for the given inlet conditions.</summary>
     /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
@@ -357,14 +357,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public void UpdateOutletState(double inletAirTemperature, double inletAirHumidityRatio,
       double inletWaterTemperature, double airFlowRate, double waterFlowRate)
     {
-      //入力値を保存
+      //Store the input values
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
       InletWaterTemperature = inletWaterTemperature;
       AirFlowRate = airFlowRate;
       WaterFlowRate = waterFlowRate;
 
-      //熱媒が流れていない場合
+      //If no fluid is flowing
       if (AirFlowRate <= 0 || WaterFlowRate <= 0)
       {
         OutletAirTemperature = InletAirTemperature;
@@ -374,10 +374,10 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return;
       }
 
-      //熱貫流率を計算
+      //Compute the overall heat transfer coefficients
       if (isDetailedModel)
       {
-        //詳細モデル
+        //Detailed model
         double kd, kw;
         GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius, equivalentDiameter,
           waterPath, finThickness, thermalConductivity, innerDiameter, outerDiameter, AirFlowRate,
@@ -388,9 +388,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
       else
       {
-        //簡易モデル
+        //Simplified model
         double kd, kw;
-        //水速と風速を計算//風量と水量に比例
+        //Compute water and air velocities//proportional to air and water flow rates
         double velocity = (AirFlowRate / RatedAirFlowRate) * ratedVelocity;
         double waterSpeed = (WaterFlowRate / RatedWaterFlowRate) * ratedWaterSpeed;
         GetHeatTransferCoefficient(waterSpeed, velocity, out kd, out kw);
@@ -398,7 +398,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         WetHeatTransferCoefficient = kw;
       }
 
-      //出口状態を計算
+      //Compute the outlet state
       double ta, xa, tw, dr;
       GetOutletState(InletAirTemperature, InletAirHumidityRatio, BorderRelativeHumidity,
         InletWaterTemperature, AirFlowRate, WaterFlowRate, DryHeatTransferCoefficient,
@@ -419,16 +419,16 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public bool ControlOutletAirTemperature(double inletAirTemperature, double inletAirHumidityRatio,
       double inletWaterTemperature, double airFlowRate, double outletAirTemperatureSetpoint)
     {
-      //入力値を保存
+      //Store the input values
       InletAirTemperature = inletAirTemperature;
       InletAirHumidityRatio = inletAirHumidityRatio;
       InletWaterTemperature = inletWaterTemperature;
       AirFlowRate = airFlowRate;
 
-      //冷却・加熱の判定
+      //Determine cooling or heating mode
       bool isCooling = (inletWaterTemperature < inletAirTemperature);
 
-      //冷却・加熱不要の場合
+      //If neither cooling nor heating is needed
       if (isCooling && inletAirTemperature < outletAirTemperatureSetpoint + 1e-3 ||
         !isCooling && outletAirTemperatureSetpoint < inletAirTemperature + 1e-3)
       {
@@ -436,17 +436,17 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return false;
       }
 
-      //最大水量で成り行き出口温度を計算
+      //Compute the uncontrolled outlet temperature at the maximum water flow rate
       UpdateOutletState
         (InletAirTemperature, InletAirHumidityRatio, InletWaterTemperature, AirFlowRate, MaxWaterFlowRate);
 
-      //過負荷の場合には最大能力での成り行き状態を出力
+      //If overloaded, output the uncontrolled state at maximum capacity
       if ((isCooling && (outletAirTemperatureSetpoint < OutletAirTemperature))
         || (!isCooling && (OutletAirTemperature < outletAirTemperatureSetpoint)))
         return false;
 
-      //負荷が処理可能な場合は水量をBrent法で収束計算
-      //誤差関数を定義
+      //If the load can be handled, iterate on the water flow rate with Brent's method
+      //Define the error function
       Roots.ErrorFunction eFnc = delegate (double wFlow)
       {
         UpdateOutletState
@@ -471,7 +471,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the outlet air and water states for the given inlet conditions.</summary>
     /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
@@ -494,7 +494,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double outletAirTemperature, out double outletAirHumidityRatio,
       out double outletWaterTemperature, out double dryFraction)
     {
-      //熱媒流量が0の場合は出口状態=入口状態
+      //If either fluid flow rate is zero, outlet state = inlet state
       if (airFlowRate <= 0 || waterFlowRate <= 0 ||
         inletWaterTemperature == inletAirTemperature)
       {
@@ -505,12 +505,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
         return;
       }
 
-      //水と湿り空気の熱容量流量[kW/s]の計算
+      //Compute the heat capacity flow rates of water and moist air [kW/s]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = airFlowRate * cpma;
       double mcw = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
-      //加熱コイルの場合
+      //Heating coil case
       if (inletAirTemperature < inletWaterTemperature)
       {
         dryFraction = 1.0;
@@ -519,27 +519,27 @@ namespace Popolo.Core.HVAC.HeatExchanger
         double mcMax = Math.Max(mcw, mca);
         double ntu = dryHeatTransferCoefficient * surfaceArea / mcMin;
 
-        //対向流の熱通過有効度[-]の計算
+        //Compute the counter-flow heat transfer effectiveness [-]
         double eff = HeatExchange.GetEffectiveness(ntu, mcMin / mcMax, HeatExchange.FlowType.CounterFlow);
 
-        //交換熱量・出口状態を計算
+        //Compute the heat exchange rate and outlet state
         double q = eff * mcMin * (inletWaterTemperature - inletAirTemperature);
         outletAirTemperature = inletAirTemperature + q / mca;
         outletWaterTemperature = inletWaterTemperature - q / mcw;
         outletAirHumidityRatio = inletAirHumidityRatio;
       }
-      //冷却コイルの場合
+      //Cooling coil case
       else
       {
-        //乾湿境界での空気温度[C]の計算
+        //Compute the air temperature at the dry/wet boundary [C]
         double ba = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
           (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-        //入口空気のエンタルピー[kJ/kg]の計算
+        //Compute the inlet air enthalpy [kJ/kg]
         double iAirEnthalpy = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
           (inletAirTemperature, inletAirHumidityRatio);
 
-        //エンタルピー近似係数の計算
+        //Compute the enthalpy approximation coefficients
         double a, b;
         GetSaturationEnthalpyCoefficients(inletWaterTemperature, out a, out b);
 
@@ -565,23 +565,23 @@ namespace Popolo.Core.HVAC.HeatExchanger
           double v5 = zw * (xw + yw) / ww;
           double v6 = yw * (1 - zw) / ww / a;
 
-          //乾湿境界の水温[C]の計算
+          //Compute the water temperature at the dry/wet boundary [C]
           bWaterTemp = (v5 * inletWaterTemperature
           + v6 * (iAirEnthalpy - v1 * cpma * inletAirTemperature - b)) / (1 - v1 * v6 * cpma);
-          //乾湿境界での空気状態の計算
+          //Compute the air state at the dry/wet boundary
           bAirTemp = inletAirTemperature - v1 * (inletAirTemperature - bWaterTemp);
 
-          //誤差の評価
+          //Evaluate the error
           return ba - bAirTemp;
         };
-        //結露が生じる場合には乾きコイル面積比を収束計算
+        //If condensation occurs, iterate on the dry coil area fraction
         dryFraction = 1.0;
         if (0 < eFnc(dryFraction)) dryFraction = Roots.Brent(0, 1, 0.0001, eFnc);
 
-        //出口水温[C]の計算
+        //Compute the outlet water temperature [C]
         outletWaterTemperature = inletAirTemperature - v2 * (inletAirTemperature - bWaterTemp);
         double bAirEnthalpy = cpma * (bAirTemp - inletAirTemperature) + iAirEnthalpy;
-        //出口空気状態の計算
+        //Compute the outlet air state
         double iWaterEnthalpy = a * inletWaterTemperature + b;
         double oAirEnthalpy = v3 * bAirEnthalpy + v4 * iWaterEnthalpy;
         if (dryFraction < 1.0)
@@ -613,29 +613,29 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double airFlowRate, double ratedWaterFlowRate, double maxWaterFlowRate,
       double surfaceArea, double outletAirTemperatureSetpoint)
     {
-      //冷却・加熱の判定
+      //Determine cooling or heating mode
       bool isCooling = (inletWaterTemperature < inletAirTemperature);
 
-      //冷却・加熱不要の場合
+      //If neither cooling nor heating is needed
       if (isCooling && inletAirTemperature < outletAirTemperatureSetpoint
         || !isCooling && outletAirTemperatureSetpoint < inletAirTemperature) return 0;
 
       double wc = ratedWaterSpeed / ratedWaterFlowRate;
 
-      //最大水量で成り行き出口温度を計算
+      //Compute the uncontrolled outlet temperature at the maximum water flow rate
       double oat, oah, owt, dr, kd, kw;
       GetHeatTransferCoefficient(wc * maxWaterFlowRate, velocity, out kd, out kw);
       GetOutletState(inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
         inletWaterTemperature, airFlowRate, maxWaterFlowRate, kd, kw, surfaceArea,
         out oat, out oah, out owt, out dr);
 
-      //過負荷の場合には最大水量を出力
+      //If overloaded, return the maximum water flow rate
       if ((isCooling && (outletAirTemperatureSetpoint < oat))
         || (!isCooling && (oat < outletAirTemperatureSetpoint)))
         return maxWaterFlowRate;
 
-      //負荷が処理可能な場合は水量をBrent法で収束計算
-      //誤差関数を定義
+      //If the load can be handled, iterate on the water flow rate with Brent's method
+      //Define the error function
       Roots.ErrorFunction eFnc = delegate (double wFlow)
       {
         GetHeatTransferCoefficient(wc * wFlow, velocity, out kd, out kw);
@@ -675,14 +675,14 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double borderRelativeHumidity, double waterFlowRate, double inletWaterTemperature,
       double maxWaterFlowRate, double surfaceArea, double outletAirTemperatureSetpoint)
     {
-      //冷却・加熱の判定
+      //Determine cooling or heating mode
       bool isCooling = (inletWaterTemperature < inletAirTemperature);
 
-      //冷却・加熱不要の場合
+      //If neither cooling nor heating is needed
       if (isCooling && inletAirTemperature < outletAirTemperatureSetpoint
         || !isCooling && outletAirTemperatureSetpoint < inletAirTemperature) return 0;
 
-      //最大水量で成り行き出口温度を計算
+      //Compute the uncontrolled outlet temperature at the maximum water flow rate
       double oat, oah, owt, dr, kd, kw;
       GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius,
         equivalentDiameter, waterPath, finThickness, thermalConductivity,
@@ -694,13 +694,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
         airFlowRate, maxWaterFlowRate, kd, kw, surfaceArea,
         out oat, out oah, out owt, out dr);
 
-      //過負荷の場合には最大水量を出力
+      //If overloaded, return the maximum water flow rate
       if ((isCooling && (outletAirTemperatureSetpoint < oat))
         || (!isCooling && (oat < outletAirTemperatureSetpoint)))
         return maxWaterFlowRate;
 
-      //負荷が処理可能な場合は水量をBrent法で収束計算
-      //誤差関数を定義
+      //If the load can be handled, iterate on the water flow rate with Brent's method
+      //Define the error function
       Roots.ErrorFunction eFnc = delegate (double wFlow)
       {
         GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius,
@@ -749,40 +749,40 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double dryHeatTransferCoefficient, double wetHeatTransferCoefficient)
     {
 
-      //水と湿り空気の熱容量流量[kW/s]の計算
+      //Compute the heat capacity flow rates of water and moist air [kW/s]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double mca = airFlowRate * cpma;
       double mcw = waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
-      //加熱コイルの場合
+      //Heating coil case
       if (inletAirTemperature < inletWaterTemperature)
       {
-        //NTU値の計算
+        //Compute the NTU value
         double mcMin = Math.Min(mcw, mca);
         double mcMax = Math.Max(mcw, mca);
 
-        //熱通過有効度[-]の計算
+        //Compute the heat transfer effectiveness [-]
         double eff = heatTransfer / mcMin / (inletWaterTemperature - inletAirTemperature);
         double ntu = HeatExchange.GetNTU(eff, mcMin / mcMax, HeatExchange.FlowType.CounterFlow);
 
         return ntu * mcMin / dryHeatTransferCoefficient;
       }
-      //冷却コイルの場合
+      //Cooling coil case
       else
       {
-        //冷水出口温度[C]の計算
+        //Compute the chilled water outlet temperature [C]
         double oWaterTemp = inletWaterTemperature + heatTransfer / mcw;
 
-        //空気出入口エンタルピー[kJ/kg]の計算
+        //Compute the inlet and outlet air enthalpies [kJ/kg]
         double iAirEnthalpy = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
           (inletAirTemperature, inletAirHumidityRatio);
         double oAirEnthalpy = iAirEnthalpy - heatTransfer / airFlowRate;
 
-        //コイルの乾湿境界の計算
+        //Compute the dry/wet boundary of the coil
         double oAirHumidRatio = MoistAir.GetHumidityRatioFromEnthalpyAndRelativeHumidity
           (oAirEnthalpy, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
 
-        //乾きコイルのみの場合
+        //Fully dry coil case
         if (inletAirHumidityRatio < oAirHumidRatio)
         {
           double oAirTemp = inletAirTemperature - heatTransfer / mca;
@@ -791,27 +791,27 @@ namespace Popolo.Core.HVAC.HeatExchanger
           double lmtd = (d1 - d2) / Math.Log(d1 / d2);
           return heatTransfer / lmtd / dryHeatTransferCoefficient;
         }
-        //乾き+湿りコイルの場合
+        //Dry + wet coil case
         else
         {
-          //境界点での湿り空気状態の計算
+          //Compute the moist air state at the boundary point
           double bAirTemp =
             MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
             (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
           double bAirEnthalpy =
             MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(bAirTemp, inletAirHumidityRatio);
 
-          //境界点での水温[C]の計算
+          //Compute the water temperature at the boundary point [C]
           double htWet = (bAirEnthalpy - oAirEnthalpy) * airFlowRate;
           double bWaterTemp = inletWaterTemperature + htWet / mcw;
 
-          //水温と等しい温度の空気の飽和エンタルピー[kJ/(kg)]の計算
+          //Compute the saturation enthalpy of air at the water temperature [kJ/(kg)]
           double iWaterEnthalpy =
             MoistAir.GetSaturationEnthalpyFromDryBulbTemperature(inletWaterTemperature, PhysicsConstants.StandardAtmosphericPressure);
           double bWaterEnthalpy =
             MoistAir.GetSaturationEnthalpyFromDryBulbTemperature(bWaterTemp, PhysicsConstants.StandardAtmosphericPressure);
 
-          //乾きコイルの表面積[m2]の計算
+          //Compute the dry coil surface area [m2]
           double dt1 = inletAirTemperature - oWaterTemp;
           double dt2 = bAirTemp - bWaterTemp;
           double lmtd = (dt1 - dt2) / Math.Log(dt1 / dt2);
@@ -863,25 +863,25 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double airWaterSurfaceRatio, out double coreArea, out double equivalentFinRadius,
       out double equivalentDiameter, out double surfaceArea)
     {
-      //空気側伝熱面積[m2]の計算
+      //Compute the air-side heat transfer surface area [m2]
       double sf = 2 * (height * depth / rowCount 
         - outerDiameter * outerDiameter / 4 * Math.PI * columnCount) * width / finPitch;
       double sto = outerDiameter * Math.PI * columnCount * width * (1 - finThickness / finPitch);
       surfaceArea = sf + sto;
 
-      //水側伝熱面積[m2]の計算
+      //Compute the water-side heat transfer surface area [m2]
       double wSurface = innerDiameter * Math.PI * columnCount * width;
 
-      //空気側・水側伝熱面積比[-]の計算
+      //Compute the air-side to water-side heat transfer surface area ratio [-]
       airWaterSurfaceRatio = surfaceArea / wSurface;
 
-      //コア面積[m2]の計算
+      //Compute the core area [m2]
       coreArea = (width * height - outerDiameter * width * columnCount) * (1 - finThickness / finPitch);
 
-      //環状フィンの相当半径[m]の計算
+      //Compute the equivalent radius of the annular fin [m]
       equivalentFinRadius = Math.Sqrt((depth / rowCount) * (height / columnCount) / Math.PI);
 
-      //等価直径[m]の計算
+      //Compute the equivalent diameter [m]
       equivalentDiameter = 4 * coreArea / (surfaceArea * rowCount / depth);
     }
 
@@ -911,8 +911,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double borderRelativeHumidity, double waterFlowRate, double inletWaterTemperature,
       out double dryHeatTransferCoefficient, out double wetHeatTransferCoefficient)
     {
-      //湿り空気物性の計算//比熱[kJ/kgK]・動粘性係数[m2/s]・熱伝導率[W/(mK)]
-      //比体積[kg/m3]・拡散係数[m2/s]
+      //Compute moist air properties//specific heat [kJ/kgK], kinematic viscosity [m2/s], thermal conductivity [W/(mK)]
+      //specific volume [kg/m3], diffusivity [m2/s]
       double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
       double dVis = MoistAir.GetDynamicViscosity
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
@@ -922,43 +922,43 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double difc = MoistAir.GetThermalDiffusivity
         (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
 
-      //実風速の計算[m/s]
+      //Compute the actual air velocity [m/s]
       double coreVelocity = airFlowRate * PhysicsConstants.NominalMoistAirDensity / coreArea;
 
-      //レイノルズ数[-]の計算
+      //Compute the Reynolds number [-]
       double re = coreVelocity * equivalentDiameter / dVis;
 
-      //水側の対流熱伝達率[W/(m2K)]の計算
+      //Compute the water-side convective heat transfer coefficient [W/(m2K)]
       double wfCoefficient = FluidCircuit.WaterPipe.GetInsideHeatTransferCoefficient
         (inletWaterTemperature, innerDiameter, waterFlowRate / waterPath);
 
-      //乾き部分の計算////
-      //空気側対流熱伝達率[W/(m2K)]の計算
+      //Dry section calculation////
+      //Compute the air-side convective heat transfer coefficient [W/(m2K)]
       double afd = 0.129 * tCond / equivalentDiameter * Math.Pow(re, 0.64);
 
-      //フィン効率[-]の計算
+      //Compute the fin efficiency [-]
       double fEfficiencyD = HeatExchange.GetCircularFinEfficiency
         (outerDiameter / 2, equivalentFinRadius, finThickness, afd, thermalConductivity);
 
-      //熱貫流率[kW/(m2K)]の計算
+      //Compute the overall heat transfer coefficient [kW/(m2K)]
       dryHeatTransferCoefficient = 0.001 / (airWaterSurfaceRatio / wfCoefficient 
         + 1 / (afd * (fEfficiencyD + 1 / airWaterSurfaceRatio)));
 
-      //湿り部分の計算////
-      //フィン表面の物質移動係数[W/(m2(kJ/kg))]の計算
+      //Wet section calculation////
+      //Compute the mass transfer coefficient on the fin surface [W/(m2(kJ/kg))]
       double kf = 37.2 * difc / (sVol * equivalentDiameter) * Math.Pow(re, 0.8);
 
-      //エンタルピー近似係数の計算
+      //Compute the enthalpy approximation coefficients
       double a, b;
       GetSaturationEnthalpyCoefficients(inletWaterTemperature, out a, out b);
 
-      //フィン効率[-]の計算
+      //Compute the fin efficiency [-]
       double lewis = 3.19 * Math.Pow(re, -0.16);
       double afw = a / (cpma * lewis) * afd;
       double fEfficiencyW = HeatExchange.GetCircularFinEfficiency
         (outerDiameter / 2, equivalentFinRadius, finThickness, afw, thermalConductivity);
 
-      //熱貫流率[kW/(m2(kJ/kg))]の計算
+      //Compute the overall heat transfer coefficient [kW/(m2(kJ/kg))]
       wetHeatTransferCoefficient = 0.001 / (a * airWaterSurfaceRatio / wfCoefficient 
         + 1 / (kf * (fEfficiencyW + 1 / airWaterSurfaceRatio)));
     }

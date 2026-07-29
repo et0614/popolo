@@ -35,7 +35,7 @@ namespace Popolo.Core.Tests.ThermalComfort
     /// </remarks>
     public class FangerModelTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>標準呼び出し：外部仕事ゼロ。</summary>
         private static double PMV(
@@ -46,7 +46,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region PMV計算精度テスト（ISO 7730参照値）
+        #region PMV calculation accuracy tests (ISO 7730 reference values)
 
         /// <summary>
         /// 中立条件（PMV ≈ 0）：
@@ -133,7 +133,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region PPD計算テスト
+        #region PPD calculation tests
 
         /// <summary>PMV=0 のとき PPD は最小（5 %）。</summary>
         [Fact]
@@ -185,7 +185,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region 逆算テスト
+        #region Inverse calculation tests
 
         /// <summary>GetDrybulbTemperature が PMV=0 となる温度を正しく求める。</summary>
         [Fact]
@@ -209,7 +209,7 @@ namespace Popolo.Core.Tests.ThermalComfort
 
         #endregion
 
-        #region Tasks列挙型テスト
+        #region Tasks enumeration tests
 
         /// <summary>座位安静（1.0 met）の代謝量が妥当な範囲にある。</summary>
         [Fact]

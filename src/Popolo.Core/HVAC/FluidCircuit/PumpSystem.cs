@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public class PumpSystem : IReadOnlyPumpSystem
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Represents a centrifugal pump.</summary>
     private CentrifugalPump pump;
@@ -62,7 +62,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="pump">Centrifugal pump.</param>
@@ -78,25 +78,25 @@ namespace Popolo.Core.HVAC.FluidCircuit
       PressureSetpoint = designPressure;
       ActualHead = actualHead;
 
-      //抵抗係数[kPa/(m3/s)^2]を計算
+      //Compute the resistance coefficient [kPa/(m3/s)^2]
       resistanceCoefficient = (designPressure - actualHead) / (designFlowRate * designFlowRate);
     }
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Updates the state.</summary>
     public void UpdateState()
     {
-      //運転台数を確定
+      //Determine the number of operating pumps
       ActivePumpCount = GetActivePumpCount(TotalFlowRate);
       if (ActivePumpCount == 0)
       {
         ShutOff();
         return;
       }
-      //過負荷の場合
+      //Overload case
       if (PumpCount < ActivePumpCount)
       {
         ActivePumpCount = PumpCount;
@@ -108,12 +108,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
       else
       {
         double vFlow = TotalFlowRate / ActivePumpCount;
-        //最小吐出圧制御の場合：
+        //Minimum discharge pressure control:
         if (Pump.Control == CentrifugalPump.ControlMethod.MinPressure)
         {
           double pressure = TotalFlowRate * TotalFlowRate * resistanceCoefficient + ActualHead;
           pump.updateWithFlowRateAndPressure(vFlow, pressure);
-          //最小回転数比[-]未満の場合
+          //Below the minimum rotational speed ratio [-]
           if (Pump.RotationRatio < Pump.MinRotationRatio)
           {
             double tf;
@@ -121,7 +121,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
               (Pump.MinRotationRatio, resistanceCoefficient, ActualHead, ActivePumpCount, out tf);
           }
         }
-        //吐出圧一定制御・バイパス制御の場合
+        //Constant discharge pressure control or bypass control
         else pump.UpdateState(vFlow);
 
         BypassFlowRate = (Pump.VolumetricFlowRate * ActivePumpCount) - TotalFlowRate;
@@ -143,7 +143,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region staticメソッド
+    #region Static methods
 
     /// <summary>Computes the required number of operating pumps.</summary>
     /// <param name="flowRate">Required water flow rate [m³/s].</param>
@@ -152,12 +152,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
     {
       if (flowRate <= 0) return 0;
 
-      //最小吐出圧制御の場合：1台ずつ増やして確認
+      //Minimum discharge pressure control: check by adding one unit at a time
       if (Pump.Control == CentrifugalPump.ControlMethod.MinPressure)
       {
         double r2 = flowRate * flowRate;
         double ps = resistanceCoefficient * r2 + ActualHead;
-        //締切揚程が必要揚程を上回ることの確認
+        //Verify that the shutoff head exceeds the required head
         pump.UpdateWithFlowRateAndRotationRatio(0, 1.0);
         if (pump.Pressure < ps) throw new PopoloInvalidOperationException(
           $"Pump shutoff head ({pump.Pressure} kPa) is less than required static head ({ps} kPa). "
@@ -165,7 +165,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         int opNum = 1;
         while (true)
         {
-          //最大回転数比で水量が足りるか確認
+          //Check whether the flow rate is sufficient at the maximum rotational speed ratio
           double tf;
           pump.updateWithResistanceAndRotationRatio(1.0, resistanceCoefficient, ActualHead, opNum, out tf);
           if (flowRate < tf) break;
@@ -176,7 +176,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         }
         return opNum;
       }
-      //吐出圧一定制御・バイパス制御の場合には台数で流量均等分割
+      //For constant discharge pressure control or bypass control, split the flow rate evenly among the units
       else
       {
         pump.updateWithRotationRatioAndPressure(1.0, PressureSetpoint);

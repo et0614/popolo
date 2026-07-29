@@ -30,7 +30,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     /// </remarks>
     public class CrossFinEvaporatorTests
     {
-        #region ヘルパー
+        #region Helpers
 
         /// <summary>
         /// 標準的な蒸発器を生成する。
@@ -42,7 +42,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region コンストラクタ・プロパティ
+        #region Constructors and properties
 
         /// <summary>SurfaceArea が正の値になる。</summary>
         [Fact]
@@ -159,7 +159,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
-        #region 乾湿・着霜面積
+        #region Wet/dry and frosted areas
 
         /// <summary>
         /// 高湿度空気では WetSurfaceArea が DrySurfaceArea より大きい（除湿が支配的）。

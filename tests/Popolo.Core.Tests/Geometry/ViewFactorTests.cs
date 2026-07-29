@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Geometry
     public class ViewFactorTests
     {
 
-        #region GetViewFactorParallelRectangles のテスト
+        #region GetViewFactorParallelRectangles tests
 
         /// <summary>距離0のとき形態係数は1（完全対向）</summary>
         [Fact]
@@ -78,7 +78,7 @@ namespace Popolo.Core.Tests.Geometry
 
         #endregion
 
-        #region GetViewFactorPerpendicularRectangles のテスト
+        #region GetViewFactorPerpendicularRectangles tests
 
         /// <summary>depth=∞のとき形態係数は0.5</summary>
         [Fact]

@@ -21,7 +21,7 @@ namespace BESTEST_2023
 {
   internal static partial class Section7Runner
   {
-    #region 参照値突合 (Std140_TF_Results.xlsx)
+    #region Reference value comparison (Std140_TF_Results.xlsx)
 
     /// <summary>1 ケース・1 メトリックの参照範囲 (Min/Max/Mean of 6 ref tools)。</summary>
     private struct RefRange
@@ -153,7 +153,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region OpenXml 読込ヘルパー
+    #region OpenXml reading helpers
 
     private static SheetData? GetSheetData(WorkbookPart wbp, string sheetName)
     {

@@ -35,7 +35,7 @@ namespace Popolo.Core.Tests.Physics
     /// <summary>標準大気圧 [kPa]</summary>
     private const double Atm = PhysicsConstants.StandardAtmosphericPressure;
 
-    #region 定数のテスト
+    #region Constant tests
 
     /// <summary>乾き空気の定圧比熱が正しい値を持つ</summary>
     [Fact]
@@ -53,7 +53,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region コンストラクタのテスト
+    #region Constructor tests
 
     /// <summary>デフォルトコンストラクタで正しい初期値が設定される</summary>
     [Fact]
@@ -84,7 +84,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 引数範囲のテスト
+    #region Argument range tests
 
     [Fact]
     public void GetEnthalpyFromDryBulbTemperatureAndHumidityRatio_BelowAbsoluteZero_Throws()
@@ -116,7 +116,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region エンタルピーの計算テスト
+    #region Enthalpy calculation tests
 
     /// <summary>乾球温度と絶対湿度からエンタルピーを計算できる（ASHRAE式）</summary>
     [Fact]
@@ -156,7 +156,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 相対湿度の計算テスト
+    #region Relative humidity calculation tests
 
     /// <summary>相対湿度 50%, 24°C での絶対湿度は約 0.009 kg/kg</summary>
     [Fact]
@@ -194,7 +194,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 湿球温度の計算テスト
+    #region Wet-bulb temperature calculation tests
 
     /// <summary>乾球温度と湿球温度から絶対湿度を計算し逆算できる</summary>
     [Theory]
@@ -230,7 +230,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 比体積の計算テスト
+    #region Specific volume calculation tests
 
     /// <summary>24°C, W=0.009 での比体積は約 0.854 m³/kg</summary>
     [Fact]
@@ -257,7 +257,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region 飽和状態の計算テスト
+    #region Saturation state calculation tests
 
     /// <summary>露点温度から飽和絶対湿度を計算できる</summary>
     [Fact]
@@ -293,7 +293,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region その他の物性値テスト
+    #region Other physical property tests
 
     /// <summary>標高 0m での大気圧は標準大気圧に等しい</summary>
     [Fact]
@@ -347,7 +347,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region BlendAir のテスト
+    #region BlendAir tests
 
     /// <summary>等量の空気を混合すると中間の状態になる</summary>
     [Fact]
@@ -387,7 +387,7 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
-    #region CopyTo のテスト
+    #region CopyTo tests
 
     /// <summary>CopyTo で全プロパティが正しくコピーされる</summary>
     [Fact]

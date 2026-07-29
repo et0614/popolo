@@ -140,35 +140,35 @@ namespace Popolo.IO.Climate.Weather
         throw new PopoloArgumentException(
             "stream must be seekable for WEA2 random access.", nameof(stream));
 
-      // データセット先頭にシーク
+      // Seek to the start of the dataset
       stream.Seek(DatasetLength * (LocationIndex - 1), SeekOrigin.Begin);
 
-      // 先頭レコード = 地点情報
+      // First record = location information
       byte[] buf = new byte[RecordLength];
       ReadExact(stream, buf);
 
       short locationIndex = BitConverter.ToInt16(buf, 0);
-      // [2]: 種別 (未使用)
+      // [2]: type (unused)
       short year = BitConverter.ToInt16(buf, 4);
       if (year == 1120) year = 2021;
       double latitude = BitConverter.ToInt16(buf, 14) + 0.001 * BitConverter.ToInt16(buf, 16);
       double longitude = BitConverter.ToInt16(buf, 18) + 0.001 * BitConverter.ToInt16(buf, 20);
       double elevation = BitConverter.ToInt16(buf, 22);
 
-      // 地点名 (Shift-JIS)
+      // Station name (Shift-JIS)
       string stationName = TryReadShiftJisName(buf, (3 + 24 * 366) * 2);
 
-      // 10 個のデータレコードを読み、時刻別の値配列に格納
+      // Read the 10 data records and store them into per-hour value arrays
       double[] dbt = new double[366 * 24];
       double[] hr  = new double[366 * 24];
       double[] ghi = new double[366 * 24];
-      double[] lwr = new double[366 * 24];  // 大気放射量(downwelling)
+      double[] lwr = new double[366 * 24];  // atmospheric radiation (downwelling)
       int[]    wd  = new int[366 * 24];
       double[] ws  = new double[366 * 24];
       double[] pr  = new double[366 * 24];
-      // sunshine hours は未使用のためスキップ
-      double[] atm = new double[366 * 24];  // 気圧(hPa)
-      double[] rh  = new double[366 * 24];  // 相対湿度 (未使用)
+      // sunshine hours are unused, so skipped
+      double[] atm = new double[366 * 24];  // atmospheric pressure (hPa)
+      double[] rh  = new double[366 * 24];  // relative humidity (unused)
 
       double[] cfH = { 0.1, 0.1, 0.01, 0.01, 1, 0.1, 0.1, 0.01, 1, 0.1 };
 
@@ -199,7 +199,7 @@ namespace Popolo.IO.Climate.Weather
         }
       }
 
-      // WeatherData 構築
+      // Build the WeatherData
       var data = new WeatherData
       {
         Source = WeatherDataSource.Wea2,
@@ -227,7 +227,7 @@ namespace Popolo.IO.Climate.Weather
         }
         builder.SetWindSpeed(Math.Max(0.0, ws[i]));
         builder.SetPrecipitation(Math.Max(0.0, pr[i]));
-        // 気圧: raw は 0.1 hPa 単位 (× cfH[8] = 1 → hPa)、kPa には × 0.1
+        // Atmospheric pressure: raw is in 0.1 hPa units (× cfH[8] = 1 → hPa); × 0.1 for kPa
         if (atm[i] > 0)
           builder.SetAtmosphericPressure(atm[i] * 0.1);
         data.Add(builder.ToRecord());
@@ -261,7 +261,7 @@ namespace Popolo.IO.Climate.Weather
       }
       catch (ArgumentException)
       {
-        // Shift-JIS が利用不可 (.NET Core 等で CodePagesEncodingProvider 未登録)
+        // Shift-JIS unavailable (CodePagesEncodingProvider not registered, e.g. on .NET Core)
         return string.Empty;
       }
       catch (NotSupportedException)

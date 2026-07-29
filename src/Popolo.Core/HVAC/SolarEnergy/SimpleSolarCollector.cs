@@ -29,7 +29,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
   public class SimpleSolarCollector
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Solar collector receiver type.</summary>
     public enum HeatReceiver
@@ -42,7 +42,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Inclined surface data.</summary>
     private Incline incline = null!;
@@ -77,7 +77,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="incline">Inclined surface.</param>
@@ -123,7 +123,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
 
     #endregion
 
-    #region publicメソッド
+    #region Public methods
 
     /// <summary>Computes the required water flow rate [kg/s].</summary>
     /// <param name="totalIrradiance">Total irradiance on the inclined surface [W/m²].</param>
@@ -134,10 +134,10 @@ namespace Popolo.Core.HVAC.SolarEnergy
     public double GetWaterFlowRate
       (double totalIrradiance, double waterTemperature, double temperatureDifferrence, double ambientTemperature)
     {
-      //入口水温保存
+      //Save the inlet water temperature
       InletWaterTemperature = waterTemperature;
 
-      //温度差が負または日射0の場合には停止
+      //Stop when the temperature difference is negative or the irradiance is zero
       if (temperatureDifferrence <= 0 || totalIrradiance <= 0)
       {
         OutletWaterTemperature = InletWaterTemperature;
@@ -146,19 +146,19 @@ namespace Popolo.Core.HVAC.SolarEnergy
         return 0;
       }
 
-      //出口水温[C]     
+      //Outlet water temperature [C]
       OutletWaterTemperature = waterTemperature + temperatureDifferrence;
 
-      //平均集熱温度[C]
+      //Mean collection temperature [C]
       double tM = 0.5 * (InletWaterTemperature + OutletWaterTemperature);
 
-      //外気温度差[K]
+      //Temperature difference from the outdoor air [K]
       double dT = tM - ambientTemperature;
 
-      //集熱効率[-]
+      //Collection efficiency [-]
       Efficiency = Math.Max(0, CoefficientA * (dT / totalIrradiance) + CoefficientB);
 
-      //水量[kg/s]
+      //Water flow rate [kg/s]
       WaterFlowRate = 0.001 * totalIrradiance * SurfaceArea
         * Efficiency / (temperatureDifferrence * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat);
       return WaterFlowRate;
@@ -187,7 +187,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
     public double GetOutletTemperature
       (double totalIrradiance, double waterTemperature, double waterFlowRate, double ambientTemperature)
     {
-      //流量が0の場合には停止
+      //Stop when the flow rate is zero
       if (waterFlowRate <= 0)
       {
         OutletWaterTemperature = InletWaterTemperature;
@@ -196,7 +196,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
         return 0;
       }
 
-      //出入口温度差の計算
+      //Compute the inlet-to-outlet temperature difference
       double dT = 0.001 * SurfaceArea * 
         (CoefficientA * (waterTemperature - ambientTemperature) + CoefficientB * totalIrradiance)
         / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * waterFlowRate - 0.0005 * SurfaceArea * CoefficientA);

@@ -31,7 +31,7 @@ namespace Popolo.Webpro.Tests.Json
     /// <summary>Unit tests for <see cref="WebproWindowConfigurationJsonConverter"/>.</summary>
     public class WebproWindowConfigureJsonConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static JsonSerializerOptions CreateOptions()
         {
@@ -45,7 +45,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region 正常ケース - 実サンプル類似
+        #region Normal cases - similar to real samples
 
         [Fact]
         public void Read_RealSample_G1()
@@ -183,7 +183,7 @@ namespace Popolo.Webpro.Tests.Json
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_NonObjectRoot_Throws()

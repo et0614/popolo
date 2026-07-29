@@ -82,7 +82,7 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
-    #region 湿度の双方向補完 (HumidityRatio ↔ RelativeHumidity)
+    #region Bidirectional humidity completion (HumidityRatio ↔ RelativeHumidity)
     // この補完フェーズは無条件で動作する (WeatherReadOptions のフラグなし)。
     // 物理計算層は HumidityRatio しか読まないので RH のみのデータを救済する必要があり、
     // 逆方向 (w→RH) も対称性のために同時に埋める。
@@ -454,7 +454,7 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
-    #region 駅情報未設定時 / フォールバック
+    #region Without station info / fallback
 
     [Fact]
     public void NoStationLocation_SkipsSolarCompletions()
@@ -515,7 +515,7 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
-    #region デフォルト (no-op)
+    #region Default (no-op)
 
     [Fact]
     public void DefaultOptions_PerformsNoDerivation()
@@ -533,7 +533,7 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
-    #region 区間積分された sin(altitude) の使用
+    #region Use of interval-integrated sin(altitude)
 
     /// <summary>
     /// 規約を既定 (StartOfInterval) のままにして、13:00 の record が

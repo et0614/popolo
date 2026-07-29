@@ -54,7 +54,7 @@ namespace Popolo.Core.Building.Envelope
   public class SunShade : ISolarShading
   {
 
-    #region 列挙型
+    #region Enumerations
 
     /// <summary>Specifies the shape of the solar shading device.</summary>
     public enum ShapeType
@@ -83,7 +83,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>
     /// Gets the discriminator identifying this <see cref="ISolarShading"/>
@@ -126,7 +126,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with full geometry parameters.</summary>
     /// <param name="shape">Shading device shape.</param>
@@ -192,7 +192,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>
     /// Gets the effective sky view factor of the window with this shading device.
@@ -245,7 +245,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region private 共通計算ヘルパー
+    #region Private common calculation helpers
 
     /// <summary>
     /// Shared implementation of <see cref="GetSkyViewFactor"/>: computes the
@@ -323,13 +323,13 @@ namespace Popolo.Core.Building.Envelope
     /// </summary>
     private double computeDirectShadingRate(IReadOnlySun sun, IReadOnlyIncline? incline)
     {
-      // 日の出前・日没後は完全遮蔽
+      // Fully shaded before sunrise and after sunset
       if (sun.Altitude <= 0) return 1;
-      // 日除けが無ければ影は無し
+      // No shadow if there is no sun shade
       if (Shape == ShapeType.None) return 0;
-      // Incline 未設定では幾何関係が定まらないため、安全側で完全遮蔽
+      // Without Incline the geometry is undefined, so assume full shading to be safe
       if (incline == null) return 1;
-      // 太陽が裏面にある場合は完全遮蔽
+      // Fully shaded when the sun is behind the surface
       if (incline.GetDirectSolarRadiationRatio(sun) <= 0) return 1;
 
       double dpW = Overhang * Math.Tan(incline.HorizontalAngle - sun.Azimuth);
@@ -374,7 +374,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 初期化処理
+    #region Initialization
 
     /// <summary>Creates a <see cref="SunShade"/> instance with no shading effect.</summary>
     /// <returns>A <see cref="SunShade"/> with shape <see cref="ShapeType.None"/>.</returns>
@@ -536,7 +536,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region private staticメソッド
+    #region Private static methods
 
     /// <summary>Computes the shadow area [m²] cast by a finite horizontal overhang.</summary>
     /// <param name="dpW">Horizontal distance from the overhang edge to the shadow edge [m].</param>

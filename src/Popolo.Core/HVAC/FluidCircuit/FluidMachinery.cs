@@ -27,7 +27,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
   public abstract class FluidMachinery : IReadOnlyFluidMachinery, ICircuitBranch
   {
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets the correction factor [-].</summary>
     public double CorrectionFactor { get; protected set; } = 1.0;
@@ -81,7 +81,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="nominalPressure">Nominal total pressure or head [kPa].</param>
@@ -99,17 +99,17 @@ namespace Popolo.Core.HVAC.FluidCircuit
       HasInverter = hasInverter;
       efficiencyCoefficient = new double[] { 0, 0, 0, 0, 1d };
 
-      //定格軸動力[kW]を計算
+      //Compute the nominal shaft power [kW]
       NominalShaftPower = nominalPressure * nominalFlowRate;
       MotorEfficiency = GetMotorEfficiency(NominalShaftPower);
 
-      //抵抗係数[kPa/(m3/s)^2]を計算
+      //Compute the resistance coefficient [kPa/(m3/s)^2]
       resistanceCoefficient = (designPressure - actualHead) / (designFlowRate * designFlowRate);
     }
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Gets the fluid machinery efficiency [-].</summary>
     public virtual double GetFluidMachineryEfficiency()
@@ -204,7 +204,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region 特性式設定処理
+    #region Characteristic equation setting methods
 
     /// <summary>Sets the efficiency characteristic coefficients.</summary>
     /// <param name="eCoef0">Efficiency coefficient 0 (eCoef[0]+eCoef[1]x+…+eCoef[4]x⁴).</param>
@@ -225,14 +225,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public void SetPressureCoefficient(
       double pCoef0, double pCoef1, double pCoef2)
     {
-      pressureCoefficient[0] = pCoef2; //逆な点に注意（SetEfficiencyCoefficientの引数との整合のため）
+      pressureCoefficient[0] = pCoef2; //Note the reversed order (for consistency with the SetEfficiencyCoefficient arguments)
       pressureCoefficient[1] = pCoef1;
       pressureCoefficient[2] = pCoef0;
     }
 
     #endregion
 
-    #region ICircuitBranch実装
+    #region ICircuitBranch implementation
 
     /// <summary>Gets or sets the upstream node.</summary>
     public CircuitNode? UpStreamNode { get; set; }
@@ -260,7 +260,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double r2 = RotationRatio * RotationRatio;
       double[] pc = pressureCoefficient;
 
-      //揚程0での流量を計算:解の公式
+      //Compute the flow rate at zero head: quadratic formula
       double maxF = (-pc[1] - Math.Sqrt(pc[1] * pc[1] - 4 * pc[0] * pc[2])) / (2 * pc[0]);
       if (dp <= 0)
       {
@@ -269,11 +269,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
         return;
       }
 
-      //PQ特性極大値を計算//揚程不足の場合には流量0を出力
+      //Compute the maximum of the PQ characteristic//Output zero flow rate if the head is insufficient
       double pMaxF = -0.5 * pc[1] / pc[0];
       double pMax;
       if (0 < pMaxF) pMax = r2 * GetPolynomial(pMaxF, pc);
-      else pMax = r2 * pc[2];  //切片圧力
+      else pMax = r2 * pc[2];  //Intercept pressure
       if (pMax < dp)
       {
         VolumetricFlowRate = pMaxF - (dp - pMax);
@@ -281,7 +281,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
         return;
       }
 
-      //解の公式で求解
+      //Solve with the quadratic formula
       double aa = r2 * pc[0];
       double bb = r2 * pc[1];
       double cc = r2 * pc[2] - dp;
@@ -291,7 +291,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region public staticメソッド
+    #region Public static methods
 
     /// <summary>Computes the fluid machinery efficiency [-].</summary>
     /// <param name="flowRate">Volumetric flow rate [m³/s].</param>
@@ -349,18 +349,18 @@ namespace Popolo.Core.HVAC.FluidCircuit
       if (rotationRatio <= 0) return 0;
       double r2 = rotationRatio * rotationRatio;
 
-      //揚程0での流量を計算:解の公式
+      //Compute the flow rate at zero head: quadratic formula
       double maxF = (-pressureCoef[1] - Math.Sqrt(pressureCoef[1] * pressureCoef[1] - 4 * pressureCoef[0] * pressureCoef[2])) / (2 * pressureCoef[0]);
       if (pressure <= 0) return maxF;
 
-      //PQ特性極大値を計算//揚程不足の場合には流量0を出力
+      //Compute the maximum of the PQ characteristic//Output zero flow rate if the head is insufficient
       double pMaxF = -0.5 * pressureCoef[1] / pressureCoef[0];
       double pMax;
       if (0 < pMaxF) pMax = r2 * GetPolynomial(pMaxF, pressureCoef);
-      else pMax = r2 * pressureCoef[2];  //切片圧力
+      else pMax = r2 * pressureCoef[2];  //Intercept pressure
       if (pMax < pressure) return 0; //2022.01.06 BugFix
 
-      //二分法で求解
+      //Solve with the bisection method
       Roots.ErrorFunction eFnc = delegate (double vf)
       { return r2 * GetPolynomial(vf / rotationRatio, pressureCoef) - pressure; };
       return Roots.Bisection(eFnc, Math.Max(0, pMaxF), maxF, 1e-4, 1e-4, 20);
@@ -402,7 +402,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     #endregion
 
-    #region private staticメソッド
+    #region Private static methods
 
     /// <summary>Evaluates the polynomial y = Σa[n]·x^(N−n).</summary>
     /// <param name="x">Input variable.</param>
@@ -432,7 +432,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
   }
 
-  #region 読み取り専用インターフェース
+  #region Read-only interface
 
   #endregion
 

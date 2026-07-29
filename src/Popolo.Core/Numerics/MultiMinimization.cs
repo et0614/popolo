@@ -27,7 +27,7 @@ namespace Popolo.Core.Numerics
   public static class MultiMinimization
   {
 
-    #region デリゲート
+    #region Delegates
 
     /// <summary>Function to minimize.</summary>
     /// <param name="vecX">Input vector.</param>
@@ -37,14 +37,14 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Relative step size used for numerical differentiation.</summary>
     public static double Delta { get; set; } = 1e-7;
 
     #endregion
 
-    #region ニュートン法
+    #region Newton's method
 
     /// <summary>Searches for a local minimum using Newton's method.</summary>
     /// <param name="vecX">Initial guess. Output: converged solution.</param>
@@ -140,7 +140,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 準ニュートン法
+    #region Quasi-Newton method
 
     /// <summary>Searches for a local minimum using the BFGS quasi-Newton method.</summary>
     /// <param name="vecX">Initial guess. Output: converged solution.</param>
@@ -282,7 +282,7 @@ namespace Popolo.Core.Numerics
 
     #endregion
 
-    #region 非公開メソッド
+    #region Private methods
 
     /// <summary>Computes a numerical gradient.</summary>
     private static void GetDiff(

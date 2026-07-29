@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
   /// </remarks>
   public class AirToAirFlatPlateHeatExchangerTests
   {
-    #region ヘルパー
+    #region Helpers
 
     // JIS B 8628:2003 加熱条件（標準的な向流型全熱交換器）
     private const double SA_Flow = 500.0;  // 給気風量 [m³/h]
@@ -54,7 +54,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>全熱交換器フラグが正しく設定される。</summary>
     [Fact]
@@ -76,7 +76,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region UpdateState — 加熱時（冬季）
+    #region UpdateState — heating (winter)
 
     /// <summary>
     /// 加熱時（SA &lt; EA）：給気出口温度が給気入口温度より高い（予熱効果）。
@@ -131,7 +131,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region UpdateState — 冷却時（夏季）
+    #region UpdateState — cooling (summer)
 
     /// <summary>
     /// 冷却時（SA &gt; EA）：給気出口温度が給気入口温度より低い（予冷効果）。
@@ -149,7 +149,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region UpdateState — 流量ゼロ
+    #region UpdateState — zero flow
 
     /// <summary>給気風量ゼロのとき出口温度 = 入口温度（熱交換なし）。</summary>
     [Fact]
@@ -164,7 +164,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region 効率・プロパティ
+    #region Efficiency and properties
 
     /// <summary>
     /// JIS B 8628:2003 加熱の定格条件（SA=5°C, EA=20.5°C）で UpdateState すると
@@ -213,7 +213,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region 2条件初期化（暖房条件+冷房条件）
+    #region Two-condition initialization (heating + cooling conditions)
 
     //暖房条件と冷房条件で異なるカタログ効率
     private const double SensEffH = 0.75;

@@ -21,7 +21,7 @@ namespace BESTEST_2023
   /// </summary>
   internal static class Buildings
   {
-    #region 定数
+    #region Constants
 
     private static readonly Incline INC_N = new Incline(Incline.Orientation.N, 0.5 * Math.PI);
     private static readonly Incline INC_E = new Incline(Incline.Orientation.E, 0.5 * Math.PI);
@@ -53,7 +53,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region TestCase 列挙
+    #region TestCase enumeration
 
     /// <summary>BESTEST テストケース識別子。複数の差分仕様を [Flags] で合成する。</summary>
     [Flags]
@@ -165,7 +165,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 建物モデル作成処理
+    #region Building model creation
 
     /// <summary>
     /// 標準的な BESTEST 単室建物 (8m×6m×2.7m, 床面積 48 m²) を作成。
@@ -872,7 +872,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 壁層作成処理
+    #region Wall layer creation
 
     /// <summary>
     /// 外壁・床・屋根の層構成 (低重量系 / 重量系、断熱増強オプション) を返す。
@@ -946,7 +946,7 @@ namespace BESTEST_2023
 
     #endregion
 
-    #region 窓入射角特性設定
+    #region Window incident angle characteristic setup
 
     /// <summary>
     /// 窓の全グレージング層に角度依存性係数を適用する。

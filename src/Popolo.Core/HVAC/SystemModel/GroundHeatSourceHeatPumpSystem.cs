@@ -31,7 +31,7 @@ namespace Popolo.Core.HVAC.SystemModel
   public class GroundHeatSourceHeatPumpSystem : IHeatSourceSubSystem
   {
 
-    #region 定数宣言
+    #region Constant declarations
 
     /// <summary>Minimum heat-source water temperature in heating mode [°C].</summary>
     private const double HEAT_MIN_TEMP = 0;
@@ -42,7 +42,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装（プロパティ）
+    #region IHeatSourceSubSystem implementation (properties)
 
     /// <summary>Gets the selectable operating modes.</summary>
     public HeatSourceSystemModel.OperatingMode SelectableMode
@@ -116,7 +116,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region インスタンス変数・プロパティ
+    #region Instance variables and properties
 
     /// <summary>Gets a value indicating whether the system is overloaded.</summary>
     public bool IsGroundHEX_OverLoad { get; private set; }
@@ -157,7 +157,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region IHeatSourceSubSystem実装（メソッド）
+    #region IHeatSourceSubSystem implementation (methods)
 
     /// <summary>Forecasts the supply water temperatures for the given flow rates.</summary>
     /// <param name="chilledWaterFlowRate">Chilled water flow rate [kg/s].</param>
@@ -173,7 +173,7 @@ namespace Popolo.Core.HVAC.SystemModel
         ForecastHeating_Internal(hotWaterFlowRate);
       else
       {
-        gHex.Update(0, 0);  //土壌熱流のみを計算
+        gHex.Update(0, 0);  //Calculate the soil heat flow only
         ShutOff();
       }
     }
@@ -184,30 +184,30 @@ namespace Popolo.Core.HVAC.SystemModel
     {
       if (chilledWaterFlowRate <= 0 || ChilledWaterReturnTemperature < ChilledWaterSupplyTemperatureSetpoint)
       {
-        gHex.Update(0, 0);  //土壌熱流のみを計算
+        gHex.Update(0, 0);  //Calculate the soil heat flow only
         ShutOff();
         return;
       }
 
-      //冷温水ポンプの計算
+      //Calculate the chilled/hot water pump
       supplyPump.UpdateState(0.001 * chilledWaterFlowRate);
       double deltaTW = supplyPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate);
 
-      //熱源水ポンプの計算
+      //Calculate the ground source water pump
       GroundWaterFlowRate = GroundWaterFlowRateSetpoint;
-      groundWaterPump.UpdateState(0.001 * GroundWaterFlowRate);  //ポンプ状態を更新:比重量はブラインでも同じで良いのか？？？
+      groundWaterPump.UpdateState(0.001 * GroundWaterFlowRate);  //Update the pump state: is the same specific weight acceptable for brine as well???
       double deltaTG = groundWaterPump.GetElectricConsumption() / (gHex.FluidSpecificHeat * GroundWaterFlowRate);
 
-      //熱源水上限温度で計算
+      //Calculate at the upper limit of the ground source water temperature
       whp.CoolWater(chilledWaterFlowRate, GroundWaterFlowRate, ChilledWaterReturnTemperature + deltaTW, COOL_MAX_TEMP);
       gHex.ForecastState(whp.CoolingWaterOutletTemperature + deltaTG, GroundWaterFlowRate);
 
-      //過負荷の場合は下限温度で計算を打ち切り
+      //When overloaded, terminate the calculation at the limit temperature
       if (COOL_MAX_TEMP < gHex.FluidOutletTemperature) IsGroundHEX_OverLoad = true;
-      //熱源水温度を収束計算
+      //Iterate on the ground source water temperature
       else
       {
-        //黄金分割法
+        //Golden-section method
         Roots.ErrorFunction eFnc = delegate (double x)
         {
           whp.CoolWater(chilledWaterFlowRate, GroundWaterFlowRate, ChilledWaterReturnTemperature + deltaTW, x);
@@ -233,30 +233,30 @@ namespace Popolo.Core.HVAC.SystemModel
     {
       if (hotWaterFlowRate <= 0 || HotWaterSupplyTemperatureSetpoint < HotWaterReturnTemperature)
       {
-        gHex.Update(0, 0);  //土壌熱流のみを計算
+        gHex.Update(0, 0);  //Calculate the soil heat flow only
         ShutOff();
         return;
       }
 
-      //冷温水ポンプの計算
+      //Calculate the chilled/hot water pump
       supplyPump.UpdateState(0.001 * hotWaterFlowRate);
       double deltaTW = supplyPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * hotWaterFlowRate);
 
-      //熱源水ポンプの計算
+      //Calculate the ground source water pump
       GroundWaterFlowRate = GroundWaterFlowRateSetpoint;
-      groundWaterPump.UpdateState(0.001 * GroundWaterFlowRate);  //ポンプ状態を更新:比重量はブラインでも同じで良いのか？？？
+      groundWaterPump.UpdateState(0.001 * GroundWaterFlowRate);  //Update the pump state: is the same specific weight acceptable for brine as well???
       double deltaTG = groundWaterPump.GetElectricConsumption() / (gHex.FluidSpecificHeat * GroundWaterFlowRate);
 
-      //熱源水下限温度で計算
+      //Calculate at the lower limit of the ground source water temperature
       whp.HeatWater(hotWaterFlowRate, GroundWaterFlowRate, HotWaterReturnTemperature + deltaTW, HEAT_MIN_TEMP);
       gHex.ForecastState(whp.HeatSourceWaterOutletTemperature + deltaTG, GroundWaterFlowRate);
 
-      //過負荷の場合は下限温度で計算を打ち切り
+      //When overloaded, terminate the calculation at the limit temperature
       if (gHex.FluidOutletTemperature < HEAT_MIN_TEMP) IsGroundHEX_OverLoad = true;
-      //熱源水温度を収束計算
+      //Iterate on the ground source water temperature
       else
       {
-        //黄金分割法
+        //Golden-section method
         Roots.ErrorFunction eFnc = delegate (double x) 
         {
           whp.HeatWater(hotWaterFlowRate, GroundWaterFlowRate, HotWaterReturnTemperature + deltaTW, x);
@@ -292,7 +292,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="whp">Water-source heat pump.</param>

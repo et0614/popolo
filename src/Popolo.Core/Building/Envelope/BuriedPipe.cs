@@ -52,7 +52,7 @@ namespace Popolo.Core.Building.Envelope
   public class BuriedPipe : IReadOnlyBuriedPipe
   {
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the inlet water temperature [°C].</summary>
     /// <remarks>Used for the internal convective heat transfer coefficient calculation.</remarks>
@@ -90,7 +90,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region インスタンスメソッド
+    #region Instance methods
 
     /// <summary>Initializes a new instance with pipe and fin geometry.</summary>
     /// <param name="pitch">Pipe laying pitch [m].</param>
@@ -149,25 +149,25 @@ namespace Popolo.Core.Building.Envelope
         return;
       }
 
-      //対流熱伝達率[W/m2K]の計算//////////////////////////
-      //動粘性係数[m2/s]・熱拡散率[m2/s]・熱伝導率[W/(m·K)]を計算
+      //Calculation of convective heat transfer coefficient [W/m2K]//////////////////////////
+      //Compute kinematic viscosity [m2/s], thermal diffusivity [m2/s], and thermal conductivity [W/(m·K)]
       double v = Water.GetLiquidDynamicViscosity(InletWaterTemperature);
       double a = Water.GetLiquidThermalDiffusivity(InletWaterTemperature);
       double lambda = Water.GetLiquidThermalConductivity(InletWaterTemperature);
 
-      //配管内流速[m/s]を計算
+      //Compute the flow velocity in the pipe [m/s]
       double vFlow = WaterFlowRate / (PhysicsConstants.NominalWaterDensity * BranchCount);
       double u = vFlow / (Math.Pow(InnerDiameter / 2, 2) * Math.PI);
 
-      //ヌセルト数を計算
+      //Compute the Nusselt number
       double reNumber = u * InnerDiameter / v;
       double prNumber = v / a;
       double nuNumber = 0.023 * Math.Pow(reNumber, 0.8) * Math.Pow(prNumber, 0.4);
 
-      //ヌセルト数から対流熱伝達率を計算
+      //Compute the convective heat transfer coefficient from the Nusselt number
       double hi = nuNumber * lambda / InnerDiameter;
 
-      //伝熱係数KA, 移動単位数NTU, 熱通過率εの計算/////////
+      //Calculation of heat transfer coefficient KA, number of transfer units NTU, and effectiveness ε/////////
       double ka = 1 / (InnerDiameter * hi)
         + 1 / (2 * ThermalConductivityOfTube) * Math.Log(OuterDiameter / InnerDiameter);
       ka = (Math.PI * Length) / ka;

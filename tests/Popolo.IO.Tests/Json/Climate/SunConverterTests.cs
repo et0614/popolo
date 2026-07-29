@@ -29,7 +29,7 @@ namespace Popolo.IO.Tests.Json.Climate
     /// <summary>Unit tests for <see cref="SunConverter"/>.</summary>
     public class SunConverterTests
     {
-        #region ヘルパー
+        #region Helpers
 
         private static JsonSerializerOptions CreateOptions()
         {
@@ -51,7 +51,7 @@ namespace Popolo.IO.Tests.Json.Climate
         #endregion
 
         // ================================================================
-        #region シリアライズ
+        #region Serialization
 
         [Fact]
         public void Write_ProducesFourProperties()
@@ -80,7 +80,7 @@ namespace Popolo.IO.Tests.Json.Climate
         #endregion
 
         // ================================================================
-        #region デシリアライズ
+        #region Deserialization
 
         [Fact]
         public void Read_WellFormedJson_ProducesExpectedValues()
@@ -120,7 +120,7 @@ namespace Popolo.IO.Tests.Json.Climate
         #endregion
 
         // ================================================================
-        #region ラウンドトリップ
+        #region Round trip
 
         [Fact]
         public void RoundTrip_PreservesLocation()
@@ -137,7 +137,7 @@ namespace Popolo.IO.Tests.Json.Climate
         #endregion
 
         // ================================================================
-        #region エラー処理
+        #region Error handling
 
         [Fact]
         public void Read_MissingKind_Throws()

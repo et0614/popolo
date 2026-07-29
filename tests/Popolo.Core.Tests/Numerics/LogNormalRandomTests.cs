@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class LogNormalRandomTests
     {
 
-        #region コンストラクタのテスト
+        #region Constructor tests
 
         /// <summary>平均・標準偏差が正しく保持される</summary>
         [Fact]
@@ -64,7 +64,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region NextDouble のテスト
+        #region NextDouble tests
 
         /// <summary>生成される値は常に正</summary>
         [Fact]

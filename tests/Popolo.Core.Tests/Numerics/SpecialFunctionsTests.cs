@@ -28,7 +28,7 @@ namespace Popolo.Core.Tests.Numerics
     public class SpecialFunctionsTests
     {
 
-        #region GammaP のテスト
+        #region GammaP tests
 
         /// <summary>GammaP(a=1, x=0) = 0 となる</summary>
         [Fact]
@@ -87,7 +87,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region GammaQ のテスト
+        #region GammaQ tests
 
         /// <summary>GammaQ(a=1, x) = exp(-x) となる（指数分布の生存関数）</summary>
         [Theory]
@@ -129,7 +129,7 @@ namespace Popolo.Core.Tests.Numerics
 
         #endregion
 
-        #region ComplementaryErrorFunction のテスト
+        #region ComplementaryErrorFunction tests
 
         /// <summary>erfc(0) = 1 となる</summary>
         [Fact]

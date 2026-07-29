@@ -48,7 +48,7 @@ namespace Popolo.Core.Building.Envelope
   public class SimpleShadingDevice : IShadingDevice
   {
 
-    #region 列挙型定義
+    #region Enumeration definitions
 
     /// <summary>Predefined shading device types with standard optical properties.</summary>
     public enum PredefinedDevice
@@ -71,7 +71,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region コンストラクタ
+    #region Constructors
 
     /// <summary>Initializes a new instance with specified normal-incidence optical properties.</summary>
     /// <param name="transmittance">Normal-incidence transmittance [-].</param>
@@ -118,7 +118,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region プロパティ
+    #region Properties
 
     /// <summary>Gets the discriminator; always <c>"simpleShadingDevice"</c>.</summary>
     public string Kind => "simpleShadingDevice";
@@ -134,7 +134,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region IShadingDevices実装
+    #region IShadingDevices implementation
 
     /// <summary>Backing field for the deployed state.</summary>
     private bool pullDowned = true;

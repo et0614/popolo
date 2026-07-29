@@ -41,7 +41,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
   /// </remarks>
   public class PlateHeatExchangerTests
   {
-    #region ヘルパー
+    #region Helpers
 
     private const double Cp = 4.182; // kJ/(kg·K) ≈ PhysicsConstants.NominalWaterIsobaricSpecificHeat * 0.001
 
@@ -52,7 +52,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region コンストラクタ（定格条件から UA を計算）
+    #region Constructors (UA calculated from rated conditions)
 
     /// <summary>
     /// 定格条件コンストラクタで HeatTransferCoefficient が正の値になる。
@@ -92,7 +92,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region Update（成り行き計算）
+    #region Update (free-run calculation)
 
     /// <summary>
     /// 加熱運転: 熱源水温度 &gt; 還温度 → 供給温度が還温度より高い。
@@ -169,7 +169,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     #endregion
 
     // ================================================================
-    #region ControlSupplyTemperature（供給温度制御）
+    #region ControlSupplyTemperature (supply temperature control)
 
     /// <summary>
     /// 加熱制御: 供給温度が設定値に一致する（非過負荷時）。

@@ -69,7 +69,7 @@ namespace Popolo.Core.Building.Envelope
   public abstract class OpticalLayeredEnvelope : IReadOnlyOpticalLayeredEnvelope
   {
 
-    #region 共通 F/B 側状態
+    #region Common F/B side states
 
     /// <summary>Gets or sets the sol-air temperature on the F side [°C].</summary>
     public double SolAirTemperatureF { get; set; }
@@ -85,7 +85,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 幾何 / 接続
+    #region Geometry / connection
 
     /// <summary>Gets the surface area [m²] of this envelope component.</summary>
     /// <remarks>
@@ -105,20 +105,20 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region F/B 側 表面熱伝達係数 (基底でユーザー値バックアップ + subclass 実装の振分)
+    #region F/B side surface heat transfer coefficients (base backs up user values + dispatches to subclass implementations)
 
-    // ユーザー設定値の控え。setter (公開プロパティ) 経由の代入は値を _userBackup 群
-    // にも書き、SetXxxInternal (内部経由、動的更新用) は _userBackup を変更しない。
-    // RestoreUserCoefficients() で _userBackup の値を SetXxxCore 経由で書き戻すと、
-    // ユーザーが直接設定した値がいつでも復元される。
+    // Backup of user-set values. Assignment via a setter (public property) also writes
+    // the value to the _userBackup fields, while SetXxxInternal (internal path, for dynamic updates) leaves _userBackup unchanged.
+    // RestoreUserCoefficients() writes the _userBackup values back through SetXxxCore,
+    // so values set directly by the user can be restored at any time.
     private double _convF_userBackup, _convB_userBackup;
     private double _radF_userBackup,  _radB_userBackup;
 
     /// <inheritdoc/>
     /// <remarks>
-    /// 値を設定すると同時にユーザー設定値として記憶する。
-    /// 後段の動的更新で内部的に上書きされた場合でも
-    /// <see cref="RestoreUserCoefficients"/> でこの値に戻る。
+    /// Setting a value also records it as the user-set value.
+    /// Even if it is later overwritten internally by dynamic updates,
+    /// <see cref="RestoreUserCoefficients"/> restores this value.
     /// </remarks>
     public double ConvectiveCoefficientF
     {
@@ -401,21 +401,21 @@ namespace Popolo.Core.Building.Envelope
       double rf = isSideF ? SurfaceRoughnessMultiplierF : SurfaceRoughnessMultiplierB;
       IReadOnlyIncline? incline = isSideF ? SurfaceF.Incline : SurfaceB.Incline;
       double dT = tSurf - airTemperature;
-      // Incline 未指定時は垂直面相当として扱う (TARP 自然対流 = 1.31|ΔT|^(1/3))。
-      // Walton 元式は傾斜→垂直の連続線形補間も提案するが、未指定 = "幾何不明"
-      // を意味するため、もっとも一般的な垂直壁にフォールバックする。
+      // When Incline is unspecified, treat the surface as vertical (TARP natural convection = 1.31|ΔT|^(1/3)).
+      // Walton's original formulation also proposes continuous linear interpolation from tilted to vertical,
+      // but unspecified means "geometry unknown", so fall back to the most common case: a vertical wall.
       if (incline == null)
         return ExteriorConvection.GetWaltonTarp(_verticalIncline, windSpeed, dT, rf, orientation);
       return ExteriorConvection.GetWaltonTarp(incline, windSpeed, dT, rf, orientation);
     }
 
-    /// <summary>幾何未指定時のフォールバック垂直面 (Walton TARP 用)。</summary>
+    /// <summary>Fallback vertical surface used when the geometry is unspecified (for Walton TARP).</summary>
     private static readonly Incline _verticalIncline =
         new Incline(Incline.Orientation.S, 0.5 * Math.PI);
 
     #endregion
 
-    #region 短波長放出 (層別光学モデル)
+    #region Shortwave emission (layered optical model)
 
     /// <summary>
     /// Computes this component's short-wave (solar) radiation contribution to
@@ -465,7 +465,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 行列ソルバ — 状態フィールド
+    #region Matrix solver — state fields
 
     /// <summary>True when the inverse step-coefficient matrix needs rebuilding.</summary>
     protected bool needToUpdateUINVMatrix = true;
@@ -510,7 +510,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 行列ソルバ — public プロパティ
+    #region Matrix solver — public properties
 
     /// <summary>Gets or sets the calculation time step [s]. Setting a new value flags the matrix for rebuild.</summary>
     public virtual double TimeStep
@@ -551,7 +551,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 層別吸収日射 API
+    #region Layer-wise absorbed solar radiation API
 
     /// <summary>
     /// Supplies a per-node short-wave absorption [W/m²] as a body source in
@@ -590,7 +590,7 @@ namespace Popolo.Core.Building.Envelope
 
     #endregion
 
-    #region 行列ソルバ — sensible-only 経路 (subclass がフルバージョンを override 可能)
+    #region Matrix solver — sensible-only path (subclass can override the full version)
 
     /// <summary>Subclass hook: populates <see cref="capS"/> and <see cref="resS"/> from the subclass's own layer representation.</summary>
     /// <remarks>
