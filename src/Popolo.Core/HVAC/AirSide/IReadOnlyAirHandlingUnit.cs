@@ -14,8 +14,8 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Gets the outdoor air economiser control mode.</summary>
     AirHandlingUnit.OutdoorAirCoolingControl OutdoorAirCooling { get; }
 
-    /// <summary>Gets the humidifier type.</summary>
-    AirHandlingUnit.HumidifierType Humidifier { get; }
+    /// <summary>Gets the humidifier. Null when the AHU has no humidifier.</summary>
+    IReadOnlyHumidifier? Humidifier { get; }
 
     /// <summary>Gets the cooling coil.</summary>
     IReadOnlyCrossFinHeatExchanger CoolingCoil { get; }
@@ -85,15 +85,6 @@ namespace Popolo.Core.HVAC.AirSide
 
     /// <summary>Gets the steam consumption rate for humidification [kg/s].</summary>
     double SteamConsumption { get; }
-
-    /// <summary>Gets the water supply efficiency of the humidifier [-].</summary>
-    double WaterSupplyCoefficient { get; }
-
-    /// <summary>Gets the maximum humidifier saturation efficiency [-].</summary>
-    double MaxSaturationEfficiency { get; }
-
-    /// <summary>Gets the humidifier saturation efficiency [-].</summary>
-    double SaturationEfficiency { get; }
 
     /// <summary>Gets or sets a value indicating whether to minimise airflow even at the cost of over-heating or over-cooling.</summary>
     bool MinimizeAirFlow { get; }

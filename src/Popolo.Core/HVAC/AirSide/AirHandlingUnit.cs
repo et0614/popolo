@@ -35,7 +35,7 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Outdoor air economiser control mode.</summary>
     public enum OutdoorAirCoolingControl
     {
-      /// <summary>No humidifier.</summary>
+      /// <summary>No economiser control.</summary>
       None,
       /// <summary>Control based on dry-bulb temperature.</summary>
       DryBulbTemperature,
@@ -43,21 +43,6 @@ namespace Popolo.Core.HVAC.AirSide
       HumidityRatio,
       /// <summary>Control based on specific enthalpy.</summary>
       Enthalpy
-    }
-
-    /// <summary>Humidifier type.</summary>
-    public enum HumidifierType
-    {
-      /// <summary>No humidifier.</summary>
-      None,
-      /// <summary>Steam humidification.</summary>
-      Steam,
-      /// <summary>Evaporative (drip) humidification.</summary>
-      WettedMedia,
-      /// <summary>Water spray humidification.</summary>
-      Atomizing,
-      /// <summary>Ultrasonic humidification.</summary>
-      Ultrasonic,
     }
 
     #endregion
@@ -79,12 +64,15 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Rotary heat recovery wheel.</summary>
     private RotaryRegenerator? regen = null;
 
+    /// <summary>Humidifier. Null when the AHU has no humidifier.</summary>
+    private Humidifier? humidifier = null;
+
     /// <summary>Gets or sets the outdoor air economiser control mode.</summary>
     public OutdoorAirCoolingControl OutdoorAirCooling
     { get; set; } = OutdoorAirCoolingControl.None;
 
-    /// <summary>Gets the humidifier type.</summary>
-    public HumidifierType Humidifier { get; private set; }
+    /// <summary>Gets the humidifier. Null when the AHU has no humidifier.</summary>
+    public IReadOnlyHumidifier? Humidifier { get { return humidifier; } }
 
     /// <summary>Gets the cooling coil.</summary>
     public IReadOnlyCrossFinHeatExchanger CoolingCoil { get { return cCoil; } }
@@ -150,19 +138,10 @@ namespace Popolo.Core.HVAC.AirSide
     public double HotWaterInletTemperature { get; set; }
 
     /// <summary>Gets the water consumption rate for humidification [kg/s].</summary>
-    public double WaterConsumption { get; private set; }
+    public double WaterConsumption { get { return humidifier?.WaterConsumption ?? 0.0; } }
 
     /// <summary>Gets the steam consumption rate for humidification [kg/s].</summary>
-    public double SteamConsumption { get; private set; }
-
-    /// <summary>Gets or sets the water supply efficiency of the humidifier [-].</summary>
-    public double WaterSupplyCoefficient { get; set; }
-
-    /// <summary>Gets or sets the maximum humidifier saturation efficiency [-].</summary>
-    public double MaxSaturationEfficiency { get; set; }
-
-    /// <summary>Gets or sets the humidifier saturation efficiency [-].</summary>
-    public double SaturationEfficiency { get; set; }
+    public double SteamConsumption { get { return humidifier?.SteamConsumption ?? 0.0; } }
 
     /// <summary>Gets or sets a value indicating whether to minimise airflow even at the cost of over-heating or over-cooling.</summary>
     public bool MinimizeAirFlow { get; set; } = true;
@@ -186,56 +165,32 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Initializes a new instance.</summary>
     /// <param name="cCoil">Cooling/dehumidifying coil.</param>
     /// <param name="hCoil">Heating coil.</param>
-    /// <param name="humidType">Humidifier type.</param>
+    /// <param name="humidifier">Humidifier. Null when the AHU has no humidifier.</param>
     /// <param name="saFan">Supply air fan.</param>
     /// <param name="raFan">Return air fan.</param>
     public AirHandlingUnit
       (CrossFinHeatExchanger cCoil, CrossFinHeatExchanger hCoil,
-      HumidifierType humidType, CentrifugalFan saFan, CentrifugalFan raFan) :
-      this(cCoil, hCoil, humidType, saFan, raFan, null)
+      Humidifier? humidifier, CentrifugalFan saFan, CentrifugalFan raFan) :
+      this(cCoil, hCoil, humidifier, saFan, raFan, null)
     { }
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="cCoil">Cooling/dehumidifying coil.</param>
     /// <param name="hCoil">Heating coil.</param>
-    /// <param name="humidType">Humidifier type.</param>
+    /// <param name="humidifier">Humidifier. Null when the AHU has no humidifier.</param>
     /// <param name="saFan">Supply air fan.</param>
     /// <param name="raFan">Return air fan.</param>
     /// <param name="regenerator">Rotary heat recovery wheel.</param>
     public AirHandlingUnit
-      (CrossFinHeatExchanger cCoil, CrossFinHeatExchanger hCoil, HumidifierType humidType,
+      (CrossFinHeatExchanger cCoil, CrossFinHeatExchanger hCoil, Humidifier? humidifier,
       CentrifugalFan saFan, CentrifugalFan raFan, RotaryRegenerator? regenerator)
     {
       this.cCoil = cCoil;
       this.hCoil = hCoil;
-      this.Humidifier = humidType;
+      this.humidifier = humidifier;
       this.saFan = saFan;
       this.raFan = raFan;
       this.regen = regenerator;
-
-      switch (humidType)
-      {
-        case HumidifierType.WettedMedia:
-          WaterSupplyCoefficient = 0.5;
-          MaxSaturationEfficiency = 0.8;
-          WaterSupplyCoefficient = 0.5;
-          break;
-        case HumidifierType.Steam:
-          WaterSupplyCoefficient = 0.9;
-          MaxSaturationEfficiency = 1.0;
-          WaterSupplyCoefficient = 0.9;
-          break;
-        case HumidifierType.Ultrasonic:
-          WaterSupplyCoefficient = 0.9;
-          MaxSaturationEfficiency = 0.5;
-          WaterSupplyCoefficient = 0.9;
-          break;
-        case HumidifierType.Atomizing:
-          WaterSupplyCoefficient = 0.4;
-          MaxSaturationEfficiency = 0.3;
-          WaterSupplyCoefficient = 0.4;
-          break;
-      }
     }
 
     #endregion
@@ -341,7 +296,7 @@ namespace Popolo.Core.HVAC.AirSide
       else
         cCoil.UpdateOutletState(tdCi, hrCi, ChilledWaterInletTemperature, SAFlowRate, cCoil.WaterFlowRate);
       hCoil.ShutOff();
-      WaterConsumption = SteamConsumption = 0.0;
+      humidifier?.ShutOff();
 
       //SAファンによる昇温とダクト熱損失効果を反映
       SATemperature = cCoil.OutletAirTemperature + tRise;
@@ -375,7 +330,11 @@ namespace Popolo.Core.HVAC.AirSide
     #region 加熱運転
 
     /// <summary>Heats and humidifies the supply air in free-running mode.</summary>
-    public void HeatAir() { HeatAir_Internal(false, 0, 0); } //これだと蒸気加湿の場合に全く加湿されない!!! DEBUG
+    /// <remarks>
+    /// The humidifier operates at its current
+    /// <see cref="AirSide.Humidifier.SaturationEfficiency"/>.
+    /// </remarks>
+    public void HeatAir() { HeatAir_Internal(false, 0, 0); }
 
     /// <summary>Heats and humidifies the supply air with outlet temperature/humidity control.</summary>
     /// <param name="setpointTemperature">Outlet air temperature setpoint [°C].</param>
@@ -445,9 +404,8 @@ namespace Popolo.Core.HVAC.AirSide
       double tdCi = tdOA * mr + RATemperature * (1 - mr);
       double hrCi = hrOA * mr + RAHumidityRatio * (1 - mr);
 
-      //水加湿の場合には温水コイル出口温度を比エンタルピーで調整
-      if (hrCi < wAHUo &&
-        (Humidifier != HumidifierType.None && Humidifier != HumidifierType.Steam))
+      //水加湿（断熱加湿）の場合には温水コイル出口温度を比エンタルピーで調整
+      if (hrCi < wAHUo && humidifier != null && humidifier.IsAdiabatic)
         tdCo = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndEnthalpy(hrCi, hCo);
 
       //加熱
@@ -459,42 +417,20 @@ namespace Popolo.Core.HVAC.AirSide
       cCoil.ShutOff();
 
       //加湿
-      double tSFi;
-      tSFi = hCoil.OutletAirTemperature;
-      WaterConsumption = SteamConsumption = 0.0;
-      //水加湿
-      if (Humidifier != HumidifierType.None && Humidifier != HumidifierType.Steam)
+      double tSFi = hCoil.OutletAirTemperature;
+      if (humidifier != null)
       {
-        double hSFi =
-          MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(tdCo, hCoil.OutletAirHumidityRatio);
-        double satW = MoistAir.GetSaturationHumidityRatioFromEnthalpy(hSFi, PhysicsConstants.StandardAtmosphericPressure);
         if (controlOutletState)
-        {
-          if (hCoil.OutletAirHumidityRatio < wAHUo)
-          {
-            double maxW = (1 - MaxSaturationEfficiency)
-            * hCoil.OutletAirHumidityRatio + MaxSaturationEfficiency * satW;
-            wAHUo = Math.Min(maxW, wAHUo);
-            SaturationEfficiency = (wAHUo - hCoil.OutletAirHumidityRatio) / (satW - hCoil.OutletAirHumidityRatio);
-          }
-          else
-          {
-            wAHUo = hCoil.OutletAirHumidityRatio;
-            SaturationEfficiency = 0.0;
-          }
-        }
-        else wAHUo = (1 - SaturationEfficiency) * hCoil.OutletAirHumidityRatio + SaturationEfficiency * satW;
-        tSFi = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndEnthalpy(wAHUo, hSFi);
-        WaterConsumption = (wAHUo - hCoil.OutletAirHumidityRatio) * SAFlowRate / WaterSupplyCoefficient;
+          humidifier.ControlOutletHumidityRatio(
+            hCoil.OutletAirTemperature, hCoil.OutletAirHumidityRatio, SAFlowRate, wAHUo);
+        else
+          humidifier.UpdateOutletState(
+            hCoil.OutletAirTemperature, hCoil.OutletAirHumidityRatio, SAFlowRate);
+        tSFi = humidifier.OutletAirTemperature;
+        wAHUo = humidifier.OutletAirHumidityRatio;
       }
-      //蒸気加湿//最大飽和効率=100%
-      else if (Humidifier == HumidifierType.Steam)
-      {
-        double satW = MoistAir.GetSaturationHumidityRatioFromDryBulbTemperature
-          (hCoil.OutletAirTemperature, PhysicsConstants.StandardAtmosphericPressure);
-        wAHUo = Math.Min(satW, wAHUo);
-        SteamConsumption = (wAHUo - hCoil.OutletAirHumidityRatio) * SAFlowRate / WaterSupplyCoefficient;
-      }
+      //加湿器無しの場合には温水コイル出口絶対湿度のまま
+      else wAHUo = hCoil.OutletAirHumidityRatio;
 
       //SAファンによる昇温とダクト熱損失効果を反映
       SATemperature = tSFi + tRise;
@@ -559,7 +495,7 @@ namespace Popolo.Core.HVAC.AirSide
       saFan.ShutOff();
       raFan.ShutOff();
       if (regen != null) regen.ShutOff();
-      WaterConsumption = 0.0;
+      humidifier?.ShutOff();
       OAFlowRate = 0;
       SetAirFlowRate(0, 0);
     }

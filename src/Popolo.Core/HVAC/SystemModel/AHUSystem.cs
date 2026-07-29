@@ -350,8 +350,8 @@ namespace Popolo.Core.HVAC.SystemModel
             bModel.SetSupplyAir(vc.RoomIndex, vc.ZoneIndex, 0, 0, 0); //DEBUG
 
             //加湿系統は潜熱負荷を計算する
-            if (Controllers[i].Mode == OperatingMode.Heating 
-              && ahu[i].Humidifier != AirHandlingUnit.HumidifierType.None)
+            if (Controllers[i].Mode == OperatingMode.Heating
+              && ahu[i].Humidifier != null)
               bModel.ControlHumidityRatio(vc.RoomIndex, vc.ZoneIndex, Controllers[i].MinHumidity);
           }
         }
@@ -376,7 +376,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
           //加湿系統のAHU出口湿度を計算する
           if (Controllers[i].Mode == OperatingMode.Heating
-            && ahu[i].Humidifier != AirHandlingUnit.HumidifierType.None)
+            && ahu[i].Humidifier != null)
           {
             double wAHUo = zn.MoistureSupply / ctrl.MaxSAFlow + zn.HumidityRatio;
             Controllers[i].splyHumidSP = Math.Max(Controllers[i].splyHumidSP, wAHUo);
