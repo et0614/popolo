@@ -63,6 +63,20 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Latent heat transfer coefficient [kg/(kg/kg)].</summary>
     private double latentHeatTransferCoefficient;
 
+    /// <summary>
+    /// Sensible heat transfer coefficient for cooling-side operation [kW/K].
+    /// Null unless the exchanger was initialized from both the heating and
+    /// the cooling test conditions.
+    /// </summary>
+    private double? coolingSensibleHeatTransferCoefficient = null;
+
+    /// <summary>
+    /// Latent heat transfer coefficient for cooling-side operation
+    /// [kg/(kg/kg)]. Null unless the exchanger was initialized from both the
+    /// heating and the cooling test conditions.
+    /// </summary>
+    private double? coolingLatentHeatTransferCoefficient = null;
+
     #endregion
 
     #region プロパティ
@@ -162,7 +176,91 @@ namespace Popolo.Core.HVAC.HeatExchanger
     public AirToAirFlatPlateHeatExchanger
       (double supplyAirFlowVolume, double exhaustAirFlowVolume, double sensibleEfficiency, double latentOrEnthalpyEfficiency, AirFlow flow, Condition condition, bool isEnthalpyEfficiency)
     {
-      double saDB, saHmd, eaDB, eaHmd;
+      GetConditionState(condition, out double saDB, out double saHmd, out double eaDB, out double eaHmd);
+
+      //エンタルピー交換効率が与えられた場合には潜熱交換効率に変換
+      if (isEnthalpyEfficiency)
+        latentOrEnthalpyEfficiency = ConvertEnthalpyToLatentEfficiency
+          (sensibleEfficiency, latentOrEnthalpyEfficiency, saDB, saHmd, eaDB, eaHmd);
+
+      Initialize(supplyAirFlowVolume, exhaustAirFlowVolume, saDB, saHmd, eaDB, eaHmd, sensibleEfficiency, latentOrEnthalpyEfficiency, flow, true);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of a total heat exchanger from both the
+    /// heating and the cooling JIS test conditions.
+    /// </summary>
+    /// <remarks>
+    /// Catalog efficiencies generally differ between the heating and the
+    /// cooling test conditions, especially on the latent side. This
+    /// constructor computes one pair of heat transfer coefficients per
+    /// condition; <see cref="UpdateState"/> selects the pair according to the
+    /// operating direction (the cooling pair when the supply air inlet is
+    /// warmer than the exhaust air inlet, the heating pair otherwise).
+    /// </remarks>
+    /// <param name="supplyAirFlowVolume">Supply air volumetric flow rate [m³/h].</param>
+    /// <param name="exhaustAirFlowVolume">Exhaust air volumetric flow rate [m³/h].</param>
+    /// <param name="sensibleEfficiencyHeating">Sensible heat exchange efficiency at the heating test condition [-].</param>
+    /// <param name="latentOrEnthalpyEfficiencyHeating">Latent or enthalpy-based heat exchange efficiency at the heating test condition [-].</param>
+    /// <param name="heatingCondition">JIS heating test condition.</param>
+    /// <param name="sensibleEfficiencyCooling">Sensible heat exchange efficiency at the cooling test condition [-].</param>
+    /// <param name="latentOrEnthalpyEfficiencyCooling">Latent or enthalpy-based heat exchange efficiency at the cooling test condition [-].</param>
+    /// <param name="coolingCondition">JIS cooling test condition.</param>
+    /// <param name="flow">Air flow arrangement type.</param>
+    /// <param name="isEnthalpyEfficiency">True if the efficiencies are defined as enthalpy-based rather than humidity-ratio-based.</param>
+    public AirToAirFlatPlateHeatExchanger
+      (double supplyAirFlowVolume, double exhaustAirFlowVolume,
+      double sensibleEfficiencyHeating, double latentOrEnthalpyEfficiencyHeating, Condition heatingCondition,
+      double sensibleEfficiencyCooling, double latentOrEnthalpyEfficiencyCooling, Condition coolingCondition,
+      AirFlow flow, bool isEnthalpyEfficiency)
+    {
+      if (heatingCondition != Condition.JISB8628_2003_Heating
+        && heatingCondition != Condition.JISB8628_2017_Heating)
+        throw new PopoloArgumentException(
+          $"heatingCondition must be a heating test condition. Got: {heatingCondition}.",
+          nameof(heatingCondition));
+      if (coolingCondition != Condition.JISB8628_2003_Cooling
+        && coolingCondition != Condition.JISB8628_2017_Cooling)
+        throw new PopoloArgumentException(
+          $"coolingCondition must be a cooling test condition. Got: {coolingCondition}.",
+          nameof(coolingCondition));
+
+      //冷房条件の貫流率を計算して保持
+      GetConditionState(coolingCondition, out double saDB, out double saHmd, out double eaDB, out double eaHmd);
+      double latEffC = isEnthalpyEfficiency
+        ? ConvertEnthalpyToLatentEfficiency
+          (sensibleEfficiencyCooling, latentOrEnthalpyEfficiencyCooling, saDB, saHmd, eaDB, eaHmd)
+        : latentOrEnthalpyEfficiencyCooling;
+      double svSA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
+        (saDB, saHmd, PhysicsConstants.StandardAtmosphericPressure);
+      double svEA = MoistAir.GetSpecificVolumeFromDryBulbTemperatureAndHumidityRatio
+        (eaDB, eaHmd, PhysicsConstants.StandardAtmosphericPressure);
+      double mSA = supplyAirFlowVolume / (3600 * svSA);
+      double mEA = exhaustAirFlowVolume / (3600 * svEA);
+      coolingSensibleHeatTransferCoefficient = GetSensibleHeatTransferCoefficient
+        (mSA, mEA, saDB, saHmd, eaDB, eaHmd, sensibleEfficiencyCooling, flow);
+      coolingLatentHeatTransferCoefficient = GetLatentHeatTransferCoefficient
+        (mSA, mEA, saHmd, eaHmd, latEffC, flow);
+
+      //暖房条件の貫流率を計算して初期化（定格の成り行き計算も暖房条件で実行）
+      GetConditionState(heatingCondition, out saDB, out saHmd, out eaDB, out eaHmd);
+      double latEffH = isEnthalpyEfficiency
+        ? ConvertEnthalpyToLatentEfficiency
+          (sensibleEfficiencyHeating, latentOrEnthalpyEfficiencyHeating, saDB, saHmd, eaDB, eaHmd)
+        : latentOrEnthalpyEfficiencyHeating;
+      Initialize(supplyAirFlowVolume, exhaustAirFlowVolume, saDB, saHmd, eaDB, eaHmd,
+        sensibleEfficiencyHeating, latEffH, flow, true);
+    }
+
+    /// <summary>Returns the inlet air states of the specified JIS test condition.</summary>
+    /// <param name="condition">JIS test condition.</param>
+    /// <param name="saDB">Supply air inlet dry-bulb temperature [°C].</param>
+    /// <param name="saHmd">Supply air inlet humidity ratio [kg/kg].</param>
+    /// <param name="eaDB">Exhaust air inlet dry-bulb temperature [°C].</param>
+    /// <param name="eaHmd">Exhaust air inlet humidity ratio [kg/kg].</param>
+    private static void GetConditionState
+      (Condition condition, out double saDB, out double saHmd, out double eaDB, out double eaHmd)
+    {
       switch (condition)
       {
         case Condition.JISB8628_2003_Cooling:
@@ -193,19 +291,23 @@ namespace Popolo.Core.HVAC.HeatExchanger
           throw new PopoloArgumentException(
             $"Unsupported test condition: {condition}.", nameof(condition));
       }
+    }
 
-      //エンタルピー交換効率が与えられた場合には潜熱交換効率に変換
-      if (isEnthalpyEfficiency)
-      {
-        double tsao = saDB - sensibleEfficiency * (saDB - eaDB);
-        double saH = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(saDB, saHmd);
-        double eaH = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(eaDB, eaHmd);
-        double hsao = saH - latentOrEnthalpyEfficiency * (saH - eaH);
-        double hmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndEnthalpy(tsao, hsao);
-        latentOrEnthalpyEfficiency = (saHmd - hmd) / (saHmd - eaHmd);
-      }
-      
-      Initialize(supplyAirFlowVolume, exhaustAirFlowVolume, saDB, saHmd, eaDB, eaHmd, sensibleEfficiency, latentOrEnthalpyEfficiency, flow, true);
+    /// <summary>
+    /// Converts an enthalpy-based exchange efficiency into a
+    /// humidity-ratio-based (latent) exchange efficiency at the given
+    /// rating condition.
+    /// </summary>
+    private static double ConvertEnthalpyToLatentEfficiency
+      (double sensibleEfficiency, double enthalpyEfficiency,
+      double saDB, double saHmd, double eaDB, double eaHmd)
+    {
+      double tsao = saDB - sensibleEfficiency * (saDB - eaDB);
+      double saH = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(saDB, saHmd);
+      double eaH = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(eaDB, eaHmd);
+      double hsao = saH - enthalpyEfficiency * (saH - eaH);
+      double hmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndEnthalpy(tsao, hsao);
+      return (saHmd - hmd) / (saHmd - eaHmd);
     }
 
     /// <summary>Initializes a new instance.</summary>
@@ -300,12 +402,22 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double mSA = supplyAirFlowVolume / (3600 * svSA);
       double mEA = exhaustAirFlowVolume / (3600 * svEA);
 
+      //使用する貫流率を選択（2条件初期化の場合には運転方向で暖房用・冷房用を切り替え）
+      double sensKA = sensibleHeatTransferCoefficient;
+      double latKA = latentHeatTransferCoefficient;
+      if (coolingSensibleHeatTransferCoefficient.HasValue
+        && inletEADryBulbTemperature < inletSADryBulbTemperature)
+      {
+        sensKA = coolingSensibleHeatTransferCoefficient.Value;
+        latKA = coolingLatentHeatTransferCoefficient ?? latKA;
+      }
+
       //熱通過有効度[-]を計算
       double effectiveness, mcMin, capacityRate;
       bool isMcMinSA;
       GetSensibleEffectiveness
         (mSA, mEA, inletSADryBulbTemperature, inletSAHumidityRatio,
-        inletEADryBulbTemperature, inletEAHumidityRatio, sensibleHeatTransferCoefficient, Flow,
+        inletEADryBulbTemperature, inletEAHumidityRatio, sensKA, Flow,
         out effectiveness, out mcMin, out capacityRate, out isMcMinSA);
 
       //熱交換効率[-]を計算
@@ -334,7 +446,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
         //熱通過有効度[-]を計算
         GetLatentEffectiveness
           (mSA, mEA, inletSAHumidityRatio, inletEAHumidityRatio,
-          latentHeatTransferCoefficient, Flow,
+          latKA, Flow,
           out effectiveness, out mcMin, out capacityRate);
 
         //熱交換効率[-]を計算

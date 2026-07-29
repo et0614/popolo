@@ -175,8 +175,9 @@ namespace Popolo.Core.HVAC.AirSide
     private double ComputeFanOutletTemperature()
     {
       fan.UpdateState(AirFlowRate / PhysicsConstants.NominalMoistAirDensity);
+      //消費電力は[kW]、比熱は[J/(kg・K)]のため0.001を乗じて単位を整合させる
       double tRise = fan.GetElectricConsumption()
-        / (AirFlowRate * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
+        / (AirFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
       return InletAirTemperature + tRise;
     }
 

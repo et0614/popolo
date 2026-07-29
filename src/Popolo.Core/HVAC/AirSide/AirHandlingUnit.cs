@@ -226,7 +226,7 @@ namespace Popolo.Core.HVAC.AirSide
       //ファン昇温を計算
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(RAFlowRate / PhysicsConstants.NominalMoistAirDensity);
-      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
+      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
 
       //ダクト熱損失とファン昇温を考慮して出口温度設定を補正
       double sp2 = Math.Max(LowerTemperatureLimit_C, spTemp);
@@ -360,7 +360,7 @@ namespace Popolo.Core.HVAC.AirSide
       //ファン昇温を計算
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(RAFlowRate / PhysicsConstants.NominalMoistAirDensity);
-      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
+      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
 
       //ダクト熱損失とファン昇温を考慮して出口温湿度設定を補正
       double sp2 = Math.Min(UpperTemperatureLimit_H, spTemp);
@@ -457,7 +457,7 @@ namespace Popolo.Core.HVAC.AirSide
       //ファン昇温とダクト熱損失の計算
       saFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
       raFan.UpdateState(SAFlowRate / PhysicsConstants.NominalMoistAirDensity);
-      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
+      double tRise = saFan.GetElectricConsumption() / (SAFlowRate * 0.001 * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat);
       SATemperature = RATemperature + tRise * (1 - DuctHeatLossRate);
       SAHumidityRatio = RAHumidityRatio;
     }

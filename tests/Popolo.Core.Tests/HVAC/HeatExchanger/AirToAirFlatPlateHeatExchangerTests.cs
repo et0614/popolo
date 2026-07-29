@@ -211,5 +211,109 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     }
 
     #endregion
+
+    // ================================================================
+    #region 2条件初期化（暖房条件+冷房条件）
+
+    //暖房条件と冷房条件で異なるカタログ効率
+    private const double SensEffH = 0.75;
+    private const double LatEffH = 0.65;
+    private const double SensEffC = 0.70;
+    private const double LatEffC = 0.50;
+
+    /// <summary>暖房・冷房の2条件で初期化した全熱交換器。</summary>
+    private static AirToAirFlatPlateHeatExchanger MakeTwoConditionHex()
+        => new AirToAirFlatPlateHeatExchanger(
+            SA_Flow, EA_Flow,
+            SensEffH, LatEffH,
+            AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Heating,
+            SensEffC, LatEffC,
+            AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Cooling,
+            AirToAirFlatPlateHeatExchanger.AirFlow.CounterFlow,
+            isEnthalpyEfficiency: false);
+
+    /// <summary>JIS暖房条件で運転すると暖房定格効率が再現される。</summary>
+    [Fact]
+    public void TwoCondition_HeatingCondition_ReproducesHeatingEfficiency()
+    {
+      var hex = MakeTwoConditionHex();
+      //JIS B 8628:2003 暖房条件（SA 5.0C/0.00350, EA 20.5C/0.00894）
+      hex.UpdateState(SA_Flow, EA_Flow, 5.0, 0.00350, 20.5, 0.00894);
+
+      Assert.Equal(SensEffH, hex.SensibleEfficiency, precision: 4);
+      Assert.Equal(LatEffH, hex.LatentEfficiency, precision: 4);
+    }
+
+    /// <summary>JIS冷房条件で運転すると冷房定格効率が再現される。</summary>
+    [Fact]
+    public void TwoCondition_CoolingCondition_ReproducesCoolingEfficiency()
+    {
+      var hex = MakeTwoConditionHex();
+      //JIS B 8628:2003 冷房条件（SA 34.5C/0.02627, EA 26.5C/0.01402）
+      hex.UpdateState(SA_Flow, EA_Flow, 34.5, 0.02627, 26.5, 0.01402);
+
+      Assert.Equal(SensEffC, hex.SensibleEfficiency, precision: 4);
+      Assert.Equal(LatEffC, hex.LatentEfficiency, precision: 4);
+    }
+
+    /// <summary>運転方向（給気入口と排気入口の温度大小）で貫流率が切り替わる。</summary>
+    [Fact]
+    public void TwoCondition_SwitchesByOperatingDirection()
+    {
+      var hex = MakeTwoConditionHex();
+
+      //冬季運転（SA入口 < EA入口）→ 暖房用係数
+      hex.UpdateState(SA_Flow, EA_Flow, 0.0, 0.002, 22.0, 0.008);
+      double effWinter = hex.SensibleEfficiency;
+
+      //夏季運転（SA入口 > EA入口）→ 冷房用係数
+      hex.UpdateState(SA_Flow, EA_Flow, 36.0, 0.024, 26.0, 0.011);
+      double effSummer = hex.SensibleEfficiency;
+
+      //暖房効率0.75 > 冷房効率0.70 と同じ大小関係になる
+      Assert.True(effSummer < effWinter,
+          $"summer eff={effSummer:F3} < winter eff={effWinter:F3}");
+    }
+
+    /// <summary>1条件初期化では季節によらず同一の貫流率が使われる。</summary>
+    [Fact]
+    public void SingleCondition_SameCoefficientsForBothSeasons()
+    {
+      //暖房条件のみで初期化
+      var hex = MakeTotalHex();
+
+      //暖房定格条件で定格効率を再現
+      hex.UpdateState(SA_Flow, EA_Flow, 5.0, 0.00350, 20.5, 0.00894);
+      Assert.Equal(SensEff, hex.SensibleEfficiency, precision: 4);
+
+      //冷房条件でも計算自体は可能（効率は暖房用係数からの推定値）
+      hex.UpdateState(SA_Flow, EA_Flow, 34.5, 0.02627, 26.5, 0.01402);
+      Assert.InRange(hex.SensibleEfficiency, 0.0, 1.0);
+      Assert.True(hex.SupplyAirOutletDryBulbTemperature < 34.5);
+    }
+
+    /// <summary>暖房・冷房条件の指定を取り違えると例外を投げる。</summary>
+    [Fact]
+    public void TwoCondition_InvalidConditionRoles_Throws()
+    {
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => new AirToAirFlatPlateHeatExchanger(
+              SA_Flow, EA_Flow,
+              SensEffH, LatEffH,
+              AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Cooling,  //暖房枠に冷房条件
+              SensEffC, LatEffC,
+              AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Cooling,
+              AirToAirFlatPlateHeatExchanger.AirFlow.CounterFlow, false));
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => new AirToAirFlatPlateHeatExchanger(
+              SA_Flow, EA_Flow,
+              SensEffH, LatEffH,
+              AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Heating,
+              SensEffC, LatEffC,
+              AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2017_Heating,  //冷房枠に暖房条件
+              AirToAirFlatPlateHeatExchanger.AirFlow.CounterFlow, false));
+    }
+
+    #endregion
   }
 }
