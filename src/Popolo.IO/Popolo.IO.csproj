@@ -13,9 +13,9 @@
     <!-- NuGetパッケージ情報 -->
     <PackageId>Popolo.IO</PackageId>
     <PackageIcon>icon.png</PackageIcon>
-    <Version>3.1.1</Version>
+    <Version>3.1.2</Version>
     <Authors>E.Togashi</Authors>
-    <Description>File I/O for Popolo.Core: weather data readers and writers (EPW, HASP, TMY1, WEA2, EXA, CSV) and JSON serialization for BuildingThermalModel, MultiRoom, Zone, Wall, Window, Sun, and Incline.</Description>
+    <Description>File I/O for Popolo.Core: weather data readers and writers (EPW, HASP, TMY1, WEA2, EXA, CSV), boundary condition schedule CSV reader, and JSON serialization for BuildingThermalModel, MultiRoom, Zone, Wall, Window, Sun, and Incline.</Description>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/et0614/popolo</PackageProjectUrl>
     <RepositoryUrl>https://github.com/et0614/popolo</RepositoryUrl>

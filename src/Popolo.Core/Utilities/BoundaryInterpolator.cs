@@ -24,12 +24,29 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Utilities
 {
   /// <summary>
-  /// Interpolates boundary condition values over time using
-  /// PCHIP (Piecewise Cubic Hermite Interpolating Polynomial),
-  /// which guarantees monotonicity of the interpolated values.
+  /// Interpolates boundary condition values over time. The interpolation
+  /// method is selectable per series: simple linear interpolation, step hold
+  /// (previous value), or PCHIP (Piecewise Cubic Hermite Interpolating
+  /// Polynomial), which guarantees monotonicity of the interpolated values.
+  /// The default is <see cref="InterpolationMethod.Pchip"/>.
   /// </summary>
   public class BoundaryInterpolator
   {
+
+    #region Enumerations
+
+    /// <summary>Interpolation method applied between data nodes.</summary>
+    public enum InterpolationMethod
+    {
+      /// <summary>Simple linear interpolation.</summary>
+      Linear,
+      /// <summary>Holds the value of the previous node (step function).</summary>
+      StepHold,
+      /// <summary>Monotonicity-preserving piecewise cubic Hermite interpolation.</summary>
+      Pchip,
+    }
+
+    #endregion
 
     #region Instance variables and properties
 
@@ -38,6 +55,9 @@ namespace Popolo.Core.Utilities
 
     /// <summary>Per-series arrays of state values.</summary>
     private readonly List<double[]> _seriesValues;
+
+    /// <summary>Per-series interpolation methods.</summary>
+    private readonly List<InterpolationMethod> _seriesMethods;
 
     /// <summary>Gets the number of data nodes.</summary>
     public int NodeCount => _dTimes.Length;
@@ -88,6 +108,9 @@ namespace Popolo.Core.Utilities
               nameof(boundaryValues));
 
       _seriesValues = boundaryValues;
+      _seriesMethods = new List<InterpolationMethod>();
+      for (int i = 0; i < boundaryValues.Count; i++)
+        _seriesMethods.Add(InterpolationMethod.Pchip);
     }
 
     #endregion
@@ -106,19 +129,40 @@ namespace Popolo.Core.Utilities
       if (iIndex < 0) return _seriesValues[seriesIndex][0];
       if (iIndex >= NodeCount) return _seriesValues[seriesIndex][NodeCount - 1];
 
-      double[] slps = ComputeSlopes(iIndex, seriesIndex);
+      switch (_seriesMethods[seriesIndex])
+      {
+        case InterpolationMethod.StepHold:
+          //GetIntervalIndex maps an exact node hit to the preceding interval;
+          //at the node itself the node's own value must be returned
+          return dateTime == _dTimes[iIndex + 1]
+            ? _seriesValues[seriesIndex][iIndex + 1]
+            : _seriesValues[seriesIndex][iIndex];
 
-      double h = _dTimes[iIndex + 1].Ticks - _dTimes[iIndex].Ticks;
-      double t = (dateTime.Ticks - _dTimes[iIndex].Ticks) / h;
-      double h00 = (1 + 2 * t) * (1 - t) * (1 - t);
-      double h10 = t * (1 - t) * (1 - t);
-      double h01 = t * t * (3 - 2 * t);
-      double h11 = t * t * (t - 1);
+        case InterpolationMethod.Linear:
+          {
+            double h = _dTimes[iIndex + 1].Ticks - _dTimes[iIndex].Ticks;
+            double t = (dateTime.Ticks - _dTimes[iIndex].Ticks) / h;
+            return (1 - t) * _seriesValues[seriesIndex][iIndex]
+                 + t * _seriesValues[seriesIndex][iIndex + 1];
+          }
 
-      return h00 * _seriesValues[seriesIndex][iIndex]
-           + h10 * h * slps[0]
-           + h01 * _seriesValues[seriesIndex][iIndex + 1]
-           + h11 * h * slps[1];
+        default:
+          {
+            double[] slps = ComputeSlopes(iIndex, seriesIndex);
+
+            double h = _dTimes[iIndex + 1].Ticks - _dTimes[iIndex].Ticks;
+            double t = (dateTime.Ticks - _dTimes[iIndex].Ticks) / h;
+            double h00 = (1 + 2 * t) * (1 - t) * (1 - t);
+            double h10 = t * (1 - t) * (1 - t);
+            double h01 = t * t * (3 - 2 * t);
+            double h11 = t * t * (t - 1);
+
+            return h00 * _seriesValues[seriesIndex][iIndex]
+                 + h10 * h * slps[0]
+                 + h01 * _seriesValues[seriesIndex][iIndex + 1]
+                 + h11 * h * slps[1];
+          }
+      }
     }
 
     /// <summary>
@@ -135,7 +179,8 @@ namespace Popolo.Core.Utilities
     }
 
     /// <summary>
-    /// Adds a new series of values.
+    /// Adds a new series of values interpolated with
+    /// <see cref="InterpolationMethod.Pchip"/>.
     /// </summary>
     /// <param name="sValues">Array of values with length equal to <see cref="NodeCount"/>.</param>
     /// <exception cref="PopoloArgumentException">
@@ -144,11 +189,60 @@ namespace Popolo.Core.Utilities
     /// </exception>
     public void AddSeries(double[] sValues)
     {
+      AddSeries(sValues, InterpolationMethod.Pchip);
+    }
+
+    /// <summary>
+    /// Adds a new series of values with the specified interpolation method.
+    /// </summary>
+    /// <param name="sValues">Array of values with length equal to <see cref="NodeCount"/>.</param>
+    /// <param name="method">Interpolation method applied to this series.</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when the length of <paramref name="sValues"/> does not match
+    /// <see cref="NodeCount"/>.
+    /// </exception>
+    public void AddSeries(double[] sValues, InterpolationMethod method)
+    {
       if (sValues.Length != NodeCount)
         throw new PopoloArgumentException(
             $"Length {sValues.Length} does not match NodeCount ({NodeCount}).",
             nameof(sValues));
       _seriesValues.Add(sValues);
+      _seriesMethods.Add(method);
+    }
+
+    /// <summary>
+    /// Gets the interpolation method of the specified series.
+    /// </summary>
+    /// <param name="seriesIndex">The index of the series.</param>
+    /// <returns>Interpolation method of the series.</returns>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="seriesIndex"/> is out of range.
+    /// </exception>
+    public InterpolationMethod GetInterpolationMethod(int seriesIndex)
+    {
+      if (seriesIndex < 0 || SeriesCount <= seriesIndex)
+        throw new PopoloArgumentException(
+            $"seriesIndex {seriesIndex} is out of range (SeriesCount = {SeriesCount}).",
+            nameof(seriesIndex));
+      return _seriesMethods[seriesIndex];
+    }
+
+    /// <summary>
+    /// Sets the interpolation method of the specified series.
+    /// </summary>
+    /// <param name="seriesIndex">The index of the series.</param>
+    /// <param name="method">Interpolation method applied to the series.</param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="seriesIndex"/> is out of range.
+    /// </exception>
+    public void SetInterpolationMethod(int seriesIndex, InterpolationMethod method)
+    {
+      if (seriesIndex < 0 || SeriesCount <= seriesIndex)
+        throw new PopoloArgumentException(
+            $"seriesIndex {seriesIndex} is out of range (SeriesCount = {SeriesCount}).",
+            nameof(seriesIndex));
+      _seriesMethods[seriesIndex] = method;
     }
 
     /// <summary>
