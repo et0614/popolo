@@ -796,6 +796,31 @@ namespace Popolo.Core.Building
       hasHTChgd[mRooms[mRoomIndex]] = hasWTChgd[mRooms[mRoomIndex]] = true;
     }
 
+    /// <summary>
+    /// Gets the air flow rate from zone 1 to zone 2, possibly in different
+    /// multi-rooms [kg/s].
+    /// </summary>
+    /// <param name="rmIndex1">Multi-room of the source zone.</param>
+    /// <param name="znIndex1">Source zone index.</param>
+    /// <param name="rmIndex2">Multi-room of the destination zone.</param>
+    /// <param name="znIndex2">Destination zone index.</param>
+    /// <returns>Air flow rate [kg/s]. Returns 0 when no flow is set.</returns>
+    /// <remarks>
+    /// Read-only counterpart of
+    /// <see cref="SetAirFlow(int,int,int,int,double)"/> and
+    /// <see cref="SetCrossVentilation(int,int,int,int,double)"/>. For zones
+    /// in the same multi-room the directed flow matrix of the
+    /// <see cref="Building.MultiRoom"/> is returned; for zones in different
+    /// multi-rooms the loose-coupling boundary condition entry is returned.
+    /// </remarks>
+    public double GetAirFlow(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2)
+    {
+      //同一の多数室の場合にはMultiRoom内の有向流量
+      if (rmIndex1 == rmIndex2) return mRooms[rmIndex1].GetAirFlow(znIndex1, znIndex2);
+      //他の多数室の場合には境界条件のコレクションから取得
+      return zoneVent[rmIndex2][znIndex2].GetAirFlow(rmIndex1, znIndex1);
+    }
+
     /// <summary>Sets the water supply conditions for the buried pipe at the specified node.</summary>
     /// <param name="mRoomIndex">MultiRooms index.</param>
     /// <param name="wallIndex">Wall (floor) index.</param>
@@ -1040,6 +1065,17 @@ namespace Popolo.Core.Building
         if (!aFlows.ContainsKey(rmIndex))
           aFlows.Add(rmIndex, new Dictionary<int, double>());
         aFlows[rmIndex][znIndex] = aFlow;
+      }
+
+      /// <summary>Gets the air flow rate from the specified source zone [kg/s]. Returns 0 when no entry exists.</summary>
+      /// <param name="rmIndex">MultiRooms index.</param>
+      /// <param name="znIndex">Zone index.</param>
+      /// <returns>Air flow rate [kg/s].</returns>
+      public double GetAirFlow(int rmIndex, int znIndex)
+      {
+        if (aFlows.TryGetValue(rmIndex, out Dictionary<int, double>? znFlows)
+          && znFlows.TryGetValue(znIndex, out double aFlow)) return aFlow;
+        return 0.0;
       }
 
       /// <summary>Removes an air flow entry from the specified source zone.</summary>

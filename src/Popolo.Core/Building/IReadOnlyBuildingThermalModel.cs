@@ -86,6 +86,17 @@ namespace Popolo.Core.Building
         /// <returns>Array of read-only zones.</returns>
         IReadOnlyZone[] GetZones();
 
+        /// <summary>
+        /// Gets the air flow rate from zone 1 to zone 2, possibly in
+        /// different multi-rooms [kg/s].
+        /// </summary>
+        /// <param name="rmIndex1">Multi-room of the source zone.</param>
+        /// <param name="znIndex1">Source zone index.</param>
+        /// <param name="rmIndex2">Multi-room of the destination zone.</param>
+        /// <param name="znIndex2">Destination zone index.</param>
+        /// <returns>Air flow rate [kg/s]. Returns 0 when no flow is set.</returns>
+        double GetAirFlow(int rmIndex1, int znIndex1, int rmIndex2, int znIndex2);
+
         /// <summary>Gets the breakdown of sensible heat flows into the zone (positive = inflow).</summary>
         /// <param name="mRoomIndex">MultiRooms index.</param>
         /// <param name="zoneIndex">Zone index.</param>

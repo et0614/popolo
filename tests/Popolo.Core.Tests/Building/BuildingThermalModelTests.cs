@@ -1067,5 +1067,76 @@ namespace Popolo.Core.Tests.Building
     }
 
     #endregion
+
+    // ================================================================
+    #region GetAirFlow — ゾーン間流量の読み取り
+
+    /// <summary>2つのMultiRoomを持つ最小モデル（流量の設定・読み取り検証用）。</summary>
+    private static BuildingThermalModel MakeTwoMultiRoomModel()
+    {
+      var mr1 = new MultiRoom(1,
+        new[] { new Zone("zoneA", 100), new Zone("zoneB", 100) },
+        new Wall[0], new Window[0]);
+      var mr2 = new MultiRoom(1,
+        new[] { new Zone("zoneC", 100) },
+        new Wall[0], new Window[0]);
+      return new BuildingThermalModel(new[] { mr1, mr2 });
+    }
+
+    /// <summary>同一MultiRoom内の対称ゾーン間換気を双方向に読み取れる。</summary>
+    [Fact]
+    public void GetAirFlow_SameMultiRoom_CrossVentilationIsSymmetric()
+    {
+      var bModel = MakeTwoMultiRoomModel();
+      bModel.SetCrossVentilation(0, 0, 1, 0.5);
+
+      Assert.Equal(0.5, bModel.GetAirFlow(0, 0, 0, 1));
+      Assert.Equal(0.5, bModel.GetAirFlow(0, 1, 0, 0));
+    }
+
+    /// <summary>同一MultiRoom内の一方向流は順方向のみ読み取れる。</summary>
+    [Fact]
+    public void GetAirFlow_SameMultiRoom_DirectionalFlow()
+    {
+      var bModel = MakeTwoMultiRoomModel();
+      bModel.SetAirFlow(0, 0, 1, 0.3);
+
+      Assert.Equal(0.3, bModel.GetAirFlow(0, 0, 0, 1));
+      Assert.Equal(0.0, bModel.GetAirFlow(0, 1, 0, 0));
+    }
+
+    /// <summary>MultiRoomをまたぐ対称ゾーン間換気を双方向に読み取れる。</summary>
+    [Fact]
+    public void GetAirFlow_CrossMultiRoom_CrossVentilationIsSymmetric()
+    {
+      var bModel = MakeTwoMultiRoomModel();
+      bModel.SetCrossVentilation(0, 0, 1, 0, 0.4);
+
+      Assert.Equal(0.4, bModel.GetAirFlow(0, 0, 1, 0));
+      Assert.Equal(0.4, bModel.GetAirFlow(1, 0, 0, 0));
+    }
+
+    /// <summary>MultiRoomをまたぐ一方向流は順方向のみ読み取れる。</summary>
+    [Fact]
+    public void GetAirFlow_CrossMultiRoom_DirectionalFlow()
+    {
+      var bModel = MakeTwoMultiRoomModel();
+      bModel.SetAirFlow(0, 1, 1, 0, 0.2);
+
+      Assert.Equal(0.2, bModel.GetAirFlow(0, 1, 1, 0));
+      Assert.Equal(0.0, bModel.GetAirFlow(1, 0, 0, 1));
+    }
+
+    /// <summary>未設定の流量は0を返す。</summary>
+    [Fact]
+    public void GetAirFlow_Unset_ReturnsZero()
+    {
+      var bModel = MakeTwoMultiRoomModel();
+
+      Assert.Equal(0.0, bModel.GetAirFlow(0, 0, 0, 1));
+      Assert.Equal(0.0, bModel.GetAirFlow(0, 0, 1, 0));
+    }
+
+    #endregion
   }
 }
