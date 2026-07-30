@@ -250,6 +250,33 @@ namespace Popolo.Core.Tests.Building.AirQuality
       Assert.Throws<PopoloArgumentException>(() => model.Update(0.0));
     }
 
+    /// <summary>IReadOnlyZoneのみのコンストラクタは名称と気積をゾーンから引き継ぐ。</summary>
+    [Fact]
+    public void BoundZoneConstructor_TakesNameAndVolumeFromZone()
+    {
+      var bModel = MakeThermalModel(out Zone znA, out _);
+
+      //空気質量120kg / 1.2kg/m3 = 気積100m3
+      var cz = new CO2ModelZone(znA);
+      Assert.Equal("thermalA", cz.Name);
+      Assert.Equal(100.0, cz.Volume, precision: 9);
+      Assert.Same(znA, cz.BoundZone);
+
+      //3引数版と同じ挙動でモデルに組み込める
+      var model = new MultiZoneCO2Model(new[] { cz }, bModel);
+      znA.VentilationRate = 0.36;  //0.3 m3/s
+      cz.CO2Generation = 1e-4;
+      for (int i = 0; i < 300; i++) model.Update(600.0);
+      Assert.Equal(model.OutdoorCO2Level + 1e-4 / 0.3, cz.CO2Level, 1e-6);
+    }
+
+    /// <summary>IReadOnlyZoneのみのコンストラクタにnullを渡すと例外を投げる。</summary>
+    [Fact]
+    public void BoundZoneConstructor_Null_Throws()
+    {
+      Assert.Throws<PopoloArgumentException>(() => new CO2ModelZone(null!));
+    }
+
     #endregion
   }
 }

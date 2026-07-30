@@ -18,6 +18,7 @@
  */
 
 using Popolo.Core.Exceptions;
+using Popolo.Core.Physics;
 
 namespace Popolo.Core.Building.AirQuality
 {
@@ -94,6 +95,28 @@ namespace Popolo.Core.Building.AirQuality
     /// <param name="name">Zone name.</param>
     /// <param name="volume">Zone air volume [m³].</param>
     public CO2ModelZone(string name, double volume) : this(name, volume, null) { }
+
+    /// <summary>
+    /// Initializes a new instance bound to a thermal model zone, taking the
+    /// name and the air volume from the zone.
+    /// </summary>
+    /// <param name="boundZone">
+    /// Thermal model zone to bind. The name is copied from
+    /// <see cref="IReadOnlyZone.Name"/> and the air volume is derived from
+    /// <see cref="IReadOnlyZone.AirMass"/> with
+    /// <see cref="PhysicsConstants.NominalMoistAirDensity"/>.
+    /// </param>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="boundZone"/> is null.
+    /// </exception>
+    public CO2ModelZone(IReadOnlyZone boundZone)
+      : this(
+          boundZone == null
+            ? throw new PopoloArgumentException("boundZone must not be null.", nameof(boundZone))
+            : boundZone.Name,
+          boundZone.AirMass / PhysicsConstants.NominalMoistAirDensity,
+          boundZone)
+    { }
 
     /// <summary>Initializes a new instance.</summary>
     /// <param name="name">Zone name.</param>
