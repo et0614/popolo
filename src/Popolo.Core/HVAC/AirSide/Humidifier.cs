@@ -140,6 +140,7 @@ namespace Popolo.Core.HVAC.AirSide
           throw new PopoloNotImplementedException(
             $"Humidifier type '{type}' is not supported.");
       }
+      SaturationEfficiency = MaxSaturationEfficiency;
     }
 
     /// <summary>
@@ -162,6 +163,7 @@ namespace Popolo.Core.HVAC.AirSide
       Type = type;
       MaxSaturationEfficiency = maxSaturationEfficiency;
       WaterSupplyCoefficient = waterSupplyCoefficient;
+      SaturationEfficiency = MaxSaturationEfficiency;
     }
 
     #endregion
@@ -225,8 +227,9 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Shuts off the humidifier (zero airflow, no humidification).</summary>
     public void ShutOff()
     {
+      //SaturationEfficiency is an operating setting and is kept so that a
+      //later free-running restart humidifies again
       AirFlowRate = 0.0;
-      SaturationEfficiency = 0.0;
       WaterConsumption = 0.0;
       SteamConsumption = 0.0;
       OutletAirTemperature = InletAirTemperature;

@@ -249,6 +249,43 @@ namespace Popolo.Core.Tests.HVAC.VRF
         #endregion
 
         // ================================================================
+        #region Supersaturated inlet air
+
+        /// <summary>過飽和の入口空気（RH>100%）でも冷却運転が例外なく計算でき、飽和扱いで除湿される</summary>
+        [Fact]
+        public void Evaporator_SupersaturatedInlet_DoesNotThrow()
+        {
+            var evp = MakeEvaporator();
+            //26°C の飽和絶対湿度（約21.4g/kg）を超える 22.6g/kg（RH約106%）
+            double hrSuper = 0.0226;
+
+            evp.UpdateWithRefrigerantTemperature(10.0, AirFlow, 26.0, hrSuper, false);
+
+            Assert.True(evp.HeatTransfer < 0,
+                $"HeatTransfer={evp.HeatTransfer:F2} kW < 0 (cooling)");
+            Assert.True(evp.OutletAirHumidityRatio < hrSuper,
+                $"OutletW={evp.OutletAirHumidityRatio * 1000:F2} g/kg < {hrSuper * 1000:F2} g/kg");
+        }
+
+        /// <summary>過飽和の入口空気でも給気温度制御（静的メソッド）が例外なく解ける</summary>
+        [Fact]
+        public void ControlOutletAirTemperature_SupersaturatedInlet_DoesNotThrow()
+        {
+            double hrSuper = 0.0226;
+            VRFUnit.ControlOutletAirTemperature(
+                22.0, AirFlow, 7.3, 26.0, hrSuper, 90.0,
+                out double evpTemp, out double heatTransfer,
+                out double outletW, out _, out _, out _);
+
+            Assert.True(evpTemp < 22.0, $"EvpTemp={evpTemp:F2}°C < 22°C");
+            Assert.True(heatTransfer < 0, $"HeatTransfer={heatTransfer:F2} kW < 0");
+            Assert.True(outletW < hrSuper,
+                $"OutletW={outletW * 1000:F2} g/kg < {hrSuper * 1000:F2} g/kg");
+        }
+
+        #endregion
+
+        // ================================================================
         #region ShutOff
 
         [Fact]

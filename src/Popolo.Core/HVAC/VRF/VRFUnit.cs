@@ -379,8 +379,9 @@ namespace Popolo.Core.HVAC.VRF
       heatTransfer = -heatTransfer; //Flip sign
 
       //Determine the dry/wet boundary
-      double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+      //Supersaturated inlet air (rh > 100) is treated as saturated: the whole coil becomes wet
+      double rh = Math.Min(100, MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure));
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
 
       //Compute the moist air specific heat
@@ -388,8 +389,9 @@ namespace Popolo.Core.HVAC.VRF
 
       //Compute the dry coil surface area
       double mca = cpmaWB * airFlowRate;
-      double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
-        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
+      double tWB = Math.Min(inletAirTemperature,
+        MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
+        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure));
       double qD = (inletAirTemperature - tWB) * mca;
 
       //Case: heat transfer completes within the dry coil
@@ -769,11 +771,13 @@ namespace Popolo.Core.HVAC.VRF
       out double sD, out double sW, out double defrostLoad)
     {
       //Determine the dry/wet boundary
-      double rh = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
+      //Supersaturated inlet air (rh > 100) is treated as saturated: the whole coil becomes wet
+      double rh = Math.Min(100, MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure));
       borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
-      double tWB = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
-        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
+      double tWB = Math.Min(inletAirTemperature,
+        MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
+        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure));
 
       //Compute the moist air specific heat [kJ/kgK]
       double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);

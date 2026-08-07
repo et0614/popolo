@@ -2305,6 +2305,11 @@ namespace Popolo.Core.Building
     /// two zones trivially conserve mass without further bookkeeping. For an
     /// explicitly directed one-way transfer, use
     /// <see cref="SetAirFlow(int,int,double)"/> instead.
+    /// Both methods share the same directed flow matrix: this call overwrites
+    /// both directions of the pair, so any one-way flow previously set for
+    /// the same pair is lost. To combine a circulation with a one-way flow,
+    /// set the summed flow of each direction with
+    /// <see cref="SetAirFlow(int,int,double)"/>.
     /// </remarks>
     public void SetCrossVentilation(int zoneIndex1, int zoneIndex2, double airMassFlowRate)
     { zoneVent[zoneIndex1, zoneIndex2] = zoneVent[zoneIndex2, zoneIndex1] = airMassFlowRate; }

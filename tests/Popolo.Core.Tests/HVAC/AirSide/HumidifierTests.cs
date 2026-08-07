@@ -234,18 +234,45 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
     #region ShutOff and stop methods
 
-    /// <summary>ShutOffで風量・消費量・飽和効率が0になる。</summary>
+    /// <summary>ShutOffで風量・消費量が0になる（運転設定である飽和効率は保持される）。</summary>
     [Fact]
     public void ShutOff_ZeroState()
     {
       var hm = new Humidifier(Humidifier.HumidifierType.WettedMedia);
       hm.ControlOutletHumidityRatio(TIN, WIN, FLOW, 0.007);
+      double eff = hm.SaturationEfficiency;
       hm.ShutOff();
 
       Assert.Equal(0.0, hm.AirFlowRate);
       Assert.Equal(0.0, hm.WaterConsumption);
       Assert.Equal(0.0, hm.SteamConsumption);
-      Assert.Equal(0.0, hm.SaturationEfficiency);
+      Assert.Equal(eff, hm.SaturationEfficiency, precision: 12);
+    }
+
+    /// <summary>生成直後の成り行き運転は最大飽和効率で加湿する（初期値0で無加湿とならない）。</summary>
+    [Fact]
+    public void UpdateOutletState_FreshInstance_HumidifiesAtMaxEfficiency()
+    {
+      var hm = new Humidifier(Humidifier.HumidifierType.WettedMedia);
+      Assert.Equal(hm.MaxSaturationEfficiency, hm.SaturationEfficiency, precision: 12);
+
+      hm.UpdateOutletState(TIN, WIN, FLOW);
+      Assert.True(WIN < hm.OutletAirHumidityRatio,
+        $"OutletW={1000 * hm.OutletAirHumidityRatio:F2} g/kg > {1000 * WIN:F2} g/kg");
+      Assert.True(0 < hm.WaterConsumption);
+    }
+
+    /// <summary>ShutOff後の成り行き運転でも再び加湿できる。</summary>
+    [Fact]
+    public void UpdateOutletState_AfterShutOff_HumidifiesAgain()
+    {
+      var hm = new Humidifier(Humidifier.HumidifierType.WettedMedia);
+      hm.UpdateOutletState(TIN, WIN, FLOW);
+      hm.ShutOff();
+
+      hm.UpdateOutletState(TIN, WIN, FLOW);
+      Assert.True(WIN < hm.OutletAirHumidityRatio);
+      Assert.True(0 < hm.WaterConsumption);
     }
 
     /// <summary>風量0で呼び出すと停止処理となる。</summary>
