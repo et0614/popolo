@@ -1,4 +1,4 @@
-/* Refrigerant.cs
+﻿/* Refrigerant.cs
  *
  * Copyright (C) 2013 E.Togashi
  *
@@ -20,6 +20,7 @@
 using System;
 using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
+using Popolo.Core.Numerics.LinearAlgebra;
 
 namespace Popolo.Core.Physics
 {
@@ -160,6 +161,21 @@ namespace Popolo.Core.Physics
 
     /// <summary>Approximation coefficients used to estimate the initial value of saturation temperature.</summary>
     private readonly double[] _cts;
+
+    /// <summary>True when the saturation curve fit is available (see <see cref="FitSaturationCurves"/>).</summary>
+    private bool _satFitValid;
+
+    /// <summary>Wagner-type coefficients of the fitted saturation pressure curve.</summary>
+    private readonly double[] _satWagner = new double[4];
+
+    /// <summary>Coefficients of the fitted saturated liquid density curve.</summary>
+    private readonly double[] _satLiqDens = new double[4];
+
+    /// <summary>Coefficients of the fitted saturated vapor density curve.</summary>
+    private readonly double[] _satVapDens = new double[5];
+
+    /// <summary>Temperature range [K] of the saturation curve fit.</summary>
+    private double _satFitTMin, _satFitTMax;
 
     #endregion
 
@@ -477,6 +493,8 @@ namespace Popolo.Core.Physics
           _ccp = _cps = _cts = Array.Empty<double>();
           break;
       }
+
+      FitSaturationCurves();
     }
 
     #endregion
@@ -578,6 +596,32 @@ namespace Popolo.Core.Physics
     {
       ValidatePressure(pressure);
 
+      //Fast path: evaluate the saturation curves fitted at construction
+      //(ValidatePressure already restricts the pressure to the fitted range)
+      if (_satFitValid)
+      {
+        saturatedTemperature = SolveFittedSaturationTemperature(pressure);
+        GetFittedSaturatedDensities(saturatedTemperature,
+          out saturatedLiquidDensity, out saturatedVaporDensity);
+        return;
+      }
+
+      GetSaturatedPropertyFromPressureExact(pressure,
+        out saturatedLiquidDensity, out saturatedVaporDensity, out saturatedTemperature);
+    }
+
+    /// <summary>
+    /// Gets the saturation state from the pressure [kPa] by solving the
+    /// equal-Gibbs-energy condition (Eq.17 in the reference).
+    /// </summary>
+    /// <param name="pressure">Pressure [kPa]</param>
+    /// <param name="saturatedLiquidDensity">Saturated liquid density [kg/m³]</param>
+    /// <param name="saturatedVaporDensity">Saturated vapor density [kg/m³]</param>
+    /// <param name="saturatedTemperature">Saturation temperature [K]</param>
+    private void GetSaturatedPropertyFromPressureExact(double pressure,
+        out double saturatedLiquidDensity, out double saturatedVaporDensity,
+        out double saturatedTemperature)
+    {
       double sld = 0, svd = 0;
       Roots.ErrorFunction eFnc = tmp =>
           GetGibbsEnergyDifference(tmp, pressure, out sld, out svd);
@@ -623,6 +667,31 @@ namespace Popolo.Core.Physics
     {
       ValidateTemperature(temperature);
 
+      //Fast path: evaluate the saturation curves fitted at construction
+      if (_satFitValid && _satFitTMin <= temperature && temperature <= _satFitTMax)
+      {
+        saturatedPressure = GetFittedSaturationPressure(temperature);
+        GetFittedSaturatedDensities(temperature,
+          out saturatedLiquidDensity, out saturatedVaporDensity);
+        return;
+      }
+
+      GetSaturatedPropertyFromTemperatureExact(temperature,
+        out saturatedLiquidDensity, out saturatedVaporDensity, out saturatedPressure);
+    }
+
+    /// <summary>
+    /// Gets the saturation state from the temperature [K] by solving the
+    /// equal-Gibbs-energy condition (Eq.17 in the reference).
+    /// </summary>
+    /// <param name="temperature">Saturation temperature [K]</param>
+    /// <param name="saturatedLiquidDensity">Saturated liquid density [kg/m³]</param>
+    /// <param name="saturatedVaporDensity">Saturated vapor density [kg/m³]</param>
+    /// <param name="saturatedPressure">Saturation pressure [kPa]</param>
+    private void GetSaturatedPropertyFromTemperatureExact(double temperature,
+        out double saturatedLiquidDensity, out double saturatedVaporDensity,
+        out double saturatedPressure)
+    {
       double sld = 0, svd = 0;
       Roots.ErrorFunction eFnc = pres =>
           GetGibbsEnergyDifference(temperature, pres, out sld, out svd);
@@ -702,6 +771,193 @@ namespace Popolo.Core.Physics
       }
       gr *= rho;
       return gr / CriticalDensity;
+    }
+
+    #endregion
+
+    #region Saturation curve fit
+
+    /// <summary>
+    /// Fits fast closed-form saturation curves against this model's own
+    /// equal-Gibbs-energy solution (Eq.17) at construction.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Saturation state queries are by far the most frequent refrigerant
+    /// property calls in HVAC models, and each exact solution nests Newton
+    /// iterations (saturation condition × liquid/vapor density searches).
+    /// This method samples the exact solution over the validated pressure
+    /// range and fits a four-term Wagner equation for the saturation
+    /// pressure, ln(P/Pc) = (a1·τ + a2·τ^1.5 + a3·τ^3 + a4·τ^6) / Tr, and
+    /// τ-power series for the saturated liquid and vapor densities
+    /// (τ = 1 − T/Tc). The fits are a memoization of the model itself — not
+    /// an additional physical approximation source — and their consistency
+    /// with the exact solution is verified here; when it is worse than 0.1%
+    /// (pressure) or 0.3% (densities), the fit is discarded and all queries
+    /// keep using the exact solution.
+    /// </para>
+    /// <para>
+    /// When the exact solution fails at the very edge of the validated range
+    /// (it can be fragile there), the sampled range is shrunk slightly; the
+    /// resulting curves are then extrapolated over the remaining sliver,
+    /// which also makes the boundary usable where the exact solution is not.
+    /// Temperature queries outside the fitted range fall back to the exact
+    /// solution.
+    /// </para>
+    /// </remarks>
+    private void FitSaturationCurves()
+    {
+      _satFitValid = false;
+      if (_alpha.Length == 0 || _cts.Length == 0) return;
+
+      //Determine the temperature range to fit from the initial-estimate polynomial
+      //(the exact solution can be fragile just at the validated range boundary)
+      double tMin = _satFitTMin = EstimateSaturationTemperature(MinPressure);
+      double tMax = _satFitTMax = EstimateSaturationTemperature(MaxPressure);
+      if (CriticalTemperature <= tMax) return;
+
+      //Sample the exact saturation solution; when it fails at a range edge,
+      //shrink the range slightly toward the center and retry
+      const int N = 64;
+      double[] ts = new double[N], ps = new double[N], lds = new double[N], vds = new double[N];
+      bool sampled = false;
+      for (int trial = 0; trial < 5 && !sampled; trial++)
+      {
+        try
+        {
+          for (int i = 0; i < N; i++)
+          {
+            ts[i] = tMin + (tMax - tMin) * i / (N - 1);
+            GetSaturatedPropertyFromTemperatureExact(ts[i], out lds[i], out vds[i], out ps[i]);
+          }
+          sampled = true;
+        }
+        catch (PopoloNumericalException)
+        {
+          double shrink = 0.02 * (tMax - tMin);
+          tMin += shrink;
+          tMax -= shrink;
+        }
+      }
+      if (!sampled) return; //keep the exact path
+
+      //Least-squares fits (normal equations)
+      double[] bss = new double[5];
+      var fits = new (double[] coef, Func<double, double[]> basis, Func<int, double> target)[]
+      {
+        (_satWagner,
+          tau => { double sqt = Math.Sqrt(tau); double t3 = tau * tau * tau;
+            bss[0] = tau; bss[1] = tau * sqt; bss[2] = t3; bss[3] = t3 * t3; return bss; },
+          i => Math.Log(ps[i] / CriticalPressure) * (ts[i] / CriticalTemperature)),
+        (_satLiqDens,
+          tau => { double cb = Math.Cbrt(tau);
+            bss[0] = cb; bss[1] = cb * cb; bss[2] = tau; bss[3] = tau * cb; return bss; },
+          i => lds[i] / CriticalDensity - 1.0),
+        (_satVapDens,
+          tau => { double cb = Math.Cbrt(tau); double t3 = tau * tau * tau;
+            bss[0] = cb; bss[1] = Math.Pow(tau, 5.0 / 6.0); bss[2] = tau * Math.Sqrt(tau); bss[3] = t3; bss[4] = t3 * t3; return bss; },
+          i => Math.Log(vds[i] / CriticalDensity)),
+      };
+      foreach (var (coef, basis, target) in fits)
+      {
+        int nc = coef.Length;
+        Matrix ata = new Matrix(nc, nc);
+        Vector atb = new Vector(nc);
+        for (int i = 0; i < N; i++)
+        {
+          double[] b = basis(1.0 - ts[i] / CriticalTemperature);
+          double y = target(i);
+          for (int j = 0; j < nc; j++)
+          {
+            for (int k = 0; k < nc; k++) ata[j, k] += b[j] * b[k];
+            atb[j] += b[j] * y;
+          }
+        }
+        LinearAlgebraOperations.SolveLinearEquations(ata, atb);
+        for (int j = 0; j < nc; j++) coef[j] = atb[j];
+      }
+
+      //Verify the consistency with the exact solution before enabling the fast path
+      for (int i = 0; i < N; i++)
+      {
+        GetFittedSaturatedDensities(ts[i], out double ld, out double vd);
+        if (0.001 < Math.Abs(GetFittedSaturationPressure(ts[i]) - ps[i]) / ps[i] ||
+            0.003 < Math.Abs(ld - lds[i]) / lds[i] ||
+            0.003 < Math.Abs(vd - vds[i]) / vds[i])
+        {
+          return;
+        }
+      }
+      _satFitValid = true;
+    }
+
+    /// <summary>Estimates the saturation temperature [K] with the cubic initial-estimate polynomial.</summary>
+    /// <param name="pressure">Pressure [kPa]</param>
+    /// <returns>Estimated saturation temperature [K]</returns>
+    private double EstimateSaturationTemperature(double pressure)
+    {
+      double pr = pressure / CriticalPressure;
+      double t = _cts[0];
+      for (int i = 1; i < _cts.Length; i++) t = t * pr + _cts[i];
+      return t;
+    }
+
+    /// <summary>Gets the saturation pressure [kPa] from the fitted Wagner equation.</summary>
+    /// <param name="temperature">Saturation temperature [K]</param>
+    /// <returns>Saturation pressure [kPa]</returns>
+    private double GetFittedSaturationPressure(double temperature)
+    {
+      double tr = temperature / CriticalTemperature;
+      double tau = 1.0 - tr;
+      double sqt = Math.Sqrt(tau);
+      double t3 = tau * tau * tau;
+      return CriticalPressure * Math.Exp(
+        (_satWagner[0] * tau + _satWagner[1] * tau * sqt + _satWagner[2] * t3 + _satWagner[3] * t3 * t3) / tr);
+    }
+
+    /// <summary>Solves the fitted Wagner equation for the saturation temperature [K] with Newton's method.</summary>
+    /// <param name="pressure">Pressure [kPa]</param>
+    /// <returns>Saturation temperature [K]</returns>
+    private double SolveFittedSaturationTemperature(double pressure)
+    {
+      //Initial estimate (cubic polynomial approximation)
+      double pr = pressure / CriticalPressure;
+      double t = _cts[0];
+      for (int i = 1; i < _cts.Length; i++) t = t * pr + _cts[i];
+
+      double lnPr = Math.Log(pr);
+      for (int i = 0; i < 20; i++)
+      {
+        double tr = t / CriticalTemperature;
+        double tau = Math.Max(0, 1.0 - tr);
+        double sqt = Math.Sqrt(tau);
+        double t3 = tau * tau * tau;
+        double g = _satWagner[0] * tau + _satWagner[1] * tau * sqt + _satWagner[2] * t3 + _satWagner[3] * t3 * t3;
+        double gp = _satWagner[0] + 1.5 * _satWagner[1] * sqt + 3.0 * _satWagner[2] * tau * tau + 6.0 * _satWagner[3] * t3 * tau * tau;
+        //d(g(τ)/Tr)/dT with τ = 1 - Tr
+        double dfdt = (-(gp * tr) - g) / (tr * tr) / CriticalTemperature;
+        double dt = (g / tr - lnPr) / dfdt;
+        t -= dt;
+        if (Math.Abs(dt) < 1e-6) break;
+      }
+      return t;
+    }
+
+    /// <summary>Gets the saturated liquid and vapor densities [kg/m³] from the fitted curves.</summary>
+    /// <param name="temperature">Saturation temperature [K]</param>
+    /// <param name="liquidDensity">Saturated liquid density [kg/m³]</param>
+    /// <param name="vaporDensity">Saturated vapor density [kg/m³]</param>
+    private void GetFittedSaturatedDensities(double temperature,
+      out double liquidDensity, out double vaporDensity)
+    {
+      double tau = Math.Max(0, 1.0 - temperature / CriticalTemperature);
+      double cb = Math.Cbrt(tau);
+      liquidDensity = CriticalDensity * (1.0
+        + _satLiqDens[0] * cb + _satLiqDens[1] * cb * cb + _satLiqDens[2] * tau + _satLiqDens[3] * tau * cb);
+      double t3 = tau * tau * tau;
+      vaporDensity = CriticalDensity * Math.Exp(
+        _satVapDens[0] * cb + _satVapDens[1] * Math.Pow(tau, 5.0 / 6.0)
+        + _satVapDens[2] * tau * Math.Sqrt(tau) + _satVapDens[3] * t3 + _satVapDens[4] * t3 * t3);
     }
 
     #endregion

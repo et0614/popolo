@@ -1,4 +1,4 @@
-/* VRFSystem.cs
+﻿/* VRFSystem.cs
  * 
  * Copyright (C) 2020 E.Togashi
  * 
@@ -779,11 +779,15 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="compressorInletEnthalpy">Compressor inlet specific enthalpy [kJ/kg].</param>
     /// <param name="compressorInletDensity">Compressor inlet refrigerant density [kg/m³].</param>
     /// <param name="evaporatingPressure">Evaporating pressure [kPa].</param>
+    /// <param name="minCondensingPressureLimit">
+    /// Saturation pressure at <see cref="ModeParameters.MinCondensingTemperature"/> [kPa].
+    /// Computed once by the caller because it is constant during the head convergence loop.
+    /// </param>
     /// <param name="condensingPressure">Output: condensing pressure [kPa].</param>
     /// <returns>Compression head error [kW].</returns>
     private double CalcCoolingHeadError
       (double headAssumption, double coolingLoad, double compressorInletEnthalpy, double compressorInletDensity,
-      double evaporatingPressure, out double condensingPressure)
+      double evaporatingPressure, double minCondensingPressureLimit, out double condensingPressure)
     {
       //Compute the required condensing pressure
       double qCnd = -coolingLoad + headAssumption;
@@ -796,8 +800,7 @@ namespace Popolo.Core.HVAC.VRF
       if (refrigerant.MaxPressure < condensingPressure)
         return condensingPressure - refrigerant.MaxPressure; //If beyond the refrigerant property calculation range, output the excess as the error
       //Limit the compression ratio
-      refrigerant.GetSaturatedPropertyFromTemperature(Cooling.MinCondensingTemperature + KTOC, out _, out _, out double minCondensingPressure);
-      minCondensingPressure = Math.Max(minCondensingPressure, evaporatingPressure * MIN_COMPRESSION_RATIO);
+      double minCondensingPressure = Math.Max(minCondensingPressureLimit, evaporatingPressure * MIN_COMPRESSION_RATIO);
       if (condensingPressure < minCondensingPressure)
       {
         condensingPressure = minCondensingPressure;
@@ -923,12 +926,16 @@ namespace Popolo.Core.HVAC.VRF
     /// <param name="headAssumption">Assumed compression head [kW].</param>
     /// <param name="heatingLoad">Heating load [kW].</param>
     /// <param name="iUnitOutletEnthalpy">Indoor unit outlet specific enthalpy [kJ/kg].</param>
+    /// <param name="maxEvaporatingPressureLimit">
+    /// Saturation pressure at <see cref="ModeParameters.MaxEvaporatingTemperature"/> [kPa].
+    /// Computed once by the caller because it is constant during the head convergence loop.
+    /// </param>
     /// <param name="evaporatingPressure">Output: evaporating pressure [kPa].</param>
     /// <param name="condensingPressure">Output: condensing pressure [kPa].</param>
     /// <returns>Compression head error [kW].</returns>
     private double CalcHeatingHeadError
       (double headAssumption, double heatingLoad, double iUnitOutletEnthalpy,
-      out double evaporatingPressure, ref double condensingPressure)
+      double maxEvaporatingPressureLimit, out double evaporatingPressure, ref double condensingPressure)
     {
       //Account for waste heat recovery
       double qRcv = 0;
@@ -949,8 +956,7 @@ namespace Popolo.Core.HVAC.VRF
       if (evaporatingPressure < refrigerant.MinPressure)
         return refrigerant.MinPressure - evaporatingPressure; //If beyond the refrigerant property calculation range, output the excess as the error
       //Limit the compression ratio
-      refrigerant.GetSaturatedPropertyFromTemperature(Heating!.MaxEvaporatingTemperature + KTOC, out _, out _, out double maxEvaporatingPressure);
-      maxEvaporatingPressure = Math.Min(maxEvaporatingPressure, condensingPressure / MIN_COMPRESSION_RATIO);
+      double maxEvaporatingPressure = Math.Min(maxEvaporatingPressureLimit, condensingPressure / MIN_COMPRESSION_RATIO);
       if (maxEvaporatingPressure < evaporatingPressure)
       {
         evaporatingPressure = maxEvaporatingPressure;
@@ -1125,11 +1131,14 @@ namespace Popolo.Core.HVAC.VRF
         out _, out double iUnitOutletDensity, out double iUnitOutletEnthalpy, out _);
 
       //Error function for compression head convergence*****************************
+      //The lower condensing pressure limit is constant during the convergence: compute it once
+      refrigerant.GetSaturatedPropertyFromTemperature(
+        Cooling.MinCondensingTemperature + KTOC, out _, out _, out double minCndPressureLimit);
       double cndPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
         return CalcCoolingHeadError
-        (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, out cndPressure);
+        (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, minCndPressureLimit, out cndPressure);
       };
 
       //Error function for evaporating temperature convergence*****************************
@@ -1235,11 +1244,14 @@ namespace Popolo.Core.HVAC.VRF
       }
 
       //Error function for compression head convergence*****************************
+      //The upper evaporating pressure limit is constant during the convergence: compute it once
+      refrigerant.GetSaturatedPropertyFromTemperature(
+        Heating!.MaxEvaporatingTemperature + KTOC, out _, out _, out double maxEvpPressureLimit);
       double evpPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
         return CalcHeatingHeadError
-        (head, qCndSum, iUnitOutletEnthalpy, out evpPressure, ref cndPressure);
+        (head, qCndSum, iUnitOutletEnthalpy, maxEvpPressureLimit, out evpPressure, ref cndPressure);
       };
 
       //Error function for evaporating pressure convergence*****************************
@@ -1343,11 +1355,14 @@ namespace Popolo.Core.HVAC.VRF
         out _, out double iUnitOutletDensity, out double iUnitOutletEnthalpy, out _);
 
       //Error function for compression head convergence*****************************
+      //The lower condensing pressure limit is constant during the convergence: compute it once
+      refrigerant.GetSaturatedPropertyFromTemperature(
+        Cooling.MinCondensingTemperature + KTOC, out _, out _, out double minCndPressureLimit);
       double cndPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
         return CalcCoolingHeadError
-        (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, out cndPressure);
+        (head, qEvpSum, iUnitOutletEnthalpy, iUnitOutletDensity, evpPressure, minCndPressureLimit, out cndPressure);
       };
 
       //Error function for evaporating temperature convergence*****************************
@@ -1431,11 +1446,14 @@ namespace Popolo.Core.HVAC.VRF
       }
 
       //Error function for compression head convergence*****************************
+      //The upper evaporating pressure limit is constant during the convergence: compute it once
+      refrigerant.GetSaturatedPropertyFromTemperature(
+        Heating!.MaxEvaporatingTemperature + KTOC, out _, out _, out double maxEvpPressureLimit);
       double evpPressure = 0;
       Roots.ErrorFunction eFncHead = delegate (double head)
       {
         return CalcHeatingHeadError
-        (head, qCndSum, iUnitOutletEnthalpy, out evpPressure, ref cndPressure);
+        (head, qCndSum, iUnitOutletEnthalpy, maxEvpPressureLimit, out evpPressure, ref cndPressure);
       };
 
       //Error function for evaporating pressure convergence*****************************
