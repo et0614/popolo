@@ -49,6 +49,13 @@ namespace Popolo.Core.HVAC.VRF
     /// <remarks>A value of 0.1 gives good agreement with NEDO field measurement tests.</remarks>
     private const double F_PENALTY = 0.6;
 
+    /// <summary>Convergence tolerance of the evaporating temperature [°C].</summary>
+    /// <remarks>
+    /// 0.001 K is far below any physically meaningful precision of the model;
+    /// tightening it further only wastes root-finding iterations.
+    /// </remarks>
+    private const double EVAPORATING_TEMPERATURE_TOLERANCE = 0.001;
+
     #endregion
 
     #region Enumeration definitions
@@ -1043,7 +1050,8 @@ namespace Popolo.Core.HVAC.VRF
       };
       try
       {
-        evaporatingTemperature = Roots.Brent(evaporatingTemperature - 20, evaporatingTemperature + 5, 0.00001, eFnc);
+        evaporatingTemperature = Roots.Brent(
+          evaporatingTemperature - 20, evaporatingTemperature + 5, EVAPORATING_TEMPERATURE_TOLERANCE, eFnc);
       }
       catch (Exception ex)
       {
@@ -1220,7 +1228,8 @@ namespace Popolo.Core.HVAC.VRF
       };
       try
       {
-        evaporatingTemperature = Roots.Brent(evaporatingTemperature - 20, evaporatingTemperature, 0.00001, eFnc);
+        evaporatingTemperature = Roots.Brent(
+          evaporatingTemperature - 20, evaporatingTemperature, EVAPORATING_TEMPERATURE_TOLERANCE, eFnc);
       }
       catch (Exception ex)
       {
