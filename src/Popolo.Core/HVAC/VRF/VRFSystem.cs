@@ -1499,6 +1499,36 @@ namespace Popolo.Core.HVAC.VRF
       (int indoorUnitIndex, double setpointHumidityRatio)
     { indoorUnits[indoorUnitIndex].OutletAirSetpointHumidityRatio = setpointHumidityRatio; }
 
+    /// <summary>
+    /// Sets the supply air temperature setpoint of an indoor unit from the
+    /// sensible heat to be processed.
+    /// </summary>
+    /// <param name="indoorUnitIndex">Indoor unit index.</param>
+    /// <param name="sensibleHeatLoad">
+    /// Sensible heat to process [kW] (positive = heating, negative = cooling;
+    /// the same sign convention as <see cref="VRFUnit.SolveHeatLoad"/>).
+    /// </param>
+    /// <remarks>
+    /// Converts the sensible heat into an outlet air temperature setpoint
+    /// using the current inlet air state and the nominal air flow rate (the
+    /// flow rate used by the controlled update), and stores it in
+    /// <see cref="VRFUnit.OutletAirSetpointTemperature"/>. Call after
+    /// <see cref="SetIndoorUnitInletAirState"/> and before
+    /// <see cref="UpdateState"/>. The load is processed only within the unit
+    /// and system capacity; keep
+    /// <see cref="ControlThermoOffWithSensibleHeat"/> true (default) so that
+    /// the thermo on/off cycling matches the sensible heat.
+    /// </remarks>
+    public void SetIndoorUnitSensibleHeatLoad(int indoorUnitIndex, double sensibleHeatLoad)
+    {
+      VRFUnit unt = indoorUnits[indoorUnitIndex];
+      //Moist air isobaric specific heat at the inlet humidity [kJ/(kg·K)]
+      double cpa = MoistAir.DryAirIsobaricSpecificHeat
+        + MoistAir.VaporIsobaricSpecificHeat * unt.InletAirHumidityRatio;
+      unt.OutletAirSetpointTemperature = unt.InletAirTemperature
+        + sensibleHeatLoad / (unt.NominalAirFlowRate * cpa);
+    }
+
     /// <summary>Sets the operating mode of an indoor unit.</summary>
     /// <param name="indoorUnitIndex">Indoor unit index.</param>
     /// <param name="mode">Operating mode.</param>

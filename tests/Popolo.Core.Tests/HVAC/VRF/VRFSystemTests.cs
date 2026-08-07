@@ -413,5 +413,64 @@ namespace Popolo.Core.Tests.HVAC.VRF
     }
 
     #endregion
+
+    // ================================================================
+    #region SetIndoorUnitSensibleHeatLoad
+
+    /// <summary>顕熱負荷が湿り空気比熱と定格風量で給気温度設定値に換算される。</summary>
+    [Fact]
+    public void SetIndoorUnitSensibleHeatLoad_SetsConvertedSetpoint()
+    {
+      var (vrf, iHexes) = MakeCoolingOnlySystem();
+      double iHmd = HR_from_DBT_WBT(27, 19);
+      vrf.SetIndoorUnitInletAirState(0, 27, iHmd);
+
+      double cpa = MoistAir.DryAirIsobaricSpecificHeat
+        + MoistAir.VaporIsobaricSpecificHeat * iHmd;  //[kJ/(kg・K)]
+
+      //冷房（負値）: 設定値は入口温度より低い
+      vrf.SetIndoorUnitSensibleHeatLoad(0, -7.0);
+      Assert.Equal(27.0 - 7.0 / (NOM_IHEX_AFLOW * cpa),
+        iHexes[0].OutletAirSetpointTemperature, precision: 9);
+
+      //暖房（正値）: 設定値は入口温度より高い
+      vrf.SetIndoorUnitSensibleHeatLoad(0, 5.0);
+      Assert.Equal(27.0 + 5.0 / (NOM_IHEX_AFLOW * cpa),
+        iHexes[0].OutletAirSetpointTemperature, precision: 9);
+    }
+
+    /// <summary>
+    /// 能力範囲内の冷房部分負荷では、指定した顕熱がほぼそのまま処理される
+    /// （ControlThermoOffWithSensibleHeat=true の既定動作）。
+    /// </summary>
+    [Fact]
+    public void SetIndoorUnitSensibleHeatLoad_CoolingLoadIsProcessed()
+    {
+      var (vrf, iHexes) = MakeCoolingOnlySystem();
+      vrf.OutdoorAirDryBulbTemperature = 35;
+      vrf.OutdoorAirHumidityRatio = HR_from_DBT_WBT(35, 24);
+
+      double iHmd = HR_from_DBT_WBT(27, 19);
+      const double QS = -7.0;  //定格14kWの半分の顕熱 [kW]
+      for (int i = 0; i < vrf.IndoorUnitCount; i++)
+      {
+        vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
+        vrf.SetIndoorUnitInletAirState(i, 27, iHmd);
+        vrf.SetIndoorUnitSensibleHeatLoad(i, QS);
+      }
+      vrf.UpdateState();
+
+      double cpa = MoistAir.DryAirIsobaricSpecificHeat
+        + MoistAir.VaporIsobaricSpecificHeat * iHmd;
+      for (int i = 0; i < vrf.IndoorUnitCount; i++)
+      {
+        //処理顕熱 = m・cp・(出口温度 - 入口温度)
+        double qsProcessed = NOM_IHEX_AFLOW * cpa
+          * (vrf.IndoorUnits[i].OutletAirTemperature - 27.0);
+        Assert.Equal(QS, qsProcessed, 0.1);
+      }
+    }
+
+    #endregion
   }
 }
