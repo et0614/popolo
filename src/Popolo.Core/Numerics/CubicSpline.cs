@@ -47,7 +47,7 @@ namespace Popolo.Core.Numerics
             nameof(y));
 
       IVector h = new Vector(y.Length - 1);
-      IVector a = new Vector(y.Length - 1);
+      IVector a = new Vector(y.Length - 2);
       IMatrix hm = new Matrix(3, y.Length - 2);
       for (int i = 0; i < y.Length - 1; i++) h[i] = x[i + 1] - x[i];
       for (int i = 0; i < y.Length - 2; i++)
@@ -59,7 +59,7 @@ namespace Popolo.Core.Numerics
       }
       LinearAlgebraOperations.SolveTridiagonalMatrix(hm, a);
       double[] c = new double[y.Length];
-      for (int i = 1; i < c.Length; i++) c[i] = a[i - 1];
+      for (int i = 1; i < c.Length - 1; i++) c[i] = a[i - 1];
       c[0] = c[c.Length - 1] = 0;
       return c;
     }

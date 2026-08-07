@@ -202,6 +202,18 @@ namespace Popolo.Core.Tests.Numerics.Linearalgebra
       Assert.Equal(0.0, m[0, 0]);
     }
 
+    /// <summary>範囲外の読み書きで例外が発生する（黙って無視しない）</summary>
+    [Fact]
+    public void SparseMatrix_Indexer_OutOfRange_ThrowsPopoloOutOfRangeException()
+    {
+      var m = new SparseMatrix(3, 3);
+      Assert.Throws<PopoloOutOfRangeException>(() => m[3, 0] = 1.0);
+      Assert.Throws<PopoloOutOfRangeException>(() => m[0, 3] = 1.0);
+      Assert.Throws<PopoloOutOfRangeException>(() => m[-1, 0] = 1.0);
+      Assert.Throws<PopoloOutOfRangeException>(() => _ = m[3, 0]);
+      Assert.Throws<PopoloOutOfRangeException>(() => _ = m[0, -1]);
+    }
+
     /// <summary>連立一次方程式が正しく解ける</summary>
     [Fact]
     public void SparseMatrix_SolveLinearEquation_ReturnsCorrectSolution()
@@ -405,6 +417,86 @@ namespace Popolo.Core.Tests.Numerics.Linearalgebra
       Assert.Throws<PopoloArgumentException>(
           () => LinearAlgebraOperations.EstimateMultipleRegressionCoefficients(
               y, x, out _, out _));
+    }
+
+    /// <summary>
+    /// ランク落ち行列（消去後にピボットが0）では例外とせず、不定な方向の解成分を
+    /// 0に抑制して解が返る（回路網ソルバ等が依存する正則化挙動の回帰テスト）。
+    /// </summary>
+    [Fact]
+    public void SolveLinearEquations_RankDeficientMatrix_SuppressesIndeterminateDirection()
+    {
+      //2行目が1行目の2倍（ランク1）。b も同比なので解は存在する（不定）
+      var a = new Matrix(new double[][] {
+        new double[] { 1.0, 2.0 },
+        new double[] { 2.0, 4.0 } });
+      var b = new Vector(2);
+      b[0] = 1.0; b[1] = 2.0;
+
+      LinearAlgebraOperations.SolveLinearEquations(a, b);
+
+      //解は有限で、残差の意味で妥当（x1 + 2*x2 = 1）
+      Assert.False(double.IsNaN(b[0]) || double.IsInfinity(b[0]));
+      Assert.False(double.IsNaN(b[1]) || double.IsInfinity(b[1]));
+      Assert.Equal(1.0, b[0] + 2 * b[1], precision: 6);
+    }
+
+    /// <summary>非正方行列や次元不一致で例外が発生する</summary>
+    [Fact]
+    public void Operations_DimensionMismatch_ThrowPopoloArgumentException()
+    {
+      var m23 = new Matrix(2, 3);
+      var m22 = new Matrix(2, 2);
+      var m33 = new Matrix(3, 3);
+      var v2 = new Vector(2);
+      var v3 = new Vector(3);
+
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.SolveLinearEquations(m23, v2));       //非正方
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.SolveLinearEquations(m33, v2));       //bの長さ不一致
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.GetInverse(m23, m23));                //非正方
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.Multiply(m22, m33, m23));             //内側次元不一致
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.Multiply(m22, v3, v2, 1, 0));         //ベクトル長不一致
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.Add(m22, m33));                       //サイズ不一致
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.Subtract(m22, m23));                  //サイズ不一致
+      Assert.Throws<PopoloArgumentException>(
+        () => LinearAlgebraOperations.SolveTridiagonalMatrix(m22, v2));     //3行必要
+    }
+
+    /// <summary>零列を含む行列のHouseholder変換がNaNを生まない</summary>
+    [Fact]
+    public void MakeUpperTriangularMatrix_ZeroColumn_NoNaN()
+    {
+      //1列目は零列: 反射は不要で、行列は上三角のまま保たれる
+      IMatrix m = new Matrix(new double[][] {
+        new double[] { 0.0, 1.0 },
+        new double[] { 0.0, 2.0 } });
+      LinearAlgebraOperations.MakeUpperTriangularMatrix(ref m);
+
+      for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+          Assert.False(double.IsNaN(m[i, j]), $"m[{i},{j}] is NaN");
+      Assert.Equal(0.0, m[1, 0], precision: 12);
+      Assert.Equal(2.0, Math.Abs(m[1, 1]), precision: 9);
+    }
+
+    /// <summary>対角要素が0でも下位行が非ゼロの列が正しく上三角化される</summary>
+    [Fact]
+    public void MakeUpperTriangularMatrix_ZeroDiagonalEntry_Triangularizes()
+    {
+      IMatrix m = new Matrix(new double[][] {
+        new double[] { 0.0, 1.0 },
+        new double[] { 3.0, 2.0 } });
+      LinearAlgebraOperations.MakeUpperTriangularMatrix(ref m);
+
+      Assert.Equal(0.0, m[1, 0], precision: 9);
+      Assert.Equal(3.0, Math.Abs(m[0, 0]), precision: 9); //1列目のノルム保存
     }
   }
 }

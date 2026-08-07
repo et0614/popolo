@@ -43,25 +43,35 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="row">Row index.</param>
     /// <param name="column">Column index.</param>
     /// <returns>Element value.</returns>
+    /// <exception cref="PopoloOutOfRangeException">
+    /// Thrown when the row or column index is outside the matrix.
+    /// </exception>
     public double this[int row, int column]
     {
       get
       {
-        if (row < Rows)
-        {
-          if (column < Columns && elem[row].ContainsKey(column)) return elem[row][column];
-          else return 0;
-        }
-        else return 0;
+        ValidateIndices(row, column);
+        return elem[row].TryGetValue(column, out double val) ? val : 0.0;
       }
       set
       {
-        if (row < Rows && column < Columns)
-        {
-          if (value == 0.0) elem[row].Remove(column);
-          else elem[row][column] = value;
-        }
+        ValidateIndices(row, column);
+        if (value == 0.0) elem[row].Remove(column);
+        else elem[row][column] = value;
       }
+    }
+
+    /// <summary>Throws when the row or column index is outside the matrix.</summary>
+    /// <param name="row">Row index.</param>
+    /// <param name="column">Column index.</param>
+    private void ValidateIndices(int row, int column)
+    {
+      if (row < 0 || Rows <= row)
+        throw new PopoloOutOfRangeException(nameof(row), row, 0, Rows - 1,
+          "Row index is outside the matrix.");
+      if (column < 0 || Columns <= column)
+        throw new PopoloOutOfRangeException(nameof(column), column, 0, Columns - 1,
+          "Column index is outside the matrix.");
     }
 
     #endregion

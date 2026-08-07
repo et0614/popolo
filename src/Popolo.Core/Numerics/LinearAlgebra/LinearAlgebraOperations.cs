@@ -39,6 +39,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="bVector">Input: vector [b]. Output: solution vector [x].</param>
     public static void SolveLinearEquations(IMatrix aMatrix, IVector bVector)
     {
+      if (aMatrix.Rows != aMatrix.Columns || aMatrix.Rows != bVector.Length)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: A is {aMatrix.Rows}x{aMatrix.Columns}, b has length {bVector.Length}.",
+          nameof(bVector));
+
       int[] perm = new int[aMatrix.Rows];     //Permutation vector
       IVector wArray = new Vector(aMatrix.Rows);   //Working storage
       LUDecompose(aMatrix, perm, wArray);
@@ -55,6 +60,10 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <remarks>Adapted from "Numerical Recipes".</remarks>
     public static void LUDecompose(IMatrix matrix, int[] perm, IVector wArray)
     {
+      if (matrix.Rows != matrix.Columns)
+        throw new PopoloArgumentException(
+          $"The matrix must be square ({matrix.Rows}x{matrix.Columns}).", nameof(matrix));
+
       //Get the number of rows/columns of the matrix
       int num = matrix.Rows;
 
@@ -115,13 +124,16 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         //Record the row permutation
         perm[j] = imax;
 
+        //A zero pivot after partial pivoting means the matrix is (numerically) singular.
+        //Substituting a huge-magnitude pivot makes the multipliers and the solution
+        //component of that direction effectively zero: the indeterminate direction is
+        //suppressed instead of aborting. Callers such as the circuit network Newton
+        //solver rely on this regularization (the Jacobian becomes singular at
+        //zero-flow branches).
         if (matrix[j, j] == 0.0) matrix[j, j] = double.MinValue;
 
-        if (j != num)
-        {
-          double bf = 1d / matrix[j, j];
-          for (int i = j + 1; i < num; i++) matrix[i, j] *= bf;
-        }          
+        double bf = 1d / matrix[j, j];
+        for (int i = j + 1; i < num; i++) matrix[i, j] *= bf;
       }
     }
 
@@ -164,7 +176,12 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="mA">Matrix to invert.</param>
     /// <param name="mB">Output matrix that receives the inverse.</param>
     public static void GetInverse(IMatrix mA, IMatrix mB)
-    {      
+    {
+      if (mA.Rows != mA.Columns || mB.Rows != mA.Rows || mB.Columns != mA.Columns)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: A is {mA.Rows}x{mA.Columns}, B is {mB.Rows}x{mB.Columns}.",
+          nameof(mB));
+
       if (mA.Columns == 1)
       {
         mB[0, 0] = 1d / mA[0, 0];
@@ -191,10 +208,23 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// Solves a tridiagonal linear system using the Thomas algorithm:
     /// abc(0,i)*nx(i-1) + abc(1,i)*nx(i) + abc(2,i)*nx(i+1) = x(i).
     /// </summary>
-    /// <param name="abc">Coefficient matrix (sub-, main-, and super-diagonals).</param>
+    /// <param name="abc">
+    /// Coefficient matrix (rows 0-2 hold the sub-, main-, and super-diagonals).
+    /// Overwritten during elimination.
+    /// </param>
     /// <param name="x">Right-hand side vector; overwritten with the solution.</param>
+    /// <remarks>
+    /// The Thomas algorithm performs no pivoting: the caller must ensure the
+    /// system is well conditioned without it (e.g., diagonally dominant, as
+    /// holds for the discretized heat conduction equations in this library).
+    /// </remarks>
     public static void SolveTridiagonalMatrix(IMatrix abc, IVector x)
     {
+      if (abc.Rows != 3 || abc.Columns != x.Length)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: abc is {abc.Rows}x{abc.Columns} (3 rows required), "
+          + $"x has length {x.Length}.", nameof(x));
+
       int num = abc.Columns - 1;
       abc[2, 0] /= abc[1, 0];
       x[0] /= abc[1, 0];
@@ -283,8 +313,12 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           sig2 += mA[j, i] * mA[j, i];
           wi[j] = mA[j, i];
         }
+        //The column is already zero below the diagonal: no reflection is needed
+        //(without this guard the scaling factor becomes infinite)
+        if (sig2 == 0) continue;
         double sig = Math.Sqrt(sig2);
-        double sn = Math.Sign(wi[i]);
+        //Math.Sign returns 0 for 0, which breaks the reflector; use +1 in that case
+        double sn = wi[i] < 0 ? -1.0 : 1.0;
         wi[i] += sn * sig;
 
         double alpha = 1d / (sig2 + sn * sig * mA[i, i]);
@@ -408,6 +442,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="mC">Output matrix C.</param>
     public static void Multiply(IMatrix mA, IMatrix mB, IMatrix mC)
     {
+      if (mA.Columns != mB.Rows || mC.Rows != mA.Rows || mC.Columns != mB.Columns)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: A is {mA.Rows}x{mA.Columns}, B is {mB.Rows}x{mB.Columns}, "
+          + $"C is {mC.Rows}x{mC.Columns}.", nameof(mC));
+
       mC.Initialize(0);
       for (int i = 0; i < mA.Rows; i++)
       {
@@ -429,6 +468,11 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="beta">Coefficient β of the second term.</param>
     public static void Multiply(IMatrix mA, IVector vB, IVector vC, double alpha, double beta)
     {
+      if (mA.Columns != vB.Length || vC.Length != mA.Rows)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: A is {mA.Rows}x{mA.Columns}, b has length {vB.Length}, "
+          + $"c has length {vC.Length}.", nameof(vC));
+
       for (int i = 0; i < mA.Rows; i++)
       {
         double buff = 0;
@@ -445,6 +489,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="cB">Coefficient of the second term.</param>
     public static void Add(IMatrix mA, IMatrix mB, double cA, double cB)
     {
+      ValidateSameDimensions(mA, mB);
       for (int i = 0; i < mA.Rows; i++)
         for (int j = 0; j < mA.Columns; j++)
           mB[i, j] = mA[i, j] * cA + mB[i, j] * cB;
@@ -455,6 +500,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="mB">Matrix B; overwritten with the result.</param>
     public static void Add(IMatrix mA, IMatrix mB)
     {
+      ValidateSameDimensions(mA, mB);
       for (int i = 0; i < mA.Rows; i++)
         for (int j = 0; j < mA.Columns; j++)
           mB[i, j] = mA[i, j] + mB[i, j];
@@ -465,9 +511,21 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="mB">Matrix B; overwritten with the result.</param>
     public static void Subtract(IMatrix mA, IMatrix mB)
     {
+      ValidateSameDimensions(mA, mB);
       for (int i = 0; i < mA.Rows; i++)
         for (int j = 0; j < mA.Columns; j++)
           mB[i, j] = mA[i, j] - mB[i, j];
+    }
+
+    /// <summary>Throws when the two matrices do not have the same dimensions.</summary>
+    /// <param name="mA">Matrix A.</param>
+    /// <param name="mB">Matrix B.</param>
+    private static void ValidateSameDimensions(IMatrix mA, IMatrix mB)
+    {
+      if (mA.Rows != mB.Rows || mA.Columns != mB.Columns)
+        throw new PopoloArgumentException(
+          $"Dimension mismatch: A is {mA.Rows}x{mA.Columns}, B is {mB.Rows}x{mB.Columns}.",
+          nameof(mB));
     }
 
     #endregion
