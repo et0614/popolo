@@ -66,5 +66,24 @@ namespace Popolo.Core.HVAC.FluidCircuit
   
       /// <summary>Gets a value indicating whether the machine is shut off.</summary>
       bool IsShutOff { get; }
+
+      /// <summary>Gets the number of discrete flow notches (0 when not configured).</summary>
+      int NotchCount { get; }
+
+      /// <summary>Gets the current notch index (-1 when not operating on a notch).</summary>
+      int CurrentNotchIndex { get; }
+
+      /// <summary>Gets the current notch name (empty when not operating on a notch).</summary>
+      string CurrentNotchName { get; }
+
+      /// <summary>Gets the name of the specified notch.</summary>
+      /// <param name="notchIndex">Notch index (ascending flow order).</param>
+      /// <returns>Name of the notch.</returns>
+      string GetNotchName(int notchIndex);
+
+      /// <summary>Gets the volumetric flow rate [m³/s] of the specified notch.</summary>
+      /// <param name="notchIndex">Notch index (ascending flow order).</param>
+      /// <returns>Volumetric flow rate of the notch [m³/s].</returns>
+      double GetNotchFlowRate(int notchIndex);
     }
 }

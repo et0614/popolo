@@ -200,6 +200,95 @@ namespace Popolo.Core.HVAC.FluidCircuit
       IsShutOff = true;
       VolumetricFlowRate = 0;
       Pressure = 0;
+      notchTable.Invalidate();
+    }
+
+    #endregion
+
+    #region Flow notch methods
+
+    /// <summary>Discrete flow notches of the machine.</summary>
+    private readonly FlowNotchTable notchTable = new FlowNotchTable();
+
+    /// <inheritdoc />
+    public int NotchCount { get { return notchTable.Count; } }
+
+    /// <inheritdoc />
+    public int CurrentNotchIndex { get { return notchTable.CurrentIndex; } }
+
+    /// <inheritdoc />
+    public string CurrentNotchName { get { return notchTable.CurrentName; } }
+
+    /// <summary>
+    /// Sets the discrete flow notches of the machine in ascending flow order
+    /// (e.g., extra-low / low / high / extra-high).
+    /// </summary>
+    /// <param name="flowNotches">Notches (name and volumetric flow rate [m³/s]) in ascending flow order.</param>
+    /// <remarks>
+    /// Notches model the stepped fan/pump speed taps found in packaged
+    /// units. Use <see cref="SetNotch(int)"/> or <see cref="RaiseNotch"/> /
+    /// <see cref="LowerNotch"/> to operate on the notches; continuous flow
+    /// control remains available and clears the notch selection.
+    /// </remarks>
+    public void SetFlowNotches(params (string name, double flowRate)[] flowNotches)
+    {
+      notchTable.SetNotches(flowNotches);
+    }
+
+    /// <summary>Operates the machine at the specified notch.</summary>
+    /// <param name="notchIndex">Notch index (ascending flow order).</param>
+    public void SetNotch(int notchIndex)
+    {
+      IsShutOff = false;
+      VolumetricFlowRate = notchTable.Select(notchIndex);
+    }
+
+    /// <summary>Operates the machine at the specified notch.</summary>
+    /// <param name="notchName">Notch name.</param>
+    public void SetNotch(string notchName)
+    {
+      IsShutOff = false;
+      VolumetricFlowRate = notchTable.Select(notchName);
+    }
+
+    /// <summary>
+    /// Steps up the flow to the next notch. When the machine is not
+    /// operating on a notch, the lowest notch is selected.
+    /// </summary>
+    /// <returns>False when the notch is already at the maximum (no change).</returns>
+    public bool RaiseNotch()
+    {
+      bool changed = notchTable.TryRaise(out double flow);
+      IsShutOff = false;
+      VolumetricFlowRate = flow;
+      return changed;
+    }
+
+    /// <summary>Steps down the flow to the previous notch.</summary>
+    /// <returns>
+    /// False when the notch is already at the minimum or the machine is not
+    /// operating on a notch (no change).
+    /// </returns>
+    public bool LowerNotch()
+    {
+      if (!notchTable.TryLower(out double flow)) return false;
+      IsShutOff = false;
+      VolumetricFlowRate = flow;
+      return true;
+    }
+
+    /// <inheritdoc />
+    public string GetNotchName(int notchIndex)
+    { return notchTable.GetName(notchIndex); }
+
+    /// <inheritdoc />
+    public double GetNotchFlowRate(int notchIndex)
+    { return notchTable.GetFlowRate(notchIndex); }
+
+    /// <summary>Marks the machine as not operating on a notch (continuous flow control).</summary>
+    internal void InvalidateNotch()
+    {
+      notchTable.Invalidate();
     }
 
     #endregion

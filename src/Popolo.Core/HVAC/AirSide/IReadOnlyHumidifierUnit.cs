@@ -1,4 +1,4 @@
-/* IReadOnlyHumidifierUnit.cs
+﻿/* IReadOnlyHumidifierUnit.cs
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3
  */
@@ -36,5 +36,14 @@ namespace Popolo.Core.HVAC.AirSide
 
     /// <summary>Gets the steam consumption rate [kg/s] (steam humidification).</summary>
     double SteamConsumption { get; }
+
+    /// <summary>Gets the number of discrete air flow notches (0 when not configured).</summary>
+    int NotchCount { get; }
+
+    /// <summary>Gets the current notch index (-1 when not operating on a notch).</summary>
+    int CurrentNotchIndex { get; }
+
+    /// <summary>Gets the current notch name (empty when not operating on a notch).</summary>
+    string CurrentNotchName { get; }
   }
 }

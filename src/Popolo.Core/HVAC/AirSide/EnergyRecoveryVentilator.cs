@@ -105,6 +105,15 @@ namespace Popolo.Core.HVAC.AirSide
     /// <inheritdoc />
     public double EAHumidityRatio { get; private set; }
 
+    /// <inheritdoc />
+    public int NotchCount { get { return saFan.NotchCount; } }
+
+    /// <inheritdoc />
+    public int CurrentNotchIndex { get { return saFan.CurrentNotchIndex; } }
+
+    /// <inheritdoc />
+    public string CurrentNotchName { get { return saFan.CurrentNotchName; } }
+
     #endregion
 
     #region Constructors
@@ -135,10 +144,78 @@ namespace Popolo.Core.HVAC.AirSide
     /// <summary>Sets the supply and exhaust air flow rates [kg/s].</summary>
     /// <param name="saFlowRate">Supply air flow rate [kg/s].</param>
     /// <param name="eaFlowRate">Exhaust air flow rate [kg/s].</param>
+    /// <remarks>The fans leave notch operation (<see cref="CurrentNotchIndex"/> becomes -1).</remarks>
     public void SetAirFlowRate(double saFlowRate, double eaFlowRate)
     {
       SAFlowRate = Math.Max(0, saFlowRate);
       EAFlowRate = Math.Max(0, eaFlowRate);
+      saFan.InvalidateNotch();
+      eaFan.InvalidateNotch();
+    }
+
+    /// <summary>Operates the unit at the specified fan notch.</summary>
+    /// <param name="notchIndex">Notch index (ascending air flow order).</param>
+    /// <remarks>
+    /// The notch tables are those of the supply and exhaust air fans
+    /// (<see cref="FluidMachinery.SetFlowNotches"/>); configure both fans
+    /// with the same number of notches before use. The notch index is
+    /// applied to both fans and the air mass flow rates follow each fan's
+    /// own notch flow: giving the fans different flow rates per notch models
+    /// designs where the supply exceeds the exhaust (e.g., SA 500 CMH and
+    /// EA 450 CMH, the 50 CMH difference leaving through a toilet exhaust).
+    /// </remarks>
+    public void SetNotch(int notchIndex)
+    {
+      saFan.SetNotch(notchIndex);
+      eaFan.SetNotch(notchIndex);
+      ApplyFanNotchFlows();
+    }
+
+    /// <summary>Operates the unit at the specified fan notch.</summary>
+    /// <param name="notchName">Notch name (of the supply air fan's table).</param>
+    /// <remarks>
+    /// The name is resolved on the supply air fan's notch table and the
+    /// exhaust air fan follows by index. Giving both fans the same notch
+    /// names is recommended for consistent monitoring.
+    /// </remarks>
+    public void SetNotch(string notchName)
+    {
+      saFan.SetNotch(notchName);
+      eaFan.SetNotch(saFan.CurrentNotchIndex);
+      ApplyFanNotchFlows();
+    }
+
+    /// <summary>
+    /// Steps up the air flow to the next fan notch. When the unit is not
+    /// operating on a notch, the lowest notch is selected.
+    /// </summary>
+    /// <returns>False when the notch is already at the maximum (no change).</returns>
+    public bool RaiseNotch()
+    {
+      bool changed = saFan.RaiseNotch();
+      eaFan.SetNotch(saFan.CurrentNotchIndex);
+      ApplyFanNotchFlows();
+      return changed;
+    }
+
+    /// <summary>Steps down the air flow to the previous fan notch.</summary>
+    /// <returns>
+    /// False when the notch is already at the minimum or the unit is not
+    /// operating on a notch (no change).
+    /// </returns>
+    public bool LowerNotch()
+    {
+      if (!saFan.LowerNotch()) return false;
+      eaFan.SetNotch(saFan.CurrentNotchIndex);
+      ApplyFanNotchFlows();
+      return true;
+    }
+
+    /// <summary>Applies the fans' notch flow rates to the air mass flow rates of the unit.</summary>
+    private void ApplyFanNotchFlows()
+    {
+      SAFlowRate = saFan.VolumetricFlowRate * PhysicsConstants.NominalMoistAirDensity;
+      EAFlowRate = eaFan.VolumetricFlowRate * PhysicsConstants.NominalMoistAirDensity;
     }
 
     /// <summary>

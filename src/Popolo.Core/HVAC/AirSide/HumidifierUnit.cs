@@ -1,4 +1,4 @@
-/* HumidifierUnit.cs
+﻿/* HumidifierUnit.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -79,6 +79,15 @@ namespace Popolo.Core.HVAC.AirSide
     /// <inheritdoc />
     public double SteamConsumption { get { return humidifier.SteamConsumption; } }
 
+    /// <inheritdoc />
+    public int NotchCount { get { return fan.NotchCount; } }
+
+    /// <inheritdoc />
+    public int CurrentNotchIndex { get { return fan.CurrentNotchIndex; } }
+
+    /// <inheritdoc />
+    public string CurrentNotchName { get { return fan.CurrentNotchName; } }
+
     #endregion
 
     #region Constructors
@@ -103,9 +112,62 @@ namespace Popolo.Core.HVAC.AirSide
 
     /// <summary>Sets the air mass flow rate [kg/s].</summary>
     /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
+    /// <remarks>The fan leaves notch operation (<see cref="CurrentNotchIndex"/> becomes -1).</remarks>
     public void SetAirFlowRate(double airFlowRate)
     {
       AirFlowRate = Math.Max(0, airFlowRate);
+      fan.InvalidateNotch();
+    }
+
+    /// <summary>Operates the unit at the specified fan notch.</summary>
+    /// <param name="notchIndex">Notch index (ascending air flow order).</param>
+    /// <remarks>
+    /// The notch table is that of the fan
+    /// (<see cref="FluidMachinery.SetFlowNotches"/>); configure the fan
+    /// before use. The air mass flow rate follows the fan's notch flow.
+    /// </remarks>
+    public void SetNotch(int notchIndex)
+    {
+      fan.SetNotch(notchIndex);
+      ApplyFanNotchFlow();
+    }
+
+    /// <summary>Operates the unit at the specified fan notch.</summary>
+    /// <param name="notchName">Notch name.</param>
+    public void SetNotch(string notchName)
+    {
+      fan.SetNotch(notchName);
+      ApplyFanNotchFlow();
+    }
+
+    /// <summary>
+    /// Steps up the air flow to the next fan notch. When the unit is not
+    /// operating on a notch, the lowest notch is selected.
+    /// </summary>
+    /// <returns>False when the notch is already at the maximum (no change).</returns>
+    public bool RaiseNotch()
+    {
+      bool changed = fan.RaiseNotch();
+      ApplyFanNotchFlow();
+      return changed;
+    }
+
+    /// <summary>Steps down the air flow to the previous fan notch.</summary>
+    /// <returns>
+    /// False when the notch is already at the minimum or the unit is not
+    /// operating on a notch (no change).
+    /// </returns>
+    public bool LowerNotch()
+    {
+      if (!fan.LowerNotch()) return false;
+      ApplyFanNotchFlow();
+      return true;
+    }
+
+    /// <summary>Applies the fan's notch flow rate to the air mass flow rate of the unit.</summary>
+    private void ApplyFanNotchFlow()
+    {
+      AirFlowRate = fan.VolumetricFlowRate * PhysicsConstants.NominalMoistAirDensity;
     }
 
     /// <summary>

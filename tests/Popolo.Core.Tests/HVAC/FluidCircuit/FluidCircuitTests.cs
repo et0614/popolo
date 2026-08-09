@@ -1,4 +1,4 @@
-/* FluidCircuitTests.cs
+﻿/* FluidCircuitTests.cs
  *
  * Copyright (C) 2026 E.Togashi
  *
@@ -576,6 +576,97 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
       var ahu = new ControllableSeriesFlow(1.121e6, 2.354e7);
       ahu.FlowRateSetpoint = 2.11e-3;
       Assert.True(ahu.GetTotalResistance() > 0);
+    }
+
+    #endregion
+ 
+    #region Flow notches
+
+    private static CentrifugalFan MakeNotchedFan()
+    {
+      var fan = new CentrifugalFan(0.15, 0.14, 0.15, 0.14, 3, false);
+      fan.SetFlowNotches(("微弱", 0.06), ("弱", 0.084), ("強", 0.108), ("特強", 0.111));
+      return fan;
+    }
+
+    /// <summary>ノッチ設定と番号・名前による切替が機能する</summary>
+    [Fact]
+    public void FlowNotch_SetAndSelect()
+    {
+      var fan = MakeNotchedFan();
+      Assert.Equal(4, fan.NotchCount);
+      Assert.Equal(-1, fan.CurrentNotchIndex); //設定直後は未選択
+      Assert.Equal("", fan.CurrentNotchName);
+
+      fan.SetNotch(2);
+      Assert.Equal(2, fan.CurrentNotchIndex);
+      Assert.Equal("強", fan.CurrentNotchName);
+      Assert.Equal(0.108, fan.VolumetricFlowRate, precision: 12);
+      Assert.False(fan.IsShutOff);
+
+      fan.SetNotch("微弱");
+      Assert.Equal(0, fan.CurrentNotchIndex);
+      Assert.Equal(0.06, fan.VolumetricFlowRate, precision: 12);
+
+      Assert.Equal("特強", fan.GetNotchName(3));
+      Assert.Equal(0.111, fan.GetNotchFlowRate(3), precision: 12);
+    }
+
+    /// <summary>RaiseNotch/LowerNotchの階段動作（未選択からのRaiseは最小ノッチ、最小からのLowerは変化なし）</summary>
+    [Fact]
+    public void FlowNotch_RaiseAndLower()
+    {
+      var fan = MakeNotchedFan();
+
+      Assert.True(fan.RaiseNotch());   //未選択 → 最小ノッチ
+      Assert.Equal(0, fan.CurrentNotchIndex);
+      Assert.True(fan.RaiseNotch());
+      Assert.True(fan.RaiseNotch());
+      Assert.True(fan.RaiseNotch());
+      Assert.False(fan.RaiseNotch());  //既に最大
+      Assert.Equal(3, fan.CurrentNotchIndex);
+
+      Assert.True(fan.LowerNotch());
+      Assert.True(fan.LowerNotch());
+      Assert.True(fan.LowerNotch());
+      Assert.False(fan.LowerNotch()); //既に最小（停止はしない）
+      Assert.Equal(0, fan.CurrentNotchIndex);
+      Assert.Equal(0.06, fan.VolumetricFlowRate, precision: 12);
+    }
+
+    /// <summary>ShutOffでノッチ運転から外れる</summary>
+    [Fact]
+    public void FlowNotch_InvalidatedByShutOff()
+    {
+      var fan = MakeNotchedFan();
+      fan.SetNotch(1);
+      fan.ShutOff();
+      Assert.Equal(-1, fan.CurrentNotchIndex);
+      Assert.Equal(0.0, fan.VolumetricFlowRate);
+    }
+
+    /// <summary>不正なノッチ設定・指定で例外が発生する</summary>
+    [Fact]
+    public void FlowNotch_InvalidArguments_Throw()
+    {
+      var fan = new CentrifugalFan(0.15, 0.14, 0.15, 0.14, 3, false);
+      //未設定での操作
+      Assert.Throws<PopoloArgumentException>(() => fan.SetNotch(0));
+      Assert.Throws<PopoloArgumentException>(() => fan.RaiseNotch());
+      //昇順でない・非正・重複名・空名
+      Assert.Throws<PopoloArgumentException>(
+        () => fan.SetFlowNotches(("強", 0.12), ("弱", 0.06)));
+      Assert.Throws<PopoloArgumentException>(
+        () => fan.SetFlowNotches(("弱", 0.0), ("強", 0.12)));
+      Assert.Throws<PopoloArgumentException>(
+        () => fan.SetFlowNotches(("弱", 0.06), ("弱", 0.12)));
+      Assert.Throws<PopoloArgumentException>(
+        () => fan.SetFlowNotches(("", 0.06)));
+
+      //範囲外・未知の名前
+      fan.SetFlowNotches(("弱", 0.06), ("強", 0.12));
+      Assert.Throws<PopoloOutOfRangeException>(() => fan.SetNotch(2));
+      Assert.Throws<PopoloArgumentException>(() => fan.SetNotch("中"));
     }
 
     #endregion

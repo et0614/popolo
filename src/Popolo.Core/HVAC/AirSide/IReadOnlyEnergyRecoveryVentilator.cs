@@ -1,4 +1,4 @@
-/* IReadOnlyEnergyRecoveryVentilator.cs
+﻿/* IReadOnlyEnergyRecoveryVentilator.cs
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3
  */
@@ -52,5 +52,14 @@ namespace Popolo.Core.HVAC.AirSide
 
     /// <summary>Gets the exhaust air outlet humidity ratio [kg/kg].</summary>
     double EAHumidityRatio { get; }
+
+    /// <summary>Gets the number of discrete air flow notches (0 when not configured).</summary>
+    int NotchCount { get; }
+
+    /// <summary>Gets the current notch index (-1 when not operating on a notch).</summary>
+    int CurrentNotchIndex { get; }
+
+    /// <summary>Gets the current notch name (empty when not operating on a notch).</summary>
+    string CurrentNotchName { get; }
   }
 }

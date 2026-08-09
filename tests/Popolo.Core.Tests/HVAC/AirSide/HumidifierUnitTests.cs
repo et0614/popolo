@@ -161,5 +161,42 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     }
 
     #endregion
+
+    #region Air flow notches
+
+    /// <summary>ノッチ切替・階段動作・無効化が機能する（ノッチはファンに設定し、ユニットは委譲）</summary>
+    [Fact]
+    public void Notch_SetRaiseLowerAndInvalidate()
+    {
+      var hm = new Humidifier(Humidifier.HumidifierType.WettedMedia);
+      var fan = new CentrifugalFan(0.3, Qa, 0.3, Qa, 3, false);
+      fan.SetFlowNotches(("弱", 0.5), ("中", 0.75), ("強", 1.0)); //体積流量[m3/s]
+      var unit = new HumidifierUnit(hm, fan);
+      unit.InletAirTemperature = TIN;
+      unit.InletAirHumidityRatio = WIN;
+      Assert.Equal(3, unit.NotchCount);
+
+      unit.SetNotch("中");
+      Assert.Equal(1, unit.CurrentNotchIndex);
+      Assert.Equal(0.9, unit.AirFlowRate, precision: 12);
+
+      Assert.True(unit.RaiseNotch());
+      Assert.Equal("強", unit.CurrentNotchName);
+      Assert.Equal(1.2, unit.AirFlowRate, precision: 12);
+      Assert.False(unit.RaiseNotch());
+
+      Assert.True(unit.LowerNotch());
+      Assert.True(unit.LowerNotch());
+      Assert.False(unit.LowerNotch()); //最小で停止はしない
+      Assert.Equal(0.6, unit.AirFlowRate, precision: 12);
+
+      unit.ShutOff();
+      Assert.Equal(-1, unit.CurrentNotchIndex);
+      Assert.True(unit.RaiseNotch()); //未選択からのRaiseは最小ノッチで復帰
+      Assert.Equal(0, unit.CurrentNotchIndex);
+      Assert.Equal(0.6, unit.AirFlowRate, precision: 12);
+    }
+
+    #endregion
   }
 }

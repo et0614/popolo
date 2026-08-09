@@ -1,4 +1,4 @@
-/* EnergyRecoveryVentilatorTests.cs
+﻿/* EnergyRecoveryVentilatorTests.cs
  *
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3 — see accompanying LICENSE file.
@@ -6,6 +6,7 @@
 
 using System;
 using Xunit;
+using Popolo.Core.Exceptions;
 using Popolo.Core.HVAC.AirSide;
 using Popolo.Core.HVAC.FluidCircuit;
 using Popolo.Core.HVAC.HeatExchanger;
@@ -183,6 +184,90 @@ namespace Popolo.Core.Tests.HVAC.AirSide
 
       Assert.Equal(0.0, erv.SAFlowRate);
       Assert.Equal(0.0, erv.EAFlowRate);
+    }
+
+    #endregion
+
+    #region Air flow notches
+
+    private static EnergyRecoveryVentilator MakeERVWithNotchedFans(
+      out CentrifugalFan saFan, out CentrifugalFan eaFan)
+    {
+      var hex = new AirToAirFlatPlateHeatExchanger(
+          FLOW_VOL, FLOW_VOL,
+          0.75, 0.65, AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Heating,
+          0.70, 0.50, AirToAirFlatPlateHeatExchanger.Condition.JISB8628_2003_Cooling,
+          AirToAirFlatPlateHeatExchanger.AirFlow.CounterFlow,
+          isEnthalpyEfficiency: false);
+      saFan = new CentrifugalFan(0.15, FLOW_VOL / 3600.0, 0.15, FLOW_VOL / 3600.0, 3, false);
+      eaFan = new CentrifugalFan(0.15, FLOW_VOL / 3600.0, 0.15, FLOW_VOL / 3600.0, 3, false);
+      //ノッチはファンに設定する（体積流量[m3/s]）
+      saFan.SetFlowNotches(("微弱", 0.05), ("弱", 0.09), ("強", 0.12), ("特強", 0.125));
+      eaFan.SetFlowNotches(("微弱", 0.05), ("弱", 0.09), ("強", 0.12), ("特強", 0.125));
+      return new EnergyRecoveryVentilator(hex, saFan, eaFan);
+    }
+
+    /// <summary>ノッチ切替が両ファンに同期し、質量流量に反映される</summary>
+    [Fact]
+    public void Notch_SetAndSelect()
+    {
+      var erv = MakeERVWithNotchedFans(out var saFan, out var eaFan);
+      Assert.Equal(4, erv.NotchCount);
+      Assert.Equal(-1, erv.CurrentNotchIndex); //設定直後は未選択
+
+      erv.SetNotch(2);
+      Assert.Equal(2, erv.CurrentNotchIndex);
+      Assert.Equal("強", erv.CurrentNotchName);
+      Assert.Equal(2, eaFan.CurrentNotchIndex); //EAファンも同期
+      Assert.Equal(0.12 * 1.2, erv.SAFlowRate, precision: 12); //質量流量に換算
+      Assert.Equal(0.12 * 1.2, erv.EAFlowRate, precision: 12);
+
+      erv.SetNotch("微弱");
+      Assert.Equal(0, erv.CurrentNotchIndex);
+      Assert.Equal(0, eaFan.CurrentNotchIndex);
+      Assert.Equal(0.05 * 1.2, erv.SAFlowRate, precision: 12);
+    }
+
+    /// <summary>RaiseNotch/LowerNotchの階段動作（未選択からのRaiseは最小ノッチ、最小からのLowerは変化なし）</summary>
+    [Fact]
+    public void Notch_RaiseAndLower()
+    {
+      var erv = MakeERVWithNotchedFans(out _, out var eaFan);
+
+      Assert.True(erv.RaiseNotch());   //未選択 → 最小ノッチ
+      Assert.Equal(0, erv.CurrentNotchIndex);
+      Assert.True(erv.RaiseNotch());
+      Assert.True(erv.RaiseNotch());
+      Assert.True(erv.RaiseNotch());   //特強へ
+      Assert.False(erv.RaiseNotch());  //既に最大
+      Assert.Equal(3, erv.CurrentNotchIndex);
+      Assert.Equal(3, eaFan.CurrentNotchIndex);
+
+      Assert.True(erv.LowerNotch());
+      Assert.True(erv.LowerNotch());
+      Assert.True(erv.LowerNotch());
+      Assert.False(erv.LowerNotch());  //既に最小（停止はしない）
+      Assert.Equal(0, erv.CurrentNotchIndex);
+      Assert.Equal(0, eaFan.CurrentNotchIndex);
+      Assert.Equal(0.05 * 1.2, erv.SAFlowRate, precision: 12);
+    }
+
+    /// <summary>連続風量指定・ShutOffでノッチ運転から外れる</summary>
+    [Fact]
+    public void Notch_InvalidatedByContinuousFlowAndShutOff()
+    {
+      var erv = MakeERVWithNotchedFans(out var saFan, out var eaFan);
+      erv.SetNotch(1);
+
+      erv.SetAirFlowRate(0.10, 0.10); //連続指定
+      Assert.Equal(-1, erv.CurrentNotchIndex);
+      Assert.Equal("", erv.CurrentNotchName);
+      Assert.Equal(-1, eaFan.CurrentNotchIndex);
+
+      erv.SetNotch(1);
+      erv.ShutOff();
+      Assert.Equal(-1, erv.CurrentNotchIndex);
+      Assert.Equal(0.0, erv.SAFlowRate);
     }
 
     #endregion
