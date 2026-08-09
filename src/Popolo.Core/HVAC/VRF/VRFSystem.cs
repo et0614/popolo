@@ -101,9 +101,6 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Nominal subcooling degree [°C].</summary>
     private const double SUB_COOL_NOM = 1;
 
-    /// <summary>Minimum head efficiency ratio during on/off operation [-].</summary>
-    private const double MIN_ER_RATE = 0.20;//Per NEDO tests, this level makes on/off electric consumption match measurements
-
     /// <summary>Minimum compression ratio [-].</summary>
     private const double MIN_COMPRESSION_RATIO = 1.5;
 
@@ -217,6 +214,27 @@ namespace Popolo.Core.HVAC.VRF
     /// <summary>Gets or sets the minimum partial load rate for capacity control [-].</summary>
     /// <remarks>Below this value, capacity is controlled by unit staging or on/off switching.</remarks>
     public double MinimumPartialLoadRatio { get; set; } = 0.15;
+
+    /// <summary>Gets or sets the head efficiency ratio retained at zero load during on/off (cycling) operation [-].</summary>
+    /// <remarks>
+    /// Applies below <see cref="MinimumPartialLoadRatio"/>, where capacity is controlled by on/off cycling:
+    /// the head efficiency is interpolated linearly from (efficiency at the minimum continuous load) × (this value)
+    /// at zero load up to the full efficiency at the minimum continuous load.
+    /// A value of 1.0 keeps the efficiency constant over the cycling range, so the electric consumption becomes
+    /// proportional to the load (ideal on/off control without cycling losses). A value of 0.0 makes the electric
+    /// consumption approach the constant consumption of the minimum continuous load regardless of the load
+    /// (worst case; similar to the low-load characteristics assumed by the Japanese WEBPRO energy code tool).
+    /// The default of 0.20 reproduces the on/off electric consumption measured in NEDO field tests.
+    /// Values outside the range [0, 1] are clamped.
+    /// </remarks>
+    public double MinimumHeadEfficiencyRatio
+    {
+      get { return minimumHeadEfficiencyRatio; }
+      set { minimumHeadEfficiencyRatio = Math.Min(1.0, Math.Max(0.0, value)); }
+    }
+
+    /// <summary>Head efficiency ratio retained at zero load during on/off operation [-].</summary>
+    private double minimumHeadEfficiencyRatio = 0.20;
 
     /// <summary>Gets or sets the outdoor air dry-bulb temperature [°C].</summary>
     public double OutdoorAirDryBulbTemperature
@@ -915,7 +933,7 @@ namespace Popolo.Core.HVAC.VRF
       else
       {
         double eMin = Cooling.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Cooling.HeadEfficiencyRatioCoefB;
-        double rme = eMin * MIN_ER_RATE;
+        double rme = eMin * minimumHeadEfficiencyRatio;
         eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
       CompressionHead = head;
@@ -1088,7 +1106,7 @@ namespace Popolo.Core.HVAC.VRF
       else
       {
         double eMin = Heating!.HeadEfficiencyRatioCoefA * MinimumPartialLoadRatio + Heating!.HeadEfficiencyRatioCoefB;
-        double rme = eMin * MIN_ER_RATE;
+        double rme = eMin * minimumHeadEfficiencyRatio;
         eRate = (eMin - rme) / MinimumPartialLoadRatio * plUnit + rme;
       }
       return eRate * Heating!.NominalEfficiency;
