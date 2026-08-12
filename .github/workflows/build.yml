@@ -1,0 +1,53 @@
+name: Build and publish to NuGet
+
+on:
+  # v3.1.11 のようなタグを push すると公開が走る
+  push:
+    tags:
+      - 'v*'
+  # 手動実行も可能にしておく
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    # Trusted Publishing (OIDC) に必須。id-token: write が無いと NuGet/login が失敗する
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: |
+          dotnet test tests/Popolo.Core.Tests/Popolo.Core.Tests.csproj -c Release
+          dotnet test tests/Popolo.IO.Tests/Popolo.IO.Tests.csproj -c Release
+          dotnet test tests/Popolo.Webpro.Tests/Popolo.Webpro.Tests.csproj -c Release
+
+      - name: Pack
+        run: |
+          dotnet pack src/Popolo.Core/Popolo.Core.csproj -c Release -o packages
+          dotnet pack src/Popolo.IO/Popolo.IO.csproj -c Release -o packages
+          dotnet pack src/Popolo.Webpro/Popolo.Webpro.csproj -c Release -o packages
+
+      # OIDC トークンを一時 API キーに交換する（Trusted Publishing の本体）
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: etogashi
+
+      - name: Push to nuget.org
+        run: >
+          dotnet nuget push "packages/*.nupkg"
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
