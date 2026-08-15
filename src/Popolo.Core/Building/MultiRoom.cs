@@ -1026,8 +1026,9 @@ namespace Popolo.Core.Building
           if (q1 == q2)
           {
             double bf = zq1.VentilationRate + zq1.SupplyAirFlowRate + zq1._supplyAirFlowRate2;
+            // zoneVent[src, dst] なので、ゾーン q1 の収支に入るのは流入 zoneVent[q3, q1]
             for (int q3 = 0; q3 < ZoneCount; q3++)
-              if (zoneVent[q1, q3] != 0) bf += zoneVent[q1, q3];
+              if (zoneVent[q3, q1] != 0) bf += zoneVent[q3, q1];
             matD[q1, q1] = bf * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat + capSZN;
             if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q1 + nQ] = bf + capLZN;
             for (int k = 0; k < zq1.Surfaces.Count; k++)
@@ -1039,10 +1040,10 @@ namespace Popolo.Core.Building
           }
           else
           {
-            if (zoneVent[q1, q2] != 0)
+            if (zoneVent[q2, q1] != 0)
             {
-              matD[q1, q2] = -zoneVent[q1, q2] * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat;
-              if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q2 + nQ] = -zoneVent[q1, q2];
+              matD[q1, q2] = -zoneVent[q2, q1] * PhysicsConstants.NominalMoistAirIsobaricSpecificHeat;
+              if (SolveMoistureTransferSimultaneously) matD[q1 + nQ, q2 + nQ] = -zoneVent[q2, q1];
             }
           }
         }
@@ -1271,9 +1272,10 @@ namespace Popolo.Core.Building
           if (q1 == q2)
           {
             matAW[q1, q1] = zq1.VentilationRate + zq1.SupplyAirFlowRate + zq1._supplyAirFlowRate2 + capLZN;
-            for (int q3 = 0; q3 < ZoneCount; q3++) matAW[q1, q1] += zoneVent[q1, q3];
+            // zoneVent[src, dst] なので、ゾーン q1 の収支に入るのは流入 zoneVent[q3, q1]
+            for (int q3 = 0; q3 < ZoneCount; q3++) matAW[q1, q1] += zoneVent[q3, q1];
           }
-          else matAW[q1, q2] = -zoneVent[q1, q2];
+          else matAW[q1, q2] = -zoneVent[q2, q1];
         }
         //Build vector BW
         vecWH[q1] = capLZN * zq1.HumidityRatio

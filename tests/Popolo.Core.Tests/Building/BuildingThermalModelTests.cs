@@ -1083,6 +1083,51 @@ namespace Popolo.Core.Tests.Building
       return new BuildingThermalModel(new[] { mr1, mr2 });
     }
 
+    /// <summary>一方向のゾーン間気流が下流ゾーンの熱・水分を掃気し、定常値で頭打ちになる（蓄積・発散しない）。</summary>
+    /// <remarks>
+    /// ゾーンA（外気導入0.1 kg/s）→ ゾーンB（発熱500 W・水分発生2e-5 kg/s）の一方向気流0.1 kg/s。
+    /// 定常値は T_B = T_A + Q/(m・cp), w_B = w_A + g/m。かつてゾーン間気流行列が転置していた
+    /// （流出を流入として集計していた）ため、Bに水分が無限に蓄積するバグがあった（回帰テスト）。
+    /// </remarks>
+    [Fact]
+    public void DirectionalAirFlow_SweepsDownstreamZone_ToSteadyState()
+    {
+      var zones = new[] { new Zone("A", 120.0), new Zone("B", 120.0) };
+      var mr = new MultiRoom(1, zones, new Wall[0], new Window[0]);
+      mr.AddZone(0, 0);
+      mr.AddZone(0, 1);
+      var bModel = new BuildingThermalModel(new[] { mr });
+      bModel.TimeStep = 60;
+
+      zones[0].VentilationRate = 0.1;   //A: 外気導入 0.1 kg/s
+      bModel.SetAirFlow(0, 0, 1, 0.1); //A → B 一方向 0.1 kg/s
+      bModel.InitializeAirState(26.0, 0.005);
+
+      var sun = new Sun(Sun.City.Tokyo);
+      var dTime = new DateTime(2001, 7, 20, 0, 0, 0);
+      for (int step = 0; step < 360; step++) //6時間（時定数 M/m = 20分）
+      {
+        sun.Update(dTime.AddSeconds(30));
+        bModel.UpdateOutdoorCondition(dTime, sun, 26.0, 0.005, 0); //外気 26°C, 5 g/kg
+        bModel.ControlHeatSupply(0, 0, 0);
+        bModel.ControlMoistureSupply(0, 0, 0);
+        bModel.ControlHeatSupply(0, 1, 500.0);
+        bModel.ControlMoistureSupply(0, 1, 2.0e-5);
+        bModel.ForecastHeatTransfer();
+        bModel.ForecastWaterTransfer();
+        bModel.FixState();
+        dTime = dTime.AddSeconds(60);
+      }
+
+      //上流Aは外気と同一状態を維持（下流Bに引きずられない）
+      Assert.Equal(26.0, zones[0].Temperature, 2);
+      Assert.Equal(5.00, zones[0].HumidityRatio * 1000, 2);
+      //下流Bは A + 発生量/流量 の定常値
+      double cp = Popolo.Core.Physics.PhysicsConstants.NominalMoistAirIsobaricSpecificHeat;
+      Assert.Equal(26.0 + 500.0 / (0.1 * cp), zones[1].Temperature, 2);
+      Assert.Equal(5.20, zones[1].HumidityRatio * 1000, 2);
+    }
+
     /// <summary>同一MultiRoom内の対称ゾーン間換気を双方向に読み取れる。</summary>
     [Fact]
     public void GetAirFlow_SameMultiRoom_CrossVentilationIsSymmetric()
