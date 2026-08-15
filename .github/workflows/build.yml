@@ -1,10 +1,15 @@
 name: Build and publish to NuGet
 
 on:
-  # v3.1.11 のようなタグを push すると公開が走る
+  # タグを push すると公開が走る。バージョンは csproj の Version で決まり、
+  # タグ名はトリガー兼ラベル。--skip-duplicate により新バージョンのパッケージのみ公開される。
+  #   全体リリース: v3.1.11 / 個別リリース: core-v3.1.12, io-v3.1.3, webpro-v3.1.2
   push:
     tags:
       - 'v*'
+      - 'core-v*'
+      - 'io-v*'
+      - 'webpro-v*'
   # 手動実行も可能にしておく
   workflow_dispatch:
 
