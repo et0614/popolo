@@ -1,4 +1,4 @@
-/* AirHeatSourceHeatPump.cs
+/* AirHeatSourceModularChillers.cs
  * 
  * Copyright (C) 2015 E.Togashi
  * 

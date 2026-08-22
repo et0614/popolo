@@ -25,6 +25,7 @@ using Popolo.Core.Numerics;
 namespace Popolo.Core.HVAC.HeatSource
 {
   /// <summary>Detailed inverter-driven centrifugal chiller with compressor characteristic equations.</summary>
+  [Obsolete("This class has been superseded by CentrifugalHeatPump and will be removed in a future major release. Use CentrifugalHeatPump instead.")]
   public class DetailedCentrifugalInverterChiller : ICentrifugalChiller, IReadOnlyCentrifugalChiller
   {
 

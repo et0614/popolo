@@ -4,6 +4,9 @@
  * GNU General Public License v3 — see accompanying LICENSE file.
  */
 
+// Tests are kept until the obsolete class is removed.
+#pragma warning disable CS0618
+
 using System;
 using Xunit;
 using Popolo.Core.HVAC.HeatSource;
