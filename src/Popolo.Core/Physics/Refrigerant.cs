@@ -18,6 +18,7 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
 using Popolo.Core.Numerics.LinearAlgebra;
@@ -150,8 +151,47 @@ namespace Popolo.Core.Physics
     /// <summary>Reference-state entropy [kJ/(kg·K)].</summary>
     private readonly double _refEntropy;
 
-    /// <summary>PVT approximation coefficients α[m,n].</summary>
-    private readonly double[,] _alpha;
+    /// <summary>PVT approximation coefficients α[m,n] (flat, m-major).</summary>
+    private readonly double[] _aP;
+
+    /// <summary>Derived coefficients α·n (∂P/∂ρ and the Cp denominator term).</summary>
+    private readonly double[] _adP;
+
+    /// <summary>Derived coefficients α·(n+m)/(n−1) (residual enthalpy).</summary>
+    private readonly double[] _aH;
+
+    /// <summary>Derived coefficients α·m/(n−1) (residual entropy; the m=0 row is zero).</summary>
+    private readonly double[] _aS;
+
+    /// <summary>Derived coefficients α·n/(n−1) (residual Gibbs energy).</summary>
+    private readonly double[] _aG;
+
+    /// <summary>Derived coefficients α·m·(m+1)/(1−n) (residual Cv; the m=0,1 rows are zero).</summary>
+    private readonly double[] _aCv;
+
+    /// <summary>Derived coefficients α·m (Cp numerator term; the m=0 row is zero).</summary>
+    private readonly double[] _aCpM;
+
+    /// <summary>Number of columns (= _nCount − 2) of the flat coefficient tables.</summary>
+    private readonly int _cols;
+
+    /// <summary>Residual enthalpy [kJ/kg] at the reference state.</summary>
+    private readonly double _resHRef;
+
+    /// <summary>Residual entropy [kJ/(kg·K)] at the reference state.</summary>
+    private readonly double _resSRef;
+
+    /// <summary>Precomputed coefficients _ccp[i]/(i+1)·Tc of the Cp0 integral.</summary>
+    private readonly double[] _ccpInt;
+
+    /// <summary>Reference-state value of the Cp0 integral polynomial.</summary>
+    private readonly double _intCp0Ref;
+
+    /// <summary>Precomputed coefficients _ccp[i]/i of the Cp0/T integral.</summary>
+    private readonly double[] _ccpDivI;
+
+    /// <summary>Constant reference-state terms of the specific entropy.</summary>
+    private readonly double _sConst;
 
     /// <summary>Approximation coefficients for the ideal-gas isobaric specific heat.</summary>
     private readonly double[] _ccp;
@@ -173,6 +213,10 @@ namespace Popolo.Core.Physics
 
     /// <summary>Coefficients of the fitted saturated vapor density curve.</summary>
     private readonly double[] _satVapDens = new double[5];
+
+    /// <summary>Coefficients of the fitted inverse saturation curve Tsat(ln(P/Pc))
+    /// used as the initial guess when inverting the Wagner equation.</summary>
+    private readonly double[] _satTInv = new double[4];
 
     /// <summary>Temperature range [K] of the saturation curve fit.</summary>
     private double _satFitTMin, _satFitTMax;
@@ -349,7 +393,6 @@ namespace Popolo.Core.Physics
     {
       FluidType = fluid;
 
-      int index;
       switch (fluid)
       {
         case Fluid.R410A:
@@ -362,11 +405,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1169.95; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR410A; _cps = CpsR410A; _cts = CtsR410A;
           MaxPressure = 4000; MinPressure = 700;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR410A[index++];
+          _aP = AlphaR410A;
           break;
 
         case Fluid.R32:
@@ -379,11 +418,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1055.3; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR32; _cps = CpsR32; _cts = CtsR32;
           MaxPressure = 4500; MinPressure = 700;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR32[index++];
+          _aP = AlphaR32;
           break;
 
         case Fluid.R134a:
@@ -396,11 +431,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1294.78; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR134a; _cps = CpsR134a; _cts = CtsR134a;
           MaxPressure = 1500; MinPressure = 200;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR134a[index++];
+          _aP = AlphaR134a;
           break;
 
         case Fluid.R1234zeE:
@@ -413,11 +444,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1240.12; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR1234zeE; _cps = CpsR1234zeE; _cts = CtsR1234zeE;
           MaxPressure = 1500; MinPressure = 150;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR1234zeE[index++];
+          _aP = AlphaR1234zeE;
           break;
 
         case Fluid.R1234yf:
@@ -430,11 +457,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1176.29; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR1234yf; _cps = CpsR1234yf; _cts = CtsR1234yf;
           MaxPressure = 2000; MinPressure = 200;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR1234yf[index++];
+          _aP = AlphaR1234yf;
           break;
 
         case Fluid.R1233zdE:
@@ -447,11 +470,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1321.27; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR1233zdE; _cps = CpsR1233zdE; _cts = CtsR1233zdE;
           MaxPressure = 500; MinPressure = 50;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR1233zdE[index++];
+          _aP = AlphaR1233zdE;
           break;
 
         case Fluid.R1224ydZ:
@@ -464,11 +483,7 @@ namespace Popolo.Core.Physics
           _refDensity = 1427.60; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR1224ydZ; _cps = CpsR1224ydZ; _cts = CtsR1224ydZ;
           MaxPressure = 2500; MinPressure = 100;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR1224ydZ[index++];
+          _aP = AlphaR1224ydZ;
           break;
 
         case Fluid.R290:
@@ -481,17 +496,63 @@ namespace Popolo.Core.Physics
           _refDensity = 528.59; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR290; _cps = CpsR290; _cts = CtsR290;
           MaxPressure = 2500; MinPressure = 250;
-          _alpha = new double[_mCount, _nCount - 2];
-          index = 0;
-          for (int m = 0; m < _alpha.GetLength(0); m++)
-            for (int n = 0; n < _alpha.GetLength(1); n++)
-              _alpha[m, n] = AlphaR290[index++];
+          _aP = AlphaR290;
           break;
 
         default:
-          _alpha = new double[0, 0];
+          _aP = Array.Empty<double>();
           _ccp = _cps = _cts = Array.Empty<double>();
           break;
+      }
+
+      // Precompute derivative-weighted flat coefficient tables so that every
+      // property evaluation reduces to pure Horner sweeps without per-term
+      // integer arithmetic or divisions. Rows that drop out of a derivative
+      // (m=0 for Sr/Cp, m=0,1 for Cv) are stored as zeros: running the full
+      // Horner recurrence over them multiplies the remaining polynomial by
+      // exactly the τ powers those derivatives require.
+      _cols = Math.Max(0, _nCount - 2);
+      int size = _mCount * _cols;
+      _adP = new double[size]; _aH = new double[size]; _aS = new double[size];
+      _aG = new double[size]; _aCv = new double[size]; _aCpM = new double[size];
+      for (int m = 0; m < _mCount; m++)
+      {
+        for (int k = 0; k < _cols; k++)
+        {
+          int i = m * _cols + k;
+          int n = k + 2;
+          double a = _aP[i];
+          _adP[i] = a * n;
+          _aH[i] = a * (n + m) / (n - 1.0);
+          _aS[i] = a * m / (n - 1.0);
+          _aG[i] = a * n / (n - 1.0);
+          _aCv[i] = a * m * (m + 1) / (1.0 - n);
+          _aCpM[i] = a * m;
+        }
+      }
+
+      _ccpInt = new double[_ccp.Length];
+      _ccpDivI = new double[_ccp.Length];
+      for (int i = 0; i < _ccp.Length; i++)
+      {
+        _ccpInt[i] = _ccp[i] / (i + 1) * CriticalTemperature;
+        if (0 < i) _ccpDivI[i] = _ccp[i] / i;
+      }
+
+      if (0 < size)
+      {
+        //Reference-state constants (fixed per fluid; evaluating them per call is wasted work)
+        double tr0 = _refTemperature / CriticalTemperature;
+        double cp0r = 0;
+        for (int i = _ccpInt.Length - 1; 0 <= i; i--) cp0r = (cp0r + _ccpInt[i]) * tr0;
+        _intCp0Ref = cp0r;
+        double cp0Tr = 0;
+        for (int i = _ccpDivI.Length - 1; 1 <= i; i--) cp0Tr = cp0Tr * tr0 + _ccpDivI[i];
+        cp0Tr *= tr0;
+        _resHRef = GetResidualEnthalpy(_refTemperature, _refDensity);
+        _resSRef = GetResidualEntropy(_refTemperature, _refDensity);
+        _sConst = _refEntropy + _gasConstant * (Math.Log(_refDensity)
+            - cp0Tr - (_ccp[0] - 1.0) * Math.Log(_refTemperature));
       }
 
       FitSaturationCurves();
@@ -511,16 +572,56 @@ namespace Popolo.Core.Physics
     {
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
+      return EvalTauRhoPoly(_aP, tau, rho) * rho * rho + density * _gasConstant * temperature;
+    }
 
-      double pressure = 0;
-      for (int m = _alpha.GetLength(0) - 1; 0 <= m; m--)
+    /// <summary>
+    /// Evaluates the double Horner recurrence Σ_m τ^m (Σ_k ρ^k a[m,k])
+    /// over a flat m-major coefficient table.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double EvalTauRhoPoly(double[] a, double tau, double rho)
+    {
+      int cols = _cols;
+      if (cols == 0) return 0;
+      double acc = 0;
+      for (int b = a.Length - cols; 0 <= b; b -= cols)
       {
         double buff = 0;
-        for (int n = _alpha.GetLength(1) - 1; 0 <= n; n--)
-          buff = buff * rho + _alpha[m, n];
-        pressure = pressure * tau + buff;
+        for (int k = cols - 1; 0 <= k; k--)
+          buff = buff * rho + a[b + k];
+        acc = acc * tau + buff;
       }
-      return pressure * rho * rho + density * _gasConstant * temperature;
+      return acc;
+    }
+
+    /// <summary>
+    /// Evaluates the pressure [kPa] and its density derivative ∂P/∂ρ
+    /// [kPa/(kg/m³)] in a single coefficient sweep (used by the density
+    /// Newton iteration, where both are needed at the same point).
+    /// </summary>
+    private void GetPressureAndDerivative(double temperature, double density,
+        out double pressure, out double dPdRho)
+    {
+      double tau = CriticalTemperature / temperature;
+      double rho = density / CriticalDensity;
+
+      int cols = _cols;
+      double accP = 0, accD = 0;
+      for (int b = _aP.Length - cols; 0 <= b && 0 < cols; b -= cols)
+      {
+        double bp = 0, bd = 0;
+        for (int k = cols - 1; 0 <= k; k--)
+        {
+          int i = b + k;
+          bp = bp * rho + _aP[i];
+          bd = bd * rho + _adP[i];
+        }
+        accP = accP * tau + bp;
+        accD = accD * tau + bd;
+      }
+      pressure = accP * rho * rho + density * _gasConstant * temperature;
+      dPdRho = accD * rho / CriticalDensity + _gasConstant * temperature;
     }
 
     /// <summary>
@@ -536,43 +637,31 @@ namespace Popolo.Core.Physics
     private void GetDensityFromPressureAndTemperatureInternal(
         double pressure, double temperature, ref double density)
     {
-      Roots.ErrorFunction eFnc = dns =>
-          pressure - GetPressureFromTemperatureAndDensity(temperature, dns);
-
-      Roots.ErrorFunction eFncD = dns =>
+      // 2026.05.27: Tightened tolerance 1e-3 → 1e-4 and extended max iterations to 30.
+      // At this level the COP error of a standard refrigeration cycle is <0.1% (<0.05% for most refrigerants).
+      // Thanks to the ×1.10 bump of the Rackett initial guess (in GetGibbsEnergyDifference)
+      // and single-phase state searches starting from saturation, the density iteration
+      // always starts on the stable branch, so plain Newton is sufficient.
+      // The loop is inlined (no delegates) and evaluates P and ∂P/∂ρ in one sweep.
+      double x = density;
+      GetPressureAndDerivative(temperature, x, out double p, out double dPdRho);
+      double err = pressure - p;
+      int iNum = 0;
+      while (1e-4 < Math.Abs(err))
       {
-        double tau = CriticalTemperature / temperature;
-        double rho = dns / CriticalDensity;
-        double dPdRho = 0;
-        int len = _alpha.GetLength(1) + 1;
-        for (int m = _alpha.GetLength(0) - 1; 0 <= m; m--)
-        {
-          double buff = 0;
-          for (int n = len; 2 <= n; n--)
-            buff = buff * rho + n * _alpha[m, n - 2];
-          dPdRho = dPdRho * tau + buff;
-        }
-        dPdRho *= rho;
-        return -(dPdRho / CriticalDensity + _gasConstant * temperature);
-      };
-
-      try
-      {
-        // 2026.05.27: Tightened tolerance 1e-3 → 1e-4 and extended max iterations to 30.
-        // At this level the COP error of a standard refrigeration cycle is <0.1% (<0.05% for most refrigerants).
-        // Thanks to the ×1.10 bump of the Rackett initial guess (in GetGibbsEnergyDifference)
-        // and single-phase state searches starting from saturation, the density iteration
-        // always starts on the stable branch, so plain Newton is sufficient.
-        density = Roots.Newton(eFnc, eFncD, density, 1e-4, 1e-4, 30);
+        if (30 < iNum)
+          throw new PopoloNumericalException(
+              "GetDensityFromPressureAndTemperatureInternal",
+              $"Newton iteration failed. pressure={pressure} kPa, "
+              + $"temperature={temperature} K, density={x} kg/m³.");
+        double dX = -err / dPdRho;
+        x -= dX;
+        if (Math.Abs(dX) < 1e-4) break;
+        GetPressureAndDerivative(temperature, x, out p, out dPdRho);
+        err = pressure - p;
+        iNum++;
       }
-      catch (Exception e)
-      {
-        throw new PopoloNumericalException(
-            "GetDensityFromPressureAndTemperatureInternal",
-            $"Newton iteration failed. pressure={pressure} kPa, "
-            + $"temperature={temperature} K, density={density} kg/m³."
-            + Environment.NewLine + e.Message);
-      }
+      density = x;
     }
 
     #endregion
@@ -759,18 +848,7 @@ namespace Popolo.Core.Physics
     {
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
-
-      double gr = 0;
-      int len = _alpha.GetLength(1) + 1;
-      for (int m = _alpha.GetLength(0) - 1; 0 <= m; m--)
-      {
-        double buff = 0;
-        for (int n = len; 2 <= n; n--)
-          buff = buff * rho + _alpha[m, n - 2] * n / (n - 1.0);
-        gr = gr * tau + buff;
-      }
-      gr *= rho;
-      return gr / CriticalDensity;
+      return EvalTauRhoPoly(_aG, tau, rho) * rho / CriticalDensity;
     }
 
     #endregion
@@ -808,7 +886,7 @@ namespace Popolo.Core.Physics
     private void FitSaturationCurves()
     {
       _satFitValid = false;
-      if (_alpha.Length == 0 || _cts.Length == 0) return;
+      if (_aP.Length == 0 || _cts.Length == 0) return;
 
       //Determine the temperature range to fit from the initial-estimate polynomial
       //(the exact solution can be fragile just at the validated range boundary)
@@ -854,8 +932,8 @@ namespace Popolo.Core.Physics
             bss[0] = cb; bss[1] = cb * cb; bss[2] = tau; bss[3] = tau * cb; return bss; },
           i => lds[i] / CriticalDensity - 1.0),
         (_satVapDens,
-          tau => { double cb = Math.Cbrt(tau); double t3 = tau * tau * tau;
-            bss[0] = cb; bss[1] = Math.Pow(tau, 5.0 / 6.0); bss[2] = tau * Math.Sqrt(tau); bss[3] = t3; bss[4] = t3 * t3; return bss; },
+          tau => { double cb = Math.Cbrt(tau); double sqt = Math.Sqrt(tau); double t3 = tau * tau * tau;
+            bss[0] = cb; bss[1] = sqt * cb; bss[2] = tau * sqt; bss[3] = t3; bss[4] = t3 * t3; return bss; },
           i => Math.Log(vds[i] / CriticalDensity)),
       };
       foreach (var (coef, basis, target) in fits)
@@ -875,6 +953,26 @@ namespace Popolo.Core.Physics
         }
         LinearAlgebraOperations.SolveLinearEquations(ata, atb);
         for (int j = 0; j < nc; j++) coef[j] = atb[j];
+      }
+
+      //Fit the inverse curve Tsat(ln(P/Pc)) as well: it primes the Newton
+      //inversion of the Wagner equation to converge in 1-2 iterations
+      //(the generic _cts polynomial can be several kelvins off).
+      {
+        Matrix ata = new Matrix(4, 4);
+        Vector atb = new Vector(4);
+        for (int i = 0; i < N; i++)
+        {
+          double x = Math.Log(ps[i] / CriticalPressure);
+          bss[0] = 1.0; bss[1] = x; bss[2] = x * x; bss[3] = x * x * x;
+          for (int j = 0; j < 4; j++)
+          {
+            for (int k = 0; k < 4; k++) ata[j, k] += bss[j] * bss[k];
+            atb[j] += bss[j] * ts[i];
+          }
+        }
+        LinearAlgebraOperations.SolveLinearEquations(ata, atb);
+        for (int j = 0; j < 4; j++) _satTInv[j] = atb[j];
       }
 
       //Verify the consistency with the exact solution before enabling the fast path
@@ -920,12 +1018,9 @@ namespace Popolo.Core.Physics
     /// <returns>Saturation temperature [K]</returns>
     private double SolveFittedSaturationTemperature(double pressure)
     {
-      //Initial estimate (cubic polynomial approximation)
-      double pr = pressure / CriticalPressure;
-      double t = _cts[0];
-      for (int i = 1; i < _cts.Length; i++) t = t * pr + _cts[i];
-
-      double lnPr = Math.Log(pr);
+      //Initial estimate from the fitted inverse curve Tsat(ln(P/Pc))
+      double lnPr = Math.Log(pressure / CriticalPressure);
+      double t = ((_satTInv[3] * lnPr + _satTInv[2]) * lnPr + _satTInv[1]) * lnPr + _satTInv[0];
       for (int i = 0; i < 20; i++)
       {
         double tr = t / CriticalTemperature;
@@ -952,12 +1047,14 @@ namespace Popolo.Core.Physics
     {
       double tau = Math.Max(0, 1.0 - temperature / CriticalTemperature);
       double cb = Math.Cbrt(tau);
+      double sqt = Math.Sqrt(tau);
       liquidDensity = CriticalDensity * (1.0
         + _satLiqDens[0] * cb + _satLiqDens[1] * cb * cb + _satLiqDens[2] * tau + _satLiqDens[3] * tau * cb);
       double t3 = tau * tau * tau;
+      //τ^(5/6) = √τ·∛τ (avoids Math.Pow)
       vaporDensity = CriticalDensity * Math.Exp(
-        _satVapDens[0] * cb + _satVapDens[1] * Math.Pow(tau, 5.0 / 6.0)
-        + _satVapDens[2] * tau * Math.Sqrt(tau) + _satVapDens[3] * t3 + _satVapDens[4] * t3 * t3);
+        _satVapDens[0] * cb + _satVapDens[1] * sqt * cb
+        + _satVapDens[2] * tau * sqt + _satVapDens[3] * t3 + _satVapDens[4] * t3 * t3);
     }
 
     #endregion
@@ -973,9 +1070,8 @@ namespace Popolo.Core.Physics
     /// <returns>Specific enthalpy [kJ/kg]</returns>
     public double GetEnthalpyFromTemperatureAndDensity(double temperature, double density)
     {
-      double h = GetResidualEnthalpy(temperature, density)
-          - GetResidualEnthalpy(_refTemperature, _refDensity);
-      return h + GetIntegralCp0(temperature) + _refEnthalpy;
+      return GetResidualEnthalpy(temperature, density) - _resHRef
+          + GetIntegralCp0(temperature) + _refEnthalpy;
     }
 
     /// <summary>
@@ -987,11 +1083,15 @@ namespace Popolo.Core.Physics
     /// <returns>Specific entropy [kJ/(kg·K)]</returns>
     public double GetEntropyFromTemperatureAndDensity(double temperature, double density)
     {
-      double s = GetResidualEntropy(temperature, density)
-          - GetResidualEntropy(_refTemperature, _refDensity);
-      s += _gasConstant * Math.Log(_refDensity / density);
-      s += GetIntegralCp0T(temperature) - _gasConstant * Math.Log(temperature / _refTemperature);
-      return s + _refEntropy;
+      //Reference-state terms and the ideal-gas log terms are folded into
+      //_sConst / a single (ccp0−1)·ln T − ln ρ expression (two logs per call)
+      double s = GetResidualEntropy(temperature, density) - _resSRef;
+      double tr = temperature / CriticalTemperature;
+      double cp0 = 0;
+      for (int i = _ccpDivI.Length - 1; 1 <= i; i--) cp0 = cp0 * tr + _ccpDivI[i];
+      cp0 *= tr;
+      return s + _gasConstant * (cp0 + (_ccp[0] - 1.0) * Math.Log(temperature)
+          - Math.Log(density)) + _sConst;
     }
 
     /// <summary>
@@ -1019,18 +1119,8 @@ namespace Popolo.Core.Physics
     {
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
-
-      double cv = 0;
-      int len = _alpha.GetLength(1) + 1;
-      for (int m = _alpha.GetLength(0) - 1; 2 <= m; m--)
-      {
-        double buff = 0;
-        for (int n = len; 2 <= n; n--)
-          buff = buff * rho + _alpha[m, n - 2] * m * (m + 1) / (1.0 - n);
-        cv = cv * tau + buff;
-      }
-      cv *= rho * tau * tau;
-      return cv / (CriticalDensity * temperature)
+      //The zero m=0,1 rows of _aCv supply the τ² factor
+      return EvalTauRhoPoly(_aCv, tau, rho) * rho / (CriticalDensity * temperature)
           + GetIsovolumetricHeatCapacityOfIdealGas(temperature);
     }
 
@@ -1047,25 +1137,31 @@ namespace Popolo.Core.Physics
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
 
-      double cp1 = 0, cp2 = 0;
-      int len = _alpha.GetLength(1) + 1;
-      for (int m = _alpha.GetLength(0) - 1; 0 <= m; m--)
+      //Single fused sweep over the three derived tables:
+      //accM = (∂P/∂T numerator)·τ, accN = ∂P/∂ρ numerator, accV = (residual Cv)·τ²
+      int cols = _cols;
+      double accM = 0, accN = 0, accV = 0;
+      for (int b = _aP.Length - cols; 0 <= b && 0 < cols; b -= cols)
       {
-        double buff1 = 0, buff2 = 0;
-        for (int n = len; 2 <= n; n--)
+        double bm = 0, bn = 0, bv = 0;
+        for (int k = cols - 1; 0 <= k; k--)
         {
-          if (m != 0) buff1 = buff1 * rho + _alpha[m, n - 2] * m;
-          buff2 = buff2 * rho + _alpha[m, n - 2] * n;
+          int i = b + k;
+          bm = bm * rho + _aCpM[i];
+          bn = bn * rho + _adP[i];
+          bv = bv * rho + _aCv[i];
         }
-        if (m != 0) cp1 = cp1 * tau + buff1;
-        cp2 = cp2 * tau + buff2;
+        accM = accM * tau + bm;
+        accN = accN * tau + bn;
+        accV = accV * tau + bv;
       }
-      cp1 = density * _gasConstant - cp1 * rho * rho * tau / temperature;
-      cp2 = _gasConstant * temperature + cp2 * rho / CriticalDensity;
+      double cv = accV * rho / (CriticalDensity * temperature)
+          + GetIsovolumetricHeatCapacityOfIdealGas(temperature);
+      double cp1 = density * _gasConstant - accM * rho * rho / temperature;
+      double cp2 = _gasConstant * temperature + accN * rho / CriticalDensity;
 
       double bf = cp1 / density;
-      return GetIsovolumetricSpecificHeatFromTemperatureAndDensity(temperature, density)
-          + temperature * bf * bf / cp2;
+      return cv + temperature * bf * bf / cp2;
     }
 
     /// <summary>
@@ -1088,37 +1184,16 @@ namespace Popolo.Core.Physics
     {
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
-
-      double hr = 0;
-      int len = _alpha.GetLength(1) + 1;
-      for (int m = _alpha.GetLength(0) - 1; 0 <= m; m--)
-      {
-        double buff = 0;
-        for (int n = len; 2 <= n; n--)
-          buff = buff * rho + _alpha[m, n - 2] * (n + m) / (n - 1.0);
-        hr = hr * tau + buff;
-      }
-      hr *= rho;
-      return hr / CriticalDensity;
+      return EvalTauRhoPoly(_aH, tau, rho) * rho / CriticalDensity;
     }
 
     /// <summary>Residual entropy Sr [kJ/(kg·K)] (Eq.11 in the reference).</summary>
+    /// <remarks>The zero m=0 row of _aS supplies the τ factor of Eq.11.</remarks>
     private double GetResidualEntropy(double temperature, double density)
     {
       double tau = CriticalTemperature / temperature;
       double rho = density / CriticalDensity;
-
-      double sr = 0;
-      int len = _alpha.GetLength(1) + 1;
-      for (int m = _alpha.GetLength(0) - 1; 1 <= m; m--)
-      {
-        double buff = 0;
-        for (int n = len; 2 <= n; n--)
-          buff = buff * rho + _alpha[m, n - 2] * m / (n - 1.0);
-        sr = sr * tau + buff;
-      }
-      sr *= rho * tau;
-      return sr / (CriticalDensity * temperature);
+      return EvalTauRhoPoly(_aS, tau, rho) * rho / (CriticalDensity * temperature);
     }
 
     /// <summary>
@@ -1128,33 +1203,9 @@ namespace Popolo.Core.Physics
     private double GetIntegralCp0(double temperature)
     {
       double tr = temperature / CriticalTemperature;
-      double tr0 = _refTemperature / CriticalTemperature;
-      double cp0 = 0, cp0r = 0;
-      for (int i = _ccp.Length - 1; 0 <= i; i--)
-      {
-        cp0 = (cp0 + _ccp[i] / (i + 1) * CriticalTemperature) * tr;
-        cp0r = (cp0r + _ccp[i] / (i + 1) * CriticalTemperature) * tr0;
-      }
-      return (cp0 - cp0r) * _gasConstant;
-    }
-
-    /// <summary>
-    /// Integral of Cp0/T [kJ/(kg·K)] from refTemperature to temperature (Eq.19 in the reference).
-    /// </summary>
-    private double GetIntegralCp0T(double temperature)
-    {
-      double tr = temperature / CriticalTemperature;
-      double tr0 = _refTemperature / CriticalTemperature;
-      double cp0 = 0, cp0r = 0;
-      for (int i = _ccp.Length - 1; 0 < i; i--)
-      {
-        cp0 = cp0 * tr + _ccp[i] / i;
-        cp0r = cp0r * tr0 + _ccp[i] / i;
-      }
-      cp0 *= tr;
-      cp0r *= tr0;
-      return ((cp0 + _ccp[0] * Math.Log(temperature))
-            - (cp0r + _ccp[0] * Math.Log(_refTemperature))) * _gasConstant;
+      double cp0 = 0;
+      for (int i = _ccpInt.Length - 1; 0 <= i; i--) cp0 = (cp0 + _ccpInt[i]) * tr;
+      return (cp0 - _intCp0Ref) * _gasConstant;
     }
 
     /// <summary>Ideal-gas isobaric specific heat Cp0 [kJ/(kg·K)] (Eq.8 in the reference).</summary>
@@ -1216,29 +1267,43 @@ namespace Popolo.Core.Physics
         double sL = GetEntropyFromTemperatureAndDensity(tSat, rhoL);
         double sV = GetEntropyFromTemperatureAndDensity(tSat, rhoV);
         entropy = sL * lRate + sV * vRate;
-        double uL = GetInternalEnergyFromTemperatureAndDensity(tSat, rhoL);
-        double uV = GetInternalEnergyFromTemperatureAndDensity(tSat, rhoV);
-        internalEnergy = uL * lRate + uV * vRate;
+        //u = h − P/ρ with the pressure argument (equal to the saturation pressure)
+        internalEnergy = (hl - pressure / rhoL) * lRate + (hv - pressure / rhoV) * vRate;
         return;
       }
 
-      //Single-phase region: iterate on temperature with Newton's method
-      temperature = phase == Phase.Liquid ? tSat - 3.0 : tSat + 3.0;
-      density = phase == Phase.Liquid ? rhoL : rhoV;
-
-      double dns = density;
-      Roots.ErrorFunction eFnc = tmp =>
-      {
-        GetDensityFromPressureAndTemperatureInternal(pressure, tmp, ref dns);
-        return enthalpy - GetEnthalpyFromTemperatureAndDensity(tmp, dns);
-      };
+      //Single-phase region: iterate on temperature with Newton's method.
+      //Initial guess: first-order step from the saturation enthalpy using the
+      //thermodynamic identity dh/dT|P = Cp, which also serves as the analytic
+      //derivative of the iteration (previously: fixed ±3 K offset and
+      //numerical differentiation, costing two error evaluations per step).
+      double dns = phase == Phase.Liquid ? rhoL : rhoV;
+      double hSat = phase == Phase.Liquid ? hl : hv;
+      double t = tSat + (enthalpy - hSat)
+          / GetIsobaricSpecificHeatFromTemperatureAndDensity(tSat, dns);
 
       try
       {
         //2023.04.11: Increased from 10 to 15 iterations because 10 was not enough in some cases
         //2026.05.27: Tightened tolerance 1e-3 → 1e-4 (kJ/kg, K) and extended max iterations to 30
         //            (COP error <0.1%)
-        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-4, 1e-4, 30);
+        GetDensityFromPressureAndTemperatureInternal(pressure, t, ref dns);
+        double err = enthalpy - GetEnthalpyFromTemperatureAndDensity(t, dns);
+        int iNum = 0;
+        while (1e-4 < Math.Abs(err))
+        {
+          if (30 < iNum)
+            throw new PopoloNumericalException(
+                "GetStateFromPressureAndEnthalpy",
+                $"Convergence failed after {iNum} iterations. "
+                + $"Last estimate: t={t} K, residual={err} kJ/kg.");
+          double dT = err / GetIsobaricSpecificHeatFromTemperatureAndDensity(t, dns);
+          t += dT;
+          if (Math.Abs(dT) < 1e-4) break;
+          GetDensityFromPressureAndTemperatureInternal(pressure, t, ref dns);
+          err = enthalpy - GetEnthalpyFromTemperatureAndDensity(t, dns);
+          iNum++;
+        }
       }
       catch (Exception e)
       {
@@ -1247,9 +1312,10 @@ namespace Popolo.Core.Physics
             $"Newton iteration failed. pressure={pressure} kPa, enthalpy={enthalpy} kJ/kg."
             + Environment.NewLine + e.Message);
       }
+      temperature = t;
       density = dns;
       entropy = GetEntropyFromTemperatureAndDensity(temperature, density);
-      internalEnergy = GetInternalEnergyFromTemperatureAndDensity(temperature, density);
+      internalEnergy = enthalpy - pressure / density;
     }
 
     #endregion
@@ -1297,22 +1363,20 @@ namespace Popolo.Core.Physics
         double hL = GetEnthalpyFromTemperatureAndDensity(tSat, rhoL);
         double hV = GetEnthalpyFromTemperatureAndDensity(tSat, rhoV);
         enthalpy = hL * lRate + hV * vRate;
-        double uL = GetInternalEnergyFromTemperatureAndDensity(tSat, rhoL);
-        double uV = GetInternalEnergyFromTemperatureAndDensity(tSat, rhoV);
-        internalEnergy = uL * lRate + uV * vRate;
+        //u = h − P/ρ with the pressure argument (equal to the saturation pressure)
+        internalEnergy = (hL - pressure / rhoL) * lRate + (hV - pressure / rhoV) * vRate;
         return;
       }
 
-      //Single-phase region: iterate on temperature with Newton's method
-      temperature = phase == Phase.Liquid ? tSat - 3.0 : tSat + 3.0;
-      density = phase == Phase.Liquid ? rhoL : rhoV;
-
-      double dns = density;
-      Roots.ErrorFunction eFnc = tmp =>
-      {
-        GetDensityFromPressureAndTemperatureInternal(pressure, tmp, ref dns);
-        return entropy - GetEntropyFromTemperatureAndDensity(tmp, dns);
-      };
+      //Single-phase region: iterate on temperature with Newton's method.
+      //Initial guess: first-order step from the saturation entropy using the
+      //thermodynamic identity ds/dT|P = Cp/T, which also serves as the
+      //analytic derivative of the iteration (previously: fixed ±3 K offset
+      //and numerical differentiation, costing two error evaluations per step).
+      double dns = phase == Phase.Liquid ? rhoL : rhoV;
+      double sSat = phase == Phase.Liquid ? sl : sv;
+      double t = tSat + (entropy - sSat) * tSat
+          / GetIsobaricSpecificHeatFromTemperatureAndDensity(tSat, dns);
 
       try
       {
@@ -1322,7 +1386,23 @@ namespace Popolo.Core.Physics
         //            an error of T·ds in h2, and for high-COP refrigerants with small
         //            compression work W=h2-h1 (R1234yf: W≈21 kJ/kg), ds=1e-4 is amplified
         //            to a COP error of ~0.15%. Quadratic convergence makes the extra cost about one iteration.
-        temperature = Roots.Newton(eFnc, temperature, 1e-5, 1e-6, 1e-5, 30);
+        GetDensityFromPressureAndTemperatureInternal(pressure, t, ref dns);
+        double err = entropy - GetEntropyFromTemperatureAndDensity(t, dns);
+        int iNum = 0;
+        while (1e-6 < Math.Abs(err))
+        {
+          if (30 < iNum)
+            throw new PopoloNumericalException(
+                "GetStateFromPressureAndEntropy",
+                $"Convergence failed after {iNum} iterations. "
+                + $"Last estimate: t={t} K, residual={err} kJ/(kg·K).");
+          double dT = err * t / GetIsobaricSpecificHeatFromTemperatureAndDensity(t, dns);
+          t += dT;
+          if (Math.Abs(dT) < 1e-5) break;
+          GetDensityFromPressureAndTemperatureInternal(pressure, t, ref dns);
+          err = entropy - GetEntropyFromTemperatureAndDensity(t, dns);
+          iNum++;
+        }
       }
       catch (Exception e)
       {
@@ -1331,9 +1411,10 @@ namespace Popolo.Core.Physics
             $"Newton iteration failed. pressure={pressure} kPa, entropy={entropy} kJ/(kg·K)."
             + Environment.NewLine + e.Message);
       }
+      temperature = t;
       density = dns;
       enthalpy = GetEnthalpyFromTemperatureAndDensity(temperature, density);
-      internalEnergy = GetInternalEnergyFromTemperatureAndDensity(temperature, density);
+      internalEnergy = enthalpy - pressure / density;
     }
 
     #endregion
@@ -1387,15 +1468,11 @@ namespace Popolo.Core.Physics
 
       density = phase == Phase.Liquid ? rhoL + 0.1 : rhoV - 0.1;
 
-      double tmp = temperature;
-      Roots.ErrorFunction eFnc = dns =>
-          pressure - GetPressureFromTemperatureAndDensity(tmp, dns);
-
       try
       {
         //2026.05.27: Tightened tolerance 1e-3 → 1e-4 (kg/m³) and extended max iterations to 30.
         //            The initial density is based on the saturated liquid/vapor density, so it is always on the stable branch.
-        density = Roots.Newton(eFnc, density, 1e-5, 1e-4, 1e-4, 30);
+        GetDensityFromPressureAndTemperatureInternal(pressure, temperature, ref density);
       }
       catch (Exception e)
       {
@@ -1405,7 +1482,7 @@ namespace Popolo.Core.Physics
             + Environment.NewLine + e.Message);
       }
       enthalpy = GetEnthalpyFromTemperatureAndDensity(temperature, density);
-      internalEnergy = GetInternalEnergyFromTemperatureAndDensity(temperature, density);
+      internalEnergy = enthalpy - pressure / density;
       entropy = GetEntropyFromTemperatureAndDensity(temperature, density);
     }
 
