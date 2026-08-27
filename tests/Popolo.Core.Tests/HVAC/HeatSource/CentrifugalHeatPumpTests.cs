@@ -133,12 +133,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void EstimateMode_ReproducesReferenceCoefficients()
         {
             HP.Parameters p = Shared.Value.Cooling.Parameters;
-            Assert.InRange(p.a_cmp, 0.1965 - 0.005, 0.1965 + 0.005);
-            Assert.InRange(p.b_cmp, 0.1043 - 0.010, 0.1043 + 0.010);
-            Assert.InRange(p.c_cmp, 0.3576 - 0.010, 0.3576 + 0.010);
-            Assert.InRange(p.d_cmp, 0.2000 - 0.010, 0.2000 + 0.010);
-            Assert.InRange(p.e_cmp, -0.6038 - 0.020, -0.6038 + 0.020);
-            Assert.InRange(p.f_cmp, 1.2690 - 0.020, 1.2690 + 0.020);
+            Assert.InRange(p.a_cmp, 0.2127 - 0.005, 0.2127 + 0.005);
+            Assert.InRange(p.b_cmp, 0.0906 - 0.010, 0.0906 + 0.010);
+            Assert.InRange(p.c_cmp, 0.3658 - 0.010, 0.3658 + 0.010);
+            Assert.InRange(p.d_cmp, 0.2055 - 0.010, 0.2055 + 0.010);
+            Assert.InRange(p.e_cmp, -0.5622 - 0.020, -0.5622 + 0.020);
+            Assert.InRange(p.f_cmp, 1.2719 - 0.020, 1.2719 + 0.020);
             Assert.False(Shared.Value.Cooling.ConstraintActivated);
             Assert.True(0.998 < Shared.Value.Cooling.RSquared);
         }
@@ -151,7 +151,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             Assert.InRange(c.EvaporatorHeatTransferCoefficient, 830.0, 845.0);
             Assert.InRange(c.CondenserHeatTransferCoefficient, 1388.0, 1402.0);
             Assert.InRange(c.RecoveryHeatTransferCoefficient, 1448.0, 1464.0);
-            Assert.InRange(c.NominalHead, 8.80, 8.91);
+            Assert.InRange(c.NominalHead, 8.51, 8.61);   // 実流体等エントロピーヘッド（旧κ近似では約8.85）
             Assert.InRange(c.NominalFlowVolume, 1.145, 1.170);
         }
 

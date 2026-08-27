@@ -5,28 +5,18 @@
  * model (paper Figure 6) covering the cooling, heating, and heat-recovery
  * modes, overloaded operation, and operation below the capacity-control range.
  *
- * Characteristic equation (paper Eq.11 / Eq.12):
+ * Characteristic equation (paper Eq.10 / Eq.11):
  *   η = 1 / (a_cmp·ϕ² + b_cmp·ϕ + c_cmp·(ϕ⁻¹ − 1) + d_cmp·Rw² + e_cmp·Rw + f_cmp)
  *   E = W_cmp,is / η   (linear in the six parameters → single-pass least squares)
  * where Rv = vR/vR,N, Rw = w1,is/w1,is,N and ϕ = Rv/√Rw.
  *
  * Below the continuous capacity-control range (ϕ < ϕ_min: on-off cycling or hot-gas
- * bypass) the power follows paper Eq.13:
+ * bypass) the power follows paper Eq.12:
  *   E = E_min·[1 + θ·(ϕ/ϕ_min − 1)],  0 ≤ θ ≤ 1
  * where E_min is the power at the minimum continuously controllable load Q_min
  * (the load at which ϕ = ϕ_min under the present water-side conditions).
  *
  * Copyright (C) 2026 E.Togashi
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
  */
 
 using System;
@@ -72,6 +62,49 @@ namespace Popolo.Core.HVAC.HeatSource
       /// <summary>Heating mode (evaporator = heat source water, condenser = hot water).</summary>
       Heating
     }
+
+    /// <summary>Isentropic compression-head calculation method.</summary>
+    public enum HeadCalculationMethod
+    {
+      /// <summary>Real-fluid isentropic enthalpy difference h(P_o, s_i) − h_i (default).</summary>
+      RealFluidIsentropic,
+      /// <summary>Local ideal-gas, constant-κ approximation (fast approximation kept for
+      /// comparison; superseded by the real-fluid head of paper Eq. 13).</summary>
+      IdealGasKappa
+    }
+
+    /// <summary>
+    /// Isentropic-head model used by the cycle calculation. The default is the real-fluid
+    /// isentropic enthalpy difference. Because the same relation is used for calibration and
+    /// prediction, a consistent setting must be used throughout one identification/simulation.
+    /// </summary>
+    public static HeadCalculationMethod HeadModel { get; set; }
+      = HeadCalculationMethod.RealFluidIsentropic;
+
+    /// <summary>
+    /// Water-side share β of the total thermal resistance at the identification flow.
+    /// Only the water-side film resistance depends on the flow rate (∝ ṁ^0.8, Dittus–Boelter);
+    /// the refrigerant-side, wall and fouling resistances are treated as constant:
+    /// KA(ṁ) = KA_N / [β·(ṁ_N/ṁ)^0.8 + (1−β)]. β cannot be identified from catalog data;
+    /// 0.6 is a representative mid value for flooded shell-and-tube evaporators/condensers
+    /// with enhanced tubes (water-side film vs. refrigerant-side film plus fouling;
+    /// the plausible range is about 0.4–0.8). β = 0 restores the constant-KA model.
+    /// </summary>
+    public static double WaterSideResistanceFraction { get; set; } = 0.6;
+
+    /// <summary>Exponent of the water-side film-coefficient flow dependence (Dittus–Boelter).</summary>
+    public const double WaterSideFlowExponent = 0.8;
+
+    /// <summary>[Testing hook] Lower clamp bound on the characteristic input ϕ. Disabled (−∞) by default.
+    /// Used to examine clamping schemes that suppress extrapolation of the characteristic
+    /// outside its declared domain.</summary>
+    internal static double EfficiencyClampPhiMin = double.NegativeInfinity;
+    /// <summary>[Testing hook] Upper clamp bound on the characteristic input ϕ. Disabled (+∞) by default.</summary>
+    internal static double EfficiencyClampPhiMax = double.PositiveInfinity;
+    /// <summary>[Testing hook] Lower clamp bound on the characteristic input Rw. Disabled (−∞) by default.</summary>
+    internal static double EfficiencyClampRwMin = double.NegativeInfinity;
+    /// <summary>[Testing hook] Upper clamp bound on the characteristic input Rw. Disabled (+∞) by default.</summary>
+    internal static double EfficiencyClampRwMax = double.PositiveInfinity;
 
     #endregion
 
@@ -159,11 +192,14 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="evaporatorApproach">Evaporator approach temperature [K].</param>
     /// <param name="stageCount">Number of compressor impeller stages J.</param>
     /// <param name="recoveryRated">Heat-recovery rated point (null if unavailable).</param>
+    /// <param name="includeRatedInFit">When true (default), the rated point is added to the
+    /// regression points if absent. Set false to use the rated point only for KA identification
+    /// and normalization (e.g., holdout experiments where the rated point must stay unseen).</param>
     public static ModeCalibration EstimateMode(
       OperationMode mode, Refrigerant.Fluid refrigerant,
       CatalogPoint rated, IReadOnlyList<CatalogPoint> points,
       double condenserApproach, double evaporatorApproach, int stageCount = 2,
-      CatalogPoint? recoveryRated = null)
+      CatalogPoint? recoveryRated = null, bool includeRatedInFit = true)
     {
       if (stageCount < 1) throw new ArgumentOutOfRangeException(nameof(stageCount));
       if (points == null) throw new ArgumentNullException(nameof(points));
@@ -171,7 +207,7 @@ namespace Popolo.Core.HVAC.HeatSource
       // The rated point is both the normalization reference and a regression point (the paper's "rated point + 6 or more points").
       // It is added automatically if not already contained in points.
       var pts = new List<CatalogPoint>(points);
-      if (!pts.Contains(rated)) pts.Add(rated);
+      if (includeRatedInFit && !pts.Contains(rated)) pts.Add(rated);
       if (pts.Count < MinCurvePoints)
         throw new ArgumentException(
           $"At least {MinCurvePoints} operating points (including the rated point) are required " +
@@ -184,12 +220,15 @@ namespace Popolo.Core.HVAC.HeatSource
       int n = pts.Count;
       double[] y = new double[n];
       double[][] x = new double[n][];
+      double phiMaxData = 0.0, rwMaxData = 0.0;   // upper edge of the identification data (clamp position for degenerate fits)
       for (int i = 0; i < n; i++)
       {
         CyclePoint c = sol.Points[i];
         double rv = c.VolumetricFlow / sol.NominalFlowVolume;
         double rw = c.StageOneHead / sol.NominalHead;
         double phi = rv / Math.Sqrt(rw);
+        phiMaxData = Math.Max(phiMaxData, phi);
+        rwMaxData = Math.Max(rwMaxData, rw);
         double wis = c.IsentropicPower;
         y[i] = pts[i].PowerInput;
         x[i] = new double[]
@@ -238,14 +277,28 @@ namespace Popolo.Core.HVAC.HeatSource
           rr.CondenserInletTemperature, Mc(rr.CondenserFlowRate), qCndRcv, condenserApproach);
       }
 
+      // Conditional clamping: only in a direction where the fit degenerates (the quadratic
+      // term falls to the constraint boundary 0 while the linear term is negative, so the
+      // denominator decreases monotonically and η would eventually exceed 1), the evaluation
+      // of the characteristic is cut off at the upper edge of the identification data.
+      // Healthy fits (a, d > 0) never activate the clamp.
+      double phiUb = (cf[0] <= 0.0 && cf[1] < 0.0) ? phiMaxData : double.PositiveInfinity;
+      double rwUb = (cf[3] <= 0.0 && cf[4] < 0.0) ? rwMaxData : double.PositiveInfinity;
+
       return new ModeCalibration
       {
-        Parameters = new Parameters(cf[0], cf[1], cf[2], cf[3], cf[4], cf[5]),
+        Parameters = new Parameters(cf[0], cf[1], cf[2], cf[3], cf[4], cf[5])
+          .WithBounds(phiUb, rwUb),
         EvaporatorHeatTransferCoefficient = sol.EvaporatorHeatTransferCoefficient,
         CondenserHeatTransferCoefficient = sol.CondenserHeatTransferCoefficient,
         RecoveryHeatTransferCoefficient = kaRcv,
         NominalHead = sol.NominalHead,
         NominalFlowVolume = sol.NominalFlowVolume,
+        NominalEvaporatorMc = Mc(rated.EvaporatorFlowRate),
+        NominalCondenserMc = Mc(rated.CondenserFlowRate),
+        NominalRecoveryMc = recoveryRated.HasValue
+          ? Mc(recoveryRated.Value.CondenserFlowRate) : double.NaN,
+        NominalCapacity = rated.Capacity,
         RSquared = RSquared(y, rss),
         ConstraintActivated = constrained
       };
@@ -275,7 +328,7 @@ namespace Popolo.Core.HVAC.HeatSource
 
     /// <summary>
     /// Builds the heating-mode calibration from the heating rated point by borrowing the
-    /// cooling-mode characteristic (paper Eq.39: η_ht = α·η_ch). The heat-transfer
+    /// cooling-mode characteristic (paper Eq.42: η_ht = α·η_ch). The heat-transfer
     /// coefficients are re-estimated from the heating rated point, while the normalization
     /// references (w1,N, vR,N) are shared with the cooling mode so that both modes live on
     /// the same (ϕ, Rw) map; α absorbs the level difference and is determined in closed form
@@ -312,10 +365,14 @@ namespace Popolo.Core.HVAC.HeatSource
       double alpha = etaActual / coolingCalibration.Parameters.Efficiency(phi, rw);
 
       // 1/η_ht = (1/α)·(1/η_ch) -> scale all 6 coefficients uniformly by 1/α
+      // A scaling by 1/α > 0 does not change the signs of the coefficients, so the
+      // degeneracy condition (clamp activation) and its boundary carry over unchanged
+      // from the cooling mode.
       Parameters pc = coolingCalibration.Parameters;
       Parameters heating = new Parameters(
         pc.a_cmp / alpha, pc.b_cmp / alpha, pc.c_cmp / alpha,
-        pc.d_cmp / alpha, pc.e_cmp / alpha, pc.f_cmp / alpha);
+        pc.d_cmp / alpha, pc.e_cmp / alpha, pc.f_cmp / alpha)
+        .WithBounds(pc.PhiUpperBound, pc.RwUpperBound);
 
       // If a heating-priority heat-recovery rated point is available, also estimate the evaporator-side recovery-tube KA
       double kaRcv = double.NaN;
@@ -335,6 +392,11 @@ namespace Popolo.Core.HVAC.HeatSource
         RecoveryHeatTransferCoefficient = kaRcv,
         NominalHead = coolingCalibration.NominalHead,
         NominalFlowVolume = coolingCalibration.NominalFlowVolume,
+        NominalEvaporatorMc = Mc(rated.EvaporatorFlowRate),
+        NominalCondenserMc = Mc(rated.CondenserFlowRate),
+        NominalRecoveryMc = recoveryRated.HasValue
+          ? Mc(recoveryRated.Value.EvaporatorFlowRate) : double.NaN,
+        NominalCapacity = rated.Capacity,
         Alpha = alpha,
         RSquared = double.NaN
       };
@@ -359,12 +421,16 @@ namespace Popolo.Core.HVAC.HeatSource
       CatalogPoint controlRangeLowerLimit, int stageCount = 2)
     {
       Refrigerant r = new Refrigerant(refrigerant);
+      double mcEvpLim = Mc(controlRangeLowerLimit.EvaporatorFlowRate);
+      double mcCndLim = Mc(controlRangeLowerLimit.CondenserFlowRate);
       CyclePoint cyc = SolveCycle(
         mode, r, stageCount,
-        calibration.EvaporatorHeatTransferCoefficient,
-        calibration.CondenserHeatTransferCoefficient,
-        controlRangeLowerLimit.EvaporatorInletTemperature, Mc(controlRangeLowerLimit.EvaporatorFlowRate),
-        controlRangeLowerLimit.CondenserInletTemperature, Mc(controlRangeLowerLimit.CondenserFlowRate),
+        EffectiveKA(calibration.EvaporatorHeatTransferCoefficient,
+          calibration.NominalEvaporatorMc, mcEvpLim),
+        EffectiveKA(calibration.CondenserHeatTransferCoefficient,
+          calibration.NominalCondenserMc, mcCndLim),
+        controlRangeLowerLimit.EvaporatorInletTemperature, mcEvpLim,
+        controlRangeLowerLimit.CondenserInletTemperature, mcCndLim,
         controlRangeLowerLimit.Capacity, controlRangeLowerLimit.PowerInput);
       double phi = (cyc.VolumetricFlow / calibration.NominalFlowVolume)
         / Math.Sqrt(cyc.StageOneHead / calibration.NominalHead);
@@ -373,10 +439,10 @@ namespace Popolo.Core.HVAC.HeatSource
     }
 
     /// <summary>
-    /// Identifies the cycling power weight θ of paper Eq.13 by least squares from catalog
+    /// Identifies the cycling power weight θ of paper Eq.12 by least squares from catalog
     /// points below the continuous capacity-control range. For each point the forward model
     /// gives the minimum continuous power E_min and the flow coefficient ϕ at the point's
-    /// water-side conditions, so Eq.13 becomes a regression through the origin:
+    /// water-side conditions, so Eq.12 becomes a regression through the origin:
     /// y = θ·x with y = E_cat/E_min − 1 and x = ϕ/ϕ_min − 1. The estimate is clipped to
     /// [0, 1] (the range that guarantees monotonically decreasing power), stored in
     /// <see cref="ModeCalibration.CyclingPowerWeight"/> and returned. Points that do not lie
@@ -447,6 +513,10 @@ namespace Popolo.Core.HVAC.HeatSource
         Alpha = c.Alpha,
         NominalHead = c.NominalHead,
         NominalFlowVolume = c.NominalFlowVolume,
+        NominalEvaporatorMc = c.NominalEvaporatorMc,
+        NominalCondenserMc = c.NominalCondenserMc,
+        NominalRecoveryMc = c.NominalRecoveryMc,
+        NominalCapacity = c.NominalCapacity,
         RSquared = c.RSquared,
         ConstraintActivated = c.ConstraintActivated,
         MinimumFlowCoefficient = c.MinimumFlowCoefficient,
@@ -485,12 +555,17 @@ namespace Popolo.Core.HVAC.HeatSource
         out double kaEvp, out double kaCnd, out double headN, out double flowN);
 
       var rows = new List<CyclePoint>(pts.Count);
+      double mcEvpN = Mc(rated.EvaporatorFlowRate);
+      double mcCndN = Mc(rated.CondenserFlowRate);
       foreach (CatalogPoint pt in pts)
       {
+        double mcEvp = Mc(pt.EvaporatorFlowRate);
+        double mcCnd = Mc(pt.CondenserFlowRate);
         rows.Add(SolveCycle(
-          mode, r, stageCount, kaEvp, kaCnd,
-          pt.EvaporatorInletTemperature, Mc(pt.EvaporatorFlowRate),
-          pt.CondenserInletTemperature, Mc(pt.CondenserFlowRate),
+          mode, r, stageCount,
+          EffectiveKA(kaEvp, mcEvpN, mcEvp), EffectiveKA(kaCnd, mcCndN, mcCnd),
+          pt.EvaporatorInletTemperature, mcEvp,
+          pt.CondenserInletTemperature, mcCnd,
           pt.Capacity, pt.PowerInput));
       }
       return new CycleSolution
@@ -586,7 +661,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       SplitDuty(mode, capacity, power, out double qEvp, out double qCnd);
 
-      // Evaporating temperature (Eq.25) and condensing temperature (Eq.18) from the water-side heat balance
+      // Evaporating temperature (Eq.28) and condensing temperature (Eq.21) from the water-side heat balance
       double epsEvp = 1.0 - Math.Exp(-evaporatorKA / evaporatorMc);
       double tEvp = evaporatorInletT - qEvp / (epsEvp * evaporatorMc);
       double epsCnd = 1.0 - Math.Exp(-condenserKA / condenserMc);
@@ -612,7 +687,7 @@ namespace Popolo.Core.HVAC.HeatSource
         out double dlCnd, out _, out double pCnd);
       double hLiqCnd = r.GetEnthalpyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tCnd), dlCnd);
 
-      // Outlet pressure of each stage (equal pressure ratio, Eq.32–33). pOut[0]=pEvp ... pOut[stages]=pCnd
+      // Outlet pressure of each stage (equal pressure ratio, Eq.35–36). pOut[0]=pEvp ... pOut[stages]=pCnd
       double rp = Math.Pow(pCnd / pEvp, 1.0 / stages);
       double[] pOut = new double[stages + 1];
       pOut[0] = pEvp;
@@ -630,7 +705,7 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       hsl[stages] = hLiqCnd;
 
-      // Liquid cascade: flowStage[j] = refrigerant flow through stage j = mR,cmp(j) (Eq.34–36)
+      // Liquid cascade: flowStage[j] = refrigerant flow through stage j = mR,cmp(j) (Eq.37–39)
       // flowStage[1]=mR,evp, flowStage[j+1]=flowStage[j]/(1−f[j]), eco[j]=flowStage[j+1]−flowStage[j]
       double[] flowStage = new double[stages + 1];
       double[] eco = new double[stages];               // eco[1..stages-1]
@@ -642,10 +717,20 @@ namespace Popolo.Core.HVAC.HeatSource
         eco[j] = flowStage[j + 1] - flowStage[j];
       }
 
-      // Adiabatic head and power of each stage (Eq.14, 38)
+      // Adiabatic head and power of each stage (Eq.13, 41)
+      // The default (RealFluidIsentropic) uses the real-fluid isentropic enthalpy
+      // difference w = h(P_o, s_i) − h_i. IdealGasKappa is a fast local ideal-gas,
+      // constant-κ approximation (kept for comparison). In both cases the stage discharge
+      // is the isentropic discharge of the theoretical cycle; no stage efficiency is
+      // introduced (the actual losses are borne collectively by the efficiency characteristic).
+      bool ideal = HeadModel == HeadCalculationMethod.IdealGasKappa;
       double hIn = hVapEvp;
+      double sIn = ideal ? 0.0
+        : r.GetEntropyFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
       double rhoIn = dvEvp;
-      double kappaIn = r.GetSpecificHeatRatioFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp);
+      double kappaIn = ideal
+        ? r.GetSpecificHeatRatioFromTemperatureAndDensity(PhysicsConstants.ToKelvin(tEvp), dvEvp)
+        : 0.0;
 
       double stageOneHead = 0.0;
       double isentropicPower = 0.0;
@@ -653,21 +738,35 @@ namespace Popolo.Core.HVAC.HeatSource
       {
         double pin = pOut[j - 1];
         double pou = pOut[j];
-        double k = (kappaIn - 1.0) / kappaIn;
-        double w = (pin / rhoIn) / k * (Math.Pow(pou / pin, k) - 1.0);   // [kJ/kg]
+        double w;      // isentropic head of the stage [kJ/kg]
+        double hOut;   // isentropic discharge specific enthalpy of the stage [kJ/kg]
+        if (ideal)
+        {
+          double k = (kappaIn - 1.0) / kappaIn;
+          w = (pin / rhoIn) / k * (Math.Pow(pou / pin, k) - 1.0);
+          hOut = hIn + w;
+        }
+        else
+        {
+          r.GetStateFromPressureAndEntropy(pou, sIn, out _, out _, out hOut, out _);
+          w = hOut - hIn;
+        }
         if (j == 1) stageOneHead = w;
         isentropicPower += flowStage[j] * w;                            // Σ mR,cmp(j)·w_j [kW]
 
         if (j < stages)
         {
-          double hOut = hIn + w;   // isentropic discharge specific enthalpy
-          // Next-stage inlet = mixture of previous-stage discharge and economizer vapor (Eq.37)
+          // Next-stage inlet = mixture of previous-stage discharge and economizer vapor (Eq.40)
           double hMix = (hOut * flowStage[j] + hsv[j] * eco[j]) / flowStage[j + 1];
           r.GetStateFromPressureAndEnthalpy(pou, hMix,
-            out double tMix, out double dMix, out _, out _);   // tMix is in [K]
+            out double tMix, out double dMix, out double sMix, out _);   // tMix is in [K]
           hIn = hMix;
-          rhoIn = dMix;
-          kappaIn = r.GetSpecificHeatRatioFromTemperatureAndDensity(tMix, dMix);
+          if (ideal)
+          {
+            rhoIn = dMix;
+            kappaIn = r.GetSpecificHeatRatioFromTemperatureAndDensity(tMix, dMix);
+          }
+          else sIn = sMix;
         }
       }
 
@@ -688,12 +787,12 @@ namespace Popolo.Core.HVAC.HeatSource
       if (mode == OperationMode.Cooling)
       {
         evaporatorDuty = capacity;            // Q_evp (useful capacity)
-        condenserDuty = capacity + power;     // Q_cnd = Q_evp + E
+        condenserDuty = capacity + power;   // Q_cnd = Q_evp + E (all input power reaches the refrigerant, Eq. 1)
       }
       else
       {
         condenserDuty = capacity;             // Q_cnd (useful capacity)
-        evaporatorDuty = capacity - power;    // Q_evp = Q_cnd − E
+        evaporatorDuty = capacity - power;  // Q_evp = Q_cnd − E
       }
     }
 
@@ -701,12 +800,35 @@ namespace Popolo.Core.HVAC.HeatSource
     private static double Mc(double waterFlowRate)
       => waterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
 
+    /// <summary>
+    /// Effective overall thermal conductance [kW/K] at the heat-capacity rate mc, scaled from
+    /// the nominal conductance identified at mcNominal (see
+    /// <see cref="WaterSideResistanceFraction"/>). Water and its specific heat are common to
+    /// both sides of the ratio, so heat-capacity rates can be used in place of mass flows.
+    /// Falls back to the constant-KA model when β = 0 or the nominal rate is unknown (NaN).
+    /// </summary>
+    private static double EffectiveKA(double kaNominal, double mcNominal, double mc)
+    {
+      double beta = WaterSideResistanceFraction;
+      if (beta <= 0.0 || !(0.0 < mcNominal) || mc == mcNominal) return kaNominal;
+      return kaNominal / (beta * Math.Pow(mcNominal / mc, WaterSideFlowExponent) + (1.0 - beta));
+    }
+
     #endregion
 
     #region Forward model (electric power prediction, calculation flow of Figure 6)
 
     /// <summary>Convergence tolerance on the power residual [kW] for the root-finding solves.</summary>
     private const double PowerTolerance = 1.0e-6;
+
+    /// <summary>[Diagnostics] Number of calls of the successive-substitution (Picard) inner solve.</summary>
+    internal static long PicardCalls;
+    /// <summary>[Diagnostics] Total number of successive-substitution iterations.</summary>
+    internal static long PicardIterations;
+    /// <summary>[Diagnostics] Number of fallbacks to Brent's method.</summary>
+    internal static long PicardFallbacks;
+    /// <summary>[Diagnostics] Maximum observed ratio of consecutive updates δₙ/δₙ₋₁ (measured loop gain).</summary>
+    internal static double PicardMaxRatio;
 
     /// <summary>Upper limit of E_max relative to the largest rated power. Explicit values at or
     /// above this ratio are rejected as implausible for a centrifugal machine.</summary>
@@ -753,13 +875,13 @@ namespace Popolo.Core.HVAC.HeatSource
     /// the recovery amount (none / partial / full) is then determined. Every convergence
     /// calculation is a bracketed one-dimensional root-finding problem (Brent's method).
     /// In cooling mode the useful side is the evaporator (chilled water) and recovery raises
-    /// the condensing temperature (the larger of Eq.18 and Eq.22 governs); in heating mode the
+    /// the condensing temperature (the larger of Eq.21 and Eq.25 governs); in heating mode the
     /// useful side is the condenser (hot water) and recovery of chilled water lowers the
     /// evaporating temperature (the smaller of the mirrored requirements governs). The
-    /// recoverable heat is capped at the total heat of the recovery-side exchanger (Eq.42).
+    /// recoverable heat is capped at the total heat of the recovery-side exchanger (Eq.45).
     /// When the calibration carries a minimum flow coefficient ϕ_min and the solved state
     /// (with E &lt; E_max) falls below it, the demand lies outside the continuous
-    /// capacity-control range and the power is recomputed by the cycling rule (Eq.13) from
+    /// capacity-control range and the power is recomputed by the cycling rule (Eq.12) from
     /// the minimum continuous load Q_min.
     /// </summary>
     /// <param name="mode">Operation mode (its calibration must have been given to the constructor).</param>
@@ -797,10 +919,14 @@ namespace Popolo.Core.HVAC.HeatSource
       Refrigerant r = refrigerant;
       double mcEvp = Mc(evaporatorFlowRate);
       double mcCnd = Mc(condenserFlowRate);
-      double epsEvp = 1.0 - Math.Exp(-calibration.EvaporatorHeatTransferCoefficient / mcEvp);
-      double epsCnd = 1.0 - Math.Exp(-calibration.CondenserHeatTransferCoefficient / mcCnd);
+      double kaEvpEff = EffectiveKA(
+        calibration.EvaporatorHeatTransferCoefficient, calibration.NominalEvaporatorMc, mcEvp);
+      double kaCndEff = EffectiveKA(
+        calibration.CondenserHeatTransferCoefficient, calibration.NominalCondenserMc, mcCnd);
+      double epsEvp = 1.0 - Math.Exp(-kaEvpEff / mcEvp);
+      double epsCnd = 1.0 - Math.Exp(-kaCndEff / mcCnd);
 
-      // Useful-side demand (Eq.40/41): cooling = evaporator (chilled water), heating = condenser (hot water). Stop if there is no demand.
+      // Useful-side demand (Eq.43/44): cooling = evaporator (chilled water), heating = condenser (hot water). Stop if there is no demand.
       double qDmd = isCooling
         ? mcEvp * (evaporatorInletTemperature - outletTemperatureSetpoint)
         : mcCnd * (outletTemperatureSetpoint - condenserInletTemperature);
@@ -813,7 +939,7 @@ namespace Popolo.Core.HVAC.HeatSource
           CondensingTemperature = condenserInletTemperature
         };
 
-      // Recovery demand (Eq.41): in cooling the recovery water is hot water (being heated); in heating it is chilled water (being cooled)
+      // Recovery demand (Eq.44): in cooling the recovery water is hot water (being heated); in heating it is chilled water (being cooled)
       HeatRecoveryDemand rcv = recoveryDemand ?? default;
       double dtRcv = isCooling
         ? rcv.OutletTemperature - rcv.InletTemperature
@@ -826,8 +952,8 @@ namespace Popolo.Core.HVAC.HeatSource
           "has not been calibrated. Pass the heat-recovery rated point to the calibration.");
 
       // E* calculation: recompute the electric consumption from the assumed (useful-side heat, E, recovered heat).
-      // Cooling: the condensing temperature is the larger of the heat-rejection requirement (Eq.18) and the recovery-side requirement (Eq.22).
-      // Heating: the evaporating temperature is the smaller of the heat-source-side and recovery-side requirements (mirror image). Recovered heat is limited by Eq.42.
+      // Cooling: the condensing temperature is the larger of the heat-rejection requirement (Eq.21) and the recovery-side requirement (Eq.25).
+      // Heating: the evaporating temperature is the smaller of the heat-source-side and recovery-side requirements (mirror image). Recovered heat is limited by Eq.45.
       (double eStar, double tEvp, double tCnd, double qRcv, double phi) EStar(
         double qUseful, double eAssumed, double qRcvTarget)
       {
@@ -836,27 +962,31 @@ namespace Popolo.Core.HVAC.HeatSource
         {
           qEvp = qUseful;
           qCnd = qEvp + eAssumed;
-          qRcv = Math.Min(qRcvTarget, qCnd);                                        // Eq.42
-          tEvp = evaporatorInletTemperature - qEvp / (epsEvp * mcEvp);              // Eq.25
-          tCnd = condenserInletTemperature + (qCnd - qRcv) / (epsCnd * mcCnd);      // Eq.18
+          qRcv = Math.Min(qRcvTarget, qCnd);                                        // Eq.45
+          tEvp = evaporatorInletTemperature - qEvp / (epsEvp * mcEvp);              // Eq.28
+          tCnd = condenserInletTemperature + (qCnd - qRcv) / (epsCnd * mcCnd);      // Eq.21
           if (qRcv > 0.0)
           {
             double mcR = qRcv / dtRcv;   // heat-capacity flow rate of recovery water whose outlet temperature equals the setpoint [kW/K]
-            double epsR = 1.0 - Math.Exp(-calibration.RecoveryHeatTransferCoefficient / mcR);
-            tCnd = Math.Max(tCnd, rcv.InletTemperature + qRcv / (epsR * mcR));      // Eq.22
+            double kaR = EffectiveKA(
+              calibration.RecoveryHeatTransferCoefficient, calibration.NominalRecoveryMc, mcR);
+            double epsR = 1.0 - Math.Exp(-kaR / mcR);
+            tCnd = Math.Max(tCnd, rcv.InletTemperature + qRcv / (epsR * mcR));      // Eq.25
           }
         }
         else
         {
           qCnd = qUseful;
           qEvp = qCnd - eAssumed;
-          qRcv = Math.Min(qRcvTarget, qEvp);                                        // Eq.42 (heating version)
+          qRcv = Math.Min(qRcvTarget, qEvp);                                        // Eq.45 (heating version)
           tCnd = condenserInletTemperature + qCnd / (epsCnd * mcCnd);
           tEvp = evaporatorInletTemperature - (qEvp - qRcv) / (epsEvp * mcEvp);
           if (qRcv > 0.0)
           {
             double mcR = qRcv / dtRcv;
-            double epsR = 1.0 - Math.Exp(-calibration.RecoveryHeatTransferCoefficient / mcR);
+            double kaR = EffectiveKA(
+              calibration.RecoveryHeatTransferCoefficient, calibration.NominalRecoveryMc, mcR);
+            double epsR = 1.0 - Math.Exp(-kaR / mcR);
             tEvp = Math.Min(tEvp, rcv.InletTemperature - qRcv / (epsR * mcR));
           }
         }
@@ -940,7 +1070,7 @@ namespace Popolo.Core.HVAC.HeatSource
             e = Roots.Brent(eUpper * 1.0e-6, eUpper, PowerTolerance,
               x => EStar(qDmd, x, qRcvDmd).eStar - x);
             qRcv = Math.Min(qRcvDmd, isCooling ? qDmd + e : qDmd - e);
-            // If limited by Eq.42, the full demand is not met (recovery saturated)
+            // If limited by Eq.45, the full demand is not met (recovery saturated)
             level = (qRcv < qRcvDmd) ? HeatRecoveryLevel.Partial : HeatRecoveryLevel.Full;
           }
           else
@@ -958,7 +1088,7 @@ namespace Popolo.Core.HVAC.HeatSource
       // Compute temperatures and outputs at the finalized operating point
       (_, double tEvpFin, double tCndFin, double qRcvFin, double phiFin) = EStar(qUse, e, qRcv);
 
-      // Detection and correction of operation below the capacity control range (on-off cycling / hot-gas bypass region) (Eq.13).
+      // Detection and correction of operation below the capacity control range (on-off cycling / hot-gas bypass region) (Eq.12).
       // If ϕ at the operating point solved with E < E_max falls below the calibrated ϕ_min, iteratively find
       // the load Q_min at the capacity control lower limit where ϕ = ϕ_min under the current water-side
       // conditions (ϕ increases monotonically with load), and correct the electric consumption with weight θ based on the consumption E_min at that point.
@@ -981,44 +1111,40 @@ namespace Popolo.Core.HVAC.HeatSource
           double eu = isCooling ? maximumPower : Math.Min(maximumPower, q * (1.0 - 1.0e-9));
           double ec = Math.Min(eWarm, eu);
           double prev = double.PositiveInfinity;
+          PicardCalls++;
           for (int i = 0; i < 20; i++)
           {
             (double eStar, _, _, _, double phi) = EStar(q, ec, qRcv);
             double eNew = Math.Min(eStar, eu);
             double delta = Math.Abs(eNew - ec);
             ec = eNew;
+            PicardIterations++;
             if (delta < PowerTolerance) { eWarm = ec; return (ec, phi); }
+            if (!double.IsPositiveInfinity(prev) && prev > 0.0)
+              PicardMaxRatio = Math.Max(PicardMaxRatio, delta / prev);   // measured loop gain
             if (prev <= delta) break;   // not contracting -> fall back
             prev = delta;
           }
+          PicardFallbacks++;
           double eb = Roots.Brent(eu * 1.0e-6, eu, PowerTolerance,
             x => EStar(q, x, qRcv).eStar - x);
           eWarm = eb;
           return (eb, EStar(q, eb, qRcv).phi);
         }
 
-        // Outer solve (Q_min): since ϕ is nearly proportional to load, start bracketing near the
-        // similarity-law-based estimate q0. Use the monotonicity of ϕ(q) to check signs and expand if needed.
-        // ϕ(qUse) < ϕ_min has already been established, so the lower end can always be pulled back to qUse to bracket the root.
-        double q0 = qUse * (phiMin / phiFin);
-        double qLo = Math.Max(qUse, 0.8 * q0);
-        double qHi = 1.25 * q0;
-        while (qUse < qLo && phiMin <= AtLoad(qLo).phi)
-        {
-          qHi = qLo;
-          qLo = Math.Max(qUse, 0.8 * qLo);
-        }
-        for (int i = 0; AtLoad(qHi).phi < phiMin; i++)
-        {
-          if (60 <= i) throw new InvalidOperationException(
-            "Failed to bracket the minimum continuously controllable load Q_min.");
-          qLo = qHi;
-          qHi *= 1.25;
-        }
-        // The residual has the dimension of ϕ. 1e-4·ϕ_min corresponds to less than 0.1 kW in terms of Q_min.
-        qMinLoad = Roots.Brent(qLo, qHi, 1.0e-4 * phiMin, q => AtLoad(q).phi - phiMin);
+        // Outer solve (Q_min): the interval is [qUse, Q_N]. At the lower end the residual is
+        // guaranteed negative by the branch condition (ϕ_fin < ϕ_min). At the upper end (the rated
+        // capacity) ϕ far exceeds ϕ_min (the lower limit of continuous capacity control, roughly
+        // 20% of the rated load), so the residual is positive; by the monotonicity of ϕ(q)
+        // there is exactly one sign change within the interval.
+        double qHi = calibration.NominalCapacity;
+        if (double.IsNaN(qHi))
+          throw new InvalidOperationException(
+            "NominalCapacity has not been calibrated; it is required for the Q_min solve.");
+        // The residual has the dimension of ϕ; 1e-4·ϕ_min corresponds to less than 0.1 kW in Q_min.
+        qMinLoad = Roots.Brent(qUse, qHi, 1.0e-4 * phiMin, q => AtLoad(q).phi - phiMin);
         double eMin = AtLoad(qMinLoad).e;
-        e = eMin * (1.0 + calibration.CyclingPowerWeight * (phiFin / phiMin - 1.0));   // Eq.13
+        e = eMin * (1.0 + calibration.CyclingPowerWeight * (phiFin / phiMin - 1.0));   // Eq.12
       }
 
       double qEvpFin = isCooling ? qUse : Math.Max(0.0, qUse - e);
@@ -1075,7 +1201,7 @@ namespace Popolo.Core.HVAC.HeatSource
     {
       /// <summary>No heat recovery.</summary>
       None,
-      /// <summary>Part of the demand is met (limited by the rated power or by Eq.42).</summary>
+      /// <summary>Part of the demand is met (limited by the rated power or by Eq.45).</summary>
       Partial,
       /// <summary>The full demand is met.</summary>
       Full
@@ -1131,7 +1257,7 @@ namespace Popolo.Core.HVAC.HeatSource
       /// <summary>Extent to which the heat-recovery demand is met.</summary>
       public HeatRecoveryLevel RecoveryLevel { get; init; }
       /// <summary>True when the demand lies below the continuous capacity-control range
-      /// (ϕ &lt; ϕ_min) and the power was computed by the cycling rule (Eq.13).</summary>
+      /// (ϕ &lt; ϕ_min) and the power was computed by the cycling rule (Eq.12).</summary>
       public bool IsBelowControlRange { get; init; }
       /// <summary>Minimum continuously controllable load Q_min [kW] under the given
       /// water-side conditions (solved only when the demand is below the control range;
@@ -1171,7 +1297,7 @@ namespace Popolo.Core.HVAC.HeatSource
     }
 
     /// <summary>
-    /// Characteristic-equation coefficients (paper Eq.11):
+    /// Characteristic-equation coefficients (paper Eq.10):
     /// η = 1/(a_cmp·ϕ² + b_cmp·ϕ + c_cmp·(ϕ⁻¹−1) + d_cmp·Rw² + e_cmp·Rw + f_cmp).
     /// </summary>
     public class Parameters
@@ -1189,6 +1315,17 @@ namespace Popolo.Core.HVAC.HeatSource
       /// <summary>Coefficient f_cmp (constant term).</summary>
       public double f_cmp { get; }
 
+      /// <summary>Upper ϕ bound for the characteristic evaluation [-]. Set automatically at
+      /// identification when the fit degenerates in the ϕ direction (a_cmp = 0 and b_cmp &lt; 0:
+      /// the denominator then decreases without bound for large ϕ and η would eventually
+      /// exceed 1). +∞ (default) disables the clamp.</summary>
+      public double PhiUpperBound { get; init; } = double.PositiveInfinity;
+
+      /// <summary>Upper Rw bound for the characteristic evaluation [-]. Set automatically at
+      /// identification when the fit degenerates in the Rw direction (d_cmp = 0 and
+      /// e_cmp &lt; 0). +∞ (default) disables the clamp.</summary>
+      public double RwUpperBound { get; init; } = double.PositiveInfinity;
+
       /// <summary>Initializes a new instance with the given coefficients.</summary>
       public Parameters(double a_cmp, double b_cmp, double c_cmp,
         double d_cmp, double e_cmp, double f_cmp)
@@ -1201,10 +1338,26 @@ namespace Popolo.Core.HVAC.HeatSource
         this.f_cmp = f_cmp;
       }
 
-      /// <summary>Evaluates 1/η at the given (ϕ, Rw).</summary>
+      /// <summary>Creates a copy of this instance with the given evaluation bounds
+      /// (conditional clamp for degenerate fits).</summary>
+      public Parameters WithBounds(double phiUpperBound, double rwUpperBound)
+        => new Parameters(a_cmp, b_cmp, c_cmp, d_cmp, e_cmp, f_cmp)
+        { PhiUpperBound = phiUpperBound, RwUpperBound = rwUpperBound };
+
+      /// <summary>Evaluates 1/η at the given (ϕ, Rw). The inputs are limited to the instance
+      /// bounds (conditional clamp: active only for degenerate fits, see
+      /// <see cref="PhiUpperBound"/>/<see cref="RwUpperBound"/>) and to the experiment-only
+      /// global clamp bounds (<see cref="EfficiencyClampPhiMin"/> etc.). The isentropic power
+      /// W_cmp,is is never clamped, so the physical response through the cycle remains.</summary>
       public double InverseEfficiency(double phi, double rw)
-        => a_cmp * phi * phi + b_cmp * phi + c_cmp * (1.0 / phi - 1.0)
+      {
+        phi = Math.Clamp(phi, EfficiencyClampPhiMin,
+          Math.Min(EfficiencyClampPhiMax, PhiUpperBound));
+        rw = Math.Clamp(rw, EfficiencyClampRwMin,
+          Math.Min(EfficiencyClampRwMax, RwUpperBound));
+        return a_cmp * phi * phi + b_cmp * phi + c_cmp * (1.0 / phi - 1.0)
          + d_cmp * rw * rw + e_cmp * rw + f_cmp;
+      }
 
       /// <summary>Evaluates η at the given (ϕ, Rw).</summary>
       public double Efficiency(double phi, double rw)
@@ -1213,6 +1366,51 @@ namespace Popolo.Core.HVAC.HeatSource
       /// <summary>Predicts the electric power input E [kW] from W_cmp,is [kW] and (ϕ, Rw).</summary>
       public double PredictPower(double isentropicPower, double phi, double rw)
         => isentropicPower * InverseEfficiency(phi, rw);
+
+      /// <summary>
+      /// Exact minimum of the denominator 1/η over the box [ϕ_min, ϕ_max] × [Rw_min, Rw_max]
+      /// (post-fit admissibility check: min ≥ 1 ⇔ 0 &lt; η ≤ 1 over the whole domain).
+      /// Under the sign constraints a_cmp, c_cmp, d_cmp ≥ 0 the denominator is separable and
+      /// convex: the ϕ part g(ϕ) = aϕ² + bϕ + c/ϕ has a strictly increasing derivative on
+      /// ϕ &gt; 0, so its interior minimum is the unique root of g′ (found by bisection);
+      /// the Rw part is a quadratic with vertex −e/(2d). The result is exact
+      /// (no sampling of the domain is involved).
+      /// </summary>
+      public double MinimumInverseEfficiency(
+        double phiMin, double phiMax, double rwMin, double rwMax)
+      {
+        if (!(0.0 < phiMin && phiMin <= phiMax) || !(rwMin <= rwMax))
+          throw new ArgumentOutOfRangeException(nameof(phiMin),
+            "The domain must satisfy 0 < phiMin <= phiMax and rwMin <= rwMax.");
+
+        // ϕ direction: g(ϕ) = aϕ² + bϕ + c/ϕ. g″ = 2a + 2c/ϕ³ ≥ 0, so g′ is monotonically non-decreasing
+        double G(double p) => a_cmp * p * p + b_cmp * p + c_cmp / p;
+        double dG(double p) => 2.0 * a_cmp * p + b_cmp - c_cmp / (p * p);
+        double gMin;
+        if (dG(phiMin) >= 0.0) gMin = G(phiMin);         // monotonically increasing over the interval
+        else if (dG(phiMax) <= 0.0) gMin = G(phiMax);    // monotonically decreasing over the interval
+        else
+        {
+          double lo = phiMin, hi = phiMax;               // bisect to bracket the sign change of g′
+          for (int i = 0; i < 200; i++)
+          {
+            double mid = 0.5 * (lo + hi);
+            if (dG(mid) < 0.0) lo = mid; else hi = mid;
+          }
+          gMin = G(0.5 * (lo + hi));
+        }
+
+        // Rw direction: h(Rw) = d·Rw² + e·Rw (convex quadratic, vertex at −e/(2d))
+        double H(double r) => d_cmp * r * r + e_cmp * r;
+        double hMin = Math.Min(H(rwMin), H(rwMax));
+        if (d_cmp > 0.0)
+        {
+          double v = -e_cmp / (2.0 * d_cmp);
+          if (rwMin < v && v < rwMax) hMin = Math.Min(hMin, H(v));
+        }
+
+        return gMin + hMin + (f_cmp - c_cmp);
+      }
     }
 
     /// <summary>Calibration result for one operation mode.</summary>
@@ -1228,7 +1426,7 @@ namespace Popolo.Core.HVAC.HeatSource
       /// (cooling: condenser side KA_cnd,rcv; heating: evaporator side.
       /// NaN when no heat-recovery rated point was given to the calibration).</summary>
       public double RecoveryHeatTransferCoefficient { get; init; } = double.NaN;
-      /// <summary>Efficiency conversion coefficient α (Eq.39); 1 for a directly fitted mode,
+      /// <summary>Efficiency conversion coefficient α (Eq.42); 1 for a directly fitted mode,
       /// and the estimated level correction when the characteristic is borrowed
       /// (the returned coefficients already include the 1/α scaling).</summary>
       public double Alpha { get; init; } = 1.0;
@@ -1236,6 +1434,18 @@ namespace Popolo.Core.HVAC.HeatSource
       public double NominalHead { get; init; }
       /// <summary>Nominal stage-1 suction volumetric flow vR,N [m³/s] (normalization reference).</summary>
       public double NominalFlowVolume { get; init; }
+      /// <summary>Evaporator water-side heat-capacity rate at the KA identification point [kW/K].
+      /// NaN disables the flow scaling of KA_evp (constant-KA fallback).</summary>
+      public double NominalEvaporatorMc { get; init; } = double.NaN;
+      /// <summary>Condenser water-side heat-capacity rate at the KA identification point [kW/K].
+      /// NaN disables the flow scaling of KA_cnd (constant-KA fallback).</summary>
+      public double NominalCondenserMc { get; init; } = double.NaN;
+      /// <summary>Recovery-tube water-side heat-capacity rate at the KA identification point
+      /// [kW/K]. NaN disables the flow scaling of the recovery KA (constant-KA fallback).</summary>
+      public double NominalRecoveryMc { get; init; } = double.NaN;
+      /// <summary>Rated (nominal) useful capacity of the mode [kW]. Used as the upper end of
+      /// the bracket for the Q_min solve (RF5), where ϕ exceeds ϕ_min by a wide margin.</summary>
+      public double NominalCapacity { get; init; } = double.NaN;
       /// <summary>R² of the characteristic fit on the electric power E.</summary>
       public double RSquared { get; init; }
       /// <summary>True if the sign constraints of the characteristic (a_cmp ≥ 0, c_cmp ≥ 0,
@@ -1250,7 +1460,7 @@ namespace Popolo.Core.HVAC.HeatSource
       public double MinimumFlowCoefficient { get; set; } = double.NaN;
 
       private double cyclingPowerWeight = 0.0;
-      /// <summary>Cycling power weight θ of paper Eq.13, in [0, 1]. 0 (default) is the
+      /// <summary>Cycling power weight θ of paper Eq.12, in [0, 1]. 0 (default) is the
       /// conservative characteristic where the power stays at E_min below the control range
       /// (hot-gas bypass); 1 represents the smallest cycling loss. Set via
       /// <see cref="EstimateCyclingPowerWeight"/> or directly (system-dependent).</summary>
