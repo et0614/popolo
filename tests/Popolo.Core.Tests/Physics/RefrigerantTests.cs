@@ -191,6 +191,50 @@ namespace Popolo.Core.Tests.Physics
       Assert.Equal(pressure, pressureRecovered, precision: 0);
     }
 
+    // ---- Low-temperature extension (2026-09-09): fit range widened to 250-4500 kPa
+    //      for air-source heat pump heating cycles. Reference values: REFPROP 10 (IIR).
+
+    /// <summary>低温域の飽和状態（拡張フィット域）: REFPROP参照値との照合</summary>
+    [Theory]
+    [InlineData(300.0, 245.419, 1144.16, 8.3464)]
+    [InlineData(400.0, 252.772, 1121.73, 11.0044)]
+    public void R32_LowTemperature_SaturatedProperty(
+      double pressure, double tSatRef, double rhoLRef, double rhoVRef)
+    {
+      _r32.GetSaturatedPropertyFromPressure(pressure,
+          out double rhoL, out double rhoV, out double tSat);
+
+      Assert.InRange(tSat, tSatRef - 0.5, tSatRef + 0.5);
+      Assert.InRange(rhoL, rhoLRef * 0.98, rhoLRef * 1.02);
+      Assert.InRange(rhoV, rhoVRef * 0.98, rhoVRef * 1.02);
+    }
+
+    /// <summary>空気熱源HP暖房サイクル（蒸発390kPa≒-21°C→凝縮2500kPa）の状態点</summary>
+    [Fact]
+    public void R32_LowTemperature_HeatingCycleStates()
+    {
+      //吸込: 390 kPa, 過熱度5K（REFPROP: T=257.106K, h=514.823, s=2.25571, rho=10.4304）
+      _r32.GetSaturatedPropertyFromPressure(390, out _, out _, out double tSat);
+      Assert.InRange(tSat, 252.106 - 0.5, 252.106 + 0.5);
+      _r32.GetStateFromPressureAndTemperature(390, tSat + 5,
+          out double s1, out double rho1, out double h1, out _);
+      Assert.InRange(h1, 514.823 * 0.99, 514.823 * 1.01);
+      Assert.InRange(s1, 2.25571 * 0.99, 2.25571 * 1.01);
+      Assert.InRange(rho1, 10.4304 * 0.98, 10.4304 * 1.02);
+
+      //等エントロピー圧縮 → 2500 kPa（REFPROP: h=596.938, w_is=82.115）
+      _r32.GetStateFromPressureAndEntropy(2500, s1,
+          out _, out _, out double h2s, out _);
+      Assert.InRange(h2s - h1, 82.115 * 0.97, 82.115 * 1.03);
+
+      //凝縮器出口: 2500 kPa, 過冷却5K（REFPROP: T=308.508K, h=265.801, rho=917.92）
+      _r32.GetSaturatedPropertyFromPressure(2500, out _, out _, out double tCnd);
+      _r32.GetStateFromPressureAndTemperature(2500, tCnd - 5,
+          out _, out double rhoL, out double hL, out _);
+      Assert.InRange(hL, 265.801 * 0.99, 265.801 * 1.01);
+      Assert.InRange(rhoL, 917.92 * 0.98, 917.92 * 1.02);
+    }
+
     #endregion
 
     #region R410A tests
@@ -560,7 +604,7 @@ namespace Popolo.Core.Tests.Physics
 
     /// <summary>範囲外の圧力で PopoloOutOfRangeException が発生する（R32）</summary>
     [Theory]
-    [InlineData(500)]   // MinPressure=700 未満
+    [InlineData(200)]   // MinPressure=250 未満
     [InlineData(5000)]  // MaxPressure=4500 超
     public void R32_InvalidPressure_ThrowsPopoloOutOfRangeException(double pressure)
     {

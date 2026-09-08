@@ -45,7 +45,7 @@ namespace Popolo.Core.Physics
   ///
   ///   Fluid       | Standard cycle             | Valid range  | Fit range
   ///   ------------|----------------------------|--------------|---------------
-  ///   R32         | T_e=5°C, T_c=60°C (AC)     |  950-3900kPa |  700-4500 kPa
+  ///   R32         | T_e=5°C, T_c=60°C (AC/ASHP)|  300-4000kPa |  250-4500 kPa
   ///   R410A       | T_e=5°C, T_c=50°C (AC)     |  936-3070kPa |  700-4000 kPa
   ///   R134a       | T_e=5°C, T_c=40°C (chiller)|  350-1020kPa |  200-1500 kPa
   ///   R1234ze(E)  | T_e=5°C, T_c=40°C (chiller)|  259- 766kPa |  150-1500 kPa
@@ -230,20 +230,29 @@ namespace Popolo.Core.Physics
     //   constraint set = {P, H^r, S^r, G^r}.
     // Updated (2026-05-26): re-fit against REFPROP 10 via numpy.linalg.lstsq
     //   with constraint set = {P, H^r, S^r, G^r, Cv} (Cv weight w_cv = 0.005).
-    //   Mean validation errors (P=950-4000 kPa, SC=10°C, SH=10-80°C, n=42):
-    //                 P       H       S       Cv      Cp
-    //     original:   0.032%  0.169%  0.135%  0.707%  0.480%
-    //     updated:    0.029%  0.003%  0.004%  0.196%  0.174%
+    // Extended (2026-09-09, fit_r32_extended.py): fit range widened from
+    //   700-4500 kPa to 250-4500 kPa (T_sat down to about -32°C) so that
+    //   air-source heat pump heating cycles are covered. Same LSQ machinery,
+    //   Cv weight w_cv = 0.005. Validation errors (mean/max):
+    //     AC range (P=950-4000 kPa, SC=10°C, SH=10-80°C, n=42):
+    //                 P             H             S             Cv            Cp
+    //     2026-05:    0.026/0.144%  0.003/0.009%  0.003/0.008%  0.196/0.670%  0.174/0.628%
+    //     extended:   0.033/0.245%  0.003/0.009%  0.003/0.009%  0.202/0.855%  0.184/0.773%
+    //     Low-P extension (P=300-700 kPa, SC=5-10°C, SH=5-40°C, n=24):
+    //     2026-05*:   0.772/6.022%  0.012/0.066%  0.010/0.043%  0.963/5.465%  0.516/1.175%
+    //     extended:   0.104/0.630%  0.004/0.009%  0.003/0.007%  0.230/0.722%  0.411/1.596%
+    //     (* = extrapolation of the previous fit outside its range)
     private static readonly double[] AlphaR32 = {
-         1.0849130E+04,  2.4794975E+04,  2.5104943E+04, -4.7522715E+04,  2.1827033E+04, -3.1822583E+03,
-        -9.0730234E+02,  3.4680349E+04, -1.6193386E+05,  1.9553373E+05, -8.7146164E+04,  1.3020389E+04,
-        -1.2321952E+05, -2.9672469E+05,  4.0173154E+05, -2.7093883E+05,  1.1213584E+05, -1.7414212E+04,
-         1.1371753E+05,  4.5193776E+05, -4.3965229E+05,  1.3397163E+05, -3.7184868E+04,  6.9194528E+03,
-        -3.8478087E+04, -1.8449693E+05,  1.6119624E+05, -5.7226966E+03, -1.2429377E+04,  1.4955712E+03
+         9.0850167E+03,  5.4281452E+04, -3.2945237E+04, -2.0188233E+03,  6.0090656E+03, -1.1752970E+03,
+        -8.0742041E+02,  2.9047237E+04, -1.2504173E+05,  1.4285309E+05, -6.0531437E+04,  8.6006643E+03,
+        -1.1395135E+05, -4.4341137E+05,  6.0935472E+05, -3.6464202E+05,  1.2311343E+05, -1.6307773E+04,
+         1.0201871E+05,  6.4217720E+05, -7.2451935E+05,  2.8589411E+05, -7.0076699E+04,  9.0518007E+03,
+        -3.4386091E+04, -2.5189422E+05,  2.5950666E+05, -5.6526908E+04, -1.5105938E+03,  7.2155202E+02
     };
     private static readonly double[] CcpR32 = { 4.0186023E+00, -3.1370881E-01, 6.8796834E-01, 2.6831619E+00, -1.3934091E+00 };
     private static readonly double[] CpsR32 = { 102795, -204886, 141476, -33645 };
-    private static readonly double[] CtsR32 = { 148, -298, 269, 241 };
+    //Saturation-temperature initial-guess cubic refitted over 250-4500 kPa (max error 3.2 K)
+    private static readonly double[] CtsR32 = { 339.696, -562.756, 376.949, 228.934 };
 
     // R410A coefficients (pseudo-pure fluid model; near-azeotropic R32/R125 50/50 mass% blend)
     // Original (Togashi 2014, Table 5-7): fit against REFPROP 7 via wxMaxima,
@@ -417,7 +426,7 @@ namespace Popolo.Core.Physics
           _refTemperature = PhysicsConstants.ToKelvin(0);
           _refDensity = 1055.3; _refEnthalpy = 200; _refEntropy = 1.0;
           _ccp = CcpR32; _cps = CpsR32; _cts = CtsR32;
-          MaxPressure = 4500; MinPressure = 700;
+          MaxPressure = 4500; MinPressure = 250;
           _aP = AlphaR32;
           break;
 

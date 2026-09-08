@@ -52,7 +52,7 @@ namespace Popolo.Core.HVAC.SystemModel
     private double dtChgPump;
 
     /// <summary>Air-heat-source heat pump.</summary>
-    private AirHeatSourceModularChillers ahp;
+    private SimpleModularAirSourceHeatPump ahp;
 
     /// <summary>Water pump.</summary>
     private CentrifugalPump chgPump, rlsPump1, rlsPump2;
@@ -64,7 +64,7 @@ namespace Popolo.Core.HVAC.SystemModel
     private MultiConnectedWaterTank wTank;
 
     /// <summary>Gets the air-heat-source heat pump.</summary>
-    public IReadOnlyAirHeatSourceModularChillers AHP { get { return ahp; } }
+    public IReadOnlySimpleModularAirSourceHeatPump AHP { get { return ahp; } }
 
     /// <summary>Gets the thermal storage charge pump.</summary>
     public IReadOnlyCentrifugalPump ChargePump { get { return chgPump; } }
@@ -206,18 +206,18 @@ namespace Popolo.Core.HVAC.SystemModel
       {
         if (isCooling)
         {
-          ahp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+          ahp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
           ahp.WaterOutletSetpointTemperature = ChilledWaterStorageTemperature;
           pHex.SupplyTemperatureSetpoint = ChilledWaterSupplyTemperatureSetpoint;
         }
         else 
         {
-          ahp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+          ahp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
           ahp.WaterOutletSetpointTemperature = HotWaterStorageTemperature;
           pHex.SupplyTemperatureSetpoint = HotWaterSupplyTemperatureSetpoint;
         }
       }
-      else ahp.Mode = AirHeatSourceModularChillers.OperatingMode.ShutOff;
+      else ahp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.ShutOff;
 
       //Keep updating the tank temperatures until the time step has elapsed
       double remTime = TimeStep;
@@ -421,7 +421,7 @@ namespace Popolo.Core.HVAC.SystemModel
     /// <param name="rlsPump2">Secondary discharge pump.</param>
     /// <param name="ashpCount">Number of air-heat-source heat pump units.</param>
     public MultiConnectedWaterTankSystem
-      (MultiConnectedWaterTank waterTank, PlateHeatExchanger plateHex, AirHeatSourceModularChillers ahp,
+      (MultiConnectedWaterTank waterTank, PlateHeatExchanger plateHex, SimpleModularAirSourceHeatPump ahp,
       CentrifugalPump chgPump, CentrifugalPump rlsPump1, CentrifugalPump rlsPump2, int ashpCount)
     {
       this.ahp = ahp;

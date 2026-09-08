@@ -256,5 +256,66 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
 
         #endregion
 
+        // ================================================================
+        #region Frost penalty parameter
+
+        /// <summary>着霜ペナルティ1.0（着霜フリー）は0.6より熱交換量が大きい。</summary>
+        [Fact]
+        public void FrostPenalty_One_TransfersMoreThanDefault()
+        {
+            double hr = Hr(2.0, 85.0);
+            double area = EvpArea();
+
+            Coil.GetHeatTransfer(K, -10.0, AirFlow, area, 2.0, hr, 95.0, 0,
+                out double htDef, out _, out _, out _, out double swDef, out double dflDef, out _);
+            Coil.GetHeatTransfer(K, -10.0, AirFlow, area, 2.0, hr, 95.0, 0, 1.0,
+                out double htFree, out _, out _, out _, out _, out _, out _);
+
+            Assert.True(swDef < area && 0 < dflDef,
+                $"precondition: frosted section exists (sW={swDef:F3} m2, defrost={dflDef:F3} kW)");
+            Assert.True(htFree < htDef,
+                $"frost-free transfers more cooling: {htFree:F3} < {htDef:F3} kW");
+        }
+
+        /// <summary>着霜区分が生じない条件ではペナルティ値は結果に影響しない。</summary>
+        [Fact]
+        public void FrostPenalty_NoFrostRegime_HasNoEffect()
+        {
+            double hr = Hr(7.0, 85.0);
+            double area = EvpArea();
+
+            Coil.GetHeatTransfer(K, 2.0, AirFlow, area, 7.0, hr, 95.0, 0, 0.3,
+                out double ht1, out double to1, out double wo1, out _, out _, out _, out _);
+            Coil.GetHeatTransfer(K, 2.0, AirFlow, area, 7.0, hr, 95.0, 0, 1.0,
+                out double ht2, out double to2, out double wo2, out _, out _, out _, out _);
+
+            Assert.Equal(ht1, ht2);
+            Assert.Equal(to1, to2);
+            Assert.Equal(wo1, wo2);
+        }
+
+        /// <summary>旧シグネチャは DefaultFrostPenalty を渡す新オーバーロードと完全一致。</summary>
+        [Fact]
+        public void FrostPenalty_DefaultOverload_BitIdentical()
+        {
+            double hr = Hr(2.0, 85.0);
+            double area = EvpArea();
+
+            Coil.GetHeatTransfer(K, -10.0, AirFlow, area, 2.0, hr, 95.0, 0,
+                out double ht0, out double to0, out double wo0, out double sd0, out double sw0, out double dfl0, out _);
+            Coil.GetHeatTransfer(K, -10.0, AirFlow, area, 2.0, hr, 95.0, 0,
+                Coil.DefaultFrostPenalty,
+                out double ht1, out double to1, out double wo1, out double sd1, out double sw1, out double dfl1, out _);
+
+            Assert.Equal(ht0, ht1);
+            Assert.Equal(to0, to1);
+            Assert.Equal(wo0, wo1);
+            Assert.Equal(sd0, sd1);
+            Assert.Equal(sw0, sw1);
+            Assert.Equal(dfl0, dfl1);
+        }
+
+        #endregion
+
     }
 }

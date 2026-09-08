@@ -367,7 +367,8 @@ namespace Popolo.Core.HVAC.VRF
     {
       return AirToRefrigerantCrossFinHeatExchanger.GetCoolingSurfaceArea(
         HeatTransferCoefficient, airFlowRate, evpTemperature, heatTransfer,
-        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity);
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        AirToRefrigerantCrossFinHeatExchanger.DefaultFrostPenalty);
     }
 
     /// <summary>Computes the condenser heat transfer surface area [m²].</summary>
@@ -638,6 +639,7 @@ namespace Popolo.Core.HVAC.VRF
       AirToRefrigerantCrossFinHeatExchanger.GetCoolingHeatTransfer(
         HeatTransferCoefficient, evpTemperature, airFlowRate, surfaceArea,
         inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        AirToRefrigerantCrossFinHeatExchanger.DefaultFrostPenalty,
         out heatTransfer, out outletAirTemperature, out outletAirHumidityRatio,
         out sD, out sW, out defrostLoad);
     }
@@ -768,7 +770,8 @@ namespace Popolo.Core.HVAC.VRF
     {
       AirToRefrigerantCrossFinHeatExchanger.GetCoolingRefrigerantTemperature(
         HeatTransferCoefficient, heatTransfer, airFlowRate, surfaceArea,
-        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, deductDefrostLoad,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        AirToRefrigerantCrossFinHeatExchanger.DefaultFrostPenalty, deductDefrostLoad,
         out evaporatingTemperature, out outletAirTemperature, out outletAirHumidityRatio,
         out sD, out sW, out defrostLoad);
     }
@@ -914,6 +917,7 @@ namespace Popolo.Core.HVAC.VRF
       AirToRefrigerantCrossFinHeatExchanger.GetCoolingRefrigerantTemperatureForOutletAirTemperature(
         HeatTransferCoefficient, outletAirSetpointTemperature, airFlowRate, surfaceArea,
         inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        AirToRefrigerantCrossFinHeatExchanger.DefaultFrostPenalty,
         out evaporatingTemperature, out heatTransfer, out outletAirHumidityRatio,
         out sD, out sW, out defrostLoad);
     }

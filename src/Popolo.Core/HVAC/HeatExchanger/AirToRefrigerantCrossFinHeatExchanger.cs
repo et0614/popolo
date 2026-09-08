@@ -39,7 +39,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
   /// belongs to wrapper equipment models such as Popolo.Core.HVAC.VRF.VRFUnit.
   /// The overall heat transfer coefficient of the dry section is caller-supplied so that each
   /// wrapper can use a fixed value or its own air-velocity-dependent correlation; the wet-section
-  /// conversion (heat-mass transfer analogy) and the frosting degradation factor are internal.
+  /// conversion (heat-mass transfer analogy) is internal. The frosting degradation factor is
+  /// caller-adjustable through the overloads with a frostPenalty parameter
+  /// (default <see cref="DefaultFrostPenalty"/>; 1.0 = frost-free ideal).
   /// </remarks>
   public static class AirToRefrigerantCrossFinHeatExchanger
   {
@@ -52,9 +54,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <summary>Isobaric specific heat of ice [kJ/(kg·K)].</summary>
     private const double ICE_ISOBARIC_SPECIFIC_HEAT = 2.090;
 
-    /// <summary>Overall heat transfer coefficient degradation factor due to frosting.</summary>
-    /// <remarks>A value of 0.1 gives good agreement with NEDO field measurement tests.</remarks>
-    private const double F_PENALTY = 0.6;
+    /// <summary>Default overall heat transfer coefficient degradation factor of the frosted
+    /// coil section [-]. Back-calculated from Aoki, Hattori and Itoh (1985) for a frost layer
+    /// of about 1 mm; 1.0 means no frost-induced degradation (frost-free ideal, matching
+    /// manufacturer tables published for operation without frost/defrost influence).</summary>
+    public const double DefaultFrostPenalty = 0.6;
 
     /// <summary>Convergence tolerance of the refrigerant temperature [°C].</summary>
     /// <remarks>
@@ -81,13 +85,37 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double refrigerantTemperature, double heatTransfer,
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
     {
+      return GetSurfaceArea(heatTransferCoefficient, airFlowRate,
+        refrigerantTemperature, heatTransfer, inletAirTemperature, inletAirHumidityRatio,
+        borderRelativeHumidity, DefaultFrostPenalty);
+    }
+
+    /// <summary>Computes the heat transfer surface area [m2] from a rated operating point,
+    /// with an explicit frosting degradation factor.</summary>
+    /// <param name="heatTransferCoefficient">Overall heat transfer coefficient of the dry section [kW/(m2 K)].</param>
+    /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
+    /// <param name="refrigerantTemperature">Refrigerant (surface) temperature [C].</param>
+    /// <param name="heatTransfer">Heat transfer capacity [kW] (negative = air is cooled, positive = air is heated).</param>
+    /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [C].</param>
+    /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%] (cooling only).</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-]
+    /// (1.0 = no frost-induced degradation).</param>
+    /// <returns>Heat transfer surface area [m2].</returns>
+    public static double GetSurfaceArea(
+      double heatTransferCoefficient, double airFlowRate,
+      double refrigerantTemperature, double heatTransfer,
+      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double frostPenalty)
+    {
       if (heatTransfer == 0) throw new PopoloArgumentException(
         "Heat transfer must be non-zero (negative = air is cooled, positive = air is heated).",
         nameof(heatTransfer));
 
       if (heatTransfer < 0)
         return GetCoolingSurfaceArea(heatTransferCoefficient, airFlowRate,
-          refrigerantTemperature, heatTransfer, inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity);
+          refrigerantTemperature, heatTransfer, inletAirTemperature, inletAirHumidityRatio,
+          borderRelativeHumidity, frostPenalty);
       else
         return GetHeatingSurfaceArea(heatTransferCoefficient, airFlowRate,
           refrigerantTemperature, heatTransfer, inletAirTemperature, inletAirHumidityRatio);
@@ -121,6 +149,40 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
     {
+      GetHeatTransfer(heatTransferCoefficient, refrigerantTemperature, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, sprayEffectiveness,
+        DefaultFrostPenalty,
+        out heatTransfer, out outletAirTemperature, out outletAirHumidityRatio,
+        out drySurfaceArea, out wetSurfaceArea, out defrostLoad, out waterSupply);
+    }
+
+    /// <summary>Computes the heat transfer rate [kW] for a given refrigerant (surface)
+    /// temperature, with an explicit frosting degradation factor.</summary>
+    /// <param name="heatTransferCoefficient">Overall heat transfer coefficient of the dry section [kW/(m2 K)].</param>
+    /// <param name="refrigerantTemperature">Refrigerant (surface) temperature [C].</param>
+    /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
+    /// <param name="surfaceArea">Heat transfer surface area [m2].</param>
+    /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [C].</param>
+    /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%] (cooling only).</param>
+    /// <param name="sprayEffectiveness">Water spray temperature reduction effectiveness [-] (0 disables spray).</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-]
+    /// (1.0 = no frost-induced degradation).</param>
+    /// <param name="heatTransfer">Output: heat transfer rate [kW] (negative = air is cooled, positive = air is heated).</param>
+    /// <param name="outletAirTemperature">Output: outlet air dry-bulb temperature [C].</param>
+    /// <param name="outletAirHumidityRatio">Output: outlet air humidity ratio [kg/kg].</param>
+    /// <param name="drySurfaceArea">Output: dry section surface area [m2].</param>
+    /// <param name="wetSurfaceArea">Output: wet section surface area [m2] (0 when heating).</param>
+    /// <param name="defrostLoad">Output: defrost load [kW] (0 when heating).</param>
+    /// <param name="waterSupply">Output: water consumption rate of the spray [kg/s].</param>
+    public static void GetHeatTransfer(
+      double heatTransferCoefficient, double refrigerantTemperature,
+      double airFlowRate, double surfaceArea,
+      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double sprayEffectiveness, double frostPenalty,
+      out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
+      out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
+    {
       //Apply the water spray to the inlet air first
       if (0 < sprayEffectiveness)
         waterSupply = ApplyWaterSpray
@@ -142,6 +204,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         GetCoolingHeatTransfer(heatTransferCoefficient, refrigerantTemperature,
           airFlowRate, surfaceArea, inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+          frostPenalty,
           out heatTransfer, out outletAirTemperature, out outletAirHumidityRatio,
           out drySurfaceArea, out wetSurfaceArea, out defrostLoad);
       }
@@ -172,6 +235,41 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double refrigerantTemperature, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
     {
+      GetRefrigerantTemperature(heatTransferCoefficient, heatTransfer, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        deductDefrostLoad, sprayEffectiveness, DefaultFrostPenalty,
+        out refrigerantTemperature, out outletAirTemperature, out outletAirHumidityRatio,
+        out drySurfaceArea, out wetSurfaceArea, out defrostLoad, out waterSupply);
+    }
+
+    /// <summary>Computes the refrigerant (surface) temperature [C] required to process the
+    /// given heat transfer, with an explicit frosting degradation factor.</summary>
+    /// <param name="heatTransferCoefficient">Overall heat transfer coefficient of the dry section [kW/(m2 K)].</param>
+    /// <param name="heatTransfer">Heat transfer rate [kW] (negative = air is cooled, positive = air is heated).</param>
+    /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
+    /// <param name="surfaceArea">Heat transfer surface area [m2].</param>
+    /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [C].</param>
+    /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%] (cooling only).</param>
+    /// <param name="deductDefrostLoad">True to deduct the defrost load from the heat transfer (cooling only).</param>
+    /// <param name="sprayEffectiveness">Water spray temperature reduction effectiveness [-] (heating only; 0 disables spray).</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-]
+    /// (1.0 = no frost-induced degradation).</param>
+    /// <param name="refrigerantTemperature">Output: refrigerant (surface) temperature [C].</param>
+    /// <param name="outletAirTemperature">Output: outlet air dry-bulb temperature [C].</param>
+    /// <param name="outletAirHumidityRatio">Output: outlet air humidity ratio [kg/kg].</param>
+    /// <param name="drySurfaceArea">Output: dry section surface area [m2].</param>
+    /// <param name="wetSurfaceArea">Output: wet section surface area [m2] (0 when heating).</param>
+    /// <param name="defrostLoad">Output: defrost load [kW] (0 when heating).</param>
+    /// <param name="waterSupply">Output: water consumption rate of the spray [kg/s].</param>
+    public static void GetRefrigerantTemperature(
+      double heatTransferCoefficient, double heatTransfer,
+      double airFlowRate, double surfaceArea,
+      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      bool deductDefrostLoad, double sprayEffectiveness, double frostPenalty,
+      out double refrigerantTemperature, out double outletAirTemperature, out double outletAirHumidityRatio,
+      out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
+    {
       if (heatTransfer == 0) throw new PopoloArgumentException(
         "Heat transfer must be non-zero (negative = air is cooled, positive = air is heated).",
         nameof(heatTransfer));
@@ -181,6 +279,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         GetCoolingRefrigerantTemperature(heatTransferCoefficient, heatTransfer,
           airFlowRate, surfaceArea, inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+          frostPenalty,
           deductDefrostLoad, out refrigerantTemperature, out outletAirTemperature,
           out outletAirHumidityRatio, out drySurfaceArea, out wetSurfaceArea, out defrostLoad);
         waterSupply = 0;
@@ -221,6 +320,41 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double refrigerantTemperature, out double heatTransfer, out double outletAirHumidityRatio,
       out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
     {
+      GetRefrigerantTemperatureForOutletAirTemperature(heatTransferCoefficient,
+        outletAirSetpointTemperature, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        sprayEffectiveness, DefaultFrostPenalty,
+        out refrigerantTemperature, out heatTransfer, out outletAirHumidityRatio,
+        out drySurfaceArea, out wetSurfaceArea, out defrostLoad, out waterSupply);
+    }
+
+    /// <summary>Computes the refrigerant (surface) temperature [C] required to reach the
+    /// outlet air temperature setpoint, with an explicit frosting degradation factor.</summary>
+    /// <param name="heatTransferCoefficient">Overall heat transfer coefficient of the dry section [kW/(m2 K)].</param>
+    /// <param name="outletAirSetpointTemperature">Outlet air dry-bulb temperature setpoint [C].</param>
+    /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
+    /// <param name="surfaceArea">Heat transfer surface area [m2].</param>
+    /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [C].</param>
+    /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
+    /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%] (cooling only).</param>
+    /// <param name="sprayEffectiveness">Water spray temperature reduction effectiveness [-] (heating only; 0 disables spray).</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-]
+    /// (1.0 = no frost-induced degradation).</param>
+    /// <param name="refrigerantTemperature">Output: refrigerant (surface) temperature [C].</param>
+    /// <param name="heatTransfer">Output: heat transfer rate [kW] (negative = air is cooled, positive = air is heated).</param>
+    /// <param name="outletAirHumidityRatio">Output: outlet air humidity ratio [kg/kg].</param>
+    /// <param name="drySurfaceArea">Output: dry section surface area [m2].</param>
+    /// <param name="wetSurfaceArea">Output: wet section surface area [m2] (0 when heating).</param>
+    /// <param name="defrostLoad">Output: defrost load [kW] (0 when heating).</param>
+    /// <param name="waterSupply">Output: water consumption rate of the spray [kg/s].</param>
+    public static void GetRefrigerantTemperatureForOutletAirTemperature(
+      double heatTransferCoefficient, double outletAirSetpointTemperature,
+      double airFlowRate, double surfaceArea,
+      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double sprayEffectiveness, double frostPenalty,
+      out double refrigerantTemperature, out double heatTransfer, out double outletAirHumidityRatio,
+      out double drySurfaceArea, out double wetSurfaceArea, out double defrostLoad, out double waterSupply)
+    {
       if (outletAirSetpointTemperature == inletAirTemperature) throw new PopoloArgumentException(
         "Outlet air setpoint must differ from the inlet air temperature.",
         nameof(outletAirSetpointTemperature));
@@ -230,7 +364,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         GetCoolingRefrigerantTemperatureForOutletAirTemperature(heatTransferCoefficient,
           outletAirSetpointTemperature, airFlowRate, surfaceArea,
-          inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+          inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, frostPenalty,
           out refrigerantTemperature, out heatTransfer, out outletAirHumidityRatio,
           out drySurfaceArea, out wetSurfaceArea, out defrostLoad);
         waterSupply = 0;
@@ -289,10 +423,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
     /// <param name="borderRelativeHumidity">Relative humidity at the dry/wet boundary [%].</param>
     /// <returns>Heat transfer surface area [m²].</returns>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-] (1.0 = no degradation).</param>
     internal static double GetCoolingSurfaceArea(
       double heatTransferCoefficient, double airFlowRate,
       double refrigerantTemperature, double heatTransfer,
-      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
+      double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double frostPenalty)
     {
       double epsilon;
       heatTransfer = -heatTransfer; //Flip sign
@@ -382,7 +518,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
 
       //Compute the frosted coil surface area
-      double kF = heatTransferCoefficient / cpmaFB * F_PENALTY;
+      double kF = heatTransferCoefficient / cpmaFB * frostPenalty;
       double hdF = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
@@ -412,10 +548,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="sD">Output: dry coil surface area [m²].</param>
     /// <param name="sW">Output: wet coil surface area [m²].</param>
     /// <param name="defrostLoad">Output: defrost load [kW].</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-] (1.0 = no degradation).</param>
     internal static void GetCoolingHeatTransfer(
       double heatTransferCoefficient, double refrigerantTemperature,
       double airFlowRate, double surfaceArea,
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double frostPenalty,
       out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double sD, out double sW, out double defrostLoad)
     {
@@ -505,7 +643,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
 
       //Frosted coil calculation
-      double kF = heatTransferCoefficient / cpmaFB * F_PENALTY;
+      double kF = heatTransferCoefficient / cpmaFB * frostPenalty;
       double hdFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
         (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
       double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
@@ -558,9 +696,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="sD">Output: dry coil surface area [m²].</param>
     /// <param name="sW">Output: wet coil surface area [m²].</param>
     /// <param name="defrostLoad">Output: defrost load [kW].</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-] (1.0 = no degradation).</param>
     internal static void GetCoolingRefrigerantTemperature(
       double heatTransferCoefficient, double heatTransfer, double airFlowRate,
       double surfaceArea, double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double frostPenalty,
       bool deductDefrostLoad, out double refrigerantTemperature, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
@@ -571,7 +711,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         double ht, ot, oa, sd, sw, dl;
         GetCoolingHeatTransfer(heatTransferCoefficient, eTemp, airFlowRate, surfaceArea, inletAirTemperature,
-          inletAirHumidityRatio, borderRelativeHumidity, out ht, out ot, out oa, out sd, out sw, out dl);
+          inletAirHumidityRatio, borderRelativeHumidity, frostPenalty,
+          out ht, out ot, out oa, out sd, out sw, out dl);
         if (deductDefrostLoad) return ht - heatTransfer - dl;
         else return ht - heatTransfer;
       };
@@ -590,7 +731,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
       double hTransfer;
       GetCoolingHeatTransfer(heatTransferCoefficient, refrigerantTemperature, airFlowRate, surfaceArea,
-        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, frostPenalty,
         out hTransfer, out outletAirTemperature, out outletAirHumidityRatio, out sD, out sW, out defrostLoad);
     }
 
@@ -608,9 +749,11 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="sD">Output: dry coil surface area [m²].</param>
     /// <param name="sW">Output: wet coil surface area [m²].</param>
     /// <param name="defrostLoad">Output: defrost load [kW].</param>
+    /// <param name="frostPenalty">Heat transfer degradation factor of the frosted section [-] (1.0 = no degradation).</param>
     internal static void GetCoolingRefrigerantTemperatureForOutletAirTemperature(
       double heatTransferCoefficient, double outletAirSetpointTemperature, double airFlowRate,
       double surfaceArea, double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity,
+      double frostPenalty,
       out double refrigerantTemperature, out double heatTransfer,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
@@ -620,7 +763,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       Roots.ErrorFunction eFnc = delegate (double eTemp)
       {
         GetCoolingHeatTransfer(heatTransferCoefficient, eTemp, airFlowRate, surfaceArea, inletAirTemperature,
-          inletAirHumidityRatio, borderRelativeHumidity,
+          inletAirHumidityRatio, borderRelativeHumidity, frostPenalty,
           out _, out double ot, out _, out _, out _, out _);
         return ot - outletAirSetpointTemperature;
       };
@@ -638,7 +781,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
           + ex.Message, ex);
       }
       GetCoolingHeatTransfer(heatTransferCoefficient, refrigerantTemperature, airFlowRate, surfaceArea,
-        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, frostPenalty,
         out heatTransfer, out _, out outletAirHumidityRatio, out sD, out sW, out defrostLoad);
     }
 

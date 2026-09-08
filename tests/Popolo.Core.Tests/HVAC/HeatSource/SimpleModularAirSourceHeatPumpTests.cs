@@ -1,4 +1,4 @@
-/* AirHeatSourceModularChillersTests.cs
+/* SimpleModularAirSourceHeatPumpTests.cs
  *
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3 — see accompanying LICENSE file.
@@ -10,10 +10,10 @@ using Popolo.Core.HVAC.HeatSource;
 
 namespace Popolo.Core.Tests.HVAC.HeatSource
 {
-    /// <summary>Unit tests for <see cref="AirHeatSourceModularChillers"/>.</summary>
+    /// <summary>Unit tests for <see cref="SimpleModularAirSourceHeatPump"/>.</summary>
     /// <remarks>
     /// Test conditions from AirSourceHeatPumpTest() sample code:
-    ///   new AirHeatSourceModularChillers(150, 7, 430/60, 35, 850/60*1.2, 49.8,
+    ///   new SimpleModularAirSourceHeatPump(150, 7, 430/60, 35, 850/60*1.2, 49.8,
     ///                                    150, 45, 430/60, 7, 850/60*1.2, 50.0, 3, 1.9)
     ///   Total water flow: 430*3/60 = 21.5 kg/s
     ///   Nominal cooling COP ~= 3.01, heating COP ~= 3.00
@@ -21,7 +21,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     /// Cooling: twi = 7 + load / (cp * mw)
     /// Heating: twi = 45 - load / (cp * mw)
     /// </remarks>
-    public class AirHeatSourceModularChillersTests
+    public class SimpleModularAirSourceHeatPumpTests
     {
         #region Rated conditions
 
@@ -40,8 +40,8 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
 
         #region Helpers
 
-        private static AirHeatSourceModularChillers MakeHP()
-            => new AirHeatSourceModularChillers(
+        private static SimpleModularAirSourceHeatPump MakeHP()
+            => new SimpleModularAirSourceHeatPump(
                 CoolingCap, ChwOutlet, MwPerUnit, CoolingAirT, 850.0/60*1.2, 49.8,
                 HeatingCap, HwOutlet,  MwPerUnit, HeatingAirT, 850.0/60*1.2, 50.0,
                 Units, 1.9);
@@ -99,7 +99,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Cooling_FullLoad_CoolingLoadIsPositive()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.MaximizeEfficiency = true;
             hp.MinimumPartialLoadRatio = 0.2;
@@ -113,7 +113,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Cooling_OutletNearSetpoint()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(0.7), Mw, CoolingAirT);
             if (!hp.IsOverLoad)
@@ -125,12 +125,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Cooling_LowerAmbient_HigherCOP()
         {
             var hp35 = MakeHP();
-            hp35.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp35.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp35.WaterOutletSetpointTemperature = ChwOutlet;
             hp35.Update(CoolingInletTemp(0.7), Mw, 35.0);
 
             var hp25 = MakeHP();
-            hp25.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp25.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp25.WaterOutletSetpointTemperature = ChwOutlet;
             hp25.Update(CoolingInletTemp(0.7), Mw, 25.0);
 
@@ -143,7 +143,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Cooling_COPInRealisticRange()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.InRange(hp.COP, 1.0, 8.0);
@@ -154,7 +154,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Cooling_ElectricConsumptionIsPositive()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.True(hp.ElectricConsumption > 0);
@@ -170,7 +170,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Heating_FullLoad_HeatingLoadIsPositive()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
             hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.MaximizeEfficiency = true;
             hp.MinimumPartialLoadRatio = 0.2;
@@ -184,7 +184,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Heating_OutletNearSetpoint()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
             hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.Update(HeatingInletTemp(0.7), Mw, HeatingAirT);
             if (!hp.IsOverLoad)
@@ -196,12 +196,12 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Heating_HigherAmbient_HigherCOP()
         {
             var hp7 = MakeHP();
-            hp7.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+            hp7.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
             hp7.WaterOutletSetpointTemperature = HwOutlet;
             hp7.Update(HeatingInletTemp(0.7), Mw, 7.0);
 
             var hp20 = MakeHP();
-            hp20.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+            hp20.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
             hp20.WaterOutletSetpointTemperature = HwOutlet;
             hp20.Update(HeatingInletTemp(0.7), Mw, 20.0);
 
@@ -214,7 +214,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Update_Heating_COPInRealisticRange()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Heating;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
             hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.Update(HeatingInletTemp(1.0), Mw, HeatingAirT);
             Assert.InRange(hp.COP, 1.0, 8.0);
@@ -229,7 +229,7 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void ShutOff_ZeroLoads()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.True(hp.CoolingLoad > 0);
@@ -242,10 +242,10 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
         public void Mode_SetToShutOff_ZeroLoad()
         {
             var hp = MakeHP();
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.Cooling;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
             hp.WaterOutletSetpointTemperature = ChwOutlet;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
-            hp.Mode = AirHeatSourceModularChillers.OperatingMode.ShutOff;
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.ShutOff;
             hp.Update(CoolingInletTemp(1.0), Mw, CoolingAirT);
             Assert.Equal(0.0, hp.CoolingLoad);
         }

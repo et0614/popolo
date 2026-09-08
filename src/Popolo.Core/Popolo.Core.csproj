@@ -17,7 +17,7 @@
 		<!-- NuGetパッケージ情報 -->
 		<PackageId>Popolo.Core</PackageId>
 		<PackageIcon>icon.png</PackageIcon>
-		<Version>3.2.0</Version>
+		<Version>3.3.0</Version>
 		<Authors>E.Togashi</Authors>
 		<Description>A C# library for academic simulation of building thermal environments and HVAC systems. Provides physics-based models for heat transfer, thermophysical properties, climate data, occupant comfort, and HVAC equipment with no external dependencies.</Description>
 		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
