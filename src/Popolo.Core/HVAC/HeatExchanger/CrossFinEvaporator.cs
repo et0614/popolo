@@ -26,7 +26,9 @@ using Popolo.Core.Numerics;
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Cross-fin (plate-fin-and-tube) evaporator with dehumidification and frosting capability.</summary>
-  /// <remarks>Deprecated: use Popolo.Core.HVAC.VRF.VRFUnit instead.</remarks>
+  /// <remarks>Superseded by <see cref="AirToRefrigerantCrossFinHeatExchanger"/> (pure functions)
+  /// and Popolo.Core.HVAC.VRF.VRFUnit (stateful unit model).</remarks>
+  [Obsolete("Superseded by AirToRefrigerantCrossFinHeatExchanger (pure functions) and Popolo.Core.HVAC.VRF.VRFUnit (stateful unit model). This class will be removed in a future major version.")]
   public class CrossFinEvaporator : IReadOnlyCrossFinEvaporator
   {
 

@@ -3,9 +3,13 @@
  * GNU General Public License v3
  */
 
+using System;
+
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Read-only view of a cross-fin evaporator.</summary>
+  /// <remarks>Superseded together with <see cref="CrossFinEvaporator"/>.</remarks>
+  [Obsolete("Superseded together with CrossFinEvaporator. This interface will be removed in a future major version.")]
   public interface IReadOnlyCrossFinEvaporator
   {
     /// <summary>Gets the total heat transfer surface area [m²].</summary>

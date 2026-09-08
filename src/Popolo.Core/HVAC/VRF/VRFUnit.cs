@@ -1,4 +1,4 @@
-/* VRFUnit.cs
+﻿/* VRFUnit.cs
  * 
  * Copyright (C) 2020 E.Togashi
  * 
@@ -22,7 +22,7 @@ using System;
 using Popolo.Core.Exceptions;
 
 using Popolo.Core.Physics;
-using Popolo.Core.Numerics;
+using Popolo.Core.HVAC.HeatExchanger;
 
 namespace Popolo.Core.HVAC.VRF
 {
@@ -38,23 +38,6 @@ namespace Popolo.Core.HVAC.VRF
     /// refrigerant-side HTC = 6 kW/(m²·K), air-side HTC = 0.1 kW/(m²·K), fin efficiency = 0.9.
     /// </remarks>
     public const double HeatTransferCoefficient = 0.074;
-
-    /// <summary>Sublimation latent heat of ice [kJ/kg].</summary>
-    private const double SUBLIMINATION_LATENT_HEAT = 2837;
-
-    /// <summary>Isobaric specific heat of ice [kJ/(kg·K)].</summary>
-    private const double ICE_ISOBARIC_SPECIFIC_HEAT = 2.090;
-
-    /// <summary>Overall heat transfer coefficient degradation factor due to frosting.</summary>
-    /// <remarks>A value of 0.1 gives good agreement with NEDO field measurement tests.</remarks>
-    private const double F_PENALTY = 0.6;
-
-    /// <summary>Convergence tolerance of the evaporating temperature [°C].</summary>
-    /// <remarks>
-    /// 0.001 K is far below any physically meaningful precision of the model;
-    /// tightening it further only wastes root-finding iterations.
-    /// </remarks>
-    private const double EVAPORATING_TEMPERATURE_TOLERANCE = 0.001;
 
     #endregion
 
@@ -382,108 +365,9 @@ namespace Popolo.Core.HVAC.VRF
       double evpTemperature, double heatTransfer,
       double inletAirTemperature, double inletAirHumidityRatio, double borderRelativeHumidity)
     {
-      double epsilon;
-      heatTransfer = -heatTransfer; //Flip sign
-
-      //Determine the dry/wet boundary
-      //Supersaturated inlet air (rh > 100) is treated as saturated: the whole coil becomes wet
-      double rh = Math.Min(100, MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure));
-      borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
-
-      //Compute the moist air specific heat
-      double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-
-      //Compute the dry coil surface area
-      double mca = cpmaWB * airFlowRate;
-      double tWB = Math.Min(inletAirTemperature,
-        MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
-        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure));
-      double qD = (inletAirTemperature - tWB) * mca;
-
-      //Case: heat transfer completes within the dry coil
-      if (heatTransfer < qD)
-      {
-        epsilon = heatTransfer / (mca * (inletAirTemperature - evpTemperature));
-        if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetEvaporatorSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-        return -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
-      }
-      //Case: heat transfer extends into the wet coil
-      epsilon = qD / (mca * (inletAirTemperature - evpTemperature));
-      if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetEvaporatorSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-      double sD = -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
-
-      double qW, sW, xFB, tFB, cpmaFB;
-      //Case: a wet coil section exists
-      if (0 < tWB)
-      {
-        tFB = 0;
-        //Compute the wet coil surface area
-        xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-          (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        cpmaFB = MoistAir.GetSpecificHeat(xFB);
-        double hWB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
-          (tWB, inletAirHumidityRatio);
-        double hEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-          (evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-        double hFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-          (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        qW = (hWB - hFB) * airFlowRate;
-        double kW = HeatTransferCoefficient / (0.5 * (cpmaWB + cpmaFB));
-
-        //Case: heat transfer completes within the wet coil
-        if (heatTransfer - qD < qW)
-        {
-          epsilon = (heatTransfer - qD) / (airFlowRate * (hWB - hEvp));
-          if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetEvaporatorSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-          return -Math.Log(1 - epsilon) * airFlowRate / kW + sD;
-        }
-        //Case: heat transfer extends into the frosted coil
-        epsilon = qW / (airFlowRate * (hWB - hEvp));
-        if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetEvaporatorSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-        sW = -Math.Log(1 - epsilon) * airFlowRate / kW;
-      }
-      else
-      {
-        tFB = tWB;
-        xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-          (tWB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        cpmaFB = MoistAir.GetSpecificHeat(xFB);
-        qW = 0;
-        sW = 0;
-      }
-
-      //Compute the frosted coil surface area
-      double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
-      double hdF = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-        (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-      double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-        (evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      epsilon = (heatTransfer - qD - qW) / (airFlowRate * (hdF - hdEvp));
-      if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetEvaporatorSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, evpTemp={evpTemperature:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-      double sF = -Math.Log(1 - epsilon) * airFlowRate / kF;
-
-      return sF + sD + sW;
+      return AirToRefrigerantCrossFinHeatExchanger.GetCoolingSurfaceArea(
+        HeatTransferCoefficient, airFlowRate, evpTemperature, heatTransfer,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity);
     }
 
     /// <summary>Computes the condenser heat transfer surface area [m²].</summary>
@@ -498,15 +382,9 @@ namespace Popolo.Core.HVAC.VRF
       double condensingTempearture, double heatTransfer,
       double inletAirTemperature, double inletAirHumidityRatio)
     {
-      double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-      double mca = cpma * airFlowRate;
-      double epsilon = heatTransfer / (mca * (condensingTempearture - inletAirTemperature));
-      if (1 <= epsilon) throw new PopoloNumericalException(
-          "GetCondenserSurfaceArea",
-          $"NTU-method diverged (epsilon={epsilon:F4} >= 1). "
-          + $"Check inlet conditions: Tair={inletAirTemperature:F2}°C, cndTemp={condensingTempearture:F2}°C, "
-          + $"heatTransfer={heatTransfer:F3} kW.");
-      return -Math.Log(1 - epsilon) * mca / HeatTransferCoefficient;
+      return AirToRefrigerantCrossFinHeatExchanger.GetHeatingSurfaceArea(
+        HeatTransferCoefficient, airFlowRate, condensingTempearture, heatTransfer,
+        inletAirTemperature, inletAirHumidityRatio);
     }
 
     #endregion
@@ -538,26 +416,6 @@ namespace Popolo.Core.HVAC.VRF
       //RefrigerantTemperature = InletAirTemperature; //Doing this causes a convergence error. 2023.04.11
       DefrostLoad = 0;
       WaterSupply = 0;
-    }
-
-    /// <summary>Computes the water consumption rate from water spray [kg/s].</summary>
-    /// <param name="inletAirTemperature">Inlet air dry-bulb temperature [°C].</param>
-    /// <param name="inletAirHumidityRatio">Inlet air humidity ratio [kg/kg].</param>
-    /// <param name="sprayEffectiveness">Water spray temperature reduction effectiveness [-].</param>
-    /// <param name="airFlowRate">Air mass flow rate [kg/s].</param>
-    private static double GetWaterSupply
-      (ref double inletAirTemperature, ref double inletAirHumidityRatio,
-      double sprayEffectiveness, double airFlowRate)
-    {
-      double twb = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio
-          (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure);
-      double ts = MoistAir.GetDryBulbTemperatureFromWetBulbTemperatureAndRelativeHumidity
-        (twb, 100, PhysicsConstants.StandardAtmosphericPressure);
-      double ws = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-        (ts, 100, PhysicsConstants.StandardAtmosphericPressure);
-      inletAirTemperature -= sprayEffectiveness * (inletAirTemperature - ts);
-      inletAirHumidityRatio += sprayEffectiveness * (ws - inletAirHumidityRatio);
-      return airFlowRate * sprayEffectiveness * (ws - inletAirHumidityRatio);
     }
 
     #endregion
@@ -777,128 +635,11 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirTemperature, out double outletAirHumidityRatio,
       out double sD, out double sW, out double defrostLoad)
     {
-      //Determine the dry/wet boundary
-      //Supersaturated inlet air (rh > 100) is treated as saturated: the whole coil becomes wet
-      double rh = Math.Min(100, MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (inletAirTemperature, inletAirHumidityRatio, PhysicsConstants.StandardAtmosphericPressure));
-      borderRelativeHumidity = Math.Max(rh, borderRelativeHumidity);
-      double tWB = Math.Min(inletAirTemperature,
-        MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity
-        (inletAirHumidityRatio, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure));
-
-      //Compute the moist air specific heat [kJ/kgK]
-      double cpmaWB = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-      double mca = cpmaWB * airFlowRate;
-
-      //Dry coil calculation
-      //Compute the surface area required to cool down to the dew point
-      double qD = mca * (inletAirTemperature - tWB);
-      double epsilonD = qD / (mca * (inletAirTemperature - evpTemperature));
-      if (epsilonD <= 1) sD = -Math.Log(1 - epsilonD) * mca / HeatTransferCoefficient;
-      else sD = surfaceArea;
-
-      double hWB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(tWB, inletAirHumidityRatio);
-      double hEvp =
-        MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity(evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-
-      //Case: heat transfer completes within the dry coil alone
-      if (surfaceArea <= sD || 1 <= epsilonD || hWB < hEvp)
-      {
-        sD = surfaceArea;
-        sW = 0;
-        defrostLoad = 0;
-        outletAirHumidityRatio = inletAirHumidityRatio;
-
-        epsilonD = 1 - Math.Exp(-HeatTransferCoefficient * sD / mca);
-        qD = epsilonD * mca * (inletAirTemperature - evpTemperature);
-        outletAirTemperature = inletAirTemperature - qD / mca;
-        heatTransfer = -qD;
-        return;
-      }
-
-      //Case: a wet coil section exists
-      double tFB, qW, xFB, cpmaFB;
-      if (0 < tWB)
-      {
-        tFB = 0;
-        xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-          (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        cpmaFB = MoistAir.GetSpecificHeat(xFB);
-
-        //Compute the surface area required to cool down to the freezing point (0C)
-        double hFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-          (0, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-
-        qW = (hWB - hFB) * airFlowRate;
-        double kW = HeatTransferCoefficient / (0.5 * (cpmaWB + cpmaFB));
-        double epsilonW = qW / (airFlowRate * (hWB - hEvp));
-        if (epsilonW <= 1) sW = -Math.Log(1 - epsilonW) * airFlowRate / kW;
-        else sW = surfaceArea - sD;
-
-        //Case: heat transfer completes within the wet coil
-        if (surfaceArea <= sW + sD || 1 <= epsilonW)
-        {
-          sW = surfaceArea - sD;
-          defrostLoad = 0;
-
-          epsilonW = 1 - Math.Exp(-kW * sW / airFlowRate);
-          qW = epsilonW * airFlowRate * (hWB - hEvp);
-          double ho2 = hWB - qW / airFlowRate;
-          outletAirHumidityRatio = MoistAir.GetHumidityRatioFromEnthalpyAndRelativeHumidity
-            (ho2, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-          outletAirTemperature = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndEnthalpy
-            (outletAirHumidityRatio, ho2);
-          heatTransfer = -(qD + qW);
-          return;
-        }
-      }
-      else
-      {
-        qW = 0;
-        sW = 0;
-        tFB = tWB;
-        xFB = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-          (tWB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        cpmaFB = MoistAir.GetSpecificHeat(xFB);
-      }
-
-      //Frosted coil calculation
-      double kF = HeatTransferCoefficient / cpmaFB * F_PENALTY;
-      double hdFB = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-        (tFB, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-      double hdEvp = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-        (evpTemperature, 100, PhysicsConstants.StandardAtmosphericPressure);
-      double sF = surfaceArea - sD - sW;
-      double epsilonF = 1 - Math.Exp(-kF * sF / airFlowRate);
-      double qF = epsilonF * airFlowRate * (hdFB - hdEvp);
-      double hdo = hdFB - qF / airFlowRate;
-
-      //Iterate to converge on the outlet air temperature
-      double to = tFB;
-      double ho = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-        (to, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-      double err1 = Math.Abs(ho - hdo);
-      const double DELTA = 0.001;
-      while (0.01 < err1)
-      {
-        ho = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-          (to + DELTA, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        double err2 = Math.Abs(ho - hdo);
-        to -= DELTA * err1 / (err2 - err1);
-        ho = MoistAir.GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity
-          (to, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-        err1 = Math.Abs(ho - hdo);
-      }
-      outletAirTemperature = to;
-      outletAirHumidityRatio = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity
-        (outletAirTemperature, borderRelativeHumidity, PhysicsConstants.StandardAtmosphericPressure);
-
-      //Compute the defrost load
-      defrostLoad = airFlowRate * (xFB - outletAirHumidityRatio)
-        * (SUBLIMINATION_LATENT_HEAT - ICE_ISOBARIC_SPECIFIC_HEAT * outletAirTemperature);
-
-      //Sum up the heat transfer [kW]
-      heatTransfer = -(qD + qW + qF);
+      AirToRefrigerantCrossFinHeatExchanger.GetCoolingHeatTransfer(
+        HeatTransferCoefficient, evpTemperature, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
+        out heatTransfer, out outletAirTemperature, out outletAirHumidityRatio,
+        out sD, out sW, out defrostLoad);
     }
 
     /// <summary>Computes the heat transfer rate [kW] (positive = heating, negative = cooling).</summary>
@@ -919,22 +660,10 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double waterSupply)
     {
-      //With water spray
-      if (0 < sprayEffectiveness)
-        waterSupply = GetWaterSupply
-         (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //Without water spray
-      else waterSupply = 0;
-
-      //Moist air specific heat [kJ/kgK]
-      double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-      double mca = cpma * airFlowRate;
-
-      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
-      double q = epsilon * mca * (cndTemperature - inletAirTemperature);
-      outletAirTemperature = inletAirTemperature + q / mca;
-      outletAirHumidityRatio = inletAirHumidityRatio;
-      heatTransfer = q;
+      AirToRefrigerantCrossFinHeatExchanger.GetHeatingHeatTransfer(
+        HeatTransferCoefficient, cndTemperature, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, sprayEffectiveness,
+        out heatTransfer, out outletAirTemperature, out outletAirHumidityRatio, out waterSupply);
     }
 
     #endregion
@@ -1037,34 +766,11 @@ namespace Popolo.Core.HVAC.VRF
       bool deductDefrostLoad, out double evaporatingTemperature, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //Initial guess for the evaporating temperature
-      evaporatingTemperature = inletAirTemperature + heatTransfer / (airFlowRate * 1.006);
-
-      Roots.ErrorFunction eFnc = delegate (double eTemp)
-      {
-        double ht, ot, oa, sd, sw, dl;
-        GetEvaporatorHeatTransfer(eTemp, airFlowRate, surfaceArea, inletAirTemperature,
-          inletAirHumidityRatio, borderRelativeHumidity, out ht, out ot, out oa, out sd, out sw, out dl);
-        if (deductDefrostLoad) return ht - heatTransfer - dl;
-        else return ht - heatTransfer;
-      };
-      try
-      {
-        evaporatingTemperature = Roots.Brent(
-          evaporatingTemperature - 20, evaporatingTemperature + 5, EVAPORATING_TEMPERATURE_TOLERANCE, eFnc);
-      }
-      catch (Exception ex)
-      {
-        throw new PopoloNumericalException(
-          "UpdateWithRefrigerantTemperature",
-          $"Brent solver failed to find evaporating temperature. "
-          + $"Tair={inletAirTemperature:F2}°C, hHeat={heatTransfer:F3} kW, surface={surfaceArea:F4} m². "
-          + ex.Message, ex);
-      }
-      double hTransfer;
-      GetEvaporatorHeatTransfer(evaporatingTemperature, airFlowRate, surfaceArea,
-        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
-        out hTransfer, out outletAirTemperature, out outletAirHumidityRatio, out sD, out sW, out defrostLoad);
+      AirToRefrigerantCrossFinHeatExchanger.GetCoolingRefrigerantTemperature(
+        HeatTransferCoefficient, heatTransfer, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, deductDefrostLoad,
+        out evaporatingTemperature, out outletAirTemperature, out outletAirHumidityRatio,
+        out sD, out sW, out defrostLoad);
     }
 
     /// <summary>Computes the condensing temperature [°C].</summary>
@@ -1085,21 +791,10 @@ namespace Popolo.Core.HVAC.VRF
       out double outletAirTemperature, out double outletAirHumidityRatio,
       out double waterSupply)
     {
-      //With water spray
-      if (0 < sprayEffectiveness)
-        waterSupply = GetWaterSupply
-         (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //Without water spray
-      else waterSupply = 0;
-
-      //Moist air specific heat [kJ/kgK]
-      double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-      double mca = cpma * airFlowRate;
-
-      outletAirTemperature = inletAirTemperature + heatTransfer / mca;
-      outletAirHumidityRatio = inletAirHumidityRatio;
-      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
-      condensingTemperature = inletAirTemperature + heatTransfer / (epsilon * mca);
+      AirToRefrigerantCrossFinHeatExchanger.GetHeatingRefrigerantTemperature(
+        HeatTransferCoefficient, heatTransfer, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, sprayEffectiveness,
+        out condensingTemperature, out outletAirTemperature, out outletAirHumidityRatio, out waterSupply);
     }
 
     #endregion
@@ -1216,32 +911,11 @@ namespace Popolo.Core.HVAC.VRF
       out double evaporatingTemperature, out double heatTransfer,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //Initial guess for the evaporating temperature
-      evaporatingTemperature = outletAirSetpointTemperature;
-
-      Roots.ErrorFunction eFnc = delegate (double eTemp)
-      {
-        GetEvaporatorHeatTransfer(eTemp, airFlowRate, surfaceArea, inletAirTemperature,
-          inletAirHumidityRatio, borderRelativeHumidity,
-          out _, out double ot, out _, out _, out _, out _);
-        return ot - outletAirSetpointTemperature;
-      };
-      try
-      {
-        evaporatingTemperature = Roots.Brent(
-          evaporatingTemperature - 20, evaporatingTemperature, EVAPORATING_TEMPERATURE_TOLERANCE, eFnc);
-      }
-      catch (Exception ex)
-      {
-        throw new PopoloNumericalException(
-          "ControlOutletAirTemperature",
-          $"Brent solver failed to find evaporating temperature for setpoint control. "
-          + $"Tair={inletAirTemperature:F2}°C, Tsp={outletAirSetpointTemperature:F2}°C, surface={surfaceArea:F4} m². "
-          + ex.Message, ex);
-      }
-      GetEvaporatorHeatTransfer(evaporatingTemperature, airFlowRate, surfaceArea,
+      AirToRefrigerantCrossFinHeatExchanger.GetCoolingRefrigerantTemperatureForOutletAirTemperature(
+        HeatTransferCoefficient, outletAirSetpointTemperature, airFlowRate, surfaceArea,
         inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
-        out heatTransfer, out _, out outletAirHumidityRatio, out sD, out sW, out defrostLoad);
+        out evaporatingTemperature, out heatTransfer, out outletAirHumidityRatio,
+        out sD, out sW, out defrostLoad);
     }
 
     /// <summary>Controls the supply air temperature [°C].</summary>
@@ -1262,21 +936,10 @@ namespace Popolo.Core.HVAC.VRF
       out double heatTransfer, out double outletAirHumidityRatio,
       out double waterSupply)
     {
-      //With water spray
-      if (0 < sprayEffectiveness)
-        waterSupply = GetWaterSupply
-         (ref inletAirTemperature, ref inletAirHumidityRatio, sprayEffectiveness, airFlowRate);
-      //Without water spray
-      else waterSupply = 0;
-
-      //Moist air specific heat [kJ/kgK]
-      double cpma = MoistAir.GetSpecificHeat(inletAirHumidityRatio);
-      double mca = cpma * airFlowRate;
-
-      heatTransfer = (outletAirSetpointTemperature - inletAirTemperature) * mca;
-      outletAirHumidityRatio = inletAirHumidityRatio;
-      double epsilon = 1 - Math.Exp(-HeatTransferCoefficient * surfaceArea / mca);
-      condensingTemperature = inletAirTemperature + heatTransfer / (epsilon * mca);
+      AirToRefrigerantCrossFinHeatExchanger.GetHeatingRefrigerantTemperatureForOutletAirTemperature(
+        HeatTransferCoefficient, outletAirSetpointTemperature, airFlowRate, surfaceArea,
+        inletAirTemperature, inletAirHumidityRatio, sprayEffectiveness,
+        out condensingTemperature, out heatTransfer, out outletAirHumidityRatio, out waterSupply);
     }
 
     #endregion

@@ -8,6 +8,8 @@ using System;
 using Xunit;
 using Popolo.Core.HVAC.HeatExchanger;
 
+#pragma warning disable CS0618 // Intentionally testing the obsolete API
+
 namespace Popolo.Core.Tests.HVAC.HeatExchanger
 {
     /// <summary>Unit tests for <see cref="CrossFinEvaporator"/>.</summary>

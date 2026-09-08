@@ -24,6 +24,9 @@ using Popolo.Core.Physics;
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Cross-fin (plate-fin-and-tube) air-cooled condenser.</summary>
+  /// <remarks>Superseded by <see cref="AirToRefrigerantCrossFinHeatExchanger"/> (pure functions)
+  /// and Popolo.Core.HVAC.VRF.VRFUnit (stateful unit model).</remarks>
+  [Obsolete("Superseded by AirToRefrigerantCrossFinHeatExchanger (pure functions) and Popolo.Core.HVAC.VRF.VRFUnit (stateful unit model). This class will be removed in a future major version.")]
   public class CrossFinCondenser : IReadOnlyCrossFinCondenser
   {
 

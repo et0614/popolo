@@ -18,10 +18,10 @@ namespace Popolo.Core.HVAC.AirSide
     IReadOnlyHumidifier? Humidifier { get; }
 
     /// <summary>Gets the cooling coil.</summary>
-    IReadOnlyCrossFinHeatExchanger CoolingCoil { get; }
+    IReadOnlyAirToWaterCrossFinHeatExchanger CoolingCoil { get; }
 
     /// <summary>Gets the heating coil.</summary>
-    IReadOnlyCrossFinHeatExchanger HeatingCoil { get; }
+    IReadOnlyAirToWaterCrossFinHeatExchanger HeatingCoil { get; }
 
     /// <summary>Gets the supply air fan.</summary>
     IReadOnlyFluidMachinery SupplyAirFan { get; }

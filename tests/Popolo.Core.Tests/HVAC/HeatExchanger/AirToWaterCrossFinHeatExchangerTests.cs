@@ -1,4 +1,4 @@
-/* CrossFinHeatExchangerTests.cs
+/* AirToWaterCrossFinHeatExchangerTests.cs
  *
  * Copyright (C) 2026 E.Togashi
  * GNU General Public License v3 — see accompanying LICENSE file.
@@ -10,9 +10,9 @@ using Popolo.Core.HVAC.HeatExchanger;
 
 namespace Popolo.Core.Tests.HVAC.HeatExchanger
 {
-    /// <summary>Unit tests for <see cref="CrossFinHeatExchanger"/>.</summary>
+    /// <summary>Unit tests for <see cref="AirToWaterCrossFinHeatExchanger"/>.</summary>
     /// <remarks>
-    /// CrossFinHeatExchanger models a plate-fin-and-tube air-water coil.
+    /// AirToWaterCrossFinHeatExchanger models a plate-fin-and-tube air-water coil.
     /// Supports both simplified (rated-condition) and detailed (geometric) models.
     ///
     /// Simplified constructor (ctor2):
@@ -30,7 +30,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
     /// Cooling coil: inletWaterTemp &lt; inletAirTemp → outlet air cooled, HeatTransfer &gt; 0
     /// Heating coil: inletWaterTemp &gt; inletAirTemp → outlet air heated, HeatTransfer &gt; 0
     /// </remarks>
-    public class CrossFinHeatExchangerTests
+    public class AirToWaterCrossFinHeatExchangerTests
     {
         #region Helpers
 
@@ -38,15 +38,15 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         /// 冷却コイル（簡易モデル）を生成する。
         /// 定格: 風量1.5kg/s, 入口空気27°C/W=0.011, 冷水7°C/0.5kg/s, 能力10kW。
         /// </summary>
-        private static CrossFinHeatExchanger MakeCoolingCoil()
-            => new CrossFinHeatExchanger(
+        private static AirToWaterCrossFinHeatExchanger MakeCoolingCoil()
+            => new AirToWaterCrossFinHeatExchanger(
                 0.6, 0.4,           // width, height [m]
                 4, 6,               // rowNumber, columnNumber
                 1.5, 27.0, 0.011,   // ratedAirFlow, ratedInletAirTemp, ratedInletAirHumidity
                 80.0,               // borderRelativeHumidity [%]
                 0.5, 1.0,           // ratedWaterFlow, maxWaterFlow [kg/s]
                 7.0,                // ratedInletWaterTemp [°C]
-                CrossFinHeatExchanger.WaterFlowType.SingleFlow,
+                AirToWaterCrossFinHeatExchanger.WaterFlowType.SingleFlow,
                 10.0,               // heatTransfer [kW]
                 false);             // useCorrectionFactor
 
@@ -54,15 +54,15 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         /// 加熱コイル（簡易モデル）を生成する。
         /// 定格: 風量1.5kg/s, 入口空気15°C/W=0.006, 温水60°C/0.3kg/s, 能力15kW。
         /// </summary>
-        private static CrossFinHeatExchanger MakeHeatingCoil()
-            => new CrossFinHeatExchanger(
+        private static AirToWaterCrossFinHeatExchanger MakeHeatingCoil()
+            => new AirToWaterCrossFinHeatExchanger(
                 0.6, 0.4,
                 4, 6,
                 1.5, 15.0, 0.006,
                 80.0,
                 0.3, 0.8,
                 60.0,
-                CrossFinHeatExchanger.WaterFlowType.SingleFlow,
+                AirToWaterCrossFinHeatExchanger.WaterFlowType.SingleFlow,
                 15.0,
                 false);
 

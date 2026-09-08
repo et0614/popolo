@@ -3,9 +3,13 @@
  * GNU General Public License v3
  */
 
+using System;
+
 namespace Popolo.Core.HVAC.HeatExchanger
 {
   /// <summary>Read-only view of a cross-fin air-cooled condenser.</summary>
+  /// <remarks>Superseded together with <see cref="CrossFinCondenser"/>.</remarks>
+  [Obsolete("Superseded together with CrossFinCondenser. This interface will be removed in a future major version.")]
   public interface IReadOnlyCrossFinCondenser
   {
     /// <summary>Gets the heat transfer surface area [m²].</summary>

@@ -50,19 +50,19 @@ namespace Popolo.Core.Tests.HVAC.AirSide
         bool withRegenerator = true)
     {
       // 冷水コイル (AirHandlingUnitTest と同一パラメータ)
-      var cCoil = new CrossFinHeatExchanger(
+      var cCoil = new AirToWaterCrossFinHeatExchanger(
           0.82, 0.910, 6, 24,
           Msa, 27.46, 0.01206, 95,
           127.0 / 60, 127.0 / 60, 7.0,
-          CrossFinHeatExchanger.WaterFlowType.HalfFlow,
+          AirToWaterCrossFinHeatExchanger.WaterFlowType.HalfFlow,
           49.6, true);
 
       // 温水コイル
-      var hCoil = new CrossFinHeatExchanger(
+      var hCoil = new AirToWaterCrossFinHeatExchanger(
           0.82, 0.910, 4, 24,
           Msa, 17.46, 0.00554, 95,
           105.0 / 60, 105.0 / 60, 50.0,
-          CrossFinHeatExchanger.WaterFlowType.HalfFlow,
+          AirToWaterCrossFinHeatExchanger.WaterFlowType.HalfFlow,
           46.9, true);
 
       // 給気・還気ファン

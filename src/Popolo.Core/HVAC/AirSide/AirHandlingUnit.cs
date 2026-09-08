@@ -50,10 +50,10 @@ namespace Popolo.Core.HVAC.AirSide
     #region Instance variables and properties
 
     /// <summary>Cooling/dehumidifying coil.</summary>
-    private CrossFinHeatExchanger cCoil;
+    private AirToWaterCrossFinHeatExchanger cCoil;
 
     /// <summary>Heating coil.</summary>
-    private CrossFinHeatExchanger hCoil;
+    private AirToWaterCrossFinHeatExchanger hCoil;
 
     /// <summary>Supply air fan.</summary>
     private CentrifugalFan saFan;
@@ -75,10 +75,10 @@ namespace Popolo.Core.HVAC.AirSide
     public IReadOnlyHumidifier? Humidifier { get { return humidifier; } }
 
     /// <summary>Gets the cooling coil.</summary>
-    public IReadOnlyCrossFinHeatExchanger CoolingCoil { get { return cCoil; } }
+    public IReadOnlyAirToWaterCrossFinHeatExchanger CoolingCoil { get { return cCoil; } }
 
     /// <summary>Gets the heating coil.</summary>
-    public IReadOnlyCrossFinHeatExchanger HeatingCoil { get { return hCoil; } }
+    public IReadOnlyAirToWaterCrossFinHeatExchanger HeatingCoil { get { return hCoil; } }
 
     /// <summary>Gets the supply air fan.</summary>
     public IReadOnlyFluidMachinery SupplyAirFan { get { return saFan; } }
@@ -169,7 +169,7 @@ namespace Popolo.Core.HVAC.AirSide
     /// <param name="saFan">Supply air fan.</param>
     /// <param name="raFan">Return air fan.</param>
     public AirHandlingUnit
-      (CrossFinHeatExchanger cCoil, CrossFinHeatExchanger hCoil,
+      (AirToWaterCrossFinHeatExchanger cCoil, AirToWaterCrossFinHeatExchanger hCoil,
       Humidifier? humidifier, CentrifugalFan saFan, CentrifugalFan raFan) :
       this(cCoil, hCoil, humidifier, saFan, raFan, null)
     { }
@@ -182,7 +182,7 @@ namespace Popolo.Core.HVAC.AirSide
     /// <param name="raFan">Return air fan.</param>
     /// <param name="regenerator">Rotary heat recovery wheel.</param>
     public AirHandlingUnit
-      (CrossFinHeatExchanger cCoil, CrossFinHeatExchanger hCoil, Humidifier? humidifier,
+      (AirToWaterCrossFinHeatExchanger cCoil, AirToWaterCrossFinHeatExchanger hCoil, Humidifier? humidifier,
       CentrifugalFan saFan, CentrifugalFan raFan, RotaryRegenerator? regenerator)
     {
       this.cCoil = cCoil;

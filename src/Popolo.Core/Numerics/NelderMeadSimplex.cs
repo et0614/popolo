@@ -31,6 +31,10 @@ namespace Popolo.Core.Numerics
     private const int MAX_ITERATION = 5000;
     private const double ERR_TOLERANCE = 1e-5;
 
+    /// <summary>Fixed seeds for the deterministic random restarts used when the search
+    /// from the axis-spanning initial simplex fails to converge.</summary>
+    private static readonly uint[] RESTART_SEEDS = { 19650218U, 20140101U, 20260908U };
+
     #endregion
 
     #region Parameters
@@ -107,8 +111,7 @@ namespace Popolo.Core.Numerics
       ValidateSearchRange(minX, maxX);
 
       InternalOptimizeFunction fnc = (x, iteration) => mFnc(x);
-      double[][] points = MakeInitialPoints(minX, maxX);
-      return Solve(fnc, points, false, out success);
+      return SolveWithRestarts(fnc, minX, maxX, false, out success);
     }
 
     /// <summary>Finds the input vector that minimizes the given function subject to an equality constraint.</summary>
@@ -129,8 +132,7 @@ namespace Popolo.Core.Numerics
 
       InternalOptimizeFunction fnc = (x, iteration) =>
           mFnc(x) + (Rho * (iteration + 5)) * Math.Pow(Math.Abs(cFnc(x)), pow);
-      double[][] points = MakeInitialPoints(minX, maxX);
-      return Solve(fnc, points, true, out success);
+      return SolveWithRestarts(fnc, minX, maxX, true, out success);
     }
 
     #endregion
@@ -188,7 +190,9 @@ namespace Popolo.Core.Numerics
         ave /= (num + 1);
         double err = 0;
         for (int i = 0; i <= num; i++) err += Math.Abs(ypi[i] - ave);
-        if (err / (num + 1) < ERR_TOLERANCE) break;
+        //Never accept convergence before the first reflection: coincidentally equal
+        //function values at the initial vertices would otherwise be mistaken for a minimum
+        if (0 < iterNum && err / (num + 1) < ERR_TOLERANCE) break;
 
         double yt1 = TryPoint(fnc, iterNum, points[iMax], sum, -Alpha, ref newPt1);
         if (yt1 < ypi[iMin])
@@ -252,14 +256,60 @@ namespace Popolo.Core.Numerics
       return points[iMin];
     }
 
-    /// <summary>Generates initial simplex vertices using random sampling within the search range.</summary>
+    /// <summary>Runs the solver from the deterministic initial simplex, retrying from
+    /// fixed-seed random simplices when the search does not converge.</summary>
+    /// <remarks>
+    /// The whole procedure is deterministic: the same inputs always yield the same result.
+    /// The former time-seeded random initialization occasionally produced a nearly degenerate
+    /// simplex that collapsed onto a subspace and "converged" at a wrong point.
+    /// </remarks>
+    private static double[] SolveWithRestarts(
+        InternalOptimizeFunction fnc, double[] minX, double[] maxX,
+        bool hasConstraint, out bool success)
+    {
+      double[] result = Solve(fnc, MakeInitialPoints(minX, maxX), hasConstraint, out success);
+      if (success) return result;
+      foreach (uint seed in RESTART_SEEDS)
+      {
+        result = Solve(fnc, MakeInitialPoints(minX, maxX, seed), hasConstraint, out success);
+        if (success) return result;
+      }
+      return result;
+    }
+
+    /// <summary>Generates a deterministic axis-spanning initial simplex.</summary>
+    /// <remarks>
+    /// Vertex 0 sits at the 20 % point of the search box and each further vertex shifts one
+    /// coordinate to the 70 % point, so the simplex spans the full dimensionality by
+    /// construction and can never start degenerate. The asymmetric 0.2/0.7 split also avoids
+    /// mirror-symmetric vertex placements (±c on a box symmetric about the origin), which
+    /// would give coincidentally equal function values on symmetric objectives.
+    /// </remarks>
     private static double[][] MakeInitialPoints(double[] minX, double[] maxX)
+    {
+      int num = minX.Length;
+      double[][] pnts = new double[num + 1][];
+      for (int i = 0; i < pnts.Length; i++)
+      {
+        pnts[i] = new double[num];
+        for (int j = 0; j < num; j++)
+          pnts[i][j] = minX[j] + 0.2 * (maxX[j] - minX[j]);
+      }
+      for (int j = 0; j < num; j++)
+        pnts[j + 1][j] += 0.5 * (maxX[j] - minX[j]);
+      return pnts;
+    }
+
+    /// <summary>Generates random initial simplex vertices within the search range (used for restarts).</summary>
+    /// <param name="minX">Lower bounds of the search range.</param>
+    /// <param name="maxX">Upper bounds of the search range.</param>
+    /// <param name="seed">Seed of the pseudo-random sequence.</param>
+    private static double[][] MakeInitialPoints(double[] minX, double[] maxX, uint seed)
     {
       double[][] pnts = new double[minX.Length + 1][];
       for (int i = 0; i < pnts.Length; i++) pnts[i] = new double[minX.Length];
 
-      // Millisecond-resolution seed reduces duplicates within the same second
-      var mt = new MersenneTwister((uint)DateTime.Now.Ticks);
+      var mt = new MersenneTwister(seed);
       for (int i = 0; i < pnts.Length; i++)
         for (int j = 0; j < minX.Length; j++)
           pnts[i][j] = minX[j] + (maxX[j] - minX[j]) * mt.NextDouble();
