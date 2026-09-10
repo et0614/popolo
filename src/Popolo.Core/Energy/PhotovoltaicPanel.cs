@@ -65,15 +65,12 @@ namespace Popolo.Core.Energy
 
     #region Properties
 
-    /// <summary>Backing field for the inverter efficiency.</summary>
-    private double _inverterEfficiency = 0.9;
-
-    /// <summary>Gets or sets the inverter efficiency [-] (clamped to [0, 1]).</summary>
-    public double InverterEfficiency
-    {
-      get => _inverterEfficiency;
-      set => _inverterEfficiency = Math.Max(0, Math.Min(1, value));
-    }
+    /// <summary>
+    /// Gets the inverter (DC to AC power converter). The rated power is initialized
+    /// with the peak power of the panel. The load ratio is evaluated with the
+    /// DC side power, which is the known side for a PV system.
+    /// </summary>
+    public PowerConverter Inverter { get; private set; }
 
     /// <summary>Gets the peak power output [W] under STC (1000 W/m², 25 °C).</summary>
     public double PeakPower { get; private set; }
@@ -86,6 +83,9 @@ namespace Popolo.Core.Energy
 
     /// <summary>Gets the tilted surface on which the panel is installed.</summary>
     public IReadOnlyIncline Incline { get; private set; }
+
+    /// <summary>Gets the inverter as a read-only view.</summary>
+    IReadOnlyPowerConverter IReadOnlyPhotovoltaicPanel.Inverter => Inverter;
 
     #endregion
 
@@ -122,6 +122,7 @@ namespace Popolo.Core.Energy
       Mount = mount;
       Material = material;
       Incline = incline;
+      Inverter = new PowerConverter(peakPower);
     }
 
     #endregion
@@ -141,7 +142,7 @@ namespace Popolo.Core.Energy
         double dryBulbTemperature, double velocity, double totalIrradiance)
     {
       return GetPower(dryBulbTemperature, velocity, totalIrradiance,
-          PeakPower, InverterEfficiency, Mount, Material);
+          PeakPower, Inverter, Mount, Material);
     }
 
     /// <summary>
@@ -171,18 +172,19 @@ namespace Popolo.Core.Energy
     /// <param name="velocity">Wind speed [m/s]</param>
     /// <param name="totalIrradiance">Total irradiance on the tilted surface [W/m²]</param>
     /// <param name="peakPower">Peak power output [W] under STC</param>
-    /// <param name="inverterEfficiency">Inverter efficiency [-]</param>
+    /// <param name="inverter">Inverter (DC to AC power converter)</param>
     /// <param name="mount">Mounting type</param>
     /// <param name="material">Cell material type</param>
     /// <returns>Power output [W]</returns>
     public static double GetPower(
         double dryBulbTemperature, double velocity, double totalIrradiance,
-        double peakPower, double inverterEfficiency,
+        double peakPower, IReadOnlyPowerConverter inverter,
         MountType mount, MaterialType material)
     {
       double kpt = GetTemperatureRiseCorrectionFactor(
           dryBulbTemperature, velocity, totalIrradiance, mount, material);
-      return totalIrradiance / 1000.0 * kpt * peakPower * inverterEfficiency;
+      double dcPower = totalIrradiance / 1000.0 * kpt * peakPower;
+      return dcPower * inverter.GetEfficiency(dcPower);
     }
 
     /// <summary>Computes the output correction factor due to the rise in panel temperature (Yukawa et al., 1996).</summary>
@@ -223,8 +225,8 @@ namespace Popolo.Core.Energy
   /// </summary>
   public interface IReadOnlyPhotovoltaicPanel
   {
-    /// <summary>Gets the inverter efficiency [-].</summary>
-    double InverterEfficiency { get; }
+    /// <summary>Gets the inverter (DC to AC power converter).</summary>
+    IReadOnlyPowerConverter Inverter { get; }
 
     /// <summary>Gets the peak power output [W] under STC (1000 W/m², 25 °C).</summary>
     double PeakPower { get; }

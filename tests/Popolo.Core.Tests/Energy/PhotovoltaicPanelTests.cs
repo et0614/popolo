@@ -30,8 +30,9 @@ namespace Popolo.Core.Tests.Energy
   /// - JIS C 8907: STC（標準試験条件）は傾斜面日射強度1000W/m²、周囲温度25°C
   /// - 湯川元信ら: パネル温度上昇の推定式（1996）
   ///
-  /// STC条件（日射1000W/m²、気温25°C、風速1m/s相当）では温度補正係数≒1 となるため、
-  /// 出力 ≒ PeakPower × InverterEfficiency が成り立つ。
+  /// インバータはPowerConverter（負荷率依存効率、定格=PeakPower）で表現される。
+  /// STC条件では温度補正係数0.88〜0.98、インバータ効率≒0.95のため、
+  /// 出力 ≒ PeakPower × (0.84〜0.95) が成り立つ。
   /// </remarks>
   public class PhotovoltaicPanelTests
   {
@@ -49,7 +50,8 @@ namespace Popolo.Core.Tests.Energy
       Assert.Equal(5000, panel.PeakPower, precision: 6);
       Assert.Equal(PhotovoltaicPanel.MountType.RoofMount, panel.Mount);
       Assert.Equal(PhotovoltaicPanel.MaterialType.Crystal, panel.Material);
-      Assert.Equal(0.9, panel.InverterEfficiency, precision: 6);
+      //インバータの定格電力はパネルのピーク出力で初期化される
+      Assert.Equal(5000, panel.Inverter.RatedPower, precision: 6);
       //南向き（HorizontalAngle=0）で設置される
       Assert.Equal(0, panel.Incline.HorizontalAngle, precision: 6);
       //傾斜角30° = π/6 radian
@@ -71,22 +73,23 @@ namespace Popolo.Core.Tests.Energy
 
     #endregion
 
-    #region InverterEfficiency tests
+    #region Inverter tests
 
-    /// <summary>InverterEfficiencyは0〜1にクランプされる</summary>
-    [Theory]
-    [InlineData(-0.5, 0.0)]
-    [InlineData(0.0, 0.0)]
-    [InlineData(0.85, 0.85)]
-    [InlineData(1.0, 1.0)]
-    [InlineData(1.5, 1.0)]
-    public void InverterEfficiency_Clamped(double input, double expected)
+    /// <summary>インバータの損失係数を変更すると出力が変化する</summary>
+    [Fact]
+    public void Inverter_CoefficientsChanged_AffectsPower()
     {
       var panel = new PhotovoltaicPanel(
           5000, PhotovoltaicPanel.MountType.RoofMount,
           PhotovoltaicPanel.MaterialType.Crystal, Incline.Orientation.S, 30);
-      panel.InverterEfficiency = input;
-      Assert.Equal(expected, panel.InverterEfficiency, precision: 6);
+
+      double powerDefault = panel.GetPower(25, 5, 1000);
+      //無負荷損係数を増やすと効率が下がる
+      panel.Inverter.CoefficientC = 0.10;
+      double powerLossy = panel.GetPower(25, 5, 1000);
+
+      Assert.True(powerLossy < powerDefault,
+          $"Expected lossy ({powerLossy:F1}W) < default ({powerDefault:F1}W)");
     }
 
     #endregion
@@ -94,12 +97,12 @@ namespace Popolo.Core.Tests.Energy
     #region GetPower tests
 
     /// <summary>
-    /// STC条件（日射1000W/m²、25°C）では出力がPeakPower×InverterEfficiency に近い
+    /// STC条件（日射1000W/m²、25°C）では出力がPeakPower×(0.84〜0.95) に収まる
     /// </summary>
     /// <remarks>
     /// 風速5m/sでもパネル温度は43〜48°Cまで上昇するため（湯川ら 1996）、
-    /// 出力は定格値の88〜98%程度になる。STC条件は日射・気温の規定であり
-    /// 風速は規定されないため、実運用では温度損失が発生する。
+    /// DC出力は定格値の88〜98%程度になる。さらにインバータ効率
+    /// （負荷率0.9前後で約0.95）が乗るため、AC出力は定格の84〜95%程度になる。
     /// </remarks>
     [Theory]
     [InlineData(PhotovoltaicPanel.MountType.RoofMount, PhotovoltaicPanel.MaterialType.Crystal)]
@@ -114,11 +117,9 @@ namespace Popolo.Core.Tests.Energy
           Incline.Orientation.S, 30);
 
       //STC: 日射1000W/m²、気温25°C、風速5m/s
-      //パネル温度は43〜48°Cになるため出力は定格の88〜98%程度
       double power = panel.GetPower(25, 5, 1000);
-      double rated = peakPower * panel.InverterEfficiency;
 
-      Assert.InRange(power, rated * 0.88, rated * 1.00);
+      Assert.InRange(power, peakPower * 0.84, peakPower * 0.95);
     }
 
     /// <summary>日射がゼロの場合は出力がゼロ</summary>
@@ -199,7 +200,7 @@ namespace Popolo.Core.Tests.Energy
 
       double fromInstance = panel.GetPower(25, 2, 800);
       double fromStatic = PhotovoltaicPanel.GetPower(
-          25, 2, 800, panel.PeakPower, panel.InverterEfficiency,
+          25, 2, 800, panel.PeakPower, panel.Inverter,
           panel.Mount, panel.Material);
 
       Assert.Equal(fromInstance, fromStatic, precision: 6);
@@ -238,7 +239,7 @@ namespace Popolo.Core.Tests.Energy
 
       IReadOnlyPhotovoltaicPanel readOnly = panel;
       Assert.Equal(5000, readOnly.PeakPower, precision: 6);
-      Assert.Equal(0.9, readOnly.InverterEfficiency, precision: 6);
+      Assert.Equal(5000, readOnly.Inverter.RatedPower, precision: 6);
     }
 
     #endregion
