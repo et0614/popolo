@@ -52,9 +52,4 @@
 		<None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<!-- SourceLink の GitHub プロバイダ（ビルドのみで利用、依存には出さない） -->
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-	</ItemGroup>
-
 </Project>

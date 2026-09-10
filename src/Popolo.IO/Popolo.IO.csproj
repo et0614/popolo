@@ -49,11 +49,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SourceLink の GitHub プロバイダ（ビルドのみで利用、依存には出さない） -->
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Popolo.Core\Popolo.Core.csproj" />
     <InternalsVisibleTo Include="Popolo.IO.Tests" />
   </ItemGroup>
