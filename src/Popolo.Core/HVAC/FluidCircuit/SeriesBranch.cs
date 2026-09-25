@@ -17,6 +17,7 @@
  
 using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
+using System;
 
 namespace Popolo.Core.HVAC.FluidCircuit
 {
@@ -53,8 +54,28 @@ namespace Popolo.Core.HVAC.FluidCircuit
       brDNStrm.DownStreamNode = ndDN;
     }
 
+    /// <summary>Maximum number of bracket expansions for the intermediate node pressure.</summary>
+    private const int MAX_BRACKET_EXPANSION = 60;
+
+    /// <summary>Minimum initial bracket expansion step for the intermediate node pressure [kPa].</summary>
+    private const double MIN_EXPANSION_STEP = 1.0;
+
+    /// <summary>Absolute tolerance on the intermediate node pressure [kPa].</summary>
+    private const double PRESSURE_TOLERANCE = 1e-9;
+
     /// <summary>Computes the volumetric flow rate [m³/s] from the differential pressure.</summary>
     /// <returns>Volumetric flow rate [m³/s].</returns>
+    /// <remarks>
+    /// The intermediate node pressure p is solved so that both branches carry the same flow.
+    /// The flow of each branch must be monotone in its own pressure difference (as for pipes,
+    /// valves, fixed resistances, pumps and fans), which makes the flow imbalance
+    /// (upstream flow − downstream flow) non-increasing in p. For passive branches the root
+    /// lies between the end-node pressures; when a pump or fan is included it lies outside
+    /// them, so the interval is expanded (bounded number of doublings) until it brackets the root.
+    /// </remarks>
+    /// <exception cref="PopoloNumericalException">
+    /// Thrown when no intermediate pressure balancing the two branch flows can be bracketed.
+    /// </exception>
     public void UpdateFlowRateFromNodePressureDifference()
     {
       if (UpStreamNode == null || DownStreamNode == null)
@@ -62,7 +83,6 @@ namespace Popolo.Core.HVAC.FluidCircuit
             nameof(SeriesBranch),
             nameof(UpStreamNode));
 
-      double dp = UpStreamNode.Pressure - DownStreamNode.Pressure;
       ndUP.Pressure = UpStreamNode.Pressure;
       ndDN.Pressure = DownStreamNode.Pressure;
 
@@ -73,8 +93,39 @@ namespace Popolo.Core.HVAC.FluidCircuit
         brDNStrm.UpdateFlowRateFromNodePressureDifference();
         return brUPStrm.VolumetricFlowRate - brDNStrm.VolumetricFlowRate;
       };
-      Roots.Bisection(eFnc, UpStreamNode.Pressure, DownStreamNode.Pressure, 1e-7, 1e-7, 20);
-      //Roots.Newton(eFnc, 0.5 * (UpStreamNode.Pressure - DownStreamNode.Pressure), 1e-6, 1e-6, 1e-5, 20);
+
+      //Initial bracket: the end-node pressures (sufficient for passive branches)
+      double lo = Math.Min(UpStreamNode.Pressure, DownStreamNode.Pressure);
+      double hi = Math.Max(UpStreamNode.Pressure, DownStreamNode.Pressure);
+      double fLo = eFnc(lo);
+      double fHi = eFnc(hi);
+
+      //Expand the bracket when it does not contain a sign change
+      //(the imbalance is non-increasing in p: positive at both ends → root above, negative → root below)
+      double step = Math.Max(hi - lo, MIN_EXPANSION_STEP);
+      int expansion = 0;
+      while (0 < fLo * fHi)
+      {
+        if (MAX_BRACKET_EXPANSION < ++expansion)
+          throw new PopoloNumericalException(nameof(SeriesBranch),
+            "Could not bracket the intermediate node pressure that balances the flows of the two "
+            + $"series branches (last interval [{lo}, {hi}] kPa, imbalance {fLo}, {fHi} m³/s). "
+            + "SeriesBranch requires branches whose flow is monotone in their own pressure difference.");
+        if (0 < fHi)
+        {
+          lo = hi; fLo = fHi;
+          hi += step; fHi = eFnc(hi);
+        }
+        else
+        {
+          hi = lo; fHi = fLo;
+          lo -= step; fLo = eFnc(lo);
+        }
+        step *= 2;
+      }
+
+      double pMid = Roots.Brent(eFnc, lo, hi, fLo, fHi, PRESSURE_TOLERANCE);
+      eFnc(pMid); //Update the branch states at the solution
       VolumetricFlowRate = brUPStrm.VolumetricFlowRate;
     }
 

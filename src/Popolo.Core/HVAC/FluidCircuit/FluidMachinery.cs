@@ -329,7 +329,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     /// <summary>Computes the volumetric flow rate [m³/s] from the differential pressure.</summary>
     /// <returns>Volumetric flow rate [m³/s].</returns>
-    /// <remarks>The PQ characteristic is monotonically decreasing throughout to support iterative convergence.</remarks>
+    /// <remarks>
+    /// The PQ characteristic at the current rotation ratio r follows the affinity law P = r²·f(Q/r)
+    /// (consistent with <see cref="GetPressure(double, double, double[])"/>).
+    /// It is extended to be monotonically decreasing throughout to support iterative convergence.
+    /// </remarks>
     public void UpdateFlowRateFromNodePressureDifference()
     {
       if (UpStreamNode == null || DownStreamNode == null)
@@ -344,11 +348,15 @@ namespace Popolo.Core.HVAC.FluidCircuit
         VolumetricFlowRate = 0;
         return;
       }
-      double r2 = RotationRatio * RotationRatio;
+      double r = RotationRatio;
+      double r2 = r * r;
       double[] pc = pressureCoefficient;
 
+      //By the affinity law the characteristic at rotation ratio r is P = r²·f(Q/r)
+      //= pc[0]·Q² + r·pc[1]·Q + r²·pc[2], so every flow rate on it scales with r.
+
       //Compute the flow rate at zero head: quadratic formula
-      double maxF = (-pc[1] - Math.Sqrt(pc[1] * pc[1] - 4 * pc[0] * pc[2])) / (2 * pc[0]);
+      double maxF = r * (-pc[1] - Math.Sqrt(pc[1] * pc[1] - 4 * pc[0] * pc[2])) / (2 * pc[0]);
       if (dp <= 0)
       {
         VolumetricFlowRate = maxF + Math.Sqrt(-dp * r2);
@@ -363,14 +371,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
       else pMax = r2 * pc[2];  //Intercept pressure
       if (pMax < dp)
       {
-        VolumetricFlowRate = pMaxF - (dp - pMax);
+        VolumetricFlowRate = r * pMaxF - (dp - pMax);
         Pressure = pMax;
         return;
       }
 
-      //Solve with the quadratic formula
-      double aa = r2 * pc[0];
-      double bb = r2 * pc[1];
+      //Solve with the quadratic formula: pc[0]·Q² + r·pc[1]·Q + r²·pc[2] − dp = 0
+      double aa = pc[0];
+      double bb = r * pc[1];
       double cc = r2 * pc[2] - dp;
       VolumetricFlowRate = (-bb - Math.Sqrt(bb * bb - 4 * aa * cc)) / (2 * aa);
       Pressure = dp;
@@ -436,9 +444,10 @@ namespace Popolo.Core.HVAC.FluidCircuit
       if (rotationRatio <= 0) return 0;
       double r2 = rotationRatio * rotationRatio;
 
-      //Compute the flow rate at zero head: quadratic formula
+      //Compute the flow rate at zero head at the rated speed: quadratic formula
+      //(by the affinity law P = r²·f(Q/r), every flow rate on the characteristic scales with r)
       double maxF = (-pressureCoef[1] - Math.Sqrt(pressureCoef[1] * pressureCoef[1] - 4 * pressureCoef[0] * pressureCoef[2])) / (2 * pressureCoef[0]);
-      if (pressure <= 0) return maxF;
+      if (pressure <= 0) return rotationRatio * maxF;
 
       //Compute the maximum of the PQ characteristic//Output zero flow rate if the head is insufficient
       double pMaxF = -0.5 * pressureCoef[1] / pressureCoef[0];
@@ -447,10 +456,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
       else pMax = r2 * pressureCoef[2];  //Intercept pressure
       if (pMax < pressure) return 0; //2022.01.06 BugFix
 
-      //Solve with the bisection method
+      //Solve with the bisection method on the descending branch [r·max(0, pMaxF), r·maxF]
       Roots.ErrorFunction eFnc = delegate (double vf)
       { return r2 * GetPolynomial(vf / rotationRatio, pressureCoef) - pressure; };
-      return Roots.Bisection(eFnc, Math.Max(0, pMaxF), maxF, 1e-4, 1e-4, 20);
+      return Roots.Bisection
+        (eFnc, rotationRatio * Math.Max(0, pMaxF), rotationRatio * maxF, 1e-4, 1e-4, 20);
     }
 
     /// <summary>Computes the volumetric flow rate at the intersection of the resistance curve and PQ characteristic.</summary>

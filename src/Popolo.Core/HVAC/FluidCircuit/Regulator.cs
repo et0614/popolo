@@ -148,7 +148,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
     /// <summary>Adjusts the valve opening based on the current differential pressure [kPa].</summary>
     public void UpdateLift()
     {
-      if (VolumetricFlowRateSetpoint == 0) Lift = 0;
+      if (VolumetricFlowRateSetpoint <= 0)
+      {
+        Lift = 0;
+        return;
+      }
 
       if (UpStreamNode == null || DownStreamNode == null)
         throw new PopoloInvalidOperationException(
@@ -161,8 +165,21 @@ namespace Popolo.Core.HVAC.FluidCircuit
 
     /// <summary>Adjusts the valve opening based on the upstream-to-downstream differential pressure [kPa].</summary>
     /// <param name="pressure">Differential pressure [kPa].</param>
+    /// <remarks>
+    /// A setpoint of zero or less closes the valve (Lift = 0). When the required resistance is
+    /// below the fully-open resistance the valve is fully opened (Lift = 1); when it is at or above
+    /// the resistance at Lift = 0 (the rangeability limit) the valve is set to Lift = 0.
+    /// In between, the resistance characteristic is monotonically decreasing in the lift,
+    /// and the lift is solved by Brent's method on [0, 1].
+    /// </remarks>
     public void UpdateLift(double pressure)
     {
+      if (VolumetricFlowRateSetpoint <= 0)
+      {
+        Lift = 0;
+        return;
+      }
+
       double res = pressure / (VolumetricFlowRateSetpoint * VolumetricFlowRateSetpoint);
       if (res < minResistance) Lift = 1.0;
       else
@@ -171,11 +188,16 @@ namespace Popolo.Core.HVAC.FluidCircuit
         double lam = 1d / RangeAbility;
         Roots.ErrorFunction eFnc = delegate (double c)
         {
-          Lift = c;
-          return wf * minResistance / Math.Pow((1 - lam) * Lift + lam, 2)
-          + (1d - wf) * minResistance * Math.Pow(lam, 2 * Lift - 2) - res;
+          return wf * minResistance / Math.Pow((1 - lam) * c + lam, 2)
+          + (1d - wf) * minResistance * Math.Pow(lam, 2 * c - 2) - res;
         };
-        Lift = Roots.Newton(eFnc, 0.5, 1e-4, 1e-4, 1e-4, 20);
+        double f0 = eFnc(0); //Resistance at Lift = 0 minus the required resistance
+        double f1 = minResistance - res; //Resistance at Lift = 1 minus the required resistance (≤ 0)
+        //Rangeability ≤ 1: the lift cannot increase the resistance above the fully-open value
+        if (f0 <= f1) Lift = 1.0;
+        //The required resistance cannot be reached even at the minimum lift
+        else if (f0 <= 0) Lift = 0.0;
+        else Lift = Roots.Brent(eFnc, 0, 1, f0, f1, 1e-8);
       }
     }
 

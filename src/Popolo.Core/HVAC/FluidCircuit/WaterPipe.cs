@@ -174,8 +174,8 @@ namespace Popolo.Core.HVAC.FluidCircuit
         (InnerDiameter, InsulatorThermalConductivity, InsulatorThickness, PipeThermalConductivity,
         0.5 * (OuterDiameter - InnerDiameter));
 
-      //Initialize the heat flow//Water flow rate equivalent to a velocity of 2.0 m/s
-      UpdateHeatFlow(7, InnerDiameter * InnerDiameter / 4d * Math.PI * 2 * 1000, 25, 0.02);
+      //Initialize the heat flow//Volumetric water flow rate [m3/s] equivalent to a velocity of 2.0 m/s
+      UpdateHeatFlow(7, InnerDiameter * InnerDiameter / 4d * Math.PI * 2, 25, 0.02);
     }
 
     #endregion
@@ -196,7 +196,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       AmbientHumidityRatio = ambientHumidityRatio;
 
       //Convert volumetric flow rate [m3/s] to mass flow rate [kg/s]
-      double mw = waterFlowRate / Water.GetLiquidDensity(inletWaterTemperature);
+      double mw = waterFlowRate * Water.GetLiquidDensity(inletWaterTemperature);
 
       //Compute the water-side convective heat transfer coefficient [W/(m2K)]
       double aw = GetInsideHeatTransferCoefficient(InletWaterTemperature, InnerDiameter, mw);

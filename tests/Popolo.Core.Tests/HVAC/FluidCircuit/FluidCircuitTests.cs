@@ -668,5 +668,241 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
     }
 
     #endregion
+
+    // ================================================================
+    #region Regression tests (rotation ratio scaling of the PQ characteristic)
+
+    /// <summary>
+    /// 試験用の PQ 特性係数 f(x) = -x² + x + 0.75（高次から順）。
+    /// 頂点 x = 0.5（f = 1.0）、締切（f = 0）は x = 1.5。
+    /// </summary>
+    private static readonly double[] TestPressureCoef = { -1.0, 1.0, 0.75 };
+
+    /// <summary>
+    /// 回転数比 r &lt; 1 でも GetFlowRate は相似則 P = r²·f(Q/r) の解を返す。
+    /// 解は [r·頂点流量, r·締切流量] にあり、未スケールの区間では挟めず例外になっていた。
+    /// </summary>
+    [Fact]
+    public void FluidMachinery_GetFlowRate_ReducedRotationRatio_SatisfiesAffinityLaw()
+    {
+      double r = 0.4;
+      double p = 0.1; // r²·f(頂点) = 0.16 未満、r²·f(x=1.25) = 0.07 超
+      double q = FluidMachinery.GetFlowRate(r, TestPressureCoef, p, 0.5);
+
+      // 解析解: r²(-x² + x + 0.75) = p, x = Q/r（下降側の根）
+      double x = (1 + Math.Sqrt(1 + 4 * (0.75 - p / (r * r)))) / 2;
+      Assert.InRange(q, r * x - 1e-3, r * x + 1e-3);
+      double pCheck = FluidMachinery.GetPressure(q, r, TestPressureCoef);
+      Assert.InRange(pCheck, p - 1e-3, p + 1e-3);
+    }
+
+    /// <summary>圧力ゼロ以下では締切流量（相似則により r 倍）を返す。</summary>
+    [Fact]
+    public void FluidMachinery_GetFlowRate_ZeroPressure_ReturnsScaledZeroHeadFlow()
+    {
+      double r = 0.4;
+      double q = FluidMachinery.GetFlowRate(r, TestPressureCoef, 0.0, 0.5);
+      Assert.InRange(q, r * 1.5 - 1e-9, r * 1.5 + 1e-9);
+      // r = 1 は従来通り
+      Assert.InRange(FluidMachinery.GetFlowRate(1.0, TestPressureCoef, 0.0, 0.5), 1.5 - 1e-9, 1.5 + 1e-9);
+    }
+
+    /// <summary>
+    /// 回転数比 0.7 のポンプを含む回路網：解いたポンプ差圧と流量は
+    /// GetPressure（相似則 P = r²·f(Q/r)）と整合する。
+    /// </summary>
+    [Fact]
+    public void FluidMachinery_NetworkWithReducedRotationRatio_ConsistentWithGetPressure()
+    {
+      var pump = new CentrifugalPump(
+          260, 0.03, 250, 0.03,
+          CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 40);
+      pump.SetPressureCoefficient(300, 0, -1.0e5); // P = 300 - 1e5·Q² [kPa]
+      pump.RotationRatio = 0.7;
+      var load = new SimpleCircuitBranch(0.02, 100);
+
+      var net = new CircuitNetwork();
+      var n0 = net.AddNode();
+      var n1 = net.AddNode();
+      net.ConnectNode(pump, n0, n1);
+      net.ConnectNode(load, n1, n0);
+      net.SetBasePressure(n0, 0);
+      Assert.True(net.Solve(), "Network should converge");
+
+      double dp = n1.Pressure - n0.Pressure;
+      double q = pump.VolumetricFlowRate;
+      Assert.InRange(q - load.VolumetricFlowRate, -1e-6, 1e-6);
+      // P = r²·300 - 1e5·Q² （相似則）と抵抗 P = 2.5e5·Q² の交点
+      double qExpected = Math.Sqrt(0.49 * 300 / (1.0e5 + 2.5e5));
+      Assert.InRange(q, qExpected * 0.999, qExpected * 1.001);
+      double pCheck = FluidMachinery.GetPressure(q, 0.7, new double[] { -1.0e5, 0, 300 });
+      Assert.InRange(dp, pCheck - 0.01, pCheck + 0.01);
+    }
+
+    /// <summary>回転数比 1.0 の場合の結果は従来式（r²f(Q) = dp）と変わらない。</summary>
+    [Fact]
+    public void FluidMachinery_NetworkAtFullSpeed_MatchesCharacteristic()
+    {
+      var pump = new CentrifugalPump(
+          260, 0.03, 250, 0.03,
+          CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 40);
+      pump.SetPressureCoefficient(300, 0, -1.0e5);
+      pump.RotationRatio = 1.0;
+      var load = new SimpleCircuitBranch(0.02, 100);
+
+      var net = new CircuitNetwork();
+      var n0 = net.AddNode();
+      var n1 = net.AddNode();
+      net.ConnectNode(pump, n0, n1);
+      net.ConnectNode(load, n1, n0);
+      net.SetBasePressure(n0, 0);
+      Assert.True(net.Solve(), "Network should converge");
+
+      double qExpected = Math.Sqrt(300 / (1.0e5 + 2.5e5));
+      Assert.InRange(pump.VolumetricFlowRate, qExpected * 0.999, qExpected * 1.001);
+    }
+
+    #endregion
+
+    // ================================================================
+    #region Regression tests (SeriesBranch)
+
+    /// <summary>受動抵抗 2 本の直列：合成抵抗 R1 + R2 による流量になる。</summary>
+    [Fact]
+    public void SeriesBranch_TwoPassiveResistances_FlowMatchesCombinedResistance()
+    {
+      var r1 = new SimpleCircuitBranch(0.02, 100); // R = 2.5e5
+      var r2 = new SimpleCircuitBranch(0.02, 100);
+      var sb = new SeriesBranch(r1, r2);
+      sb.UpStreamNode = new CircuitNode { Pressure = 100 };
+      sb.DownStreamNode = new CircuitNode { Pressure = 0 };
+      sb.UpdateFlowRateFromNodePressureDifference();
+
+      double expected = Math.Sqrt(100 / 5.0e5);
+      Assert.InRange(sb.VolumetricFlowRate, expected * (1 - 1e-6), expected * (1 + 1e-6));
+      Assert.InRange(r1.VolumetricFlowRate - r2.VolumetricFlowRate, -1e-9, 1e-9);
+    }
+
+    /// <summary>
+    /// ポンプと抵抗の直列（両端同圧）：中間圧は両端の区間外にあるため、
+    /// 区間を拡張して解き、ポンプ揚程 = 抵抗の圧力損失となる流量を返す。
+    /// </summary>
+    [Fact]
+    public void SeriesBranch_PumpAndResistance_ExpandsBracketAndSolves()
+    {
+      var pump = new CentrifugalPump(
+          260, 0.03, 250, 0.03,
+          CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 40);
+      pump.SetPressureCoefficient(300, 0, -1.0e5);
+      pump.RotationRatio = 1.0;
+      var load = new SimpleCircuitBranch(0.02, 100); // R = 2.5e5
+      var sb = new SeriesBranch(pump, load);
+      sb.UpStreamNode = new CircuitNode { Pressure = 0 };
+      sb.DownStreamNode = new CircuitNode { Pressure = 0 };
+      sb.UpdateFlowRateFromNodePressureDifference();
+
+      double expected = Math.Sqrt(300 / (1.0e5 + 2.5e5));
+      Assert.InRange(sb.VolumetricFlowRate, expected * (1 - 1e-6), expected * (1 + 1e-6));
+      Assert.InRange(pump.VolumetricFlowRate - load.VolumetricFlowRate, -1e-9, 1e-9);
+    }
+
+    #endregion
+
+    // ================================================================
+    #region Regression tests (WaterPipe heat flow)
+
+    /// <summary>
+    /// 配管熱損失のエネルギー収支：HeatLoss = ρ·V·cp·(出口 − 入口)。
+    /// 体積流量 [m³/s] は密度を乗じて質量流量 [kg/s] に換算する。
+    /// </summary>
+    [Fact]
+    public void WaterPipe_UpdateHeatFlow_EnergyBalance()
+    {
+      var pipe = new WaterPipe(50, 0.05, WaterPipe.Material.CarbonSteel);
+      pipe.SetPipeThermalConductivity(50); // 炭素鋼（既定値は 0 のため明示設定）
+      double tIn = 7.0;
+      double vf = 0.002; // [m³/s]
+      pipe.UpdateHeatFlow(tIn, vf, 30.0, 0.015);
+
+      double mw = vf * Popolo.Core.Physics.Water.GetLiquidDensity(tIn);
+      double cp = Popolo.Core.Physics.Water.GetLiquidIsobaricSpecificHeat(tIn);
+      double q = mw * cp * (pipe.OutletWaterTemperauture - tIn);
+      Assert.True(pipe.HeatLoss > 0, $"HeatLoss = {pipe.HeatLoss} kW should be positive (heat gain)");
+      Assert.InRange(q, pipe.HeatLoss * (1 - 1e-9), pipe.HeatLoss * (1 + 1e-9));
+      Assert.InRange(pipe.OutletWaterTemperauture - tIn, 1e-4, 1.0); // 50 m の裸管で温度上昇は小さい
+    }
+
+    /// <summary>生成直後（初期化計算後）の体積流量は流速 2 m/s 相当 [m³/s] である。</summary>
+    [Fact]
+    public void WaterPipe_Initialize_VolumetricFlowRateIsTwoMetersPerSecond()
+    {
+      var pipe = new WaterPipe(10, 0.05, WaterPipe.Material.CarbonSteel);
+      double expected = 0.05 * 0.05 / 4 * Math.PI * 2;
+      Assert.InRange(pipe.VolumetricFlowRate, expected * (1 - 1e-9), expected * (1 + 1e-9));
+    }
+
+    #endregion
+
+    // ================================================================
+    #region Regression tests (Regulator.UpdateLift)
+
+    /// <summary>流量設定値 0 では UpdateLift(pressure) は全閉（Lift = 0）とし NaN にならない。</summary>
+    [Fact]
+    public void Regulator_UpdateLift_ZeroSetpoint_LiftIsZero()
+    {
+      var reg = new Regulator(0.03, 100, 50, 0.5);
+      reg.VolumetricFlowRateSetpoint = 0;
+      reg.UpdateLift(100);
+      Assert.Equal(0.0, reg.Lift);
+      reg.UpdateLift(0);
+      Assert.Equal(0.0, reg.Lift);
+      reg.VolumetricFlowRateSetpoint = -0.01;
+      reg.UpdateLift(100);
+      Assert.Equal(0.0, reg.Lift);
+    }
+
+    /// <summary>流量設定値 0 では UpdateLift()（ノード差圧版）も全閉。</summary>
+    [Fact]
+    public void Regulator_UpdateLiftFromNodes_ZeroSetpoint_LiftIsZero()
+    {
+      var reg = new Regulator(0.03, 100, 50, 0.5);
+      reg.UpStreamNode = new CircuitNode { Pressure = 100 };
+      reg.DownStreamNode = new CircuitNode { Pressure = 0 };
+      reg.VolumetricFlowRateSetpoint = 0;
+      reg.UpdateLift();
+      Assert.Equal(0.0, reg.Lift);
+    }
+
+    /// <summary>
+    /// 全閉時の抵抗でも流量設定値まで絞れない低設定値では Lift = 0（最小開度）。
+    /// </summary>
+    [Fact]
+    public void Regulator_UpdateLift_VeryLowSetpoint_LiftIsZero()
+    {
+      var reg = new Regulator(0.03, 100, 50, 0.5);
+      reg.VolumetricFlowRateSetpoint = 0.03 / 1000;
+      reg.UpdateLift(100);
+      Assert.Equal(0.0, reg.Lift);
+    }
+
+    /// <summary>
+    /// 中間の流量設定値では、求めた開度の抵抗で設定流量が流れる（開度は 0〜1）。
+    /// </summary>
+    [Theory]
+    [InlineData(0.02)]
+    [InlineData(0.01)]
+    [InlineData(0.003)]
+    [InlineData(0.001)]
+    public void Regulator_UpdateLift_IntermediateSetpoint_AchievesSetpoint(double setpoint)
+    {
+      var reg = new Regulator(0.03, 100, 50, 0.5);
+      reg.VolumetricFlowRateSetpoint = setpoint;
+      reg.UpdateLift(100);
+      Assert.InRange(reg.Lift, 0.0, 1.0);
+      double q = Math.Sqrt(100 / reg.GetResistance());
+      Assert.InRange(q, setpoint * (1 - 1e-4), setpoint * (1 + 1e-4));
+    }
+
+    #endregion
   }
 }
