@@ -115,6 +115,13 @@ namespace Popolo.Core.HVAC.SystemModel
     public double TimeStep { get; set; } = 3600;
 
     /// <summary>Gets or sets the piping heat loss rate [-].</summary>
+    /// <remarks>
+    /// Heat gained (chilled water) or lost (hot water) in the distribution piping, as a
+    /// fraction of the secondary-side load. The return temperature delivered to the heat
+    /// sources is shifted away from the supply setpoint by this fraction of the
+    /// supply–return difference, T_r' = T_r − (T_set − T_r)·rate, so the heat sources
+    /// process (1 + rate) times the secondary-side load. 0 disables the correction.
+    /// </remarks>
     public double PipeHeatLossRate { get; set; } = 0.08;
 
     #endregion
@@ -174,9 +181,10 @@ namespace Popolo.Core.HVAC.SystemModel
         subSystems[i].HotWaterSupplyTemperatureSetpoint = HotWaterSupplyTemperatureSetpoint;
       }
 
-      //Account for the temperature rise caused by the secondary pumps
-      double tcwi = chilledWaterReturnTemperature;
-      double thwi = hotWaterReturnTemperature;
+      //Account for the temperature rise caused by the secondary pumps, starting from the
+      //return temperatures corrected for the piping heat gain/loss (PipeHeatLossRate)
+      double tcwi = ChilledWaterReturnTemperature;
+      double thwi = HotWaterReturnTemperature;
       if (IsSecondaryPumpSystem)
       {
         if (chilledWaterFlowRate != 0)
