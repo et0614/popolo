@@ -253,6 +253,34 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             Assert.InRange(op.CondenserOutletTemperature, 24.0 - 0.05, 24.0 + 0.05);
         }
 
+        /// <summary>
+        /// 冷却水が冷水より低温の過負荷条件では、小能力側の端点で揚程が負となり E* が定義されない。
+        /// 求根区間の下端を有効な点まで引き上げ、E=E_max の過負荷解を返す。
+        /// </summary>
+        [Fact]
+        public void Solve_OverloadWithUndefinedLowerEnd_ReturnsCappedOperation()
+        {
+            // 冷水入口18 °C（需要 約220%）、冷却水16 °C
+            HP.Operation op = Shared.Value.Hp.Solve(HP.OperationMode.Cooling, 18.0, Mch, 16.0, Mcd, 7.0);
+            Assert.True(op.IsOverloaded);
+            Assert.InRange(op.PowerConsumption, Shared.Value.EMax - 1e-3, Shared.Value.EMax + 1e-3);
+            Assert.True(double.IsFinite(op.EvaporatorHeat));
+            Assert.InRange(op.EvaporatorHeat, CapacityN, Mch * Cpw * 11.0);
+            Assert.True(7.0 < op.EvaporatorOutletTemperature);
+        }
+
+        /// <summary>
+        /// 冷却水が冷水より低温で揚程が負となる軽負荷条件はモデルの適用範囲外であり、
+        /// 不正な値を返さずに原因を説明する PopoloNumericalException を送出する。
+        /// </summary>
+        [Fact]
+        public void Solve_NegativeLift_ThrowsNumericalException()
+        {
+            var ex = Assert.Throws<Popolo.Core.Exceptions.PopoloNumericalException>(() =>
+                Shared.Value.Hp.Solve(HP.OperationMode.Cooling, 8.0, Mch, 5.0, Mcd, 7.0));
+            Assert.Contains("negative lift", ex.Message);
+        }
+
         #endregion
 
         // ================================================================
@@ -308,6 +336,20 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             Assert.InRange(qMin12 / CapacityN, 0.08, 0.14);
         }
 
+        /// <summary>
+        /// 冷水流量が定格の10%の軽負荷では、定格能力を上端とすると蒸発温度が定義域外となる。
+        /// 上端を評価可能な負荷まで下げて Q_min を求め、範囲外運転として解を返す。
+        /// </summary>
+        [Fact]
+        public void Solve_LowEvaporatorFlow_MinimumContinuousLoadIsBracketed()
+        {
+            HP.Operation op = Shared.Value.Hp.Solve(HP.OperationMode.Cooling, 7.5, Mch * 0.1, 24.0, Mcd, 7.0);
+            Assert.True(op.IsBelowControlRange);
+            Assert.True(double.IsFinite(op.MinimumContinuousLoad));
+            Assert.InRange(op.MinimumContinuousLoad, op.EvaporatorHeat, CapacityN);
+            Assert.True(0.0 < op.PowerConsumption && op.PowerConsumption < Shared.Value.EMax);
+        }
+
         /// <summary>ϕ_min未同定でθを推定しようとすると例外。θの設定は[0,1]に制限される。</summary>
         [Fact]
         public void CyclingWeight_Validation()
@@ -348,6 +390,20 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
                 Assert.True(prev < op.PowerConsumption);
                 prev = op.PowerConsumption;
             }
+        }
+
+        /// <summary>
+        /// 加熱需要が E_max 以下で、蒸発熱ゼロの極限でも所要動力が需要を上回る（COP≦1）場合、
+        /// 過負荷の求根区間 [E_max, 需要] が逆転する。区間を反転させて解くのではなく、
+        /// 条件を説明する PopoloNumericalException を送出する。
+        /// </summary>
+        [Fact]
+        public void Solve_HeatingDemandBelowMaximumPowerWithoutFeasibleCop_ThrowsNumericalException()
+        {
+            // 熱源水5 °C・定格の10%、温水40→45 °C・定格の5%（需要 約204 kW < E_max）
+            var ex = Assert.Throws<Popolo.Core.Exceptions.PopoloNumericalException>(() =>
+                Shared.Value.Hp.Solve(HP.OperationMode.Heating, 5.0, MchRcv * 0.1, 40.0, MhtRcv * 0.05, 45.0));
+            Assert.Contains("Heating demand", ex.Message);
         }
 
         #endregion

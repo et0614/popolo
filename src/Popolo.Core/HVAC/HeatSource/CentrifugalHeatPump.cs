@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
 using Popolo.Core.Numerics.LinearAlgebra;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.HVAC.HeatSource
 {
@@ -821,6 +822,20 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <summary>Convergence tolerance on the power residual [kW] for the root-finding solves.</summary>
     private const double PowerTolerance = 1.0e-6;
 
+    /// <summary>Fractions of the search interval scanned (in ascending order) for a valid lower
+    /// bracket end when the nominal lower end cannot be used.</summary>
+    private static readonly double[] BracketScanFractions =
+      [1.0e-4, 1.0e-3, 1.0e-2, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99];
+
+    /// <summary>Evaluates a residual at a trial bracket end, returning NaN when the trial state
+    /// is outside the valid range (refrigerant properties or an inner solve fail).</summary>
+    private static double TryResidual(Roots.ErrorFunction residual, double x)
+    {
+      try { return residual(x); }
+      catch (PopoloOutOfRangeException) { return double.NaN; }
+      catch (PopoloNumericalException) { return double.NaN; }
+    }
+
     /// <summary>[Diagnostics] Number of calls of the successive-substitution (Picard) inner solve.</summary>
     internal static long PicardCalls;
     /// <summary>[Diagnostics] Total number of successive-substitution iterations.</summary>
@@ -1022,6 +1037,47 @@ namespace Popolo.Core.HVAC.HeatSource
         return calibration.Parameters.PredictPower(cyc.IsentropicPower, phi, rw);
       }
 
+      string ConditionText() =>
+        $"(mode {mode}, evaporator inlet {evaporatorInletTemperature} C / {evaporatorFlowRate} kg/s, " +
+        $"condenser inlet {condenserInletTemperature} C / {condenserFlowRate} kg/s, " +
+        $"setpoint {outletTemperatureSetpoint} C)";
+
+      // Solves E = E*(E) on (0, eu]. The residual E* − E must be non-negative at the lower end
+      // and non-positive at eu. The lower end eu·1e-6 is used whenever it is valid (results are
+      // then identical to a plain Brent solve on [eu·1e-6, eu]). Where the residual is not
+      // positive there (NaN at a negative lift — the condensing temperature below the evaporating
+      // temperature at a small E — or a non-positive predicted power), the lower end is moved up
+      // to the first scan point with a positive residual; if there is none, the state is outside
+      // the range of the model and a PopoloNumericalException is thrown.
+      double SolvePower(Roots.ErrorFunction residual, double eu, string context)
+      {
+        double lo = eu * 1.0e-6;
+        double fLo = residual(lo);
+        double fHi = residual(eu);
+        if (fHi == 0.0) return eu;
+        if (!(0.0 <= fLo))
+        {
+          for (int i = 0; i < BracketScanFractions.Length && !(0.0 <= fLo); i++)
+          {
+            lo = eu * BracketScanFractions[i];
+            fLo = residual(lo);
+          }
+          if (!(0.0 <= fLo))
+            throw new PopoloNumericalException("CentrifugalHeatPump.Solve",
+              $"{context}: no electric power E in (0, {eu}] kW gives a positive residual E*(E) - E " +
+              $"(last value {fLo}). The predicted power is non-positive or undefined over the whole " +
+              "range (e.g. a negative lift with the condenser-side water colder than the evaporator " +
+              "side, or refrigerant temperatures outside the valid range at very low flows or " +
+              $"extreme water temperatures), so the operating point is outside the range of the " +
+              $"model {ConditionText()}.");
+        }
+        if (!(fHi <= 0.0))
+          throw new PopoloNumericalException("CentrifugalHeatPump.Solve",
+            $"{context}: the residual E*(E) - E at the upper end E = {eu} kW is {fHi} (must be <= 0) " +
+            ConditionText() + ".");
+        return Roots.Brent(residual, lo, eu, fLo, fHi, PowerTolerance);
+      }
+
       // 1) Assess capacity assuming zero heat recovery. In heating, E < Q_cnd (COP > 1)
       //    holds, so the electric consumption search upper bound is limited below the demand.
       double eUpper = isCooling ? maximumPower : Math.Min(maximumPower, qDmd * (1.0 - 1.0e-9));
@@ -1036,14 +1092,36 @@ namespace Popolo.Core.HVAC.HeatSource
         overloaded = true;
         e = maximumPower;
         double qLower = isCooling ? qDmd * 1.0e-6 : maximumPower * (1.0 + 1.0e-6);
-        qUse = Roots.Brent(qLower, qDmd, PowerTolerance,
-          q => EStar(q, maximumPower, 0.0).eStar - maximumPower);
+        // Heating: the useful heat must exceed E (positive evaporator heat). When the demand
+        // does not exceed E_max, E = E_max leaves no such useful heat below the demand: even at
+        // a vanishing evaporator heat the required power exceeds the demand (COP <= 1).
+        if (qDmd <= qLower)
+          throw new PopoloNumericalException("CentrifugalHeatPump.Solve",
+            $"Heating demand {qDmd} kW cannot be supplied with a positive evaporator heat: the power " +
+            $"required even at a vanishing evaporator heat ({eStar0} kW) exceeds the demand, and the " +
+            $"demand does not exceed E_max ({maximumPower} kW) {ConditionText()}.");
+        Roots.ErrorFunction fq = q => EStar(q, maximumPower, 0.0).eStar - maximumPower;
+        double fqLo = fq(qLower);
+        double fqHi = fq(qDmd);
+        // The lower end must give E* <= E_max. Where it does not (NaN at a negative lift, which
+        // occurs at a small useful heat when the condenser-side water is colder than the
+        // evaporator side), the lower end is moved up to the first scan point that does.
+        double qLo = qLower;
+        for (int i = 0; i < BracketScanFractions.Length && !(fqLo <= 0.0); i++)
+        {
+          qLo = qLower + BracketScanFractions[i] * (qDmd - qLower);
+          fqLo = fq(qLo);
+        }
+        if (!(fqLo <= 0.0) || !(0.0 <= fqHi))
+          throw new PopoloNumericalException("CentrifugalHeatPump.Solve",
+            $"Overload: no useful heat in ({qLower}, {qDmd}] kW gives E* = E_max ({maximumPower} kW) " +
+            $"(residual {fqLo} at the lower end, {fqHi} at the demand) {ConditionText()}.");
+        qUse = Roots.Brent(fq, qLo, qDmd, fqLo, fqHi, PowerTolerance);
       }
       else
       {
         // Light load: fix the useful-side heat at the demand and find the electric consumption that gives E* = E
-        e = Roots.Brent(eUpper * 1.0e-6, eUpper, PowerTolerance,
-          x => EStar(qDmd, x, 0.0).eStar - x);
+        e = SolvePower(x => EStar(qDmd, x, 0.0).eStar - x, eUpper, "Light-load solve");
 
         if (recoveryDemanded)
         {
@@ -1067,8 +1145,7 @@ namespace Popolo.Core.HVAC.HeatSource
           else if (EStar(qDmd, eUpper, qRcvDmd).eStar <= eUpper)
           {
             // Full recovery: re-solve E* = E under the heat split that reflects the recovery
-            e = Roots.Brent(eUpper * 1.0e-6, eUpper, PowerTolerance,
-              x => EStar(qDmd, x, qRcvDmd).eStar - x);
+            e = SolvePower(x => EStar(qDmd, x, qRcvDmd).eStar - x, eUpper, "Full-recovery solve");
             qRcv = Math.Min(qRcvDmd, isCooling ? qDmd + e : qDmd - e);
             // If limited by Eq.45, the full demand is not met (recovery saturated)
             level = (qRcv < qRcvDmd) ? HeatRecoveryLevel.Partial : HeatRecoveryLevel.Full;
@@ -1126,8 +1203,7 @@ namespace Popolo.Core.HVAC.HeatSource
             prev = delta;
           }
           PicardFallbacks++;
-          double eb = Roots.Brent(eu * 1.0e-6, eu, PowerTolerance,
-            x => EStar(q, x, qRcv).eStar - x);
+          double eb = SolvePower(x => EStar(q, x, qRcv).eStar - x, eu, "Q_min inner solve");
           eWarm = eb;
           return (eb, EStar(q, eb, qRcv).phi);
         }
@@ -1142,7 +1218,30 @@ namespace Popolo.Core.HVAC.HeatSource
           throw new InvalidOperationException(
             "NominalCapacity has not been calibrated; it is required for the Q_min solve.");
         // The residual has the dimension of ϕ; 1e-4·ϕ_min corresponds to less than 0.1 kW in Q_min.
-        qMinLoad = Roots.Brent(qUse, qHi, 1.0e-4 * phiMin, q => AtLoad(q).phi - phiMin);
+        Roots.ErrorFunction fPhi = q => AtLoad(q).phi - phiMin;
+        double fPhiLo = fPhi(qUse);
+        double fPhiHi = TryResidual(fPhi, qHi);
+        if (!(0.0 <= fPhiHi))
+        {
+          // The rated capacity is not a valid upper end at the current water-side conditions:
+          // with water flows well below the rated ones it drives the refrigerant temperatures
+          // far out (the state becomes undefined or leaves the refrigerant range). Lower the
+          // upper end to the largest load (scanned downward toward qUse) at which the residual
+          // can be evaluated; ϕ increases with the load, so if the residual is not positive
+          // there, ϕ_min cannot be reached at any evaluable load.
+          double qRated = qHi;
+          for (int i = BracketScanFractions.Length - 1; 0 <= i && double.IsNaN(fPhiHi); i--)
+          {
+            qHi = qUse + BracketScanFractions[i] * (qRated - qUse);
+            fPhiHi = TryResidual(fPhi, qHi);
+          }
+          if (!(0.0 <= fPhiHi))
+            throw new PopoloNumericalException("CentrifugalHeatPump.Solve",
+              $"The minimum continuous load Q_min could not be bracketed: the flow coefficient does not " +
+              $"reach ϕ_min ({phiMin}) at any evaluable load up to {qHi} kW (residual {fPhiHi}) " +
+              ConditionText() + ".");
+        }
+        qMinLoad = Roots.Brent(fPhi, qUse, qHi, fPhiLo, fPhiHi, 1.0e-4 * phiMin);
         double eMin = AtLoad(qMinLoad).e;
         e = eMin * (1.0 + calibration.CyclingPowerWeight * (phiFin / phiMin - 1.0));   // Eq.12
       }
