@@ -217,6 +217,109 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         #endregion
 
         // ================================================================
+        #region Static solvers
+
+        /// <summary>乾湿境界相対湿度 [%]（MakeCoolingCoil と同じ）。</summary>
+        private const double BORDER_RH = 80.0;
+
+        private static double Hr(double dbt, double rh)
+            => Popolo.Core.Physics.MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
+                dbt, rh, Popolo.Core.Physics.PhysicsConstants.StandardAtmosphericPressure);
+
+        /// <summary>MakeCoolingCoil と同じ詳細モデル形状（既定の管径・フィン諸元）。</summary>
+        private static void GetGeometry(out double asr, out double car, out double eqr,
+            out double eqd, out double area)
+        {
+            AirToWaterCrossFinHeatExchanger.GetGeometricCompfigulation(
+                4 * 0.0329, 0.6, 0.4, 4, 6, 0.0029, 0.0002, 0.0146, 0.0158,
+                out asr, out car, out eqr, out eqd, out double asa);
+            area = asa * 4;
+        }
+
+        /// <summary>
+        /// 入口空気の相対湿度が乾湿境界相対湿度を上回る場合、コイル全面が湿りとなり
+        /// （乾きコイル比率0）、例外を出さずに冷却・除湿された出口状態を返す。
+        /// （旧実装では乾きコイル比率の Brent 法の両端が同符号となり例外になっていた）
+        /// </summary>
+        [Fact]
+        public void GetOutletState_InletAboveBorderHumidity_FullyWet()
+        {
+            GetGeometry(out _, out _, out _, out _, out double area);
+            AirToWaterCrossFinHeatExchanger.GetHeatTransferCoefficient(1.0, 3.0, out double kd, out double kw);
+            double hr = Hr(27.0, 90.0);
+            AirToWaterCrossFinHeatExchanger.GetOutletState(27.0, hr, BORDER_RH, 7.0, 1.5, 0.5,
+                kd, kw, area, out double ta, out double xa, out double tw, out double dr);
+            Assert.Equal(0.0, dr);
+            Assert.True(ta < 27.0, $"outlet air {ta:F2}°C cooled");
+            Assert.True(xa < hr, $"outlet humidity {xa:F5} dehumidified");
+            Assert.True(7.0 < tw && tw < 27.0, $"outlet water {tw:F2}°C warmed");
+
+            //空気側と水側の熱収支が一致する
+            double qAir = 1.5 * (Popolo.Core.Physics.MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(27.0, hr)
+                - Popolo.Core.Physics.MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(ta, xa));
+            double qWater = 0.5 * 0.001 * Popolo.Core.Physics.PhysicsConstants.NominalWaterIsobaricSpecificHeat * (tw - 7.0);
+            Assert.True(Math.Abs(qAir - qWater) < 0.02 * qWater, $"air {qAir:F3} kW vs water {qWater:F3} kW");
+        }
+
+        /// <summary>
+        /// 部分的に乾きコイルとなる通常条件：乾きコイル比率は (0, 1) の範囲で、
+        /// 空気側と水側の熱収支が一致する。
+        /// </summary>
+        [Fact]
+        public void GetOutletState_PartiallyWet_EnergyBalance()
+        {
+            GetGeometry(out _, out _, out _, out _, out double area);
+            AirToWaterCrossFinHeatExchanger.GetHeatTransferCoefficient(1.0, 3.0, out double kd, out double kw);
+            double hr = Hr(27.0, 70.0);
+            AirToWaterCrossFinHeatExchanger.GetOutletState(27.0, hr, BORDER_RH, 7.0, 1.5, 0.5,
+                kd, kw, area, out double ta, out double xa, out double tw, out double dr);
+            Assert.InRange(dr, 1e-6, 1 - 1e-6);
+            double qAir = 1.5 * (Popolo.Core.Physics.MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(27.0, hr)
+                - Popolo.Core.Physics.MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(ta, xa));
+            double qWater = 0.5 * 0.001 * Popolo.Core.Physics.PhysicsConstants.NominalWaterIsobaricSpecificHeat * (tw - 7.0);
+            Assert.True(Math.Abs(qAir - qWater) < 0.02 * qWater, $"air {qAir:F3} kW vs water {qWater:F3} kW");
+        }
+
+        /// <summary>
+        /// 詳細モデルの静的 GetWaterFlowRate は熱通過率の計算に入口空気温度を渡す
+        /// （旧実装は入口絶対湿度を温度の引数に渡していた）。
+        /// 戻り値の水量±ソルバ許容差で、正しい熱通過率による出口空気温度が設定値を挟む。
+        /// </summary>
+        [Fact]
+        public void GetWaterFlowRate_Detailed_UsesInletAirTemperatureForCoefficients()
+        {
+            GetGeometry(out double asr, out double car, out double eqr, out double eqd, out double area);
+            const double TIN = 27.0, TW = 7.0, AF = 1.5, MAXW = 1.0, SP = 22.0;
+            const double WPATH = 6, FT = 0.0002, TC = 237, ID = 0.0146, OD = 0.0158;
+            double hr = Hr(TIN, 50.0);
+
+            double wf = AirToWaterCrossFinHeatExchanger.GetWaterFlowRate(asr, car, eqr, eqd, WPATH, FT, TC,
+                ID, OD, AF, TIN, hr, BORDER_RH, 0.5, TW, MAXW, area, SP);
+
+            double OutletTemp(double w)
+            {
+                AirToWaterCrossFinHeatExchanger.GetHeatTransferCoefficient(asr, car, eqr, eqd, WPATH, FT, TC,
+                    ID, OD, AF, TIN, hr, BORDER_RH, w, TW, out double kd, out double kw);
+                AirToWaterCrossFinHeatExchanger.GetOutletState(TIN, hr, BORDER_RH, TW, AF, w, kd, kw, area,
+                    out double ta, out _, out _, out _);
+                return ta;
+            }
+
+            //Brent 法（許容差 0.01 kg/s）の解の位置誤差の範囲内で設定値を挟む
+            Assert.True(0 < wf && wf < MAXW, $"wf={wf:F4} kg/s within (0, max)");
+            double tLow = OutletTemp(Math.Max(1e-6, wf - 0.02));
+            double tHigh = OutletTemp(Math.Min(MAXW, wf + 0.02));
+            Assert.True(tHigh <= SP && SP <= tLow,
+                $"setpoint {SP}°C between {tHigh:F4}°C and {tLow:F4}°C at wf={wf:F4} kg/s");
+
+            //正しい引数で同じ手順を踏んだ結果と一致する
+            double reference = Popolo.Core.Numerics.Roots.Brent(0, MAXW, 0.01, w => SP - OutletTemp(w));
+            Assert.Equal(reference, wf);
+        }
+
+        #endregion
+
+        // ================================================================
         #region ShutOff
 
         /// <summary>ShutOff 後は HeatTransfer = 0。</summary>

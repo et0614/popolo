@@ -572,9 +572,20 @@ namespace Popolo.Core.HVAC.HeatExchanger
           //Evaluate the error
           return ba - bAirTemp;
         };
-        //If condensation occurs, iterate on the dry coil area fraction
+        //If condensation occurs, iterate on the dry coil area fraction.
+        //The residual decreases from ba - Tin at dRate = 0 as the dry section grows.
+        //When the inlet air is already at or above the border relative humidity
+        //(ba >= Tin), the whole coil is wet.
         dryFraction = 1.0;
-        if (0 < eFnc(dryFraction)) dryFraction = Roots.Brent(0, 1, 0.0001, eFnc);
+        double f1 = eFnc(dryFraction);
+        if (0 < f1)
+        {
+          double f0 = eFnc(0);
+          if (0 <= f0) dryFraction = 0;
+          else dryFraction = Roots.Brent(eFnc, 0, 1, f0, f1, 0.0001);
+          //Re-evaluate at the solution so that the captured state corresponds to it
+          eFnc(dryFraction);
+        }
 
         //Compute the outlet water temperature [C]
         outletWaterTemperature = inletAirTemperature - v2 * (inletAirTemperature - bWaterTemp);
@@ -684,7 +695,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       double oat, oah, owt, dr, kd, kw;
       GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius,
         equivalentDiameter, waterPath, finThickness, thermalConductivity,
-        innerDiameter, outerDiameter, airFlowRate, inletAirHumidityRatio,
+        innerDiameter, outerDiameter, airFlowRate, inletAirTemperature,
         inletAirHumidityRatio, borderRelativeHumidity, maxWaterFlowRate,
         inletWaterTemperature, out kd, out kw);
       GetOutletState(inletAirTemperature, inletAirHumidityRatio,
@@ -703,7 +714,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       {
         GetHeatTransferCoefficient(airWaterSurfaceRatio, coreArea, equivalentFinRadius,
           equivalentDiameter, waterPath, finThickness, thermalConductivity,
-          innerDiameter, outerDiameter, airFlowRate, inletAirHumidityRatio,
+          innerDiameter, outerDiameter, airFlowRate, inletAirTemperature,
           inletAirHumidityRatio, borderRelativeHumidity, wFlow,
           inletWaterTemperature, out kd, out kw);
         GetOutletState(inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity,
