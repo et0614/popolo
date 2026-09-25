@@ -123,14 +123,61 @@ namespace Popolo.Core.Tests.Physics
 
     #region Other physical property tests
 
-    /// <summary>密度は水の密度と臭化リチウム密度の混合として妥当な範囲にある</summary>
+    /// <summary>
+    /// 密度は実測値と整合する（質量分率0.55, 80°C で約1590 kg/m3）。
+    /// 従来の質量分率による単純平均（3460*0.55 + 972*0.45 ≒ 2340 kg/m3）は約45%過大だった。
+    /// </summary>
     [Fact]
     public void GetDensity_ReturnsPhysicallyReasonableValue()
     {
-      // 水の密度≒1000 kg/m3、LiBr密度=3460 kg/m3
-      // 質量分率0.55のとき：3460*0.55 + 972*0.45 ≒ 2340 kg/m3
+      // Królikowska et al. (2021) Table 7: x1=0.206 (w≒0.556) で 348.15K: 1.5930 g/cm3
+      // 質量分率0.55, 353.15K ではこれよりわずかに小さい 1580〜1600 kg/m3 程度
       double rho = LithiumBromide.GetDensity(T80C, MF55);
-      Assert.InRange(rho, 2200.0, 2500.0);
+      Assert.InRange(rho, 1560.0, 1620.0);
+    }
+
+    /// <summary>
+    /// 密度が文献の実測値と 1.5% 以内で一致する。
+    /// 参照値：Królikowska M., et al., "Vapor Pressure and Physicochemical Properties of
+    /// {LiBr + IL-Based Additive + Water} Mixtures: Experimental Data and COSMO-RS Predictions",
+    /// J. Solution Chem. 50 (2021) 473–502, Table 7（振動式密度計、u(ρ)=5e-4 g/cm3, u(x1)=1e-3）。
+    /// 表のモル分率 x1 は LiBr 86.845 g/mol、水 18.015 g/mol で質量分率に換算する。
+    /// </summary>
+    [Theory]
+    [InlineData(0.246, 298.15, 1735.1)]
+    [InlineData(0.246, 348.15, 1700.4)]
+    [InlineData(0.206, 298.15, 1624.1)]
+    [InlineData(0.206, 323.15, 1608.7)]
+    [InlineData(0.170, 348.15, 1488.4)]
+    [InlineData(0.129, 298.15, 1401.8)]
+    [InlineData(0.058, 323.15, 1172.7)]
+    public void GetDensity_AgreesWithMeasuredData(
+        double moleFraction, double temperature, double measuredDensity)
+    {
+      const double M_LIBR = 86.845;
+      const double M_H2O = 18.015;
+      double mf = moleFraction * M_LIBR
+          / (moleFraction * M_LIBR + (1.0 - moleFraction) * M_H2O);
+      double rho = LithiumBromide.GetDensity(temperature, mf);
+      Assert.InRange(rho, measuredDensity * 0.985, measuredDensity * 1.015);
+    }
+
+    /// <summary>質量分率0で純水の飽和液密度に一致する（25°C: 997.0 kg/m3）</summary>
+    [Fact]
+    public void GetDensity_ZeroMassFraction_EqualsWaterDensity()
+    {
+      double rho = LithiumBromide.GetDensity(298.15, 0.0);
+      Assert.Equal(997.0, rho, 0.5);
+    }
+
+    /// <summary>密度は温度の減少関数である</summary>
+    [Fact]
+    public void GetDensity_IsDecreasingWithTemperature()
+    {
+      double rho1 = LithiumBromide.GetDensity(T10C, MF55);
+      double rho2 = LithiumBromide.GetDensity(T80C, MF55);
+      double rho3 = LithiumBromide.GetDensity(T90C, MF55);
+      Assert.True(rho1 > rho2 && rho2 > rho3);
     }
 
     /// <summary>密度は質量分率の増加関数である</summary>
@@ -225,6 +272,14 @@ namespace Popolo.Core.Tests.Physics
       Assert.Throws<PopoloOutOfRangeException>(
           () => LithiumBromide.GetVaporTemperatureFromLiquidTemperatureAndMassFraction(
               T90C, massFraction));
+    }
+
+    /// <summary>水の臨界温度以上では密度計算で PopoloOutOfRangeException が発生する</summary>
+    [Fact]
+    public void GetDensity_AboveWaterCriticalTemperature_ThrowsPopoloOutOfRangeException()
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => LithiumBromide.GetDensity(650.0, 0.55));
     }
 
     #endregion

@@ -199,14 +199,73 @@ namespace Popolo.Core.Physics
     /// <param name="liquidTemperature">Liquid (solution) temperature [K]</param>
     /// <param name="massFraction">Mass fraction of LiBr [-] (0 to 1)</param>
     /// <returns>Density of the solution [kg/m³]</returns>
+    /// <remarks>
+    /// <para>
+    /// Uses Eq. (2) of Pátek, J. and Klomfar, J., "A computationally effective formulation
+    /// of the thermodynamic properties of LiBr–H2O solutions from 273 to 500 K over full
+    /// composition range", International Journal of Refrigeration 29 (2006) 566–578:
+    /// </para>
+    /// <para>
+    /// ρ = (1 − x)·ρ'_w(T) + ρ_c·Σ a_i·x^(m_i)·(T/T_c)^(t_i)  (molar densities),
+    /// with x the LiBr mole fraction, (a_i, m_i, t_i) = (1.746, 1, 0), (4.709, 1, 6),
+    /// T_c = 647.096 K and ρ_c = 322 kg/m³ (critical point of water), and ρ'_w the
+    /// saturated liquid density of water from the IAPWS auxiliary equation
+    /// (Wagner and Pruß, J. Phys. Chem. Ref. Data 22 (1993) 783). The molar density is
+    /// converted to a mass density with M(LiBr) = 86.845 g/mol and M(H2O) = 18.015268 g/mol.
+    /// </para>
+    /// <para>
+    /// Valid range (per the authors): 273–500 K over the whole liquid composition range
+    /// up to the crystallization limit (LiBr mass fraction up to about 0.75). Checked against
+    /// the vibrating-tube measurements of Królikowska et al., J. Solution Chem. 50 (2021)
+    /// 473–502, Table 7 (LiBr mass fraction 0.19–0.61, 298–348 K): deviations within 1%.
+    /// </para>
+    /// <para>
+    /// The previous implementation averaged the densities of crystalline LiBr (3460 kg/m³)
+    /// and water by mass fraction, which overestimated the solution density by about 45%
+    /// (e.g., 2340 instead of about 1590 kg/m³ at a mass fraction of 0.55 and 80 °C).
+    /// </para>
+    /// </remarks>
+    /// <exception cref="PopoloOutOfRangeException">
+    /// Thrown when the temperature is negative or not below the critical temperature of
+    /// water (647.096 K), or when the mass fraction is outside [0, 1].
+    /// </exception>
     public static double GetDensity(double liquidTemperature, double massFraction)
     {
       ValidateTemperatureK(liquidTemperature, nameof(liquidTemperature));
       ValidateMassFraction(massFraction, nameof(massFraction));
-      const double LBD = 3460.0; //Density of lithium bromide [kg/m3]
-                                 // Water.GetLiquidDensity takes °C, so convert (bug fix)
-      double wd = Water.GetLiquidDensity(PhysicsConstants.ToCelsius(liquidTemperature));
-      return LBD * massFraction + wd * (1.0 - massFraction);
+      const double TC = 647.096;       //Critical temperature of water [K]
+      const double RHOC = 322.0;       //Critical density of water [kg/m³]
+      const double M_LIBR = 86.845;    //Molar mass of LiBr [g/mol]
+      const double M_H2O = 18.015268;  //Molar mass of water [g/mol]
+      if (!(liquidTemperature < TC))
+        throw new PopoloOutOfRangeException(nameof(liquidTemperature), liquidTemperature,
+            0.0, TC, "Temperature must be below the critical temperature of water.");
+
+      //Mole fraction of LiBr
+      double nLiBr = massFraction / M_LIBR;
+      double nH2O = (1.0 - massFraction) / M_H2O;
+      double x = nLiBr / (nLiBr + nH2O);
+
+      //Saturated liquid density of water [kg/m³] (IAPWS auxiliary equation, Wagner and Pruß 1993)
+      double tau = 1.0 - liquidTemperature / TC;
+      double c1 = Math.Cbrt(tau);
+      double rhoW = RHOC * (1.0
+          + 1.99274064 * c1
+          + 1.09965342 * c1 * c1
+          - 0.510839303 * Math.Pow(tau, 5.0 / 3.0)
+          - 1.75493479 * Math.Pow(tau, 16.0 / 3.0)
+          - 45.5170352 * Math.Pow(tau, 43.0 / 3.0)
+          - 6.74694450e5 * Math.Pow(tau, 110.0 / 3.0));
+
+      //Pátek and Klomfar (2006) Eq. (2), molar densities [kmol/m³]
+      double theta = liquidTemperature / TC;
+      double theta2 = theta * theta;
+      double theta6 = theta2 * theta2 * theta2;
+      double rhoMolar = (1.0 - x) * rhoW / M_H2O
+          + RHOC / M_H2O * (1.746 * x + 4.709 * x * theta6);
+
+      //Convert to mass density with the mean molar mass of the solution
+      return rhoMolar * (x * M_LIBR + (1.0 - x) * M_H2O);
     }
 
     /// <summary>
