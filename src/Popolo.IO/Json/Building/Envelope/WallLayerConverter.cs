@@ -196,6 +196,12 @@ namespace Popolo.IO.Json.Building.Envelope
       if (value is null)
         throw new ArgumentNullException(nameof(value));
 
+      // PCMWallLayer, HorizontalAirChamber and other subclasses that do not override
+      // Kind would be written as a plain "wallLayer" and lose their physics: refuse them.
+      // AirGapLayer is left to its previous behaviour (it has its own converter and Kind).
+      if (value.GetType() != typeof(WallLayer) && value is not AirGapLayer)
+        WallConverter.EnsureSupportedLayerType(value);
+
       writer.WriteStartObject();
       writer.WriteString(PropKind, value.Kind); // obtained via virtual / override
       writer.WriteString(PropName, value.Name);

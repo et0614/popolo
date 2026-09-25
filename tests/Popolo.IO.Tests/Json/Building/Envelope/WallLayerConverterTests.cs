@@ -291,5 +291,25 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
     }
 
     #endregion
+
+    // ================================================================
+    #region Unsupported subclasses
+
+    /// <summary>
+    /// WallLayer 型として渡された PCMWallLayer / HorizontalAirChamber を
+    /// 通常の "wallLayer" として黙って書き出さず、JsonException を投げることを確認する。
+    /// </summary>
+    [Fact]
+    public void Write_UnsupportedSubclass_Throws()
+    {
+      var solid = new WallLayer("s", 0.2, 1500.0, 0.01);
+      WallLayer pcm = new PCMWallLayer("PCM", 22.0, 24.0, 0.01, solid, solid, solid);
+      WallLayer chamber = new HorizontalAirChamber("Chamber", 0.3, 0.9, 0.9);
+
+      Assert.Throws<JsonException>(() => JsonSerializer.Serialize(pcm, CreateOptions()));
+      Assert.Throws<JsonException>(() => JsonSerializer.Serialize(chamber, CreateOptions()));
+    }
+
+    #endregion
   }
 }

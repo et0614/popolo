@@ -59,6 +59,13 @@ namespace Popolo.IO.Json.Building.Envelope
   /// order from F-side to B-side is preserved.
   /// </para>
   /// <para>
+  /// <b>Unsupported constructs:</b> Only layers whose runtime type is exactly
+  /// <see cref="WallLayer"/> or <see cref="AirGapLayer"/> can be written.
+  /// <see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/> and walls with
+  /// buried pipes (<see cref="Wall.AddPipe"/>) are not part of the schema; writing
+  /// them throws <see cref="JsonException"/> instead of silently losing their physics.
+  /// </para>
+  /// <para>
   /// <b>Required sibling converters:</b> Both <see cref="WallLayerConverter"/>
   /// and <see cref="AirGapLayerConverter"/> must be registered in the same
   /// <see cref="JsonSerializerOptions"/>.
@@ -202,6 +209,11 @@ namespace Popolo.IO.Json.Building.Envelope
       if (value is null)
         throw new ArgumentNullException(nameof(value));
 
+      // Refuse constructs the schema cannot represent before emitting anything.
+      EnsureNoBuriedPipes(value);
+      foreach (var layer in value.Layers)
+        EnsureSupportedLayerType(layer);
+
       writer.WriteStartObject();
       writer.WriteString(PropKind, ExpectedKind);
       writer.WriteNumber(PropId, value.ID);
@@ -299,19 +311,63 @@ namespace Popolo.IO.Json.Building.Envelope
     private static void WriteLayerArray(
       Utf8JsonWriter writer, IReadOnlyWallLayer[] layers, JsonSerializerOptions options)
     {
+      // Validate every layer before writing anything so an unsupported layer does
+      // not leave a half-written array behind.
+      foreach (var layer in layers)
+        EnsureSupportedLayerType(layer);
+
       writer.WriteStartArray();
       foreach (var layer in layers)
       {
-        // Runtime type dispatch. AirGapLayer inherits from WallLayer, so the order matters.
-        if (layer is AirGapLayer ag)
-          JsonSerializer.Serialize(writer, ag, options);
-        else if (layer is WallLayer wl)
-          JsonSerializer.Serialize(writer, wl, options);
+        // Dispatch on the EXACT runtime type. Other WallLayer subclasses
+        // (PCMWallLayer, HorizontalAirChamber, user-defined subclasses) do not
+        // override Kind and would otherwise be written as a plain "wallLayer",
+        // silently losing their physics.
+        if (layer.GetType() == typeof(AirGapLayer))
+          JsonSerializer.Serialize(writer, (AirGapLayer)layer, options);
         else
-          throw new JsonException(
-            $"Unsupported layer type: {layer?.GetType().FullName ?? "null"}.");
+          JsonSerializer.Serialize(writer, (WallLayer)layer, options);
       }
       writer.WriteEndArray();
+    }
+
+    /// <summary>
+    /// Throws <see cref="JsonException"/> unless <paramref name="layer"/> is exactly
+    /// <see cref="WallLayer"/> or <see cref="AirGapLayer"/>.
+    /// </summary>
+    internal static void EnsureSupportedLayerType(IReadOnlyWallLayer? layer)
+    {
+      Type? t = layer?.GetType();
+      if (t == typeof(WallLayer) || t == typeof(AirGapLayer)) return;
+      throw new JsonException(
+        $"Wall layer type '{t?.FullName ?? "null"}' (name: '{layer?.Name}') is not supported by "
+        + "Popolo JSON serialization. Only WallLayer and AirGapLayer can be serialized; "
+        + "PCMWallLayer and HorizontalAirChamber would otherwise be silently written as a "
+        + "plain 'wallLayer' and lose their physics.");
+    }
+
+    /// <summary>
+    /// Throws <see cref="JsonException"/> when <paramref name="wall"/> has buried pipes
+    /// (<see cref="Wall.AddPipe"/>), which are not part of the JSON schema.
+    /// </summary>
+    /// <remarks>
+    /// Core exposes no "has pipe" query, so each node is probed with
+    /// <see cref="Wall.GetPipe(int)"/> (which throws <see cref="KeyNotFoundException"/>
+    /// for a node without a pipe).
+    /// </remarks>
+    private static void EnsureNoBuriedPipes(Wall wall)
+    {
+      for (int node = 0; node < wall.NodeCount; node++)
+      {
+        bool hasPipe;
+        try { hasPipe = wall.GetPipe(node) != null; }
+        catch (KeyNotFoundException) { hasPipe = false; }
+        if (hasPipe)
+          throw new JsonException(
+            $"Wall (ID {wall.ID}) has a buried pipe at node {node}. Buried pipes "
+            + "(Wall.AddPipe) are not supported by Popolo JSON serialization; writing the "
+            + "wall would silently drop the pipe.");
+      }
     }
 
     #endregion

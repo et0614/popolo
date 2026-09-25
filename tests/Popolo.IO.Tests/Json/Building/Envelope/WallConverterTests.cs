@@ -424,5 +424,56 @@ namespace Popolo.IO.Tests.Json.Building.Envelope
         }
 
         #endregion
+
+        // ================================================================
+        #region Unsupported constructs (must fail loudly, not silently lose physics)
+
+        /// <summary>
+        /// PCMWallLayer は JSON 未対応。従来は通常の "wallLayer" として書き出され
+        /// 相変化物性が黙って失われていたため、明示的に JsonException を投げることを確認する。
+        /// </summary>
+        [Fact]
+        public void Write_PCMWallLayer_ThrowsInsteadOfSilentlyDowngrading()
+        {
+            var solid = new WallLayer("PCM solid", 0.2, 1500.0, 0.01);
+            var eq = new WallLayer("PCM eq", 0.2, 30000.0, 0.01);
+            var liquid = new WallLayer("PCM liquid", 0.15, 1800.0, 0.01);
+            var pcm = new PCMWallLayer("PCM", 22.0, 24.0, 0.01, solid, eq, liquid);
+            var wall = new Wall(1.0, new WallLayer[] { new WallLayer("Board", 0.2, 800.0, 0.012), pcm });
+
+            var ex = Assert.Throws<JsonException>(() => JsonSerializer.Serialize(wall, CreateOptions()));
+            Assert.Contains(nameof(PCMWallLayer), ex.Message);
+        }
+
+        /// <summary>HorizontalAirChamber も JSON 未対応のため JsonException を投げることを確認する。</summary>
+        [Fact]
+        public void Write_HorizontalAirChamber_ThrowsInsteadOfSilentlyDowngrading()
+        {
+            var chamber = new HorizontalAirChamber("Chamber", 0.3, 0.9, 0.9);
+            var wall = new Wall(1.0, new WallLayer[] { new WallLayer("Slab", 1.4, 1934.0, 0.15), chamber });
+
+            var ex = Assert.Throws<JsonException>(() => JsonSerializer.Serialize(wall, CreateOptions()));
+            Assert.Contains(nameof(HorizontalAirChamber), ex.Message);
+        }
+
+        /// <summary>
+        /// 埋設配管 (Wall.AddPipe) は JSON 未対応。黙って配管なしの壁として
+        /// 書き出されないよう JsonException を投げることを確認する。
+        /// </summary>
+        [Fact]
+        public void Write_WallWithBuriedPipe_Throws()
+        {
+            var wall = new Wall(10.0, new WallLayer[]
+            {
+                new WallLayer("Mortar", 1.5, 2000.0, 0.03),
+                new WallLayer("Slab", 1.4, 1934.0, 0.15),
+            });
+            wall.AddPipe(1, 0.2, 50.0, 1, 0.010, 0.013, 0.4);
+
+            var ex = Assert.Throws<JsonException>(() => JsonSerializer.Serialize(wall, CreateOptions()));
+            Assert.Contains("pipe", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        #endregion
     }
 }
