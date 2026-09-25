@@ -154,7 +154,17 @@ namespace Popolo.Core.Numerics
     /// <param name="tend">End time.</param>
     /// <param name="yt">Initial value.</param>
     /// <param name="errTol">Error tolerance.</param>
-    /// <returns>Value of y at time <paramref name="tend"/>.</returns>
+    /// <returns>Value of y at time <paramref name="tend"/> (or at the time the
+    /// early-termination predicate returned true). When <paramref name="tend"/> equals
+    /// <paramref name="t"/>, <paramref name="yt"/> is returned unchanged.</returns>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="dtMax"/> or <paramref name="errTol"/> is not positive,
+    /// or when <paramref name="tend"/> is earlier than <paramref name="t"/>.
+    /// </exception>
+    /// <exception cref="PopoloNumericalException">
+    /// Thrown when the error estimate becomes non-finite (e.g., the derivative returns NaN
+    /// or infinity), or when the step size shrinks below the resolvable minimum.
+    /// </exception>
     /// <remarks>
     /// Reference: http://slpr.sakura.ne.jp/qp/runge-kutta-ex
     /// </remarks>
@@ -162,7 +172,22 @@ namespace Popolo.Core.Numerics
         DifferentialEquation dEqn, TerminateProcess tFnc,
         double dtMax, double t, double tend, double yt, double errTol)
     {
-      double dt = dtMax;
+      if (!(0 < dtMax))
+        throw new PopoloArgumentException(
+            $"dtMax must be positive. dtMax={dtMax}.", nameof(dtMax));
+      if (!(0 < errTol))
+        throw new PopoloArgumentException(
+            $"errTol must be positive. errTol={errTol}.", nameof(errTol));
+      if (double.IsNaN(t) || double.IsNaN(tend) || tend < t)
+        throw new PopoloArgumentException(
+            $"tend must not be earlier than t. t={t}, tend={tend}.", nameof(tend));
+      if (tend == t) return yt;
+
+      //Smallest step size considered resolvable; the end time is regarded as reached
+      //once the remaining interval falls below it
+      double dtMin = Math.Max(
+          1e-12 * Math.Min(tend - t, dtMax), 1e-15 * Math.Abs(t));
+      double dt = Math.Min(dtMax, tend - t);
       double[] k = new double[6];
 
       while (true)
@@ -182,6 +207,14 @@ namespace Popolo.Core.Numerics
             + 1 / 50d * k[4]
             + 2 / 55d * k[5]) / dt;
 
+        //A non-finite error estimate (NaN or infinite derivative) can never be accepted
+        //and would otherwise loop forever
+        if (!double.IsFinite(r))
+          throw new PopoloNumericalException(
+              "SolveRKF45",
+              $"Non-finite error estimate at t={t}, dt={dt}, y={yt}. "
+              + "The differential equation returned NaN or infinity.");
+
         if (r < errTol)
         {
           yt += 25 / 216d * k[0]
@@ -191,7 +224,7 @@ namespace Popolo.Core.Numerics
           t += dt;
         }
 
-        if (tend <= t || tFnc(t, yt)) return yt;
+        if (tend - t <= dtMin || tFnc(t, yt)) return yt;
 
         // Avoid division by zero when r=0 (delta would become Infinity and dt would be capped at 4*dt)
         double delta = r > 0
@@ -204,6 +237,11 @@ namespace Popolo.Core.Numerics
 
         dt = Math.Min(dtMax, dt);
         if (tend < t + dt) dt = tend - t;
+        if (dt < dtMin)
+          throw new PopoloNumericalException(
+              "SolveRKF45",
+              $"Step size underflow at t={t}: dt={dt} is below the minimum {dtMin}. "
+              + "The required accuracy cannot be attained.");
       }
     }
 

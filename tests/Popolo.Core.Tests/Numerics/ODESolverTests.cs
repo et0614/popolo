@@ -182,6 +182,112 @@ namespace Popolo.Core.Tests.Numerics
           $"Expected result >= 2.0, but got {result}");
     }
 
+    /// <summary>dtMax が積分区間より長くても終端時刻を超えて積分しない</summary>
+    [Fact]
+    public void SolveRKF45_DtMaxLongerThanInterval_DoesNotOvershoot()
+    {
+      // dy/dt = 1, y(0) = 0 → y(1) = 1
+      ODESolver.DifferentialEquation dEqn = (t, yt) => 1.0;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      double result = ODESolver.SolveRKF45(
+          dEqn, tFnc, dtMax: 10.0, t: 0.0, tend: 1.0, yt: 0.0, errTol: 1e-6);
+
+      Assert.Equal(1.0, result, precision: 12);
+    }
+
+    /// <summary>dtMax が積分区間より長くても非線形問題を終端時刻で正しく解く</summary>
+    [Fact]
+    public void SolveRKF45_DtMaxLongerThanInterval_ExponentialMatchesAnalytical()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => -yt;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      double result = ODESolver.SolveRKF45(
+          dEqn, tFnc, dtMax: 100.0, t: 2.0, tend: 3.0, yt: 1.0, errTol: 1e-8);
+
+      Assert.Equal(Math.Exp(-1.0), result, precision: 6);
+    }
+
+    /// <summary>微分方程式が NaN を返す場合は無限ループせず PopoloNumericalException</summary>
+    [Fact]
+    public void SolveRKF45_NaNDerivative_ThrowsPopoloNumericalException()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => double.NaN;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      Assert.Throws<PopoloNumericalException>(
+          () => ODESolver.SolveRKF45(
+              dEqn, tFnc, dtMax: 0.1, t: 0.0, tend: 1.0, yt: 1.0, errTol: 1e-6));
+    }
+
+    /// <summary>ある時刻以降で導関数が無限大になる場合も PopoloNumericalException</summary>
+    [Fact]
+    public void SolveRKF45_InfiniteDerivativeAfterSomeTime_ThrowsPopoloNumericalException()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => t < 0.5 ? 1.0 : double.PositiveInfinity;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      Assert.Throws<PopoloNumericalException>(
+          () => ODESolver.SolveRKF45(
+              dEqn, tFnc, dtMax: 0.1, t: 0.0, tend: 1.0, yt: 0.0, errTol: 1e-6));
+    }
+
+    /// <summary>終端時刻が開始時刻より前なら PopoloArgumentException</summary>
+    [Fact]
+    public void SolveRKF45_TendBeforeStart_ThrowsPopoloArgumentException()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => 1.0;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      var ex = Assert.Throws<PopoloArgumentException>(
+          () => ODESolver.SolveRKF45(
+              dEqn, tFnc, dtMax: 0.1, t: 1.0, tend: 0.0, yt: 0.0, errTol: 1e-6));
+      Assert.Equal("tend", ex.ParamName);
+    }
+
+    /// <summary>dtMax が正でなければ PopoloArgumentException</summary>
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-0.1)]
+    [InlineData(double.NaN)]
+    public void SolveRKF45_NonPositiveDtMax_ThrowsPopoloArgumentException(double dtMax)
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => 1.0;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      var ex = Assert.Throws<PopoloArgumentException>(
+          () => ODESolver.SolveRKF45(
+              dEqn, tFnc, dtMax, t: 0.0, tend: 1.0, yt: 0.0, errTol: 1e-6));
+      Assert.Equal("dtMax", ex.ParamName);
+    }
+
+    /// <summary>許容誤差が正でなければ PopoloArgumentException</summary>
+    [Fact]
+    public void SolveRKF45_NonPositiveErrTol_ThrowsPopoloArgumentException()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => 1.0;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      var ex = Assert.Throws<PopoloArgumentException>(
+          () => ODESolver.SolveRKF45(
+              dEqn, tFnc, dtMax: 0.1, t: 0.0, tend: 1.0, yt: 0.0, errTol: 0.0));
+      Assert.Equal("errTol", ex.ParamName);
+    }
+
+    /// <summary>開始時刻と終端時刻が等しい場合は初期値をそのまま返す</summary>
+    [Fact]
+    public void SolveRKF45_ZeroLengthInterval_ReturnsInitialValue()
+    {
+      ODESolver.DifferentialEquation dEqn = (t, yt) => 1.0;
+      ODESolver.TerminateProcess tFnc = (t, yt) => false;
+
+      double result = ODESolver.SolveRKF45(
+          dEqn, tFnc, dtMax: 0.1, t: 1.0, tend: 1.0, yt: 3.0, errTol: 1e-6);
+
+      Assert.Equal(3.0, result);
+    }
+
     #endregion
 
   }
