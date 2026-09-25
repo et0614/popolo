@@ -34,7 +34,7 @@ namespace Popolo.Webpro.Json
   /// <code>
   /// {
   ///   "WindowID":     "G1",    // or "無"
-  ///   "WindowNumber": 16.64,   // area in m², or null
+  ///   "WindowNumber": 16.64,   // number of windows (count), or null
   ///   "isBlind":      "無",    // "有" or "無"
   ///   "EavesID":      "無",
   ///   "Info":         null

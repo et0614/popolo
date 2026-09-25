@@ -47,8 +47,9 @@ namespace Popolo.Webpro.Domain
     /// if the catalog's default for the material is to be used.
     /// </summary>
     /// <remarks>
-    /// In practice WEBPRO files rarely supply this value; it is overriding
-    /// metadata that callers may use when interpreting the layer.
+    /// In practice WEBPRO files rarely supply this value. When given, the
+    /// converter uses it instead of the catalog conductivity for solid and
+    /// soil materials (air-gap resistances stay fixed by the catalog).
     /// </remarks>
     public double? Conductivity { get; set; }
 

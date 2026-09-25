@@ -61,11 +61,29 @@ namespace Popolo.Webpro.Domain
     public WallInputMethod Method { get; set; } = WallInputMethod.None;
 
     /// <summary>
-    /// Gets the layered construction of the wall, from outside to inside.
+    /// Gets or sets the U-value of the whole construction [W/(m²·K)]
+    /// (surface resistances included), or <see cref="double.NaN"/> if
+    /// unspecified.
+    /// </summary>
+    /// <remarks>
+    /// Read from the WallConfigure-level <c>Uvalue</c> JSON key (builelib
+    /// convention). Only meaningful when <see cref="Method"/> is
+    /// <see cref="WallInputMethod.HeatTransferCoefficient"/> (熱貫流率を入力),
+    /// in which case <see cref="Layers"/> is normally empty.
+    /// </remarks>
+    public double HeatTransferCoefficient { get; set; } = double.NaN;
+
+    /// <summary>
+    /// Gets the layered construction of the wall, listed from the
+    /// <b>room (inside) side to the outdoor side</b>, as in the WEBPRO input.
     /// </summary>
     /// <remarks>
     /// Empty by default. The list is populated by the JSON converter based on
-    /// the <c>layers</c> array in the WEBPRO JSON.
+    /// the <c>layers</c> array in the WEBPRO JSON. WEBPRO/builelib lists the
+    /// room-side finish first (e.g. gypsum board … tile for an exterior wall,
+    /// vinyl flooring … concrete for a floor). The converter reverses this
+    /// order because Popolo walls are built with layer 0 on the outdoor
+    /// (F) side.
     /// </remarks>
     public List<WebproWallLayer> Layers { get; } = new List<WebproWallLayer>();
 

@@ -34,9 +34,13 @@ namespace Popolo.Webpro.Domain
   /// decides whether to skip the placement.
   /// </para>
   /// <para>
-  /// <b>Number field:</b> Despite its name, WEBPRO uses the <c>WindowNumber</c>
-  /// JSON property to encode <i>window area</i> in m², not a count. The field
-  /// is preserved as-is; callers should treat it as area.
+  /// <b>Number field:</b> The <c>WindowNumber</c> JSON property is the
+  /// <i>number of windows</i> (枚数) of the referenced specification placed on
+  /// the wall. Following builelib, the placed window area is
+  /// <c>WindowConfigure[ID].windowArea × WindowNumber</c>, where
+  /// <c>windowArea</c> falls back to <c>windowWidth × windowHeight</c> when
+  /// not given. Because many WEBPRO files use <c>windowArea = 1</c>, the
+  /// count frequently coincides numerically with the area in m².
   /// </para>
   /// </remarks>
   public sealed class WebproWindow
@@ -45,10 +49,12 @@ namespace Popolo.Webpro.Domain
     /// <remarks>The value <c>"無"</c> acts as a sentinel meaning no window is placed at this slot.</remarks>
     public string ID { get; set; } = "";
 
-    /// <summary>Gets or sets the total window area [m²], or null if unspecified.</summary>
+    /// <summary>Gets or sets the number of windows (count, 枚数) [-], or null if unspecified.</summary>
     /// <remarks>
-    /// The property is named <c>WindowNumber</c> in the WEBPRO JSON but
-    /// semantically represents area, not a count.
+    /// Read from the WEBPRO JSON property <c>WindowNumber</c>. The placed
+    /// window area is this count multiplied by the per-window area of the
+    /// referenced <see cref="WebproWindowConfiguration"/>. The converter treats
+    /// null as a single window. The value may be fractional in real files.
     /// </remarks>
     public double? Number { get; set; }
 

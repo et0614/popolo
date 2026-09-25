@@ -232,18 +232,49 @@ namespace Popolo.Webpro.Conversion
     /// <exception cref="ArgumentNullException"><paramref name="materialId"/> is null.</exception>
     /// <exception cref="KeyNotFoundException">The material ID is not in the catalog.</exception>
     public WallLayer MakeWallLayer(string materialId, double? thicknessMm)
+      => MakeWallLayer(materialId, thicknessMm, null);
+
+    /// <summary>
+    /// Creates a <see cref="WallLayer"/> or <see cref="AirGapLayer"/> for the
+    /// given material ID and thickness, optionally overriding the catalog
+    /// thermal conductivity.
+    /// </summary>
+    /// <param name="materialId">Material identifier as used in WEBPRO input.</param>
+    /// <param name="thicknessMm">
+    /// Layer thickness in millimetres (see
+    /// <see cref="MakeWallLayer(string, double?)"/> for the null handling).
+    /// </param>
+    /// <param name="conductivity">
+    /// Explicit thermal conductivity [W/(m·K)] (the WEBPRO layer
+    /// <c>conductivity</c> field), or <c>null</c> to use the catalog value.
+    /// Applied to solid and soil materials; ignored for air-gap materials,
+    /// whose thermal resistance is fixed by the catalog. The volumetric
+    /// specific heat always comes from the catalog.
+    /// </param>
+    /// <returns>A new wall layer instance. Caller takes ownership.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="materialId"/> is null.</exception>
+    /// <exception cref="KeyNotFoundException">The material ID is not in the catalog.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="conductivity"/> is not a positive finite number.
+    /// </exception>
+    public WallLayer MakeWallLayer(string materialId, double? thicknessMm, double? conductivity)
     {
       if (materialId is null) throw new ArgumentNullException(nameof(materialId));
       if (!entries.TryGetValue(materialId, out var entry))
         throw new KeyNotFoundException(
           $"Material ID '{materialId}' is not in the catalog. " +
           $"Check Resources/Materials.json.");
+      if (conductivity is double k && !(double.IsFinite(k) && k > 0))
+        throw new ArgumentOutOfRangeException(
+          nameof(conductivity), k,
+          $"Conductivity override for material '{materialId}' must be a positive finite number.");
 
+      double lambda = conductivity ?? entry.ThermalConductivity;
       return entry.Type switch
       {
         MaterialType.Solid => new WallLayer(
           entry.Id,
-          entry.ThermalConductivity,
+          lambda,
           entry.VolumetricSpecificHeat,
           MmToMeters(thicknessMm ?? 0)),
         MaterialType.AirGap => new AirGapLayer(
@@ -252,7 +283,7 @@ namespace Popolo.Webpro.Conversion
           entry.FixedThickness),
         MaterialType.Soil => new WallLayer(
           entry.Id,
-          entry.ThermalConductivity,
+          lambda,
           entry.VolumetricSpecificHeat,
           entry.FixedThickness),
         _ => throw new InvalidOperationException(

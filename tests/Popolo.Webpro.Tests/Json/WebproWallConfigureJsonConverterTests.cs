@@ -137,6 +137,37 @@ namespace Popolo.Webpro.Tests.Json
         }
 
         [Fact]
+        public void Read_Uvalue_Number()
+        {
+            // 熱貫流率を入力 の場合、WallConfigure 直下の Uvalue に U 値が入る (builelib 形式)
+            const string json = """
+                {
+                  "structureType": "その他",
+                  "inputMethod":   "熱貫流率を入力",
+                  "Uvalue":        0.52,
+                  "layers":        []
+                }
+                """;
+            var wc = JsonSerializer.Deserialize<WebproWallConfiguration>(json, CreateOptions())!;
+            Assert.Equal(0.52, wc.HeatTransferCoefficient);
+        }
+
+        [Fact]
+        public void Read_UvalueNullOrAbsent_IsNaN()
+        {
+            const string jsonNull = """
+                { "inputMethod": "熱貫流率を入力", "Uvalue": null, "layers": [] }
+                """;
+            const string jsonAbsent = """
+                { "inputMethod": "建材構成を入力", "layers": [] }
+                """;
+            Assert.True(double.IsNaN(
+                JsonSerializer.Deserialize<WebproWallConfiguration>(jsonNull, CreateOptions())!.HeatTransferCoefficient));
+            Assert.True(double.IsNaN(
+                JsonSerializer.Deserialize<WebproWallConfiguration>(jsonAbsent, CreateOptions())!.HeatTransferCoefficient));
+        }
+
+        [Fact]
         public void Read_EmptyLayers()
         {
             const string json = """

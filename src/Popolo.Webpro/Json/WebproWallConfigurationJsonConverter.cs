@@ -38,7 +38,8 @@ namespace Popolo.Webpro.Json
   ///   "structureType":         "その他",        // null → None
   ///   "solarAbsorptionRatio":  null,
   ///   "inputMethod":           "建材構成を入力", // null → None
-  ///   "layers": [ { "materialID": "...", ... } ],
+  ///   "Uvalue":                null,            // U-value when inputMethod is 熱貫流率を入力; null/absent → NaN
+  ///   "layers": [ { "materialID": "...", ... } ], // room side first
   ///   "Info":                  null
   /// }
   /// </code>
@@ -65,6 +66,7 @@ namespace Popolo.Webpro.Json
     private const string PropStructureType = "structureType";
     private const string PropSolarAbsorptionRatio = "solarAbsorptionRatio";
     private const string PropInputMethod = "inputMethod";
+    private const string PropUvalue = "Uvalue";
     private const string PropLayers = "layers";
     private const string PropInfo = "Info";
 
@@ -103,6 +105,11 @@ namespace Popolo.Webpro.Json
             break;
           case PropInputMethod:
             result.Method = JsonSerializer.Deserialize<WallInputMethod>(ref reader, options);
+            break;
+          case PropUvalue:
+            result.HeatTransferCoefficient = reader.TokenType == JsonTokenType.Null
+              ? double.NaN
+              : reader.GetDouble();
             break;
           case PropLayers:
             ReadLayers(ref reader, result, options);

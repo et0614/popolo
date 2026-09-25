@@ -42,7 +42,12 @@ namespace Popolo.Webpro.Domain
   /// </remarks>
   public sealed class WebproWindowConfiguration
   {
-    /// <summary>Gets or sets the representative window area [m²].</summary>
+    /// <summary>Gets or sets the area of a single window of this specification [m²].</summary>
+    /// <remarks>
+    /// Multiplied by <see cref="WebproWindow.Number"/> (the window count) to
+    /// obtain the placed area. When not a positive finite number, the
+    /// converter uses <see cref="Width"/> × <see cref="Height"/> instead.
+    /// </remarks>
     public double Area { get; set; }
 
     /// <summary>Gets or sets the representative window width [m].</summary>

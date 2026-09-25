@@ -43,7 +43,10 @@ namespace Popolo.Webpro.Domain
   /// override is provided; the converter should then resolve the U-value
   /// from the referenced <see cref="WallSpec"/> via the <c>WallConfigure</c>
   /// catalog. The <c>Uvalue</c> key is not present in typical WEBPRO output
-  /// but is retained for forward compatibility.
+  /// but is retained for forward compatibility. The converter currently uses
+  /// it only as a fallback when the referenced configuration uses
+  /// <see cref="WallInputMethod.HeatTransferCoefficient"/> but carries no
+  /// configuration-level U-value.
   /// </para>
   /// </remarks>
   public sealed class WebproWall

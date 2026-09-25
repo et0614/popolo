@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using Popolo.Core.Building;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Climate;
+using Popolo.Core.Exceptions;
 
 using Popolo.Webpro.Domain;
 using Popolo.Webpro.Domain.Enums;
@@ -54,6 +55,24 @@ namespace Popolo.Webpro.Conversion
   ///     <see cref="WebproConversionConstants.GroundWallConductance"/>.</description></item>
   /// </list>
   /// <para>
+  /// <b>Envelope conventions:</b>
+  /// </para>
+  /// <list type="bullet">
+  ///   <item><description>WEBPRO lists wall layers from the room side outward;
+  ///     they are reversed so that Popolo layer 0 is on the outdoor (F) side.</description></item>
+  ///   <item><description>Window area = per-window area
+  ///     (<c>windowArea</c>, else <c>windowWidth × windowHeight</c>) ×
+  ///     <c>WindowNumber</c> (count); the same value is subtracted from the
+  ///     gross wall area.</description></item>
+  ///   <item><description>Window and U-value-input wall constructions are sized
+  ///     so that their U-value with the WEBPRO surface resistances
+  ///     (1/10 + 1/20 = 0.15 m²K/W) equals the input U-value.</description></item>
+  ///   <item><description>"日の当たらない外壁" is an outdoor-air boundary with zero
+  ///     solar absorptance (outdoor air temperature and nocturnal long-wave
+  ///     radiation still apply). Windows on such walls are treated like
+  ///     windows on sunlit walls (solar is not suppressed).</description></item>
+  /// </list>
+  /// <para>
   /// <b>Heat gain:</b> Internal heat gain schedules (people, lights, plug
   /// load, ventilation) are <i>not</i> installed by this converter. Callers
   /// that need occupant / lighting schedules should attach
@@ -64,6 +83,16 @@ namespace Popolo.Webpro.Conversion
   /// </remarks>
   public static class WebproToBuildingThermalModel
   {
+
+    /// <summary>
+    /// Sum of the indoor and outdoor surface resistances assumed by WEBPRO
+    /// U-values [m²·K/W] (1/10 + 1/20 = 0.15).
+    /// </summary>
+    /// <remarks>
+    /// Subtracted from 1/U to obtain the resistance of the construction
+    /// itself (window glazing + air gap, or U-value-input wall layers).
+    /// </remarks>
+    private const double SurfaceResistance = 1.0 / 10.0 + 1.0 / 20.0;
 
     #region Fixed 6-layer construction of floor and ceiling
 
@@ -230,12 +259,21 @@ namespace Popolo.Webpro.Conversion
           foreach (var webproWall in envelope.Walls)
           {
             var incline = OrientationToIncline(webproWall.SurfaceOrientation);
-            var wall = BuildWall(webproWall, model.WallConfigurations, mats);
+
+            // 窓の配置面積 (1 枚の面積 × 枚数) を一度だけ決め、
+            // 窓の生成と正味壁面積の両方に同じ値を使う
+            var placements = ResolveWindowPlacements(webproWall, model.WindowConfigurations);
+            double windowArea = 0;
+            foreach (var p in placements) windowArea += p.Area;
+
+            var wall = BuildWall(webproWall, windowArea, model.WallConfigurations, mats);
             walls.Add(wall);
             wallList.Add((wall, webproWall, incline));
 
-            foreach (var win in BuildWindowsForWall(webproWall, model.WindowConfigurations, glz, incline))
+            foreach (var p in placements)
             {
+              var win = BuildWindow(
+                p.Window.ID, p.Configuration, p.Area, incline, p.Window.HasBlind, glz);
               windows.Add(win);
               windowList.Add(win);
             }
@@ -301,23 +339,23 @@ namespace Popolo.Webpro.Conversion
     }
 
     /// <summary>Builds a Popolo <see cref="Wall"/> from a WEBPRO wall DTO.</summary>
+    /// <param name="webproWall">Source wall entry.</param>
+    /// <param name="windowArea">
+    /// Total area of the windows placed on this wall [m²], as resolved by
+    /// <see cref="ResolveWindowPlacements"/>; subtracted from the gross area.
+    /// </param>
+    /// <param name="wallConfigurations">Wall construction catalog of the model.</param>
+    /// <param name="catalog">Material catalog.</param>
     private static Wall BuildWall(
       WebproWall webproWall,
+      double windowArea,
       IReadOnlyDictionary<string, WebproWallConfiguration> wallConfigurations,
       MaterialCatalog catalog)
     {
       // 壁の総面積 (窓含む)
       double totalArea = webproWall.Area ?? ((webproWall.Width ?? 1.0) * (webproWall.Height ?? 1.0));
 
-      // 窓面積の合計を差し引く (WEBPRO 慣習)
-      double windowArea = 0;
-      foreach (var window in webproWall.Windows)
-      {
-        if (window.ID != WebproConversionConstants.NoWindowSentinel)
-          windowArea += window.Number ?? 0;
-      }
-
-      // ゼロや負の壁面積を回避
+      // 窓面積の合計を差し引く (WEBPRO 慣習)。ゼロや負の壁面積を回避
       double netWallArea = Math.Max(0.1, totalArea - windowArea);
 
       // レイヤ構成
@@ -326,36 +364,156 @@ namespace Popolo.Webpro.Conversion
         throw new InvalidOperationException(
           $"Wall spec '{webproWall.WallSpec}' is not defined in WallConfigurations.");
       }
-      var layers = BuildWallLayers(wallConf, catalog);
+      var layers = BuildWallLayers(webproWall.WallSpec, wallConf, webproWall, catalog);
       var wall = new Wall(netWallArea, layers);
 
-      // 日射吸収率
-      double absorptance = wallConf.SolarAbsorptionRatio
-        ?? WebproConversionConstants.DefaultSolarAbsorptionRatio;
+      // 日射吸収率。日の当たらない外壁は日射を受けない (外気温・夜間放射は受ける)
+      double absorptance = webproWall.Type == WallType.ShadingExternalWall
+        ? 0.0
+        : wallConf.SolarAbsorptionRatio ?? WebproConversionConstants.DefaultSolarAbsorptionRatio;
       wall.ShortWaveAbsorptanceF = absorptance;
 
       return wall;
     }
 
-    /// <summary>Builds the ordered layer array for a WEBPRO wall configuration.</summary>
-    private static WallLayer[] BuildWallLayers(WebproWallConfiguration wallConf, MaterialCatalog catalog)
+    /// <summary>
+    /// Builds the ordered layer array (layer 0 = outdoor / F side) for a WEBPRO
+    /// wall configuration.
+    /// </summary>
+    /// <remarks>
+    /// <list type="bullet">
+    ///   <item><description><see cref="WallInputMethod.MaterialNumberAndThickness"/>
+    ///     (and <see cref="WallInputMethod.None"/> for backward compatibility):
+    ///     the listed layers are used in <b>reverse</b> order, because WEBPRO
+    ///     lists them from the room side outward. A layer's explicit
+    ///     <c>conductivity</c> overrides the catalog value.</description></item>
+    ///   <item><description><see cref="WallInputMethod.HeatTransferCoefficient"/>:
+    ///     an equivalent construction is synthesized from the U-value
+    ///     (see <see cref="CreateEquivalentLayers"/>).</description></item>
+    ///   <item><description><see cref="WallInputMethod.InsulationType"/>: not supported.</description></item>
+    /// </list>
+    /// </remarks>
+    private static WallLayer[] BuildWallLayers(
+      string wallSpec, WebproWallConfiguration wallConf, WebproWall webproWall, MaterialCatalog catalog)
     {
-      var layers = new WallLayer[wallConf.Layers.Count];
-      for (int i = 0; i < wallConf.Layers.Count; i++)
+      switch (wallConf.Method)
       {
-        var layer = wallConf.Layers[i];
-        layers[i] = catalog.MakeWallLayer(layer.MaterialID, layer.Thickness);
+        case WallInputMethod.HeatTransferCoefficient:
+          {
+            // WallConfigure の Uvalue を優先し、無ければ壁側の Uvalue を使う
+            double u = double.IsNaN(wallConf.HeatTransferCoefficient)
+              ? webproWall.HeatTransferCoefficient
+              : wallConf.HeatTransferCoefficient;
+            return CreateEquivalentLayers(wallSpec, u);
+          }
+
+        case WallInputMethod.InsulationType:
+          throw new PopoloNotImplementedException(
+            $"wall input method '断熱材種類を入力' (InsulationType) used by wall spec '{wallSpec}'. " +
+            $"Describe the construction with '建材構成を入力' or '熱貫流率を入力' instead.");
+
+        case WallInputMethod.MaterialNumberAndThickness:
+        case WallInputMethod.None:
+        default:
+          {
+            int n = wallConf.Layers.Count;
+            if (n == 0)
+              throw new PopoloArgumentException(
+                $"Wall spec '{wallSpec}' (input method '{wallConf.Method}') has no layers; " +
+                $"an empty wall construction cannot be converted.", "model");
+
+            // WEBPRO は室内側→屋外側の順。Popolo は layers[0] が F 側 (屋外側)
+            var layers = new WallLayer[n];
+            for (int i = 0; i < n; i++)
+            {
+              var layer = wallConf.Layers[n - 1 - i];
+              layers[i] = catalog.MakeWallLayer(layer.MaterialID, layer.Thickness, layer.Conductivity);
+            }
+            return layers;
+          }
       }
-      return layers;
     }
 
-    /// <summary>Builds the <see cref="Window"/> instances for a single WEBPRO wall.</summary>
-    private static IEnumerable<Window> BuildWindowsForWall(
-      WebproWall webproWall,
-      IReadOnlyDictionary<string, WebproWindowConfiguration> windowConfigurations,
-      GlazingCatalog catalog,
-      Incline incline)
+    /// <summary>
+    /// Synthesizes a layer set (layer 0 = outdoor side) whose steady-state
+    /// U-value, with the WEBPRO surface resistances
+    /// (<see cref="SurfaceResistance"/>), equals <paramref name="uValue"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The construction represents a typical internally insulated RC wall:
+    /// 150 mm concrete (λ = 1.6 W/(m·K), 2000 kJ/(m³·K)) on the outdoor side
+    /// and an insulation layer (λ = 0.040 W/(m·K), 32.5 kJ/(m³·K); extruded
+    /// polystyrene foam type 1) on the room side, whose thickness supplies the
+    /// remaining thermal resistance. When the required layer resistance is
+    /// smaller than that of the 150 mm concrete, a single concrete layer of
+    /// the matching thickness is used instead.
+    /// </para>
+    /// <para>
+    /// The heat capacity of the synthesized wall is therefore an assumption;
+    /// only the steady-state U-value is taken from the input.
+    /// </para>
+    /// </remarks>
+    private static WallLayer[] CreateEquivalentLayers(string wallSpec, double uValue)
     {
+      const double ConcreteConductivity = 1.6;
+      const double ConcreteVolumetricHeat = 2000;
+      const double ConcreteThickness = 0.150;
+      const double InsulationConductivity = 0.040;
+      const double InsulationVolumetricHeat = 32.5;
+
+      if (!(double.IsFinite(uValue) && uValue > 0))
+        throw new PopoloArgumentException(
+          $"Wall spec '{wallSpec}' uses input method '熱貫流率を入力' but its U-value " +
+          $"(WallConfigure 'Uvalue') is missing or not a positive number (got {uValue}).", "model");
+
+      double rLayers = 1.0 / uValue - SurfaceResistance;
+      if (rLayers <= 0)
+        throw new PopoloArgumentException(
+          $"Wall spec '{wallSpec}': U-value {uValue} W/(m²·K) is not below " +
+          $"1/{SurfaceResistance} = {1.0 / SurfaceResistance:F3} W/(m²·K), so no positive " +
+          $"layer resistance remains after subtracting the surface resistances.", "model");
+
+      double rConcrete = ConcreteThickness / ConcreteConductivity;
+      if (rLayers <= rConcrete)
+      {
+        return new WallLayer[]
+        {
+          new WallLayer("コンクリート", ConcreteConductivity, ConcreteVolumetricHeat,
+            rLayers * ConcreteConductivity),
+        };
+      }
+
+      return new WallLayer[]
+      {
+        new WallLayer("コンクリート", ConcreteConductivity, ConcreteVolumetricHeat, ConcreteThickness),
+        new WallLayer("断熱材(熱貫流率換算)", InsulationConductivity, InsulationVolumetricHeat,
+          (rLayers - rConcrete) * InsulationConductivity),
+      };
+    }
+
+    /// <summary>A resolved window placement on a wall.</summary>
+    /// <param name="Window">Source window entry.</param>
+    /// <param name="Configuration">Referenced window specification.</param>
+    /// <param name="Area">Placed area = per-window area × count [m²].</param>
+    private readonly record struct WindowPlacement(
+      WebproWindow Window, WebproWindowConfiguration Configuration, double Area);
+
+    /// <summary>
+    /// Resolves the windows placed on a WEBPRO wall and their areas.
+    /// </summary>
+    /// <remarks>
+    /// Following builelib, the placed area is the per-window area of the
+    /// specification (<c>windowArea</c>, or <c>windowWidth × windowHeight</c>
+    /// when <c>windowArea</c> is not a positive finite number) multiplied by
+    /// <see cref="WebproWindow.Number"/> (count; null is treated as 1).
+    /// The sentinel ID "無" and zero-count entries are skipped.
+    /// </remarks>
+    private static List<WindowPlacement> ResolveWindowPlacements(
+      WebproWall webproWall,
+      IReadOnlyDictionary<string, WebproWindowConfiguration> windowConfigurations)
+    {
+      var result = new List<WindowPlacement>();
       foreach (var webproWindow in webproWall.Windows)
       {
         // sentinel "無" は窓なしを意味する
@@ -367,11 +525,25 @@ namespace Popolo.Webpro.Conversion
             $"Window ID '{webproWindow.ID}' is not defined in WindowConfigurations.");
         }
 
-        double area = webproWindow.Number ?? windowConf.Area;
-        if (area <= 0) continue;
+        double count = webproWindow.Number ?? 1.0;
+        if (!(double.IsFinite(count) && count >= 0))
+          throw new PopoloArgumentException(
+            $"Window '{webproWindow.ID}' on wall spec '{webproWall.WallSpec}' has an invalid " +
+            $"WindowNumber (window count) {count}.", "model");
+        if (count == 0) continue;
 
-        yield return BuildWindow(windowConf, area, incline, webproWindow.HasBlind, catalog);
+        double unitArea = double.IsFinite(windowConf.Area) && windowConf.Area > 0
+          ? windowConf.Area
+          : windowConf.Width * windowConf.Height;
+        if (!(double.IsFinite(unitArea) && unitArea > 0))
+          throw new PopoloArgumentException(
+            $"Window spec '{webproWindow.ID}' has no valid per-window area: windowArea = " +
+            $"{windowConf.Area}, windowWidth × windowHeight = {windowConf.Width} × {windowConf.Height}.",
+            "model");
+
+        result.Add(new WindowPlacement(webproWindow, windowConf, unitArea * count));
       }
+      return result;
     }
 
     /// <summary>
@@ -379,22 +551,46 @@ namespace Popolo.Webpro.Conversion
     /// configuration entry and the placement's area, incline, and blind flag.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Reproduces the legacy Popolo v2.3 <c>WebproWindowJson.MakeWindow</c>
     /// logic: resolves (τ, U-value) from the configuration method, applies
     /// the two-pane absorptance-zero correction, subtracts surface
     /// resistance, and optionally installs a bright venetian blind.
+    /// </para>
+    /// <para>
+    /// The window is modeled as two glazing layers with one air gap. The
+    /// internal resistance R = 1/U − <see cref="SurfaceResistance"/> is
+    /// split between the two glass resistances (the <see cref="Window"/>
+    /// default of 0.006 m²K/W each, reduced to R/4 each when R is smaller
+    /// than 4 × 0.006) and the air gap (the remainder), so that
+    /// Σglass + gap + 0.15 = 1/U exactly.
+    /// </para>
     /// </remarks>
+    /// <exception cref="PopoloArgumentException">
+    /// The resolved U-value is not a positive finite number or is not below
+    /// 1/<see cref="SurfaceResistance"/>.
+    /// </exception>
     private static Window BuildWindow(
+      string windowId,
       WebproWindowConfiguration windowConf,
       double area,
       Incline incline,
       bool hasBlind,
       GlazingCatalog catalog)
     {
-      // 両表面の総合熱伝達率の逆数 (室内 1/10 + 屋外 1/20 = 0.15)
-      const double R_IO = 1.0 / 10.0 + 1.0 / 20.0;
-
       (double tau, double htCoef) = ResolveGlazingPerformance(windowConf, catalog);
+
+      // 室内外の表面熱抵抗 (0.15) を差し引いた、ガラス + 中空層の熱抵抗
+      if (!(double.IsFinite(htCoef) && htCoef > 0))
+        throw new PopoloArgumentException(
+          $"Window spec '{windowId}' (input method '{windowConf.Method}') has no valid U-value (got {htCoef}).",
+          "model");
+      double rInternal = 1.0 / htCoef - SurfaceResistance;
+      if (rInternal <= 0)
+        throw new PopoloArgumentException(
+          $"Window spec '{windowId}': U-value {htCoef} W/(m²·K) is not below " +
+          $"1/{SurfaceResistance} = {1.0 / SurfaceResistance:F3} W/(m²·K), so no positive " +
+          $"glazing resistance remains after subtracting the surface resistances.", "model");
 
       // 吸収率=0 の二重ガラス仮定で単層透過率を 2 層等価値に補正
       tau = 2.0 * tau / (1.0 + tau);
@@ -406,9 +602,14 @@ namespace Popolo.Webpro.Conversion
         new double[] { rho, rho },
         incline);
 
-      // 室内外の表面熱抵抗を差し引いた中空層の熱抵抗
-      double adjustedHtCoef = htCoef / (1.0 - R_IO * htCoef);
-      window.SetAirGapResistance(0, adjustedHtCoef);
+      // ガラスの熱抵抗は既定値 (0.006) を基本とし、内部抵抗が小さい場合のみ縮小する
+      double rGlass = window.GetGlassResistance(0);
+      if (4.0 * rGlass > rInternal)
+      {
+        rGlass = 0.25 * rInternal;
+        for (int i = 0; i < window.GlazingCount; i++) window.SetGlassResistance(i, rGlass);
+      }
+      window.SetAirGapResistance(0, rInternal - window.GlazingCount * rGlass);
 
       // ブラインドは BrightVenetianBlind 固定 (旧版踏襲)
       if (hasBlind)
@@ -460,6 +661,8 @@ namespace Popolo.Webpro.Conversion
       {
         case WallType.ExternalWall:
         case WallType.ShadingExternalWall:
+          // 日の当たらない外壁も外気境界 (外気温・夜間放射)。
+          // 日射は BuildWall で ShortWaveAbsorptanceF = 0 として除外済み
           multiRooms.SetOutsideWall(wall, isSideF: true, incline);
           break;
         case WallType.GroundWall:
