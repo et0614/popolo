@@ -39,6 +39,9 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <summary>Nominal flue gas temperature [°C].</summary>
     private double nominalSmokeTemperature;
 
+    /// <summary>Auxiliary electric power consumption while firing (burner fan, controls, etc.) [kW].</summary>
+    private double nominalElectricConsumption;
+
     /// <summary>Gets or sets the primary energy conversion factor for electricity [MJ/kWh].</summary>
     public double PrimaryEnergyFactor { get; set; } = 9.76;
 
@@ -112,7 +115,7 @@ namespace Popolo.Core.HVAC.HeatSource
     /// <param name="outletWaterTemperature">Outlet water temperature [°C].</param>
     /// <param name="waterFlowRate">Water flow rate [kg/s].</param>
     /// <param name="fuelConsumption">Fuel consumption rate [kg/s or Nm³/s].</param>
-    /// <param name="electricConsumption">Electric power consumption [kW].</param>
+    /// <param name="electricConsumption">Auxiliary electric power consumption while firing [kW] (constant while the boiler operates).</param>
     /// <param name="ambientTemperature">Ambient temperature [°C].</param>
     /// <param name="airRatio">Excess air ratio [-].</param>
     /// <param name="fuel">Fuel type.</param>
@@ -127,7 +130,7 @@ namespace Popolo.Core.HVAC.HeatSource
       AirRatio = airRatio;
       nominalSmokeTemperature = smokeTemperature;
       NominalFuelConsumption = fuelConsumption;
-      ElectricConsumption = electricConsumption;
+      nominalElectricConsumption = electricConsumption;
       AmbientTemperature = ambientTemperature;
       OutletWaterSetpointTemperature = nomOutletWaterTemperature = outletWaterTemperature;
       MaxWaterFlowRate  = WaterFlowRate = waterFlowRate;
@@ -180,6 +183,9 @@ namespace Popolo.Core.HVAC.HeatSource
       }
       else OutletWaterTemperature = OutletWaterSetpointTemperature;
       HeatLoad = hl;
+
+      //Auxiliary electric power: constant (rated value) while firing
+      ElectricConsumption = nominalElectricConsumption;
     }
 
     /// <summary>Shuts off the boiler.</summary>

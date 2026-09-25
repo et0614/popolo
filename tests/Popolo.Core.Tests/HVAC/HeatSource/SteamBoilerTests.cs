@@ -74,18 +74,45 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
     }
 
     /// <summary>
-    /// SteamPressure を設定すると SteamTemperature がその飽和温度になる。
-    /// ShutOff() が SteamPressure=101.325 kPa（大気圧）にリセットするため、
-    /// コンストラクタ直後は大気圧の飽和温度（≈100°C）になる。
-    /// 明示的に SteamPressure を設定してから確認する。
+    /// コンストラクタ直後の SteamPressure は定格（設計）圧力で、SteamTemperature はその飽和温度。
+    /// 旧実装はコンストラクタ内の ShutOff() が SteamPressure を大気圧に上書きしていたため、
+    /// 本テストは SteamPressure を明示的に再設定して不具合を回避していた。
     /// </summary>
     [Fact]
-    public void SteamPressure_SetToNominal_MatchesSaturationTemp()
+    public void Constructor_SteamPressure_IsNominal()
     {
       var boiler = MakeBoiler();
-      boiler.SteamPressure = NominalPressure;
+      Assert.Equal(NominalPressure, boiler.SteamPressure, 10);
       double expected = Water.GetSaturationTemperature(NominalPressure);
       Assert.InRange(boiler.SteamTemperature, expected - 0.1, expected + 0.1);
+    }
+
+    /// <summary>停止（ShutOff）しても設定された蒸気圧力は保持される。</summary>
+    [Fact]
+    public void ShutOff_KeepsSteamPressure()
+    {
+      var boiler = MakeBoiler();
+      boiler.SteamPressure = 400.0;
+      boiler.Update(InletWaterTemp, NominalFlowRate);
+      boiler.ShutOff();
+      Assert.Equal(400.0, boiler.SteamPressure, 10);
+    }
+
+    /// <summary>
+    /// 燃焼中は定格の補機消費電力（0.1 kW）を消費し、停止中は 0。
+    /// 旧実装はコンストラクタ内の ShutOff で定格値を消去し、常に 0 だった。
+    /// </summary>
+    [Fact]
+    public void Update_Firing_UsesNominalAuxiliaryElectricity()
+    {
+      var boiler = MakeBoiler();
+      Assert.Equal(0.0, boiler.ElectricConsumption);
+      boiler.Update(InletWaterTemp, NominalFlowRate);
+      Assert.Equal(0.1, boiler.ElectricConsumption, 12);
+      boiler.Update(InletWaterTemp, 0.0);
+      Assert.Equal(0.0, boiler.ElectricConsumption);
+      boiler.Update(InletWaterTemp, NominalFlowRate * 0.5);
+      Assert.Equal(0.1, boiler.ElectricConsumption, 12);
     }
 
     /// <summary>コンストラクタ直後は ShutOff 状態。</summary>

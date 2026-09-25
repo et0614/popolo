@@ -201,6 +201,30 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             Assert.Equal(0.0, boiler.HeatLoad);
             Assert.Equal(0.0, boiler.FuelConsumption);
             Assert.Equal(0.0, boiler.WaterFlowRate);
+            Assert.Equal(0.0, boiler.ElectricConsumption);
+        }
+
+        /// <summary>
+        /// 燃焼中は定格の補機消費電力（コンストラクタ指定値 0.5 kW）を消費し、停止中は 0。
+        /// 停止→再燃焼後も定格値に戻る。旧実装はコンストラクタ内の ShutOff で定格値を
+        /// 消去していたため、補機電力が常に 0 だった。
+        /// </summary>
+        [Fact]
+        public void Update_Firing_UsesNominalAuxiliaryElectricity()
+        {
+            var boiler = MakeBoiler();
+            Assert.Equal(0.0, boiler.ElectricConsumption);   // 初期状態は停止
+
+            boiler.Update(60.0, 1.0);
+            Assert.Equal(0.5, boiler.ElectricConsumption, 12);
+
+            boiler.Update(60.0, 0.0);                         // 流量ゼロ → 停止
+            Assert.Equal(0.0, boiler.ElectricConsumption);
+
+            boiler.OutletWaterSetpointTemperature = 200.0;    // 過負荷でも燃焼中
+            boiler.Update(60.0, 1.0);
+            Assert.True(boiler.IsOverLoad);
+            Assert.Equal(0.5, boiler.ElectricConsumption, 12);
         }
 
         #endregion
