@@ -540,6 +540,104 @@ namespace Popolo.IO.Tests.Climate.Weather
     #endregion
 
     // ================================================================
+    #region Record rebuild preserves every field
+
+    /// <summary>WeatherField の各値に対応する builder セッタを呼ぶ（テスト用の値は field ごとに一意）。</summary>
+    private static void SetField(WeatherRecordBuilder b, WeatherField f, double v)
+    {
+      switch (f)
+      {
+        case WeatherField.DryBulbTemperature: b.SetDryBulbTemperature(v); break;
+        case WeatherField.HumidityRatio: b.SetHumidityRatio(v); break;
+        case WeatherField.RelativeHumidity: b.SetRelativeHumidity(v); break;
+        case WeatherField.AtmosphericPressure: b.SetAtmosphericPressure(v); break;
+        case WeatherField.GlobalHorizontalRadiation: b.SetGlobalHorizontalRadiation(v); break;
+        case WeatherField.DirectNormalRadiation: b.SetDirectNormalRadiation(v); break;
+        case WeatherField.DiffuseHorizontalRadiation: b.SetDiffuseHorizontalRadiation(v); break;
+        case WeatherField.AtmosphericRadiation: b.SetAtmosphericRadiation(v); break;
+        case WeatherField.WindSpeed: b.SetWindSpeed(v); break;
+        case WeatherField.WindDirection: b.SetWindDirection(v); break;
+        case WeatherField.Precipitation: b.SetPrecipitation(v); break;
+        case WeatherField.CloudCover: b.SetCloudCover(v); break;
+        case WeatherField.OpaqueCloudCover: b.SetOpaqueCloudCover(v); break;
+        case WeatherField.CeilingHeight: b.SetCeilingHeight(v); break;
+        case WeatherField.DewPointTemperature: b.SetDewPointTemperature(v); break;
+        default:
+          throw new InvalidOperationException(
+              $"テストヘルパーが WeatherField.{f} に未対応。新しいフィールドを追加した場合は "
+              + "WeatherCompleter.RebuildWith のフィールド表とこのヘルパーを更新すること。");
+      }
+    }
+
+    private static double GetField(WeatherRecord r, WeatherField f) => f switch
+    {
+      WeatherField.DryBulbTemperature => r.DryBulbTemperature,
+      WeatherField.HumidityRatio => r.HumidityRatio,
+      WeatherField.RelativeHumidity => r.RelativeHumidity,
+      WeatherField.AtmosphericPressure => r.AtmosphericPressure,
+      WeatherField.GlobalHorizontalRadiation => r.GlobalHorizontalRadiation,
+      WeatherField.DirectNormalRadiation => r.DirectNormalRadiation,
+      WeatherField.DiffuseHorizontalRadiation => r.DiffuseHorizontalRadiation,
+      WeatherField.AtmosphericRadiation => r.AtmosphericRadiation,
+      WeatherField.WindSpeed => r.WindSpeed,
+      WeatherField.WindDirection => r.WindDirection,
+      WeatherField.Precipitation => r.Precipitation,
+      WeatherField.CloudCover => r.CloudCover,
+      WeatherField.OpaqueCloudCover => r.OpaqueCloudCover,
+      WeatherField.CeilingHeight => r.CeilingHeight,
+      WeatherField.DewPointTemperature => r.DewPointTemperature,
+      _ => throw new InvalidOperationException($"未対応の WeatherField.{f}"),
+    };
+
+    /// <summary>
+    /// 補完で record が再構築されても、気圧以外の全 WeatherField（列挙値を総なめ）が
+    /// 値・recorded 区分ともに保持されることを確認する。
+    /// 新しい WeatherField が Core に追加され RebuildWith の複写漏れが起きると失敗する。
+    /// </summary>
+    [Fact]
+    public void Rebuild_PreservesEveryWeatherField()
+    {
+      var fields = new System.Collections.Generic.List<WeatherField>();
+      foreach (WeatherField f in Enum.GetValues<WeatherField>())
+        if (f != WeatherField.None && f != WeatherField.AtmosphericPressure) fields.Add(f);
+
+      var b = new WeatherRecordBuilder().SetTime(new DateTime(2026, 6, 21, 12, 0, 0));
+      for (int i = 0; i < fields.Count; i++) SetField(b, fields[i], 0.1 + i);
+      var data = MakeData(b.ToRecord());
+
+      // 気圧が欠けているので標高からの補完が走り、record が再構築される
+      WeatherCompleter.Apply(data, new WeatherReadOptions
+      {
+        EstimateAtmosphericPressureFromElevation = true,
+      });
+
+      var r = data.Records[0];
+      Assert.True(r.IsEstimated(WeatherField.AtmosphericPressure));
+      for (int i = 0; i < fields.Count; i++)
+      {
+        Assert.True(r.Has(fields[i]), $"{fields[i]} が再構築で失われた");
+        Assert.False(r.IsEstimated(fields[i]), $"{fields[i]} の recorded 区分が失われた");
+        Assert.Equal(0.1 + i, GetField(r, fields[i]));
+      }
+    }
+
+    /// <summary>
+    /// RebuildWith の複写対象が WeatherField の全メンバーを網羅していることを確認する。
+    /// </summary>
+    [Fact]
+    public void Rebuild_CopiedFieldsCoverAllWeatherFieldMembers()
+    {
+      foreach (WeatherField f in Enum.GetValues<WeatherField>())
+      {
+        if (f == WeatherField.None) continue;
+        Assert.True((WeatherCompleter.CopiedFields & f) == f,
+            $"WeatherCompleter.RebuildWith が WeatherField.{f} を複写しない");
+      }
+    }
+
+    #endregion
+
+    // ================================================================
     #region Use of interval-integrated sin(altitude)
 
     /// <summary>

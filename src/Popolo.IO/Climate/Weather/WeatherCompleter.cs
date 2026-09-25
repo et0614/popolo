@@ -472,6 +472,45 @@ namespace Popolo.IO.Climate.Weather
     }
 
     /// <summary>
+    /// Per-field copy table used by <see cref="RebuildWith"/>. Must contain one
+    /// entry for every <see cref="WeatherField"/> member; a missing entry makes
+    /// the field silently disappear whenever a record is rebuilt (which happened
+    /// to <see cref="WeatherField.DewPointTemperature"/> before 4.0). The unit test
+    /// <c>Rebuild_CopiedFieldsCoverAllWeatherFieldMembers</c> enumerates the enum
+    /// against <see cref="CopiedFields"/> to catch future omissions.
+    /// </summary>
+    private static readonly (WeatherField Field,
+                             Func<WeatherRecord, double> Get,
+                             Action<WeatherRecordBuilder, double> Set)[] FieldCopiers =
+    {
+      (WeatherField.DryBulbTemperature,         r => r.DryBulbTemperature,         (b, v) => b.SetDryBulbTemperature(v)),
+      (WeatherField.HumidityRatio,              r => r.HumidityRatio,              (b, v) => b.SetHumidityRatio(v)),
+      (WeatherField.RelativeHumidity,           r => r.RelativeHumidity,           (b, v) => b.SetRelativeHumidity(v)),
+      (WeatherField.AtmosphericPressure,        r => r.AtmosphericPressure,        (b, v) => b.SetAtmosphericPressure(v)),
+      (WeatherField.GlobalHorizontalRadiation,  r => r.GlobalHorizontalRadiation,  (b, v) => b.SetGlobalHorizontalRadiation(v)),
+      (WeatherField.DirectNormalRadiation,      r => r.DirectNormalRadiation,      (b, v) => b.SetDirectNormalRadiation(v)),
+      (WeatherField.DiffuseHorizontalRadiation, r => r.DiffuseHorizontalRadiation, (b, v) => b.SetDiffuseHorizontalRadiation(v)),
+      (WeatherField.AtmosphericRadiation,       r => r.AtmosphericRadiation,       (b, v) => b.SetAtmosphericRadiation(v)),
+      (WeatherField.WindSpeed,                  r => r.WindSpeed,                  (b, v) => b.SetWindSpeed(v)),
+      (WeatherField.WindDirection,              r => r.WindDirection,              (b, v) => b.SetWindDirection(v)),
+      (WeatherField.Precipitation,              r => r.Precipitation,              (b, v) => b.SetPrecipitation(v)),
+      (WeatherField.CloudCover,                 r => r.CloudCover,                 (b, v) => b.SetCloudCover(v)),
+      (WeatherField.OpaqueCloudCover,           r => r.OpaqueCloudCover,           (b, v) => b.SetOpaqueCloudCover(v)),
+      (WeatherField.CeilingHeight,              r => r.CeilingHeight,              (b, v) => b.SetCeilingHeight(v)),
+      (WeatherField.DewPointTemperature,        r => r.DewPointTemperature,        (b, v) => b.SetDewPointTemperature(v)),
+    };
+
+    /// <summary>Union of all fields copied by <see cref="RebuildWith"/> (for tests).</summary>
+    internal static readonly WeatherField CopiedFields = ComputeCopiedFields();
+
+    private static WeatherField ComputeCopiedFields()
+    {
+      var f = WeatherField.None;
+      foreach (var c in FieldCopiers) f |= c.Field;
+      return f;
+    }
+
+    /// <summary>
     /// Copies all present fields of <paramref name="r"/> into a fresh builder,
     /// restores the <see cref="WeatherRecord.EstimatedFields"/> classification,
     /// then lets the caller add or override additional fields.
@@ -482,20 +521,8 @@ namespace Popolo.IO.Climate.Weather
       var b = new WeatherRecordBuilder().SetTime(r.Time);
       if (r.SourceTime != r.Time) b.SetSourceTime(r.SourceTime);
 
-      if (r.Has(WeatherField.DryBulbTemperature))        b.SetDryBulbTemperature(r.DryBulbTemperature);
-      if (r.Has(WeatherField.HumidityRatio))             b.SetHumidityRatio(r.HumidityRatio);
-      if (r.Has(WeatherField.RelativeHumidity))          b.SetRelativeHumidity(r.RelativeHumidity);
-      if (r.Has(WeatherField.AtmosphericPressure))       b.SetAtmosphericPressure(r.AtmosphericPressure);
-      if (r.Has(WeatherField.GlobalHorizontalRadiation)) b.SetGlobalHorizontalRadiation(r.GlobalHorizontalRadiation);
-      if (r.Has(WeatherField.DirectNormalRadiation))     b.SetDirectNormalRadiation(r.DirectNormalRadiation);
-      if (r.Has(WeatherField.DiffuseHorizontalRadiation)) b.SetDiffuseHorizontalRadiation(r.DiffuseHorizontalRadiation);
-      if (r.Has(WeatherField.AtmosphericRadiation))      b.SetAtmosphericRadiation(r.AtmosphericRadiation);
-      if (r.Has(WeatherField.WindSpeed))                 b.SetWindSpeed(r.WindSpeed);
-      if (r.Has(WeatherField.WindDirection))             b.SetWindDirection(r.WindDirection);
-      if (r.Has(WeatherField.Precipitation))             b.SetPrecipitation(r.Precipitation);
-      if (r.Has(WeatherField.CloudCover))                b.SetCloudCover(r.CloudCover);
-      if (r.Has(WeatherField.OpaqueCloudCover))          b.SetOpaqueCloudCover(r.OpaqueCloudCover);
-      if (r.Has(WeatherField.CeilingHeight))             b.SetCeilingHeight(r.CeilingHeight);
+      foreach (var (field, get, set) in FieldCopiers)
+        if (r.Has(field)) set(b, get(r));
 
       // Preserve the existing estimated classification (Set* stores into recorded, so reclassify afterwards)
       b.MarkEstimated(r.EstimatedFields);
