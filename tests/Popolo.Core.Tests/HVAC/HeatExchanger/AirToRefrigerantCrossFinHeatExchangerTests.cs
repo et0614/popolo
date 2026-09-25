@@ -317,5 +317,121 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
 
         #endregion
 
+        // ================================================================
+        #region Cooling inverse solve: bracket robustness
+
+        /// <summary>定格14kW室内機（JIS定格で表面積を決定）の風量 [kg/s]。</summary>
+        private static readonly double RatedIndoorAirFlow = 34.5 * 1.2 / 60.0;
+
+        /// <summary>定格14kW室内機の蒸発器表面積 [m2]。</summary>
+        private static double RatedIndoorArea()
+            => VRFSystem.MakeIndoorUnit_Cooling(RatedIndoorAirFlow, 0, -14.0).EvaporatorSurfaceArea;
+
+        /// <summary>
+        /// 高湿度の入口空気（27°C, RH50〜95%）で定格の1.3倍までの冷却負荷を与えても
+        /// 蒸発温度の逆算が例外を出さず、戻り値が残差式を満たす。
+        /// （全顕熱の出口温度を初期値とする旧ブラケットでは潜熱分を賄えず失敗していた）
+        /// </summary>
+        [Theory]
+        [InlineData(50.0, false)]
+        [InlineData(60.0, false)]
+        [InlineData(70.0, false)]
+        [InlineData(80.0, false)]
+        [InlineData(90.0, false)]
+        [InlineData(95.0, false)]
+        [InlineData(70.0, true)]
+        [InlineData(95.0, true)]
+        public void GetRefrigerantTemperature_Cooling_HumidAir_DoesNotThrowAndSatisfiesResidual(
+            double rhIn, bool deduct)
+        {
+            double area = RatedIndoorArea();
+            double hr = Hr(27.0, rhIn);
+            foreach (double heat in new[] { -1.0, -3.0, -6.0, -10.0, -14.0, -16.0, -18.2 })
+            {
+                Coil.GetRefrigerantTemperature(K, heat, RatedIndoorAirFlow, area, 27.0, hr, 95.0, deduct, 0,
+                    out double te, out double to, out double wo,
+                    out _, out _, out double dfl, out _);
+
+                Coil.GetHeatTransfer(K, te, RatedIndoorAirFlow, area, 27.0, hr, 95.0, 0,
+                    out double ht, out double to2, out double wo2, out _, out _, out double dfl2, out _);
+                double residual = deduct ? ht - dfl2 - heat : ht - heat;
+                Assert.True(Math.Abs(residual) < 0.01,
+                    $"RH={rhIn}%, Q={heat} kW: residual {residual:E3} kW at Te={te:F3}°C");
+                Assert.True(te < 27.0, $"RH={rhIn}%, Q={heat} kW: Te={te:F3}°C below inlet air");
+                Assert.Equal(to2, to);
+                Assert.Equal(wo2, wo);
+                Assert.Equal(dfl2, dfl);
+            }
+        }
+
+        /// <summary>
+        /// 乾き空気・小負荷など旧ブラケットで解けていた条件では、結果が旧ブラケット
+        /// [T0-20, T0+5] で直接 Brent 法を適用した値とビット単位で一致する。
+        /// </summary>
+        [Theory]
+        [InlineData(-13.0, 7.0, 85.0)]
+        [InlineData(-8.0, 2.0, 85.0)]
+        [InlineData(-5.0, 27.0, 40.0)]
+        public void GetRefrigerantTemperature_Cooling_PreviouslyBracketed_Unchanged(
+            double heat, double tIn, double rhIn)
+        {
+            double hr = Hr(tIn, rhIn);
+            double area = EvpArea();
+            Coil.GetRefrigerantTemperature(K, heat, AirFlow, area, tIn, hr, 95.0, false, 0,
+                out double te, out _, out _, out _, out _, out _, out _);
+
+            double t0 = tIn + heat / (AirFlow * 1.006);
+            double expected = Popolo.Core.Numerics.Roots.Brent(t0 - 20, t0 + 5, 0.001, eTemp =>
+            {
+                Coil.GetHeatTransfer(K, eTemp, AirFlow, area, tIn, hr, 95.0, 0,
+                    out double ht, out _, out _, out _, out _, out _, out _);
+                return ht - heat;
+            });
+            Assert.Equal(expected, te);
+        }
+
+        /// <summary>
+        /// 蒸発温度逆算の前提：冷却熱量（負値、除霜負荷控除の有無とも）は蒸発温度に対して
+        /// 単調非減少で、入口空気温度では0となる。
+        /// 注：入口相対湿度が境界相対湿度以上の場合、露点近傍（乾き判定と湿り判定の切替点）で
+        /// 既存モデルに小さな不連続があるため、単調性は20°C以下の範囲で確認する。
+        /// </summary>
+        [Theory]
+        [InlineData(50.0)]
+        [InlineData(70.0)]
+        [InlineData(95.0)]
+        public void GetHeatTransfer_Cooling_MonotonicInRefrigerantTemperature(double rhIn)
+        {
+            double area = RatedIndoorArea();
+            double hr = Hr(27.0, rhIn);
+            double prevHt = double.NegativeInfinity, prevNet = double.NegativeInfinity;
+            for (double te = -60.0; te <= 20.0; te += 0.25)
+            {
+                Coil.GetHeatTransfer(K, te, RatedIndoorAirFlow, area, 27.0, hr, 95.0, 0,
+                    out double ht, out _, out _, out _, out _, out double dfl, out _);
+                Assert.True(ht < 0, $"RH={rhIn}%: cooling at Te={te}°C");
+                Assert.True(prevHt <= ht + 1e-9, $"RH={rhIn}%: ht not monotonic at Te={te}°C");
+                Assert.True(prevNet <= ht - dfl + 1e-9, $"RH={rhIn}%: ht-dfl not monotonic at Te={te}°C");
+                prevHt = ht;
+                prevNet = ht - dfl;
+            }
+            Coil.GetHeatTransfer(K, 27.0, RatedIndoorAirFlow, area, 27.0, hr, 95.0, 0,
+                out double ht0, out _, out _, out _, out _, out double dfl0, out _);
+            Assert.Equal(0.0, ht0, 12);
+            Assert.Equal(0.0, dfl0, 12);
+        }
+
+        /// <summary>コイルの処理能力を超える冷却負荷は明示的な数値例外となる。</summary>
+        [Fact]
+        public void GetRefrigerantTemperature_Cooling_LoadBeyondCapability_ThrowsNumericalException()
+        {
+            double area = RatedIndoorArea();
+            Assert.Throws<Popolo.Core.Exceptions.PopoloNumericalException>(() =>
+                Coil.GetRefrigerantTemperature(K, -300.0, RatedIndoorAirFlow, area, 27.0, Hr(27.0, 50.0),
+                    95.0, false, 0, out _, out _, out _, out _, out _, out _, out _));
+        }
+
+        #endregion
+
     }
 }

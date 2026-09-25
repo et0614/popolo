@@ -65,6 +65,13 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// </remarks>
     private const double REFRIGERANT_TEMPERATURE_TOLERANCE = 0.001;
 
+    /// <summary>Lowest evaporating temperature searched when bracketing the cooling solve [°C].</summary>
+    /// <remarks>A load that cannot be processed even at this temperature exceeds the coil capability.</remarks>
+    private const double MIN_EVAPORATING_TEMPERATURE = -60;
+
+    /// <summary>Step [K] by which the lower end of the cooling solve bracket is extended.</summary>
+    private const double BRACKET_EXPANSION_STEP = 15;
+
     #endregion
 
     #region Unified public methods
@@ -702,7 +709,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       bool deductDefrostLoad, out double refrigerantTemperature, out double outletAirTemperature,
       out double outletAirHumidityRatio, out double sD, out double sW, out double defrostLoad)
     {
-      //Initial guess for the evaporating temperature
+      //Initial guess for the evaporating temperature (all-sensible outlet air temperature)
       refrigerantTemperature = inletAirTemperature + heatTransfer / (airFlowRate * 1.006);
 
       Roots.ErrorFunction eFnc = delegate (double eTemp)
@@ -714,10 +721,62 @@ namespace Popolo.Core.HVAC.HeatExchanger
         if (deductDefrostLoad) return ht - heatTransfer - dl;
         else return ht - heatTransfer;
       };
+
+      //The residual increases monotonically with the evaporating temperature (the cooling
+      //heat transfer, a negative value, shrinks toward 0 as the evaporating temperature
+      //approaches the inlet air temperature, where it vanishes; the only exception is a
+      //small jump at the dry/wet switch near the dew point when the inlet relative humidity
+      //reaches the border value, which affects only very small loads). Try the heuristic bracket around the
+      //all-sensible guess first; it is too narrow when the latent load is large (humid air)
+      //or the load is small, in which case a guaranteed bracket is searched for.
+      double tA = refrigerantTemperature - 20;
+      double tB = refrigerantTemperature + 5;
+      if (tA < MIN_EVAPORATING_TEMPERATURE)
+      {
+        //Extreme load for the air flow: keep the search within the physical range
+        tA = MIN_EVAPORATING_TEMPERATURE;
+        if (tB <= tA) tB = inletAirTemperature;
+      }
+      double fA = eFnc(tA);
+      double fB = eFnc(tB);
+      if (double.IsNaN(fA) || double.IsNaN(fB)) throw new PopoloNumericalException(
+        "GetCoolingRefrigerantTemperature",
+        $"Residual evaluation returned NaN. Tair={inletAirTemperature:F2}°C, hHeat={heatTransfer:F3} kW.");
+      if (0 < fA && 0 < fB)
+      {
+        //Even the lower end does not remove enough heat: step the lower end down
+        while (0 < fA)
+        {
+          if (tA <= MIN_EVAPORATING_TEMPERATURE) throw new PopoloNumericalException(
+            "GetCoolingRefrigerantTemperature",
+            $"Cooling load exceeds the coil capability: even at an evaporating temperature of "
+            + $"{tA:F1}°C the coil cannot process hHeat={heatTransfer:F3} kW "
+            + $"(Tair={inletAirTemperature:F2}°C, xair={inletAirHumidityRatio:F5} kg/kg, "
+            + $"airFlow={airFlowRate:F4} kg/s, surface={surfaceArea:F4} m²).");
+          tB = tA; fB = fA;
+          tA = Math.Max(tA - BRACKET_EXPANSION_STEP, MIN_EVAPORATING_TEMPERATURE);
+          fA = eFnc(tA);
+          if (double.IsNaN(fA)) throw new PopoloNumericalException(
+            "GetCoolingRefrigerantTemperature",
+            $"Residual evaluation returned NaN at Te={tA:F2}°C.");
+        }
+      }
+      else if (fA < 0 && fB < 0)
+      {
+        //Even the upper end removes too much heat: the root lies between the upper end and
+        //the inlet air temperature, where the cooling heat transfer vanishes (residual = -Q > 0)
+        if (inletAirTemperature <= tB) throw new PopoloNumericalException(
+          "GetCoolingRefrigerantTemperature",
+          $"Could not bracket the evaporating temperature. "
+          + $"Tair={inletAirTemperature:F2}°C, hHeat={heatTransfer:F3} kW, surface={surfaceArea:F4} m².");
+        tA = tB; fA = fB;
+        tB = inletAirTemperature;
+        fB = eFnc(tB);
+      }
       try
       {
         refrigerantTemperature = Roots.Brent(
-          refrigerantTemperature - 20, refrigerantTemperature + 5, REFRIGERANT_TEMPERATURE_TOLERANCE, eFnc);
+          eFnc, tA, tB, fA, fB, REFRIGERANT_TEMPERATURE_TOLERANCE);
       }
       catch (Exception ex)
       {
