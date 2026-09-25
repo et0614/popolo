@@ -832,6 +832,45 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
       Assert.InRange(pipe.OutletWaterTemperauture - tIn, 1e-4, 1.0); // 50 m の裸管で温度上昇は小さい
     }
 
+    /// <summary>
+    /// 配管の流量計算は逆流（下流側が高圧）でも順流と対称な流量を返す。
+    /// 旧実装は負の流速で Reynolds 数が負になり摩擦係数が NaN となって、
+    /// 誤った流量を黙って返していた。
+    /// </summary>
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(5.0)]
+    [InlineData(50.0)]
+    public void WaterPipe_ReverseFlow_IsSymmetricToForwardFlow(double dpKPa)
+    {
+      var pipe = new WaterPipe(30, 0.1, WaterPipe.Material.CarbonSteel);
+      pipe.UpStreamNode = new CircuitNode { Pressure = dpKPa };
+      pipe.DownStreamNode = new CircuitNode { Pressure = 0 };
+      pipe.UpdateFlowRateFromNodePressureDifference();
+      double forward = pipe.VolumetricFlowRate;
+
+      pipe.UpStreamNode.Pressure = 0;
+      pipe.DownStreamNode.Pressure = dpKPa;
+      pipe.UpdateFlowRateFromNodePressureDifference();
+      double reverse = pipe.VolumetricFlowRate;
+
+      Assert.True(forward > 0, $"forward={forward}");
+      Assert.InRange(reverse, -forward * (1 + 1e-6), -forward * (1 - 1e-6));
+      // 圧力損失は流量と整合する
+      Assert.InRange(pipe.GetPressureDrop(forward), dpKPa * 0.999, dpKPa * 1.001);
+    }
+
+    /// <summary>圧力損失は流量ゼロで 0、逆流では符号が反転する（旧実装は流量ゼロで NaN）。</summary>
+    [Fact]
+    public void WaterPipe_GetPressureDrop_ZeroAndReverseFlow()
+    {
+      var pipe = new WaterPipe(30, 0.1, WaterPipe.Material.CarbonSteel);
+      Assert.Equal(0.0, pipe.GetPressureDrop(0.0));
+      double dp = pipe.GetPressureDrop(0.01);
+      Assert.True(dp > 0);
+      Assert.Equal(-dp, pipe.GetPressureDrop(-0.01), 12);
+    }
+
     /// <summary>生成直後（初期化計算後）の体積流量は流速 2 m/s 相当 [m³/s] である。</summary>
     [Fact]
     public void WaterPipe_Initialize_VolumetricFlowRateIsTwoMetersPerSecond()

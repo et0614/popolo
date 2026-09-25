@@ -328,9 +328,12 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double dp = (UpStreamNode.Pressure - DownStreamNode.Pressure) * 1000;
 
       //Iteratively solve for the flow velocity [m/s]
+      //(the Reynolds number uses the speed |vel|: Newton iterates can overshoot to reverse
+      // flow, and a negative Reynolds number would make the friction factor meaningless;
+      // the flow direction comes from the sign of dp in Conduit.GetVelocity)
       Roots.ErrorFunction eFnc = delegate (double vel)
       {
-        double reNumber = vel * InnerDiameter / v;
+        double reNumber = Math.Abs(vel) * InnerDiameter / v;
         double ff = Conduit.GetFrictionFactor(reNumber, Roughness / InnerDiameter);
         return Conduit.GetVelocity(ff, rho, Length, InnerDiameter, dp) - vel;
       };
@@ -341,17 +344,18 @@ namespace Popolo.Core.HVAC.FluidCircuit
     #endregion
 
     /// <summary>Gets the pressure loss [kPa].</summary>
-    /// <param name="flowRate">Volumetric flow rate [m³/s].</param>
-    /// <returns>Pressure loss [kPa].</returns>
+    /// <param name="flowRate">Volumetric flow rate [m³/s] (negative for reverse flow).</param>
+    /// <returns>Pressure loss [kPa], with the sign of <paramref name="flowRate"/> (0 at zero flow).</returns>
     public double GetPressureDrop(double flowRate)
     {
+      if (flowRate == 0) return 0;
       double v = Water.GetLiquidDynamicViscosity(InletWaterTemperature);
       double rho = Water.GetLiquidDensity(InletWaterTemperature);
       double fArea = InnerDiameter * InnerDiameter / 4d * Math.PI;
       double vel = flowRate / fArea;
-      double reNumber = vel * InnerDiameter / v;
+      double reNumber = Math.Abs(vel) * InnerDiameter / v;
       double ff = Conduit.GetFrictionFactor(reNumber, Roughness / InnerDiameter);
-      return 0.001 * Conduit.GetPressureDrop(ff, rho, Length, InnerDiameter, vel);
+      return Math.Sign(flowRate) * 0.001 * Conduit.GetPressureDrop(ff, rho, Length, InnerDiameter, vel);
     }
 
     #region Class methods

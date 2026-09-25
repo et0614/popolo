@@ -284,6 +284,7 @@ namespace Popolo.Core.Numerics
     {
       int iNum = 0;
       double err1 = eFnc(x);
+      EnsureFinite("Newton", "residual", err1, iNum, x);
       while (errorTolerance < Math.Abs(err1))
       {
         if (maxIteration < iNum)
@@ -293,12 +294,30 @@ namespace Popolo.Core.Numerics
               + $"Last estimate: x={x}, f(x)={err1}.");
         double err2 = eFnc(x + delta);
         double dX = (err1 * delta) / (err2 - err1);
+        EnsureFinite("Newton", "step", dX, iNum, x);
         x -= dX;
         if (Math.Abs(dX) < collectionTolerance) break;
         err1 = eFnc(x);
+        EnsureFinite("Newton", "residual", err1, iNum, x);
         iNum++;
       }
       return x;
+    }
+
+    /// <summary>
+    /// Throws when a residual, derivative or step of a Newton iteration is not finite.
+    /// </summary>
+    /// <remarks>
+    /// The loop condition <c>errorTolerance &lt; |f|</c> is false for NaN, so without this
+    /// check a NaN residual (or an infinite step from a zero derivative) would end the
+    /// iteration and return the current estimate as if it were a root.
+    /// </remarks>
+    private static void EnsureFinite(string method, string quantity, double value, int iteration, double x)
+    {
+      if (!double.IsFinite(value))
+        throw new PopoloNumericalException(
+            method,
+            $"Non-finite {quantity} ({value}) at iteration {iteration}, x={x}.");
     }
 
     /// <summary>Finds a root using Newton's method with an analytic derivative.</summary>
@@ -317,6 +336,7 @@ namespace Popolo.Core.Numerics
     {
       int iNum = 0;
       double err = eFnc(x);
+      EnsureFinite("Newton", "residual", err, iNum, x);
       while (errorTolerance < Math.Abs(err))
       {
         if (maxIteration < iNum)
@@ -325,9 +345,11 @@ namespace Popolo.Core.Numerics
               $"Convergence failed after {iNum} iterations. "
               + $"Last estimate: x={x}, f(x)={err}.");
         double dX = err / eFncD(x);
+        EnsureFinite("Newton", "step", dX, iNum, x);
         x -= dX;
         if (Math.Abs(dX) < collectionTolerance) break;
         err = eFnc(x);
+        EnsureFinite("Newton", "residual", err, iNum, x);
         iNum++;
       }
       return x;
@@ -349,6 +371,7 @@ namespace Popolo.Core.Numerics
     {
       int iNum = 0;
       double err1 = eFnc(x);
+      EnsureFinite("NewtonBisection", "residual", err1, iNum, x);
       while (errorTolerance < Math.Abs(err1))
       {
         if (maxIteration < iNum)
@@ -358,11 +381,13 @@ namespace Popolo.Core.Numerics
               + $"Last estimate: x={x}, f(x)={err1}.");
         double err2 = eFnc(x + delta);
         double dX = (err1 * delta) / (err2 - err1);
+        EnsureFinite("NewtonBisection", "step", dX, iNum, x);
         double lastX = x;
         double lastErr = err1;
         x -= dX;
         if (Math.Abs(dX) < collectionTolerance) break;
         err1 = eFnc(x);
+        EnsureFinite("NewtonBisection", "residual", err1, iNum, x);
         if (lastErr * err1 < 0)
           return Bisection(eFnc, lastX, x, lastErr, err1,
               errorTolerance, collectionTolerance, maxIteration - iNum);
@@ -399,6 +424,7 @@ namespace Popolo.Core.Numerics
     {
       int iNum = 0;
       double err = eFnc(x);
+      EnsureFinite("NewtonBisection (analytical)", "residual", err, iNum, x);
       while (errorTolerance < Math.Abs(err))
       {
         if (maxIteration < iNum)
@@ -412,11 +438,13 @@ namespace Popolo.Core.Numerics
               "NewtonBisection (analytical)",
               $"Zero derivative at iteration {iNum}, x={x}.");
         double dX = err / dfx;
+        EnsureFinite("NewtonBisection (analytical)", "step", dX, iNum, x);
         double lastX = x;
         double lastErr = err;
         x -= dX;
         if (Math.Abs(dX) < collectionTolerance) break;
         err = eFnc(x);
+        EnsureFinite("NewtonBisection (analytical)", "residual", err, iNum, x);
         if (lastErr * err < 0)
           return Bisection(eFnc, lastX, x, lastErr, err,
               errorTolerance, collectionTolerance, maxIteration - iNum);

@@ -104,6 +104,37 @@ namespace Popolo.Core.Tests.Numerics
             Assert.Equal(Math.Sqrt(2.0), result, precision: 8);
         }
 
+        /// <summary>
+        /// ニュートン法は残差が NaN になった時点で PopoloNumericalException を投げる
+        /// （旧実装は NaN をループ終了条件の成立とみなし、開始点を「解」として返していた）。
+        /// </summary>
+        [Fact]
+        public void Newton_NaNResidual_Throws()
+        {
+            // x < 0 で NaN（開始点 -5 で即座に NaN）
+            Assert.Throws<PopoloNumericalException>(
+                () => Roots.Newton(x => Math.Sqrt(x) - 2, -5, 1e-6, 1e-10, 1e-10, 30));
+            Assert.Throws<PopoloNumericalException>(
+                () => Roots.NewtonBisection(x => Math.Sqrt(x) - 2, -5, 1e-6, 1e-10, 1e-10, 30));
+        }
+
+        /// <summary>解析微分が 0 のとき、ニュートン法は無限大のステップを取らずに例外を投げる</summary>
+        [Fact]
+        public void Newton_ZeroDerivative_Throws()
+        {
+            // f = x² + 1（実根なし）、x = 0 で f' = 0
+            Assert.Throws<PopoloNumericalException>(
+                () => Roots.Newton(x => x * x + 1, x => 2 * x, 0, 1e-10, 1e-10, 30));
+        }
+
+        /// <summary>通常の問題ではニュートン法の結果は従来どおり（有限性検査は結果を変えない）</summary>
+        [Fact]
+        public void Newton_RegularProblem_Converges()
+        {
+            Assert.Equal(Math.Sqrt(2.0), Roots.Newton(SqrtTwoFunction, 1.0, 1e-7, 1e-12, 1e-12, 50), 9);
+            Assert.Equal(Math.Sqrt(2.0), Roots.Newton(SqrtTwoFunction, x => 2 * x, 1.0, 1e-12, 1e-12, 50), 12);
+        }
+
         /// <summary>根が囲い込まれていない場合、Brent法は PopoloArgumentException を投げる（黙って非解を返さない）</summary>
         [Fact]
         public void Brent_RootNotBracketed_ThrowsPopoloArgumentException()
