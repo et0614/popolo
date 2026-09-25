@@ -507,7 +507,56 @@ namespace Popolo.Core.HVAC.HeatExchanger
         if (deductDefrostLoad) return ht - heatTransfer - dl;
         else return ht - heatTransfer;
       };
-      evaporatingTemperature = Roots.Brent(evaporatingTemperature - 10, evaporatingTemperature + 10, 0.00001, eFnc);
+      //The residual decreases monotonically with the evaporating temperature (the cooling
+      //heat transfer, a positive value here, vanishes at the inlet air temperature).
+      //Try the heuristic bracket around the all-sensible guess first and search for a
+      //guaranteed bracket only when it does not enclose the root.
+      const double MIN_EVP_TEMP = -60;
+      const double EXPANSION_STEP = 15;
+      double tA = evaporatingTemperature - 10;
+      double tB = evaporatingTemperature + 10;
+      if (tA < MIN_EVP_TEMP)
+      {
+        tA = MIN_EVP_TEMP;
+        if (tB <= tA) tB = inletAirTemperature;
+      }
+      double fA = eFnc(tA);
+      double fB = eFnc(tB);
+      if (double.IsNaN(fA) || double.IsNaN(fB)) throw new PopoloNumericalException(
+        "CrossFinEvaporator.GetEvaporatingTemperature",
+        $"Residual evaluation returned NaN. Tair={inletAirTemperature:F2}°C, heatTransfer={heatTransfer:F3} kW.");
+      if (fA < 0 && fB < 0)
+      {
+        //Even the lower end does not remove enough heat: step the lower end down
+        while (fA < 0)
+        {
+          if (tA <= MIN_EVP_TEMP) throw new PopoloNumericalException(
+            "CrossFinEvaporator.GetEvaporatingTemperature",
+            $"Cooling load exceeds the coil capability: even at an evaporating temperature of "
+            + $"{tA:F1}°C the coil cannot process heatTransfer={heatTransfer:F3} kW "
+            + $"(Tair={inletAirTemperature:F2}°C, xair={inletAirHumidityRatio:F5} kg/kg, "
+            + $"airFlow={airFlowRate:F4} kg/s, surface={surfaceArea:F4} m²).");
+          tB = tA; fB = fA;
+          tA = Math.Max(tA - EXPANSION_STEP, MIN_EVP_TEMP);
+          fA = eFnc(tA);
+          if (double.IsNaN(fA)) throw new PopoloNumericalException(
+            "CrossFinEvaporator.GetEvaporatingTemperature",
+            $"Residual evaluation returned NaN at Te={tA:F2}°C.");
+        }
+      }
+      else if (0 < fA && 0 < fB)
+      {
+        //Even the upper end removes too much heat: the root lies between the upper end and
+        //the inlet air temperature, where the heat transfer vanishes (residual = -Q < 0)
+        if (inletAirTemperature <= tB) throw new PopoloNumericalException(
+          "CrossFinEvaporator.GetEvaporatingTemperature",
+          $"Could not bracket the evaporating temperature. "
+          + $"Tair={inletAirTemperature:F2}°C, heatTransfer={heatTransfer:F3} kW, surface={surfaceArea:F4} m².");
+        tA = tB; fA = fB;
+        tB = inletAirTemperature;
+        fB = eFnc(tB);
+      }
+      evaporatingTemperature = Roots.Brent(eFnc, tA, tB, fA, fB, 0.00001);
       double hTransfer;
       GetHeatTransfer(evaporatingTemperature, airFlowRate, nominalAirFlowRate, surfaceArea,
         inletAirTemperature, inletAirHumidityRatio, borderRelativeHumidity, 

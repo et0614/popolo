@@ -191,5 +191,38 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         }
 
         #endregion
+
+        // ================================================================
+        #region Evaporating temperature solve: bracket robustness
+
+        /// <summary>
+        /// 乾いた〜高湿度の入口空気（27°C, RH20〜95%）で定格（8kW）の1.3倍までの負荷を与えても
+        /// 蒸発温度の逆算が例外を出さず、戻り値が残差式を満たす。
+        /// （全顕熱の出口温度±10Kの旧ブラケットでは、乾き空気の高負荷や高湿度で失敗していた）
+        /// </summary>
+        [Theory]
+        [InlineData(20.0, false)]
+        [InlineData(50.0, false)]
+        [InlineData(70.0, false)]
+        [InlineData(95.0, false)]
+        [InlineData(95.0, true)]
+        public void GetEvaporatingTemperature_WideHumidityRange_DoesNotThrowAndSatisfiesResidual(double rhIn, bool deduct)
+        {
+            var evap = MakeEvap();
+            double hr = Popolo.Core.Physics.MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(
+                27.0, rhIn, Popolo.Core.Physics.PhysicsConstants.StandardAtmosphericPressure);
+            foreach (double heat in new[] { 1.0, 3.0, 6.0, 8.0, 10.4 })
+            {
+                CrossFinEvaporator.GetEvaporatingTemperature(heat, 0.5, evap.NominalAirFlowRate, evap.SurfaceArea,
+                    27.0, hr, 80.0, deduct, out double te, out _, out _, out _, out _, out _);
+                CrossFinEvaporator.GetHeatTransfer(te, 0.5, evap.NominalAirFlowRate, evap.SurfaceArea,
+                    27.0, hr, 80.0, out double ht, out _, out _, out _, out _, out double dfl);
+                double residual = deduct ? ht - dfl - heat : ht - heat;
+                Assert.True(Math.Abs(residual) < 0.01,
+                    $"RH={rhIn}%, Q={heat} kW: residual {residual:E3} kW at Te={te:F3}°C");
+            }
+        }
+
+        #endregion
     }
 }
