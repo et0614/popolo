@@ -162,10 +162,13 @@ namespace Popolo.Core.HVAC.SystemModel
         hsModel.ForecastSupplyWaterTemperature
           (ChilledWaterFlowRate, ChilledWaterReturnTemperature, HotWaterFlowRate, HotWaterReturnTemperature);
 
-        //Unmet load occurs
+        //Unmet load occurs: the secondary side (building) has been evaluated at the upper limit
         if (ChilledWaterUpperLimitTemperature < hsModel.ChilledWaterSupplyTemperature)
+        {
+          ChilledWaterSupplyTemperature = ChilledWaterUpperLimitTemperature;
           RemainingCoolingLoad = ChilledWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat *
             (hsModel.ChilledWaterSupplyTemperature - ChilledWaterUpperLimitTemperature);
+        }
         //Supply water temperature rises
         else
         {
@@ -190,10 +193,13 @@ namespace Popolo.Core.HVAC.SystemModel
         hsModel.ForecastSupplyWaterTemperature
           (ChilledWaterFlowRate, ChilledWaterReturnTemperature, HotWaterFlowRate, HotWaterReturnTemperature);
 
-        //Unmet load occurs
+        //Unmet load occurs: the secondary side (building) has been evaluated at the lower limit
         if (hsModel.HotWaterSupplyTemperature < HotWaterLowerLimitTemperature)
+        {
+          HotWaterSupplyTemperature = HotWaterLowerLimitTemperature;
           RemainingHeatingLoad = HotWaterFlowRate * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat *
             (HotWaterLowerLimitTemperature - hsModel.HotWaterSupplyTemperature);
+        }
         //Supply water temperature falls
         else
         {
