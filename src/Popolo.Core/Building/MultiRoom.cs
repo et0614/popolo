@@ -140,6 +140,12 @@ namespace Popolo.Core.Building
     /// <summary>Temporary storage for zone temperatures and humidity ratios.</summary>
     private double[] zoneTemp = null!, zoneHumid = null!;
 
+    /// <summary>
+    /// Temporary storage for the separately forecast humidity ratios, kept across a sensible
+    /// heat re-forecast (used only when moisture is not solved simultaneously).
+    /// </summary>
+    private double[] zoneHumidForecast = null!;
+
     /// <summary>Working matrices for the sensible heat balance calculation.</summary>
     private IMatrix matA = null!, matAInv = null!, matB = null!, matD = null!, matF = null!, matI = null!, matK = null!, matBf = null!;
     private IVector vecC = null!, vecEJ = null!, vecTH = null!, vecTWS = null!;
@@ -467,6 +473,7 @@ namespace Popolo.Core.Building
       zoneVent = new double[ZoneCount, ZoneCount];
       zoneTemp = new double[ZoneCount];
       zoneHumid = new double[ZoneCount];
+      zoneHumidForecast = new double[ZoneCount];
       swDistFloor = new Dictionary<OpticalLayeredEnvelope, EnvelopeSurface>();
       swDistRate = new Dictionary<OpticalLayeredEnvelope, double>();
       directAbsorption = new Dictionary<OpticalLayeredEnvelope, List<(EnvelopeSurface, double)>>();
@@ -632,6 +639,10 @@ namespace Popolo.Core.Building
             error($"Component[{i}] {side} side short-wave absorptance/emissivity = {sw}, must be in [0, 1].");
           if (sf.AdjacentSpaceFactor >= 0.0 && sf.AdjacentSpaceFactor > 1.0)
             error($"Component[{i}] {side} side adjacent-space factor = {sf.AdjacentSpaceFactor}, must be in [0, 1].");
+          // The adjacent-space boundary is interpolated from the zone on the reverse side
+          if (ClassifySide(sf) == SideKind.Adjacent && ClassifySide(sf.ReverseSideSurface) != SideKind.Indoor)
+            error($"Component[{i}] {side} side uses an adjacent-space factor, but its reverse side "
+                + "is not attached to any zone (the adjacent-space boundary is interpolated from that zone).");
         }
       }
 
@@ -701,6 +712,17 @@ namespace Popolo.Core.Building
     /// </remarks>
     internal void ForecastHeatTransfer()
     {
+      //When moisture is solved separately and has already been forecast in this step, a sensible
+      //heat re-forecast must not discard it: PrepareForHeatTransfer → ResetAirState reverts the
+      //humidity ratios to the pre-step values (so this heat solve sees the same state as the first
+      //one), and the moisture forecast — which does not depend on the zone temperatures — is put
+      //back after the solve. Otherwise FixState would commit the pre-step humidity whenever the
+      //moisture forecast is not re-run (e.g. a heat-only control change such as a capacity cap).
+      bool keepMoistureForecast =
+        forecastingHeatTransfer && forecastingMoistureTransfer && !SolveMoistureTransferSimultaneously;
+      if (keepMoistureForecast)
+        for (int i = 0; i < ZoneCount; i++) zoneHumidForecast[i] = zones[i].HumidityRatio;
+
       //Run preparatory calculations
       PrepareForHeatTransfer();
 
@@ -761,6 +783,10 @@ namespace Popolo.Core.Building
           else zones[i].HumidityRatio = vecTH[i + ZoneCount];
         }
       }
+
+      //Restore the separately forecast humidity ratios
+      if (keepMoistureForecast)
+        for (int i = 0; i < ZoneCount; i++) zones[i].HumidityRatio = zoneHumidForecast[i];
     }
 
     /// <summary>
@@ -1096,11 +1122,18 @@ namespace Popolo.Core.Building
           }
           else
           {
-            //When the adjacent-space temperature difference factor is used
+            //When the adjacent-space temperature difference factor is used:
+            //interpolate between the zone on the reverse side and the outdoor air
+            int rZone = ws.ReverseSideSurface.ZoneIndex;
+            if (rZone < 0 || ZoneCount <= rZone)
+              throw new PopoloInvalidOperationException(
+                "A component side uses an adjacent-space factor, but its reverse side is not attached to any zone "
+                + "(the adjacent-space boundary is interpolated from the zone on the reverse side). "
+                + "Attach the reverse side to a zone with AddWall / AddComponent.");
+            Zone rz = zones[rZone];
             double ftd = ws.AdjacentSpaceFactor;
-            double tmp = zones[ws.ReverseSideSurface.ZoneIndex].Temperature;
-            ws.SolAirTemperature = (1 - ftd) * tmp + ftd * OutdoorTemperature;
-            ws.HumidityRatio = (1 - ftd) * tmp + ftd * OutdoorHumidityRatio;
+            ws.SolAirTemperature = (1 - ftd) * rz.Temperature + ftd * OutdoorTemperature;
+            ws.HumidityRatio = (1 - ftd) * rz.HumidityRatio + ftd * OutdoorHumidityRatio;
           }
         }
       }
@@ -1114,10 +1147,13 @@ namespace Popolo.Core.Building
       else
       {
         //Temporarily store temperatures and humidity ratios
+        //(if the moisture balance was already forecast separately in this step, zoneHumid already
+        // holds the pre-step humidity ratios and the zones hold the forecast; keep the former)
+        bool humidStored = forecastingMoistureTransfer && !SolveMoistureTransferSimultaneously;
         for (int i = 0; i < ZoneCount; i++)
         {
           zoneTemp[i] = zones[i].Temperature;
-          zoneHumid[i] = zones[i].HumidityRatio;
+          if (!humidStored) zoneHumid[i] = zones[i].HumidityRatio;
         }
 
         //Assign serial numbers to zones and surfaces, initialize view factor matrices
