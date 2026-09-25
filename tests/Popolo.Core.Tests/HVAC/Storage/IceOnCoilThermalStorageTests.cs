@@ -30,8 +30,9 @@ namespace Popolo.Core.Tests.HVAC.Storage
   /// sensible heat flow after full solidification.
   ///
   /// Sign convention for HeatTransferToCoil:
-  ///   HeatTransferToCoil &gt; 0 → heat rejected to brine (melting mode, brine warms the tank)
-  ///   HeatTransferToCoil &lt; 0 → heat extracted from brine (ice making mode)
+  ///   HeatTransferToCoil &gt; 0 → heat released by the brine to the tank (melting mode, brine warms the tank)
+  ///   HeatTransferToCoil &lt; 0 → heat extracted from the tank by the brine (ice making mode)
+  ///   HeatLoss (ambient exchange) acts on the tank water/ice only, not on the brine.
   ///
   /// Ice state transitions:
   ///   NoIce   → water only, pipe exposed.
@@ -455,6 +456,51 @@ namespace Popolo.Core.Tests.HVAC.Storage
       Assert.Equal(tank.HeatLoss, ro.HeatLoss);
       Assert.Equal(tank.GetIcePackingFactor(), ro.GetIcePackingFactor());
       Assert.Equal(tank.GetAverageWaterIceTemperature(), ro.GetAverageWaterIceTemperature());
+    }
+
+    #endregion
+
+    // ================================================================
+    #region Regression tests (ambient heat gain is not charged to the brine)
+
+    /// <summary>
+    /// ブラインと水槽水温に温度差がなければ、周囲との熱授受があっても
+    /// ブライン出口温度 = 入口温度（周囲熱はブラインではなく水槽の水・氷に作用する）。
+    /// </summary>
+    [Fact]
+    public void Update_NoBrineTankTemperatureDifference_OutletEqualsInletDespiteHeatLoss()
+    {
+      var tank = MakeStandard(5.0);
+      tank.AmbientTemperature = 30.0;
+      tank.HeatLossCoefficient = 50.0; // [W/K]
+      tank.Update(5.0, 0.5);
+
+      Assert.Equal(tank.InletBrineTemperature, tank.OutletBrineTemperature);
+      Assert.Equal(0.0, tank.HeatTransferToCoil);
+      Assert.True(tank.HeatLoss > 0, $"HeatLoss = {tank.HeatLoss:F4} kW should be positive (heat gain)");
+      // 周囲からの熱で水温は上昇する
+      Assert.True(tank.GetAverageWaterIceTemperature() > 5.0);
+    }
+
+    /// <summary>
+    /// 水槽全体のエネルギー収支：水の顕熱変化 = (ブライン放熱 + 周囲からの熱取得)·Δt。
+    /// 氷なし・相変化なしの条件で確認する。
+    /// </summary>
+    [Fact]
+    public void Update_NoIce_TankEnergyBalanceIncludesBrineAndAmbient()
+    {
+      var tank = MakeStandard(10.0);
+      tank.AmbientTemperature = 30.0;
+      tank.HeatLossCoefficient = 50.0;
+      double t0 = tank.GetAverageWaterIceTemperature();
+      tank.Update(15.0, 0.5); // 温ブライン → 水槽を加熱（氷なし）
+      double t1 = tank.GetAverageWaterIceTemperature();
+
+      double storedKJ = (t1 - t0) * WaterVolume * PhysicsConstants.NominalWaterDensity
+        * IceOnCoilThermalStorage.WaterSpecificHeat;
+      double suppliedKJ = (tank.HeatTransferToCoil + tank.HeatLoss) * tank.TimeStep;
+      Assert.True(tank.HeatTransferToCoil > 0);
+      Assert.InRange(storedKJ, suppliedKJ * (1 - 1e-6), suppliedKJ * (1 + 1e-6));
     }
 
     #endregion

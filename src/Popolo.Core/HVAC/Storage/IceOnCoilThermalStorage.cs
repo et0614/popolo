@@ -164,9 +164,11 @@ namespace Popolo.Core.HVAC.Storage
     /// <summary>Gets or sets the specific heat of brine [kJ/(kg·K)].</summary>
     public double BrineSpecificHeat { get; set; } = 3.5;
 
-    /// <summary>Gets the heat transfer from brine to the coil [kW].</summary>
-    /// <remarks>Positive: heat rejected from tank to brine (melting);
-    /// negative: heat extracted from brine (ice making).</remarks>
+    /// <summary>Gets the heat transfer from the brine to the tank water/ice through the coil [kW].</summary>
+    /// <remarks>Computed from the brine temperature change, (inlet − outlet)·flow·specific heat.
+    /// Positive: heat released by the brine to the tank (melting / warming);
+    /// negative: heat extracted from the tank by the brine (ice making / cooling).
+    /// Does not include the ambient heat exchange (see <see cref="HeatLoss"/>).</remarks>
     public double HeatTransferToCoil { get; private set; }
 
     /// <summary>Gets or sets the overall heat loss coefficient of the tank [W/K].</summary>
@@ -179,7 +181,10 @@ namespace Popolo.Core.HVAC.Storage
     /// <summary>Gets or sets the ambient temperature surrounding the tank [°C].</summary>
     public double AmbientTemperature { get; set; } = 20;
 
-    /// <summary>Gets the heat loss from the tank to the ambient [kW].</summary>
+    /// <summary>Gets the heat exchanged between the ambient and the tank water/ice [kW].</summary>
+    /// <remarks>Positive when the ambient is warmer than the tank (heat gain of the tank);
+    /// negative when the tank loses heat to the ambient. It acts on the tank water/ice only,
+    /// not on the brine.</remarks>
     public double HeatLoss { get; private set; }
 
     #endregion
@@ -274,22 +279,27 @@ namespace Popolo.Core.HVAC.Storage
       double dIceI = this.iceInnerDiameters[segmentIndex];
       double tIceWater = this.waterIceTemperatures[segmentIndex];
 
-      //Compute the heat flows
+      //Compute the heat flows [W/m]
+      //Heat gain from the ambient to the tank water/ice (positive when the ambient is warmer)
       heatLoss = (AmbientTemperature - tIceWater) * heatLossPerUnit;
-      double heatFlowToCoil = (inletBrineTemperature - tIceWater) * getPipeLinearThermalTransmittance(segmentIndex, pipeResistance) + heatLoss;
+      //Heat released by the brine to the tank water/ice (positive when the brine is warmer)
+      double brineHeatFlow = (inletBrineTemperature - tIceWater) * getPipeLinearThermalTransmittance(segmentIndex, pipeResistance);
+      //Net heat flow into the tank water/ice (brine + ambient); drives the ice/water state change
+      double netHeatFlow = brineHeatFlow + heatLoss;
+
+      //Update the brine temperature: only the brine-to-tank heat flow acts on the brine
+      if (brineFlowRate == 0) outletBrineTemperature = inletBrineTemperature;
+      else outletBrineTemperature = inletBrineTemperature - (brineHeatFlow * BranchLength / SegmentsCount)
+        / (brineFlowRate * BrineSpecificHeat * 1000);
 
       //No heat flow
-      if (heatFlowToCoil == 0)
-      {
-        outletBrineTemperature = inletBrineTemperature;
-        return;
-      }
+      if (netHeatFlow == 0) return;
 
       //Ice present
       if (PipeOuterDiameter < dIceO)
       {
         //Ice making
-        if (heatFlowToCoil < 0)
+        if (netHeatFlow < 0)
         {
           //Special situation: ice making resumes in the middle of melting
           if (PipeOuterDiameter < dIceI)
@@ -303,13 +313,13 @@ namespace Popolo.Core.HVAC.Storage
           //If no water is left to freeze, the ice temperature drops
           if (maxIceDiameter <= dIceO)
           {
-            double dTice = -heatFlowToCoil * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
+            double dTice = -netHeatFlow * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
             waterIceTemperatures[segmentIndex] -= dTice;
           }
           //If water remains, the ice grows thicker
           else
           {
-            double dAreaIce = -heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume increase [m3/m]
+            double dAreaIce = -netHeatFlow * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume increase [m3/m]
             dIceO = getOuterDiameterFromAnnulusArea(dAreaIce, dIceO);  //Update the ice diameter
 
             //Ice outer diameter exceeded the maximum
@@ -329,7 +339,7 @@ namespace Popolo.Core.HVAC.Storage
           //Ice temperature change
           if (tIceWater < 0)
           {
-            double dTice = heatFlowToCoil * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
+            double dTice = netHeatFlow * timeStep / (icePerUnit * IceDensity * IceSpecificHeat * 1000);
             tIceWater += dTice;
             //Turns into water when the temperature exceeds 0°C
             if (0 < tIceWater)
@@ -354,7 +364,7 @@ namespace Popolo.Core.HVAC.Storage
           //Ice melting
           else
           {
-            double dAreaIce = heatFlowToCoil * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume decrease [m3/m]
+            double dAreaIce = netHeatFlow * timeStep / (IceDensity * IceLatentHeat * 1000); //Ice volume decrease [m3/m]
             double areaIce = getAnnulusSurfaceArea(dIceO, dIceI);
             //All of the ice melts
             if (areaIce <= dAreaIce)
@@ -377,7 +387,7 @@ namespace Popolo.Core.HVAC.Storage
       //No ice
       else
       {
-        tIceWater += heatFlowToCoil * timeStep / (watPerUnit * PhysicsConstants.NominalWaterDensity * WaterSpecificHeat * 1000);
+        tIceWater += netHeatFlow * timeStep / (watPerUnit * PhysicsConstants.NominalWaterDensity * WaterSpecificHeat * 1000);
 
         //Ice making has started
         if (tIceWater < 0)
@@ -392,11 +402,6 @@ namespace Popolo.Core.HVAC.Storage
         }
         else waterIceTemperatures[segmentIndex] = tIceWater;
       }
-
-      //Update the brine temperature
-      if (brineFlowRate == 0) outletBrineTemperature = inletBrineTemperature;
-      else outletBrineTemperature = inletBrineTemperature - (heatFlowToCoil * BranchLength / SegmentsCount)
-        / (brineFlowRate * BrineSpecificHeat * 1000);
     }
 
     #endregion

@@ -248,7 +248,7 @@ namespace Popolo.Core.HVAC.Storage
         {
           mixedAve = temperature[temperature.Length - 1];
           mixTemp = temperature[temperature.Length - 1]
-            + timeStep * (waterInletTemperature - temperature[temperature.Length - 1]) / (sectionalArea * dz);
+            + timeStep / (sectionalArea * dz) * (waterInletTemperature - temperature[temperature.Length - 1]) * waterFlowRate;
         }
 
         for (mixedNum = 1; mixedNum < layerNum; mixedNum++)
@@ -263,7 +263,7 @@ namespace Popolo.Core.HVAC.Storage
           {
             int tgtLayer = layerNum - (mixedNum + 1);
             if (mixTemp < temperature[tgtLayer]) break;
-            mixTemp = 0.5 * (mixTemp + temperature[tgtLayer]);
+            mixTemp = (mixTemp * mixedNum + temperature[tgtLayer]) / (mixedNum + 1);
             mixedAve += temperature[tgtLayer];
           }
         }

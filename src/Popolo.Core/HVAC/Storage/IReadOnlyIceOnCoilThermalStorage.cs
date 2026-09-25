@@ -59,8 +59,9 @@ namespace Popolo.Core.HVAC.Storage
     /// <summary>Gets the specific heat of brine [kJ/(kg·K)].</summary>
     double BrineSpecificHeat { get; }
 
-    /// <summary>Gets the heat transfer to the coil [kW].
-    /// Positive value: heat rejected to brine (melting); negative value: heat extracted from brine (ice making).</summary>
+    /// <summary>Gets the heat transfer from the brine to the tank water/ice through the coil [kW].
+    /// Positive value: heat released by the brine to the tank (melting); negative value: heat extracted
+    /// from the tank by the brine (ice making). The ambient heat exchange is not included.</summary>
     double HeatTransferToCoil { get; }
 
     /// <summary>Gets the overall heat loss coefficient of the tank [W/K].</summary>
@@ -69,7 +70,8 @@ namespace Popolo.Core.HVAC.Storage
     /// <summary>Gets the ambient temperature surrounding the tank [°C].</summary>
     double AmbientTemperature { get; }
 
-    /// <summary>Gets the heat loss from the tank to the ambient [kW].</summary>
+    /// <summary>Gets the heat exchanged between the ambient and the tank water/ice [kW].
+    /// Positive when the ambient is warmer than the tank (heat gain); negative when the tank loses heat.</summary>
     double HeatLoss { get; }
 
     /// <summary>Gets the current ice packing factor (IPF) [-],

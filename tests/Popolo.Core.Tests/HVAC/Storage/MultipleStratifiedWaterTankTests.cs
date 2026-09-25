@@ -301,5 +301,46 @@ namespace Popolo.Core.Tests.HVAC.Storage
     }
 
     #endregion
+
+    // ================================================================
+    #region Regression tests (symmetry of the inversion mixing)
+
+    /// <summary>
+    /// 温度逆転（混合）処理の上下対称性：上部からの冷水流入（下降流）と、
+    /// 20°C を中心に温度を反転させた下部からの温水流入（上昇流）は鏡像の結果になる。
+    /// 上昇流側で流量の乗算が欠落し、混合温度の平均の取り方も異なっていた。
+    /// </summary>
+    [Fact]
+    public void ForecastState_InversionMixing_UpflowMirrorsDownflow()
+    {
+      // 層番号 0 が下降流の流入側（上部）。混合範囲の判定が平均の取り方に依存する分布。
+      double[] profile = { 20.0, 18.0, 17.9, 17.1, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0 };
+      int n = profile.Length;
+      double[] mirrored = new double[n];
+      for (int i = 0; i < n; i++) mirrored[n - 1 - i] = 40.0 - profile[i];
+
+      // dt·Q/(A·dz) = 0.5
+      double flow = 0.5 * 1.0 * 0.2 / 60.0;
+      var down = new MultipleStratifiedWaterTank(2.0, 1.0, 0.05, 1.8, n);
+      down.TimeStep = 60;
+      down.InitializeTemperature(profile);
+      down.ForecastState(10.0, flow, isDownFlow: true);
+
+      var up = new MultipleStratifiedWaterTank(2.0, 1.0, 0.05, 1.8, n);
+      up.TimeStep = 60;
+      up.InitializeTemperature(mirrored);
+      up.ForecastState(30.0, flow, isDownFlow: false);
+
+      for (int i = 0; i < n; i++)
+      {
+        double dDown = down.GetTemperature(i) - 20.0;
+        double dUp = up.GetTemperature(n - 1 - i) - 20.0;
+        Assert.True(Math.Abs(dDown + dUp) < 1e-3,
+            $"Layer {i}: downflow ΔT={dDown:F4} K, mirrored upflow ΔT={dUp:F4} K");
+      }
+      Assert.InRange(down.LowerOutletTemperarture + up.UpperOutletTemperarture, 40.0 - 1e-3, 40.0 + 1e-3);
+    }
+
+    #endregion
   }
 }
