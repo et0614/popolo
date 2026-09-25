@@ -635,9 +635,17 @@ namespace Popolo.Core.Building.Envelope
     /// <param name="humidity1">Humidity ratio at end 1 [kg/kg].</param>
     /// <param name="humidity2">Humidity ratio at end 2 [kg/kg].</param>
     /// <returns>True if properties changed; otherwise false.</returns>
+    /// <remarks>
+    /// Called by <see cref="Wall"/> when moisture transfer is computed. The default
+    /// implementation ignores the humidity ratios and delegates to
+    /// <see cref="UpdateState(double, double)"/>, so temperature-dependent layers
+    /// (<see cref="PCMWallLayer"/>, <see cref="HorizontalAirChamber"/>) that override
+    /// only the two-argument form still update their properties in moisture mode.
+    /// Override this overload for layers whose properties also depend on humidity.
+    /// </remarks>
     public virtual bool UpdateState
       (double temperature1, double temperature2, double humidity1, double humidity2)
-    { return false; }
+    { return UpdateState(temperature1, temperature2); }
 
     #endregion
 

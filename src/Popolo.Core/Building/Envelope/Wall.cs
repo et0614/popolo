@@ -405,44 +405,44 @@ namespace Popolo.Core.Building.Envelope
         bool flg;
         if (ComputeMoistureTransfer)
           flg = layers[lnum].UpdateState
-            (tempAndHumid[lnum], tempAndHumid[lnum + 1], tempAndHumid[lnum + mNum], tempAndHumid[lnum + mNum] + 1);
+            (tempAndHumid[lnum], tempAndHumid[lnum + 1], tempAndHumid[lnum + mNum], tempAndHumid[lnum + mNum + 1]);
         else flg = layers[lnum].UpdateState(tempAndHumid[lnum], tempAndHumid[lnum + 1]);
         if (flg) needToUpdateUMatrix = true;
 
         //Adjust the temperature in the case of PCM
+        //  Node i is shared by the B half of layer i-1 and the F half of layer i
+        //  (capS[i] = layers[i-1].HeatCapacity_B + layers[i].HeatCapacity_F). The node temperature T
+        //  was solved with the PCM half capacity cap1 of the previous phase; to conserve enthalpy
+        //  across the transition temperature Tt with the new capacity cap2 (neighbouring half
+        //  capacity cap3 at the same node, 0 at a surface node):
+        //    (cap1 + cap3)(T - T0) = cap1 (Tt - T0) + cap2 (T' - Tt) + cap3 (T' - T0)
+        //    => T' = ((cap1 + cap3) T + (cap2 - cap1) Tt) / (cap2 + cap3)
         const PCMWallLayer.State sOrE = PCMWallLayer.State.Solid | PCMWallLayer.State.Equilibrium;
         PCMWallLayer? pwl = layers[lnum] as PCMWallLayer;
         if (flg && (pwl != null))
         {
           if (pwl.CurrentState_F != pwl.LastState_F)
           {
+            //F end of layer lnum = node lnum (shared with the B half of layer lnum-1)
             double temp;
             if ((pwl.CurrentState_F | pwl.LastState_F) == sOrE) temp = pwl.FreezingTemperature;
             else temp = pwl.MeltingTemperature;
             double cap1 = pwl.GetHeatCapacity(pwl.LastState_F);
             double cap2 = pwl.GetHeatCapacity(pwl.CurrentState_F);
-            if (lnum == 0) tempAndHumid[0] = cap1 / cap2 * (tempAndHumid[0] - temp) + temp;
-            else
-            {
-              double cap3 = layers[lnum - 1].HeatCapacity_F;
-              tempAndHumid[lnum] = (tempAndHumid[lnum] * (cap1 + cap3) + temp * (cap2 - cap1)) / (cap2 + cap3);
-            }
+            double cap3 = (lnum == 0) ? 0.0 : layers[lnum - 1].HeatCapacity_B;
+            tempAndHumid[lnum] = (tempAndHumid[lnum] * (cap1 + cap3) + temp * (cap2 - cap1)) / (cap2 + cap3);
           }
           if (pwl.CurrentState_B != pwl.LastState_B)
           {
+            //B end of layer lnum = node lnum+1 (shared with the F half of layer lnum+1)
             double temp;
             if ((pwl.CurrentState_B | pwl.LastState_B) == sOrE) temp = pwl.FreezingTemperature;
             else temp = pwl.MeltingTemperature;
             double cap1 = pwl.GetHeatCapacity(pwl.LastState_B);
             double cap2 = pwl.GetHeatCapacity(pwl.CurrentState_B);
-            if (lnum == layers.Length - 1)
-              tempAndHumid[layers.Length - 1] = cap1 / cap2 * (tempAndHumid[layers.Length - 1] - temp) + temp;
-            else
-            {
-              double cap3 = layers[lnum].HeatCapacity_B;
-              tempAndHumid[lnum + 1] =
-                (tempAndHumid[lnum + 1] * (cap1 + cap3) + temp * (cap2 - cap1)) / (cap2 + cap3);
-            }
+            double cap3 = (lnum == layers.Length - 1) ? 0.0 : layers[lnum + 1].HeatCapacity_F;
+            tempAndHumid[lnum + 1] =
+              (tempAndHumid[lnum + 1] * (cap1 + cap3) + temp * (cap2 - cap1)) / (cap2 + cap3);
           }
         }
       }
