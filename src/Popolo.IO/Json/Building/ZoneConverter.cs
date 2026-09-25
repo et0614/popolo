@@ -51,6 +51,12 @@ namespace Popolo.IO.Json.Building
   ///     "radiativeHeatGain":  50,
   ///     "moistureGain":       0.0001
   ///   },
+  ///   "ventilationRate":  0.05,
+  ///   "supplyAir": {
+  ///     "flowRate":      0.3,
+  ///     "temperature":   16.0,
+  ///     "humidityRatio": 0.008
+  ///   },
   ///   "walls": [
   ///     { "wallId": 42, "sideF": true },
   ///     { "wallId": 43, "sideF": false }
@@ -70,6 +76,15 @@ namespace Popolo.IO.Json.Building
   /// <b>Optional baseHeatGain:</b> If the base heat gain is
   /// <see cref="SimpleHeatGain"/> with all three fields at zero, the object is
   /// omitted on write.
+  /// </para>
+  /// <para>
+  /// <b>Optional boundary-condition inputs:</b> <see cref="Zone.VentilationRate"/>
+  /// and the supply-air conditions (<see cref="Zone.SupplyAirFlowRate"/>,
+  /// <see cref="Zone.SupplyAirTemperature"/>, <see cref="Zone.SupplyAirHumidityRatio"/>)
+  /// are user-set inputs that the model never recomputes, so they are persisted
+  /// (unlike computed state such as temperature, heat supply or control flags).
+  /// They are written only when non-zero; missing values read as 0 (the
+  /// <see cref="Zone"/> default), so older files load unchanged.
   /// </para>
   /// <para>
   /// <b>Wall references and windows pending resolution:</b>
@@ -124,6 +139,13 @@ namespace Popolo.IO.Json.Building
     // Keys inside walls
     private const string PropWallId = "wallId";
     private const string PropSideF = "sideF";
+
+    // Boundary-condition inputs (optional; default 0 when absent)
+    private const string PropVentilationRate = "ventilationRate";
+    private const string PropSupplyAir = "supplyAir";
+    private const string PropSaFlowRate = "flowRate";
+    private const string PropSaTemperature = "temperature";
+    private const string PropSaHumidityRatio = "humidityRatio";
 
     private const string ExpectedKind = "zone";
 
@@ -181,6 +203,8 @@ namespace Popolo.IO.Json.Building
       HeatGainValues? baseHeatGain = null;
       List<WallSurfaceReference> wallRefs = new List<WallSurfaceReference>();
       List<Window> windows = new List<Window>();
+      double ventilationRate = 0.0;
+      double saFlowRate = 0.0, saTemperature = 0.0, saHumidityRatio = 0.0;
 
       while (reader.Read())
       {
@@ -206,6 +230,10 @@ namespace Popolo.IO.Json.Building
           case PropBaseHeatGain: baseHeatGain = ReadBaseHeatGain(ref reader); break;
           case PropWalls: wallRefs = ReadWallReferences(ref reader); break;
           case PropWindows: windows = ReadWindows(ref reader, options); break;
+          case PropVentilationRate: ventilationRate = reader.GetDouble(); break;
+          case PropSupplyAir:
+            ReadSupplyAir(ref reader, out saFlowRate, out saTemperature, out saHumidityRatio);
+            break;
           default: reader.Skip(); break;
         }
       }
@@ -229,6 +257,11 @@ namespace Popolo.IO.Json.Building
       zone.CoolingCapacity = capacities.Cooling;
       zone.HumidifyingCapacity = capacities.Humidifying;
       zone.DehumidifyingCapacity = capacities.Dehumidifying;
+
+      zone.VentilationRate = ventilationRate;
+      zone.SupplyAirFlowRate = saFlowRate;
+      zone.SupplyAirTemperature = saTemperature;
+      zone.SupplyAirHumidityRatio = saHumidityRatio;
 
       if (baseHeatGain is not null)
       {
@@ -267,11 +300,54 @@ namespace Popolo.IO.Json.Building
 
       WriteBaseHeatGainIfAny(writer, value.BaseHeatGain);
 
+      // Boundary-condition inputs: written only when non-default (0).
+      if (value.VentilationRate != 0.0)
+        writer.WriteNumber(PropVentilationRate, value.VentilationRate);
+      if (value.SupplyAirFlowRate != 0.0 || value.SupplyAirTemperature != 0.0
+          || value.SupplyAirHumidityRatio != 0.0)
+      {
+        writer.WritePropertyName(PropSupplyAir);
+        writer.WriteStartObject();
+        writer.WriteNumber(PropSaFlowRate, value.SupplyAirFlowRate);
+        writer.WriteNumber(PropSaTemperature, value.SupplyAirTemperature);
+        writer.WriteNumber(PropSaHumidityRatio, value.SupplyAirHumidityRatio);
+        writer.WriteEndObject();
+      }
+
       WriteWallReferences(writer, value.GetWallReferences());
 
       WriteWindows(writer, value.GetWindows(), options);
 
       writer.WriteEndObject();
+    }
+
+    #endregion
+
+    #region Reading supply air
+
+    private static void ReadSupplyAir(ref Utf8JsonReader reader,
+      out double flowRate, out double temperature, out double humidityRatio)
+    {
+      if (reader.TokenType != JsonTokenType.StartObject)
+        throw new JsonException($"Expected StartObject for '{PropSupplyAir}', but got {reader.TokenType}.");
+
+      flowRate = 0.0; temperature = 0.0; humidityRatio = 0.0;
+      while (reader.Read())
+      {
+        if (reader.TokenType == JsonTokenType.EndObject) break;
+        if (reader.TokenType != JsonTokenType.PropertyName)
+          throw new JsonException($"Expected PropertyName in '{PropSupplyAir}', but got {reader.TokenType}.");
+        string? propName = reader.GetString();
+        if (!reader.Read())
+          throw new JsonException($"Unexpected end of JSON while reading '{PropSupplyAir}.{propName}'.");
+        switch (propName)
+        {
+          case PropSaFlowRate: flowRate = reader.GetDouble(); break;
+          case PropSaTemperature: temperature = reader.GetDouble(); break;
+          case PropSaHumidityRatio: humidityRatio = reader.GetDouble(); break;
+          default: reader.Skip(); break;
+        }
+      }
     }
 
     #endregion

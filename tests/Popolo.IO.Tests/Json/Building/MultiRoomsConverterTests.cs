@@ -535,6 +535,16 @@ namespace Popolo.IO.Tests.Json.Building
             Assert.Throws<JsonException>(() => MultiRoomsConverter.BuildMultiRooms(dto, dict));
         }
 
+        /// <summary>siteTerrainCategory に TerrainCategory の名前以外（数値文字列を含む）を与えると JsonException。</summary>
+        [Theory]
+        [InlineData("\"Downtown\"")]
+        [InlineData("\"2\"")]
+        public void ReadDto_InvalidSiteTerrainCategory_Throws(string terrain)
+        {
+            string json = """{ "kind": "multiRooms", "albedo": 0.4, "siteTerrainCategory": """ + terrain + " }";
+            Assert.Throws<JsonException>(() => ReadDtoFromJson(json, CreateOptions()));
+        }
+
         [Fact]
         public void BuildMultiRooms_UnknownWallId_Throws()
         {

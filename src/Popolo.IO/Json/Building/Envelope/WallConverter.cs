@@ -50,9 +50,23 @@ namespace Popolo.IO.Json.Building.Envelope
   ///     "convectiveCoefficient": 9.3,
   ///     "shortWaveAbsorptance":  0.7,
   ///     "longWaveEmissivity":    0.9
-  ///   }
+  ///   },
+  ///   "isWindExposedF":              true,
+  ///   "isWindExposedB":              false,
+  ///   "surfaceRoughnessMultiplierF": 1.67,
+  ///   "surfaceRoughnessMultiplierB": 1.67,
+  ///   "midHeightAboveGround":        4.5
   /// }
   /// </code>
+  /// <para>
+  /// <b>Exterior wind-convection configuration:</b> <c>isWindExposedF/B</c>,
+  /// <c>surfaceRoughnessMultiplierF/B</c> and the optional <c>midHeightAboveGround</c>
+  /// (written only when set) are optional on read; missing values keep the
+  /// <see cref="Wall"/> defaults. Note that <c>MultiRoom.SetOutsideWall</c> forces
+  /// the exposure flag of the outdoor side to <c>true</c>; the
+  /// <c>BuildingThermalModelConverter</c> re-applies explicitly recorded flags
+  /// after rebuilding the MultiRooms so that a user override survives the round trip.
+  /// </para>
   /// <para>
   /// <b>Layer encoding:</b> Each element of <c>layers</c> is a flat object with a
   /// <c>kind</c> discriminator (<c>"wallLayer"</c> or <c>"airGapLayer"</c>). Layer
@@ -83,6 +97,13 @@ namespace Popolo.IO.Json.Building.Envelope
     private const string PropLayers = "layers";
     private const string PropSurfaceF = "surfaceF";
     private const string PropSurfaceB = "surfaceB";
+
+    // Exterior wind-convection configuration (optional on read)
+    internal const string PropIsWindExposedF = "isWindExposedF";
+    internal const string PropIsWindExposedB = "isWindExposedB";
+    private const string PropSurfaceRoughnessMultiplierF = "surfaceRoughnessMultiplierF";
+    private const string PropSurfaceRoughnessMultiplierB = "surfaceRoughnessMultiplierB";
+    private const string PropMidHeightAboveGround = "midHeightAboveGround";
 
     // Keys inside surfaceF/surfaceB
     private const string PropConvectiveCoefficient = "convectiveCoefficient";
@@ -137,6 +158,8 @@ namespace Popolo.IO.Json.Building.Envelope
       List<WallLayer>? layers = null;
       SurfaceCoefficients? surfaceF = null;
       SurfaceCoefficients? surfaceB = null;
+      bool? isWindExposedF = null, isWindExposedB = null;
+      double? roughnessF = null, roughnessB = null, midHeight = null;
 
       while (reader.Read())
       {
@@ -159,6 +182,11 @@ namespace Popolo.IO.Json.Building.Envelope
           case PropLayers: layers = ReadLayerArray(ref reader, options); break;
           case PropSurfaceF: surfaceF = ReadSurfaceCoefficients(ref reader, PropSurfaceF); break;
           case PropSurfaceB: surfaceB = ReadSurfaceCoefficients(ref reader, PropSurfaceB); break;
+          case PropIsWindExposedF: isWindExposedF = reader.GetBoolean(); break;
+          case PropIsWindExposedB: isWindExposedB = reader.GetBoolean(); break;
+          case PropSurfaceRoughnessMultiplierF: roughnessF = reader.GetDouble(); break;
+          case PropSurfaceRoughnessMultiplierB: roughnessB = reader.GetDouble(); break;
+          case PropMidHeightAboveGround: midHeight = reader.GetDouble(); break;
           default: reader.Skip(); break;
         }
       }
@@ -194,6 +222,12 @@ namespace Popolo.IO.Json.Building.Envelope
         wall.ShortWaveAbsorptanceB = surfaceB.Value.ShortWaveAbsorptance;
         wall.LongWaveEmissivityB = surfaceB.Value.LongWaveEmissivity;
       }
+      // Absent → keep the Wall defaults (older files load unchanged).
+      if (isWindExposedF is not null) wall.IsWindExposedF = isWindExposedF.Value;
+      if (isWindExposedB is not null) wall.IsWindExposedB = isWindExposedB.Value;
+      if (roughnessF is not null) wall.SurfaceRoughnessMultiplierF = roughnessF.Value;
+      if (roughnessB is not null) wall.SurfaceRoughnessMultiplierB = roughnessB.Value;
+      if (midHeight is not null) wall.SetMidHeightAboveGround(midHeight.Value);
 
       return wall;
     }
@@ -227,6 +261,13 @@ namespace Popolo.IO.Json.Building.Envelope
         value.ConvectiveCoefficientF, value.ShortWaveAbsorptanceF, value.LongWaveEmissivityF);
       WriteSurface(writer, PropSurfaceB,
         value.ConvectiveCoefficientB, value.ShortWaveAbsorptanceB, value.LongWaveEmissivityB);
+
+      writer.WriteBoolean(PropIsWindExposedF, value.IsWindExposedF);
+      writer.WriteBoolean(PropIsWindExposedB, value.IsWindExposedB);
+      writer.WriteNumber(PropSurfaceRoughnessMultiplierF, value.SurfaceRoughnessMultiplierF);
+      writer.WriteNumber(PropSurfaceRoughnessMultiplierB, value.SurfaceRoughnessMultiplierB);
+      if (value.MidHeightAboveGround is double h)
+        writer.WriteNumber(PropMidHeightAboveGround, h);
 
       writer.WriteEndObject();
     }

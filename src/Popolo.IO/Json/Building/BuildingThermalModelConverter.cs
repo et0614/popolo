@@ -194,11 +194,19 @@ namespace Popolo.IO.Json.Building
         throw new JsonException($"'{PropWalls}' must be an array.");
 
       var wallList = new List<Wall>();
+      // Wind-exposure flags recorded explicitly in the JSON. MultiRoom.SetOutsideWall
+      // forces the outdoor side to "exposed", so these are re-applied after the
+      // MultiRooms are rebuilt (absent in older files → the SetOutsideWall result stands).
+      var explicitExposure = new List<(Wall Wall, bool? F, bool? B)>();
       foreach (var wallElem in wallsElem.EnumerateArray())
       {
         var wall = wallElem.Deserialize<Wall>(options)
           ?? throw new JsonException($"{nameof(Wall)} deserialization returned null.");
         wallList.Add(wall);
+
+        bool? f = wallElem.TryGetProperty(Envelope.WallConverter.PropIsWindExposedF, out var fe) ? fe.GetBoolean() : null;
+        bool? b = wallElem.TryGetProperty(Envelope.WallConverter.PropIsWindExposedB, out var be) ? be.GetBoolean() : null;
+        if (f is not null || b is not null) explicitExposure.Add((wall, f, b));
       }
 
       // Build the wall dictionary (ID → Wall)
@@ -228,9 +236,20 @@ namespace Popolo.IO.Json.Building
         mRoomsList.Add(mRooms);
       }
 
+      foreach (var (w, f, b) in explicitExposure)
+      {
+        if (f is not null) w.IsWindExposedF = f.Value;
+        if (b is not null) w.IsWindExposedB = b.Value;
+      }
+
       // Build the BuildingThermalModel
       var model = new BuildingThermalModel(mRoomsList.ToArray());
       model.TimeStep = timeStep;
+
+      // The model-level WeatherStation / SiteTerrainCategory are only settable through
+      // Set* (which propagate to every MultiRoom). Restore them when all MultiRooms agree,
+      // which is the case whenever they were set through the model.
+      RestoreModelLevelSiteInfo(model, mRoomsList);
 
       // Initial temperature and humidity
       model.InitializeAirState(initialTemperature, initialHumidityRatio);
@@ -329,6 +348,24 @@ namespace Popolo.IO.Json.Building
       var innerReader = new Utf8JsonReader(bytes);
       innerReader.Read(); // Advance to StartObject
       return MultiRoomsConverter.ReadDto(ref innerReader, options);
+    }
+
+    /// <summary>
+    /// Calls <see cref="BuildingThermalModel.SetWeatherStation"/> /
+    /// <see cref="BuildingThermalModel.SetSiteTerrainCategory"/> when every MultiRoom
+    /// carries the same non-null value.
+    /// </summary>
+    private static void RestoreModelLevelSiteInfo(BuildingThermalModel model, List<MultiRoom> mRooms)
+    {
+      if (mRooms.Count == 0) return;
+
+      var st = mRooms[0].WeatherStation;
+      if (st is not null && mRooms.TrueForAll(m => Nullable.Equals(m.WeatherStation, st)))
+        model.SetWeatherStation(st.Value);
+
+      var terrain = mRooms[0].SiteTerrainCategory;
+      if (terrain is not null && mRooms.TrueForAll(m => m.SiteTerrainCategory == terrain))
+        model.SetSiteTerrainCategory(terrain.Value);
     }
 
     /// <summary>Gets an optional string property; returns null if absent or not a string.</summary>

@@ -56,6 +56,24 @@ namespace Popolo.IO.Json.Building
     /// </summary>
     public List<int>? WallIds { get; set; }
 
+    /// <summary>Weather-station metadata (null when absent / unknown).</summary>
+    public Popolo.Core.Climate.Weather.WeatherStationInfo? WeatherStation { get; set; }
+
+    /// <summary>Site terrain category (null when absent / unknown).</summary>
+    public TerrainCategory? SiteTerrainCategory { get; set; }
+
+    /// <summary>MultiRoom.DynamicIndoorRadiativeCoefficient (default false).</summary>
+    public bool DynamicIndoorRadiativeCoefficient { get; set; }
+
+    /// <summary>MultiRoom.DynamicOutdoorRadiativeCoefficient (default false).</summary>
+    public bool DynamicOutdoorRadiativeCoefficient { get; set; }
+
+    /// <summary>MultiRoom.DynamicOutdoorConvectiveCoefficient (default false).</summary>
+    public bool DynamicOutdoorConvectiveCoefficient { get; set; }
+
+    /// <summary>MultiRoom.DynamicIndoorConvectiveCoefficient (default false).</summary>
+    public bool DynamicIndoorConvectiveCoefficient { get; set; }
+
     /// <summary>Rooms → zones grouping. Zone membership to its room is positional.</summary>
     public List<List<Zone>> Rooms { get; } = new List<List<Zone>>();
 

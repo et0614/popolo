@@ -23,6 +23,7 @@ using System.Text.Json.Serialization;
 using Popolo.Core.Building;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
 
 namespace Popolo.IO.Json.Building
 {
@@ -38,6 +39,11 @@ namespace Popolo.IO.Json.Building
   ///   "kind":    "multiRooms",
   ///   "albedo":  0.4,
   ///   "wallIds": [ 42, 43, 44 ],
+  ///   "weatherStation": { "name": "Tokyo", "latitude": 35.69, "longitude": 139.69,
+  ///                       "elevation": 25, "anemometerHeight": 10, "stationTerrain": "Suburban" },
+  ///   "siteTerrainCategory": "LargeCity",
+  ///   "dynamicCoefficients": { "indoorRadiative": true, "outdoorRadiative": false,
+  ///                            "outdoorConvective": true, "indoorConvective": false },
   ///   "rooms": [
   ///     { "zones": [ {...zone...}, {...zone...} ] },
   ///     { "zones": [ {...zone...} ] }
@@ -79,6 +85,16 @@ namespace Popolo.IO.Json.Building
   /// (ascending ID).
   /// </para>
   /// <para>
+  /// <b>Simulation-setup configuration</b> (<c>weatherStation</c>,
+  /// <c>siteTerrainCategory</c>, <c>dynamicCoefficients</c>) is written only when
+  /// non-default (non-null / any flag <c>true</c>) and is optional on read
+  /// (defaults: <c>null</c>, <c>null</c>, all <c>false</c>). Terrain categories are
+  /// written as <see cref="TerrainCategory"/> member names.
+  /// <see cref="MultiRoom.SolveMoistureTransferSimultaneously"/> is not persisted: it is
+  /// derived from the walls' <c>computeMoistureTransfer</c>. The compound
+  /// <c>Dynamic*Coefficient</c> switches are covered by the four individual flags.
+  /// </para>
+  /// <para>
   /// <b>Interzone airflows</b> are serialized sparsely: only entries with a
   /// non-zero flow rate are written.
   /// </para>
@@ -96,6 +112,23 @@ namespace Popolo.IO.Json.Building
     private const string PropKind = "kind";
     private const string PropAlbedo = "albedo";
     private const string PropWallIds = "wallIds";
+    private const string PropWeatherStation = "weatherStation";
+    private const string PropSiteTerrainCategory = "siteTerrainCategory";
+    private const string PropDynamicCoefficients = "dynamicCoefficients";
+
+    // Keys inside weatherStation
+    private const string PropStName = "name";
+    private const string PropStLatitude = "latitude";
+    private const string PropStLongitude = "longitude";
+    private const string PropStElevation = "elevation";
+    private const string PropStAnemometerHeight = "anemometerHeight";
+    private const string PropStStationTerrain = "stationTerrain";
+
+    // Keys inside dynamicCoefficients
+    private const string PropDynIndoorRadiative = "indoorRadiative";
+    private const string PropDynOutdoorRadiative = "outdoorRadiative";
+    private const string PropDynOutdoorConvective = "outdoorConvective";
+    private const string PropDynIndoorConvective = "indoorConvective";
     private const string PropRooms = "rooms";
     private const string PropZones = "zones";
     private const string PropOutsideWalls = "outsideWalls";
@@ -151,6 +184,9 @@ namespace Popolo.IO.Json.Building
       writer.WriteStartArray();
       foreach (var w in value.Walls) writer.WriteNumberValue(w.ID);
       writer.WriteEndArray();
+
+      // Simulation-setup configuration (written only when non-default)
+      WriteConfiguration(writer, value);
 
       // rooms: the number of rooms is RoomCount. Classified by the RoomIndex of each zone.
       WriteRooms(writer, value, options);
@@ -209,6 +245,15 @@ namespace Popolo.IO.Json.Building
             break;
           case PropWallIds:
             dto.WallIds = ReadIntArray(ref reader, PropWallIds);
+            break;
+          case PropWeatherStation:
+            dto.WeatherStation = ReadWeatherStation(ref reader);
+            break;
+          case PropSiteTerrainCategory:
+            dto.SiteTerrainCategory = ParseTerrain(reader.GetString(), PropSiteTerrainCategory);
+            break;
+          case PropDynamicCoefficients:
+            ReadDynamicCoefficients(ref reader, dto);
             break;
           case PropRooms:
             ReadRooms(ref reader, dto, options);
@@ -281,6 +326,12 @@ namespace Popolo.IO.Json.Building
         walls: walls,
         windows: windows.ToArray());
       mRooms.Albedo = dto.Albedo;
+      mRooms.WeatherStation = dto.WeatherStation;
+      mRooms.SiteTerrainCategory = dto.SiteTerrainCategory;
+      mRooms.DynamicIndoorRadiativeCoefficient = dto.DynamicIndoorRadiativeCoefficient;
+      mRooms.DynamicOutdoorRadiativeCoefficient = dto.DynamicOutdoorRadiativeCoefficient;
+      mRooms.DynamicOutdoorConvectiveCoefficient = dto.DynamicOutdoorConvectiveCoefficient;
+      mRooms.DynamicIndoorConvectiveCoefficient = dto.DynamicIndoorConvectiveCoefficient;
 
       // 3. Assign each zone to its correct roomIndex
       for (int zoneIdx = 0; zoneIdx < flatZones.Count; zoneIdx++)
@@ -404,6 +455,111 @@ namespace Popolo.IO.Json.Building
       walls.Sort((a, b) => a.ID.CompareTo(b.ID));
       return walls.ToArray();
     }
+
+    #region Reading and writing simulation-setup configuration
+
+    private static void WriteConfiguration(Utf8JsonWriter writer, MultiRoom value)
+    {
+      if (value.WeatherStation is WeatherStationInfo st)
+      {
+        writer.WritePropertyName(PropWeatherStation);
+        writer.WriteStartObject();
+        writer.WriteString(PropStName, st.Name);
+        writer.WriteNumber(PropStLatitude, st.Latitude);
+        writer.WriteNumber(PropStLongitude, st.Longitude);
+        writer.WriteNumber(PropStElevation, st.Elevation);
+        if (st.AnemometerHeight is double ah) writer.WriteNumber(PropStAnemometerHeight, ah);
+        if (st.StationTerrain is TerrainCategory stt) writer.WriteString(PropStStationTerrain, stt.ToString());
+        writer.WriteEndObject();
+      }
+
+      if (value.SiteTerrainCategory is TerrainCategory site)
+        writer.WriteString(PropSiteTerrainCategory, site.ToString());
+
+      if (value.DynamicIndoorRadiativeCoefficient || value.DynamicOutdoorRadiativeCoefficient
+          || value.DynamicOutdoorConvectiveCoefficient || value.DynamicIndoorConvectiveCoefficient)
+      {
+        writer.WritePropertyName(PropDynamicCoefficients);
+        writer.WriteStartObject();
+        writer.WriteBoolean(PropDynIndoorRadiative, value.DynamicIndoorRadiativeCoefficient);
+        writer.WriteBoolean(PropDynOutdoorRadiative, value.DynamicOutdoorRadiativeCoefficient);
+        writer.WriteBoolean(PropDynOutdoorConvective, value.DynamicOutdoorConvectiveCoefficient);
+        writer.WriteBoolean(PropDynIndoorConvective, value.DynamicIndoorConvectiveCoefficient);
+        writer.WriteEndObject();
+      }
+    }
+
+    private static WeatherStationInfo ReadWeatherStation(ref Utf8JsonReader reader)
+    {
+      if (reader.TokenType != JsonTokenType.StartObject)
+        throw new JsonException($"Expected StartObject for '{PropWeatherStation}', but got {reader.TokenType}.");
+
+      string name = "";
+      double? lat = null, lon = null, elev = null, anemometer = null;
+      TerrainCategory? stationTerrain = null;
+      while (reader.Read())
+      {
+        if (reader.TokenType == JsonTokenType.EndObject) break;
+        if (reader.TokenType != JsonTokenType.PropertyName)
+          throw new JsonException($"Expected PropertyName in '{PropWeatherStation}', but got {reader.TokenType}.");
+        string? propName = reader.GetString();
+        if (!reader.Read())
+          throw new JsonException($"Unexpected end of JSON while reading '{PropWeatherStation}.{propName}'.");
+        switch (propName)
+        {
+          case PropStName: name = reader.GetString() ?? ""; break;
+          case PropStLatitude: lat = reader.GetDouble(); break;
+          case PropStLongitude: lon = reader.GetDouble(); break;
+          case PropStElevation: elev = reader.GetDouble(); break;
+          case PropStAnemometerHeight: anemometer = reader.GetDouble(); break;
+          case PropStStationTerrain:
+            stationTerrain = ParseTerrain(reader.GetString(), $"{PropWeatherStation}.{PropStStationTerrain}");
+            break;
+          default: reader.Skip(); break;
+        }
+      }
+      if (lat is null) throw new JsonException($"Required '{PropWeatherStation}.{PropStLatitude}' is missing.");
+      if (lon is null) throw new JsonException($"Required '{PropWeatherStation}.{PropStLongitude}' is missing.");
+      if (elev is null) throw new JsonException($"Required '{PropWeatherStation}.{PropStElevation}' is missing.");
+      return new WeatherStationInfo(name, lat.Value, lon.Value, elev.Value, anemometer, stationTerrain);
+    }
+
+    private static void ReadDynamicCoefficients(ref Utf8JsonReader reader, MultiRoomsDto dto)
+    {
+      if (reader.TokenType != JsonTokenType.StartObject)
+        throw new JsonException($"Expected StartObject for '{PropDynamicCoefficients}', but got {reader.TokenType}.");
+      while (reader.Read())
+      {
+        if (reader.TokenType == JsonTokenType.EndObject) break;
+        if (reader.TokenType != JsonTokenType.PropertyName)
+          throw new JsonException($"Expected PropertyName in '{PropDynamicCoefficients}', but got {reader.TokenType}.");
+        string? propName = reader.GetString();
+        if (!reader.Read())
+          throw new JsonException($"Unexpected end of JSON while reading '{PropDynamicCoefficients}.{propName}'.");
+        switch (propName)
+        {
+          case PropDynIndoorRadiative: dto.DynamicIndoorRadiativeCoefficient = reader.GetBoolean(); break;
+          case PropDynOutdoorRadiative: dto.DynamicOutdoorRadiativeCoefficient = reader.GetBoolean(); break;
+          case PropDynOutdoorConvective: dto.DynamicOutdoorConvectiveCoefficient = reader.GetBoolean(); break;
+          case PropDynIndoorConvective: dto.DynamicIndoorConvectiveCoefficient = reader.GetBoolean(); break;
+          default: reader.Skip(); break;
+        }
+      }
+    }
+
+    private static TerrainCategory ParseTerrain(string? s, string propPath)
+    {
+      if (s is not null
+          && Enum.TryParse<TerrainCategory>(s, ignoreCase: true, out var t)
+          && Enum.IsDefined(t)
+          && !int.TryParse(s, out _))
+        return t;
+      throw new JsonException(
+        $"'{propPath}' = '{s ?? "(null)"}' is not a valid {nameof(TerrainCategory)} " +
+        $"(expected one of: {string.Join(", ", Enum.GetNames<TerrainCategory>())}).");
+    }
+
+    #endregion
 
     /// <summary>Reads a JSON array of integers.</summary>
     private static List<int> ReadIntArray(ref Utf8JsonReader reader, string propName)

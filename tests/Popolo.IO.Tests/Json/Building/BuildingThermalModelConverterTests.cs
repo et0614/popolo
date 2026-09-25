@@ -22,6 +22,7 @@ using Xunit;
 using Popolo.Core.Building;
 using Popolo.Core.Building.Envelope;
 using Popolo.Core.Climate;
+using Popolo.Core.Climate.Weather;
 using Popolo.IO.Json;
 using Popolo.IO.Json.Building;
 
@@ -294,6 +295,119 @@ namespace Popolo.IO.Tests.Json.Building
 
             Assert.Equal("Zone 1", restored.MultiRoom[0].Zones[0].Name);
             Assert.Equal("Zone 2", restored.MultiRoom[1].Zones[0].Name);
+        }
+
+        /// <summary>item 14 の設定値をすべて既定値以外にした単一 MultiRoom モデル。</summary>
+        private static BuildingThermalModel MakeConfiguredModel()
+        {
+            var model = MakeSimpleModel();
+            var mr = (MultiRoom)model.MultiRoom[0];
+            var wall = (Wall)mr.Walls[0];
+
+            // Zone: 換気量・給気条件
+            mr.SetVentilationRate(0, 0.05);
+            mr.SetSupplyAir(0, 16.0, 0.008, 0.3);
+
+            // MultiRoom: 気象観測点・地表面粗度区分・動的係数フラグ
+            model.SetWeatherStation(new WeatherStationInfo("Tokyo", 35.69, 139.69, 25.0)
+                .WithAnemometer(10.0, TerrainCategory.Suburban));
+            model.SetSiteTerrainCategory(TerrainCategory.LargeCity);
+            mr.DynamicIndoorRadiativeCoefficient = true;
+            mr.DynamicOutdoorRadiativeCoefficient = false;
+            mr.DynamicOutdoorConvectiveCoefficient = true;
+            mr.DynamicIndoorConvectiveCoefficient = true;
+
+            // Wall: 風曝露フラグ（SetOutsideWall が自動で立てた F 側を明示的に倒す）・粗度・中央高さ
+            wall.IsWindExposedF = false;
+            wall.IsWindExposedB = true;
+            wall.SurfaceRoughnessMultiplierF = 2.17;
+            wall.SurfaceRoughnessMultiplierB = 1.52;
+            wall.SetMidHeightAboveGround(4.5);
+            return model;
+        }
+
+        /// <summary>
+        /// Zone / MultiRoom / Wall の設定値（換気量・給気条件、気象観測点・地表面粗度区分・
+        /// 動的係数フラグ、風曝露フラグ・表面粗度係数・中央高さ）が往復で保存されることを確認する。
+        /// 従来はこれらが黙って欠落し、既定値で復元されていた。
+        /// </summary>
+        [Fact]
+        public void RoundTrip_ConfigurationProperties_Preserved()
+        {
+            var json = JsonSerializer.Serialize(MakeConfiguredModel(), CreateOptions());
+            var restored = JsonSerializer.Deserialize<BuildingThermalModel>(json, CreateOptions())!;
+            var mr = (MultiRoom)restored.MultiRoom[0];
+            var zone = mr.Zones[0];
+            var wall = (Wall)mr.Walls[0];
+
+            Assert.Equal(0.05, zone.VentilationRate);
+            Assert.Equal(0.3, zone.SupplyAirFlowRate);
+            Assert.Equal(16.0, zone.SupplyAirTemperature);
+            Assert.Equal(0.008, zone.SupplyAirHumidityRatio);
+
+            Assert.NotNull(mr.WeatherStation);
+            var st = mr.WeatherStation!.Value;
+            Assert.Equal("Tokyo", st.Name);
+            Assert.Equal(35.69, st.Latitude);
+            Assert.Equal(139.69, st.Longitude);
+            Assert.Equal(25.0, st.Elevation);
+            Assert.Equal(10.0, st.AnemometerHeight);
+            Assert.Equal(TerrainCategory.Suburban, st.StationTerrain);
+            Assert.Equal(TerrainCategory.LargeCity, mr.SiteTerrainCategory);
+            // 全 MultiRoom で共通なので建物レベルの値も復元される
+            Assert.Equal(st, restored.WeatherStation);
+            Assert.Equal(TerrainCategory.LargeCity, restored.SiteTerrainCategory);
+
+            Assert.True(mr.DynamicIndoorRadiativeCoefficient);
+            Assert.False(mr.DynamicOutdoorRadiativeCoefficient);
+            Assert.True(mr.DynamicOutdoorConvectiveCoefficient);
+            Assert.True(mr.DynamicIndoorConvectiveCoefficient);
+
+            Assert.False(wall.IsWindExposedF);
+            Assert.True(wall.IsWindExposedB);
+            Assert.Equal(2.17, wall.SurfaceRoughnessMultiplierF);
+            Assert.Equal(1.52, wall.SurfaceRoughnessMultiplierB);
+            Assert.Equal(4.5, wall.MidHeightAboveGround);
+        }
+
+        /// <summary>
+        /// 新しい設定プロパティを持たない旧形式 JSON は、従来通り既定値で読み込まれる
+        /// （外壁は SetOutsideWall により風曝露＝true になる）ことを確認する。
+        /// </summary>
+        [Fact]
+        public void Read_LegacyJsonWithoutConfigurationProperties_UsesDefaults()
+        {
+            var json = JsonSerializer.Serialize(MakeConfiguredModel(), CreateOptions());
+            var node = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+            foreach (var w in node["walls"]!.AsArray())
+                foreach (var p in new[] { "isWindExposedF", "isWindExposedB",
+                    "surfaceRoughnessMultiplierF", "surfaceRoughnessMultiplierB", "midHeightAboveGround" })
+                    w!.AsObject().Remove(p);
+            foreach (var m in node["multiRooms"]!.AsArray())
+            {
+                foreach (var p in new[] { "weatherStation", "siteTerrainCategory", "dynamicCoefficients" })
+                    m!.AsObject().Remove(p);
+                foreach (var room in m!["rooms"]!.AsArray())
+                    foreach (var z in room!["zones"]!.AsArray())
+                        foreach (var p in new[] { "ventilationRate", "supplyAir" })
+                            z!.AsObject().Remove(p);
+            }
+
+            var restored = JsonSerializer.Deserialize<BuildingThermalModel>(node.ToJsonString(), CreateOptions())!;
+            var mr = (MultiRoom)restored.MultiRoom[0];
+
+            Assert.Equal(0.0, mr.Zones[0].VentilationRate);
+            Assert.Equal(0.0, mr.Zones[0].SupplyAirFlowRate);
+            Assert.Null(mr.WeatherStation);
+            Assert.Null(mr.SiteTerrainCategory);
+            Assert.Null(restored.WeatherStation);
+            Assert.False(mr.DynamicIndoorRadiativeCoefficient);
+            Assert.False(mr.DynamicOutdoorConvectiveCoefficient);
+            Assert.True(((Wall)mr.Walls[0]).IsWindExposedF);   // SetOutsideWall による自動設定
+            Assert.False(((Wall)mr.Walls[0]).IsWindExposedB);
+            // Wall コンストラクタの既定値（Rough）
+            Assert.Equal(MakeExternalWall(0).SurfaceRoughnessMultiplierF, ((Wall)mr.Walls[0]).SurfaceRoughnessMultiplierF);
+            Assert.Null(((Wall)mr.Walls[0]).MidHeightAboveGround);
         }
 
         /// <summary>
