@@ -131,22 +131,28 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Controls the zone temperature.</summary>
     /// <param name="ahuIndex">AHU index.</param>
-    /// <param name="controlZoneIndex">Control zone index.</param>
+    /// <param name="controlZoneIndex">Control zone index (index of the VAV/CAV controller registered with the AHU).</param>
     /// <param name="setpointTemperature">Temperature setpoint [°C].</param>
+    /// <remarks>
+    /// Under CAV control the AHU controls the temperature of the zone served by the given
+    /// controller (<see cref="AHUController.TargetRoomIndex"/> and
+    /// <see cref="AHUController.TargetZoneIndex"/> are set accordingly) instead of the return
+    /// air temperature. In both cases the controller is put back into operation.
+    /// </remarks>
     public void ControlZoneTemperature
       (int ahuIndex, int controlZoneIndex, double setpointTemperature)
     {
+      VolumeController vc = vlmCtrl[ahuIndex][controlZoneIndex];
+      vc.IsShutOff = false;
       if (Controllers[ahuIndex].IsCAVControl)
       {
-        Controllers[ahuIndex].SetpointTemperature = setpointTemperature;
-        Controllers[ahuIndex].IsRATemperatureControl = false;
+        AHUController ctr = Controllers[ahuIndex];
+        ctr.SetpointTemperature = setpointTemperature;
+        ctr.IsRATemperatureControl = false;
+        ctr.TargetRoomIndex = vc.RoomIndex;
+        ctr.TargetZoneIndex = vc.ZoneIndex;
       }
-      else
-      {
-        VolumeController vc = vlmCtrl[ahuIndex][controlZoneIndex];
-        vc.IsShutOff = false;
-        vc.SetpointTemperature = setpointTemperature;
-      }
+      else vc.SetpointTemperature = setpointTemperature;
     }
 
     /// <summary>Shuts off air conditioning for the zone.</summary>
