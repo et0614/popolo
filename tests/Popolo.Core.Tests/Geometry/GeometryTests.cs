@@ -264,5 +264,76 @@ namespace Popolo.Core.Tests.Geometry
       // 2つの直角三角形（各0.5）の合計面積 = 1.0
       Assert.Equal(1.0, mt.Area, precision: 6);
     }
+
+    // 小数・指数表記の座標をもつ直角三角形（面積 0.125）
+    private static readonly string DecimalStl =
+        "solid part\n" +
+        "  facet normal 0 0 1\n" +
+        "    outer loop\n" +
+        "      vertex 0.0 0.0 0.0\n" +
+        "      vertex 5.000000e-01 0.0 0.0\n" +
+        "      vertex 0.0 0.5 0.0\n" +
+        "    endloop\n" +
+        "  endfacet\n" +
+        "endsolid part\n";
+
+    /// <summary>小数点がカンマのカルチャ (de-DE) でも座標を正しく読み込む</summary>
+    [Fact]
+    public void LoadSTL_ASCII_GermanCulture_ParsesDecimalPoint()
+    {
+      var original = System.Globalization.CultureInfo.CurrentCulture;
+      try
+      {
+        System.Globalization.CultureInfo.CurrentCulture =
+            new System.Globalization.CultureInfo("de-DE");
+        var mt = MultiTrigon.LoadSTL_ASCII(DecimalStl);
+        Assert.NotNull(mt);
+        mt!.InitializeForMonteCarloSimulation();
+        Assert.Equal(0.125, mt.Area, precision: 10);
+      }
+      finally
+      {
+        System.Globalization.CultureInfo.CurrentCulture = original;
+      }
+    }
+
+    /// <summary>複数スペース・タブ区切りや CRLF 改行、字下げされた endsolid も読み込める</summary>
+    [Fact]
+    public void LoadSTL_ASCII_IrregularWhitespace_ParsesVertices()
+    {
+      string stl =
+          "solid   spaced\r\n" +
+          "facet normal  0 0 1\r\n" +
+          "\touter loop\r\n" +
+          "\t\tvertex\t0.0   0.0\t0.0\r\n" +
+          "\t\tvertex  0.5\t\t0.0  0.0 \r\n" +
+          "   vertex 0.0 0.5    0.0\r\n" +
+          "\tendloop\r\n" +
+          "endfacet\r\n" +
+          "  endsolid spaced\r\n";
+
+      var mt = MultiTrigon.LoadSTL_ASCII(stl);
+      Assert.NotNull(mt);
+      Assert.Equal("spaced", mt!.Name);
+      mt.InitializeForMonteCarloSimulation();
+      Assert.Equal(0.125, mt.Area, precision: 10);
+    }
+
+    /// <summary>頂点数が3でないファセットは PopoloArgumentException</summary>
+    [Fact]
+    public void LoadSTL_ASCII_FacetWithTwoVertices_ThrowsPopoloArgumentException()
+    {
+      string stl =
+          "solid bad\n" +
+          "  facet normal 0 0 1\n" +
+          "    outer loop\n" +
+          "      vertex 0 0 0\n" +
+          "      vertex 1 0 0\n" +
+          "    endloop\n" +
+          "  endfacet\n" +
+          "endsolid bad\n";
+
+      Assert.Throws<PopoloArgumentException>(() => MultiTrigon.LoadSTL_ASCII(stl));
+    }
   }
 }

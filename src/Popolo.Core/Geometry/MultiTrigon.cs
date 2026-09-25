@@ -17,7 +17,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
 
 namespace Popolo.Core.Geometry
@@ -128,37 +130,64 @@ namespace Popolo.Core.Geometry
     /// <summary>Loads STL data in ASCII format.</summary>
     /// <param name="stlData">STL data string.</param>
     /// <returns>The loaded <see cref="MultiTrigon"/>, or null if the data does not terminate with "endsolid".</returns>
+    /// <remarks>
+    /// Tokens may be separated by any amount of whitespace (spaces or tabs), and numbers are
+    /// parsed with the invariant culture regardless of the current culture. Vertices are
+    /// identified by the "vertex" keyword and collected per facet ("facet" ... "endfacet").
+    /// </remarks>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when a facet does not have exactly three vertices, or a vertex line does not
+    /// have three coordinates.
+    /// </exception>
+    /// <exception cref="FormatException">Thrown when a coordinate is not a valid number.</exception>
     public static MultiTrigon? LoadSTL_ASCII(string stlData)
     {
+      char[] separators = { ' ', '\t' };
       MultiTrigon mtr = new MultiTrigon();
       StringReader sReader = new StringReader(stlData);
       string? line = sReader.ReadLine();
       if (line != null)
-        mtr.Name = line.Split(' ').Length > 1 ? line.Split(' ')[1] : null;
+      {
+        string[] header = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+        mtr.Name = header.Length > 1 ? header[1] : null;
+      }
 
       bool endWithEndSolid = false;
+      List<Point>? vertices = null;
       while ((line = sReader.ReadLine()) != null)
       {
-        if (line.StartsWith("endsolid"))
+        string[] tokens = line.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) continue;
+        string keyword = tokens[0];
+
+        if (keyword == "endsolid")
         {
           endWithEndSolid = true;
           break;
         }
-        if (line.Trim().StartsWith("facet normal"))
+        else if (keyword == "facet")
         {
-          sReader.ReadLine();
-          string[]? vertA = sReader.ReadLine()?.Trim().Split(' ');
-          string[]? vertB = sReader.ReadLine()?.Trim().Split(' ');
-          string[]? vertC = sReader.ReadLine()?.Trim().Split(' ');
-          sReader.ReadLine();
-          sReader.ReadLine();
-
-          if (vertA == null || vertB == null || vertC == null) continue;
-
-          mtr.trigons.Add(new Trigon(
-              new Point(double.Parse(vertA[1]), double.Parse(vertA[2]), double.Parse(vertA[3])),
-              new Point(double.Parse(vertB[1]), double.Parse(vertB[2]), double.Parse(vertB[3])),
-              new Point(double.Parse(vertC[1]), double.Parse(vertC[2]), double.Parse(vertC[3]))));
+          vertices = new List<Point>(3);
+        }
+        else if (keyword == "vertex" && vertices != null)
+        {
+          if (tokens.Length < 4)
+            throw new PopoloArgumentException(
+                $"Invalid STL vertex line: \"{line.Trim()}\" (three coordinates required).",
+                nameof(stlData));
+          vertices.Add(new Point(
+              double.Parse(tokens[1], NumberStyles.Float, CultureInfo.InvariantCulture),
+              double.Parse(tokens[2], NumberStyles.Float, CultureInfo.InvariantCulture),
+              double.Parse(tokens[3], NumberStyles.Float, CultureInfo.InvariantCulture)));
+        }
+        else if (keyword == "endfacet" && vertices != null)
+        {
+          if (vertices.Count != 3)
+            throw new PopoloArgumentException(
+                $"Invalid STL facet: {vertices.Count} vertices found (three required).",
+                nameof(stlData));
+          mtr.trigons.Add(new Trigon(vertices[0], vertices[1], vertices[2]));
+          vertices = null;
         }
       }
 
