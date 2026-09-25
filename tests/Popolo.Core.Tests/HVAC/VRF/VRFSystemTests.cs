@@ -551,5 +551,72 @@ namespace Popolo.Core.Tests.HVAC.VRF
     }
 
     #endregion
+
+    // ================================================================
+    #region Partial load parameter estimation
+
+    /// <summary>
+    /// 暖房部分負荷特性の推定（2能力版）: 2点目の圧縮ヘッドは2点目の能力で計算される。
+    /// (mid1, mid2) の midHead2 は (mid2, mid2) の midHead1 と一致し、1能力版の推定値とも整合する。
+    /// 小能力（下限ブラケット 0.1×定格ヘッドを下回る解）でも例外を出さない。
+    /// （旧実装は2点目でも1点目の能力 midCapacity1 で残差を計算し、室内機を暖房モードに
+    /// 設定していなかった。また1能力版の Newton 法は小能力で非物理的な解（ヘッド &gt; 能力）に
+    /// 収束していた）
+    /// </summary>
+    [Theory]
+    [InlineData(8.0)]
+    [InlineData(3.0)]
+    public void EstimateHeatingPartialLoadParameters_TwoCapacities_UsesEachCapacity(double mid2)
+    {
+      var r410a = new Refrigerant(Refrigerant.Fluid.R410A);
+      const double MID1 = 14.2, NOM = 31.5;
+
+      void Estimate(double m1, double m2, out double h1, out double h2)
+      {
+        VRFSystem.EstimateHeatingOutdoorUnitNominalParameters(r410a, NOM_OHEX_AFLOW_S, 0, NOM, 0,
+          NOM_PIPE, LONG_PIPE_H, FC_H, out double pr, out double nh, out VRFUnit oHex);
+        var iHex = VRFSystem.MakeIndoorUnit(NOM_IHEX_AFLOW, 0, -IHEX_CAP_C, 0, IHEX_CAP_H);
+        VRFSystem.EstimateHeatingPartialLoadParameters(r410a, NOM_PIPE, pr, nh, NOM, oHex, iHex,
+          m1, m2, out h1, out h2);
+      }
+
+      Estimate(MID1, mid2, out double head1, out double head2);
+      Estimate(mid2, mid2, out double head2Ref, out _);
+      Assert.Equal(head2Ref, head2, 9);
+      Assert.True(0 < head2 && head2 < head1, $"head2={head2:F4} kW < head1={head1:F4} kW");
+
+      //1能力版（Newton 法）の推定値と整合する
+      VRFSystem.EstimateHeatingOutdoorUnitNominalParameters(r410a, NOM_OHEX_AFLOW_S, 0, NOM, 0,
+        NOM_PIPE, LONG_PIPE_H, FC_H, out double pr1, out double nh1, out VRFUnit oHex1);
+      var iHex1 = VRFSystem.MakeIndoorUnit(NOM_IHEX_AFLOW, 0, -IHEX_CAP_C, 0, IHEX_CAP_H);
+      VRFSystem.EstimateHeatingPartialLoadParameters(r410a, NOM_PIPE, pr1, nh1, NOM, oHex1, iHex1,
+        0, mid2, out double headSingle);
+      Assert.Equal(headSingle, head2, 2);
+    }
+
+    /// <summary>
+    /// 冷房部分負荷特性の推定: 小能力（解が 0.1×定格ヘッドを下回る）でも例外を出さず、
+    /// 圧縮ヘッドは能力が小さいほど小さい。
+    /// </summary>
+    [Fact]
+    public void EstimateCoolingPartialLoadParameters_SmallCapacity_DoesNotThrow()
+    {
+      var r410a = new Refrigerant(Refrigerant.Fluid.R410A);
+      VRFSystem.EstimateCoolingOutdoorUnitNominalParameters(r410a, NOM_OHEX_AFLOW_S, 0, -28.0,
+        NOM_PIPE, LONG_PIPE_C, FC_C, out double pr, out double nh, out VRFUnit oHex);
+      var iHex = VRFSystem.MakeIndoorUnit_Cooling(NOM_IHEX_AFLOW, 0, -IHEX_CAP_C);
+
+      VRFSystem.EstimateCoolingPartialLoadParameters(r410a, NOM_PIPE, pr, nh, -28.0, oHex, iHex,
+        -12.6, out double headMid);
+      VRFSystem.EstimateCoolingPartialLoadParameters(r410a, NOM_PIPE, pr, nh, -28.0, oHex, iHex,
+        -1.5, out double headSmall);
+      VRFSystem.EstimateCoolingPartialLoadParameters(r410a, NOM_PIPE, pr, nh, -28.0, oHex, iHex,
+        -12.6, -1.5, out double headMid1, out double headSmall2);
+      Assert.True(0 < headSmall && headSmall < headMid, $"{headSmall:F4} < {headMid:F4} kW");
+      Assert.Equal(headMid, headMid1, 9);
+      Assert.True(0 < headSmall2 && headSmall2 < headSmall, $"mid-temperature {headSmall2:F4} < {headSmall:F4} kW");
+    }
+
+    #endregion
   }
 }

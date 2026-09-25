@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
 using Popolo.Core.Numerics.LinearAlgebra;
@@ -101,6 +102,12 @@ namespace Popolo.Core.HVAC.VRF
 
     /// <summary>Minimum compression ratio [-].</summary>
     private const double MIN_COMPRESSION_RATIO = 1.5;
+
+    /// <summary>Lowest compression head searched in the partial load estimation, relative to the nominal head [-].</summary>
+    private const double HEAD_SEARCH_MIN_RATIO = 0.001;
+
+    /// <summary>Highest compression head searched in the cooling partial load estimation, relative to the nominal head [-].</summary>
+    private const double HEAD_SEARCH_MAX_RATIO = 2.0;
 
     #endregion
 
@@ -1850,7 +1857,8 @@ namespace Popolo.Core.HVAC.VRF
         double kp2 = kappa / (kappa - 1);
         return (kp2 * pCmpIn * (mR / rhoVap) * (Math.Pow(cndPressure / pCmpIn, 1d / kp2) - 1)) - head;
       };
-      midHead1 = Roots.Brent(0.1 * nominalHead, nominalHead, 0.001, eFnc2);
+      midHead1 = SolveHeadBalance(eFnc2, 0.1 * nominalHead, nominalHead,
+        HEAD_SEARCH_MIN_RATIO * nominalHead, HEAD_SEARCH_MAX_RATIO * nominalHead, 0.001);
 
       //Calculation at the intermediate mid-temperature condition*****************************
       partialRate = midCapacity2 / nominalCapacity;
@@ -1882,7 +1890,8 @@ namespace Popolo.Core.HVAC.VRF
         double kp2 = kappa / (kappa - 1);
         return (kp2 * pCmpIn * (mR / rhoVap) * (Math.Pow(cndPressure / pCmpIn, 1d / kp2) - 1)) - head;
       };
-      midHead2 = Roots.Brent(0.1 * nominalHead, nominalHead, 0.001, eFnc3);
+      midHead2 = SolveHeadBalance(eFnc3, 0.1 * nominalHead, nominalHead,
+        HEAD_SEARCH_MIN_RATIO * nominalHead, HEAD_SEARCH_MAX_RATIO * nominalHead, 0.001);
     }
 
     /// <summary>Estimates the partial load characteristic curve for cooling mode from JIS-rated conditions.</summary>
@@ -1936,7 +1945,8 @@ namespace Popolo.Core.HVAC.VRF
         double kp2 = kappa / (kappa - 1);
         return (kp2 * pCmpIn * (mR / rhoVap) * (Math.Pow(cndPressure / pCmpIn, 1d / kp2) - 1)) - head;
       };
-      midHead1 = Roots.Brent(0.1 * nominalHead, nominalHead, 0.001, eFnc2);
+      midHead1 = SolveHeadBalance(eFnc2, 0.1 * nominalHead, nominalHead,
+        HEAD_SEARCH_MIN_RATIO * nominalHead, HEAD_SEARCH_MAX_RATIO * nominalHead, 0.001);
     }
 
 
@@ -2009,6 +2019,55 @@ namespace Popolo.Core.HVAC.VRF
       double[] x = new double[] { 1.0, midHead / nominalHead };
       coefA = (y[0] - y[1]) / (x[0] - x[1]);
       coefB = y[0] - coefA * x[0];
+    }
+
+    /// <summary>Solves a monotonic compression head balance [kW] with Brent's method on a guaranteed bracket.</summary>
+    /// <remarks>
+    /// The heuristic bracket [<paramref name="a"/>, <paramref name="b"/>] is tried first (identical result
+    /// when it encloses the root). Otherwise the bracket is extended toward the root, which is located from
+    /// the residual values assuming monotonicity: the lower end is divided down to
+    /// <paramref name="minHead"/>, or the upper end multiplied up to <paramref name="maxHead"/>.
+    /// </remarks>
+    /// <param name="eFnc">Residual function of the compression head (monotonic).</param>
+    /// <param name="a">Lower end of the heuristic bracket [kW].</param>
+    /// <param name="b">Upper end of the heuristic bracket [kW].</param>
+    /// <param name="minHead">Lowest compression head searched [kW] (positive).</param>
+    /// <param name="maxHead">Highest compression head searched [kW].</param>
+    /// <param name="tolerance">Tolerance on the compression head [kW].</param>
+    /// <returns>Compression head [kW].</returns>
+    private static double SolveHeadBalance(Roots.ErrorFunction eFnc, double a, double b,
+      double minHead, double maxHead, double tolerance)
+    {
+      double fa = eFnc(a);
+      double fb = eFnc(b);
+      if (fa != 0 && fb != 0 && (fa < 0) == (fb < 0))
+      {
+        bool increasing = fa < fb;
+        bool rootAbove = increasing == (fb < 0);
+        if (rootAbove)
+        {
+          while (fb != 0 && (fa < 0) == (fb < 0))
+          {
+            if (maxHead <= b) throw new PopoloNumericalException("SolveHeadBalance",
+              $"Could not bracket the compression head up to {maxHead:F4} kW (f({b:F4})={fb:E3}).");
+            a = b; fa = fb;
+            b = Math.Min(1.5 * b, maxHead);
+            fb = eFnc(b);
+          }
+        }
+        else
+        {
+          while (fa != 0 && (fa < 0) == (fb < 0))
+          {
+            if (a <= minHead) throw new PopoloNumericalException("SolveHeadBalance",
+              $"Could not bracket the compression head down to {minHead:F4} kW (f({a:F4})={fa:E3}).");
+            b = a; fb = fa;
+            a = Math.Max(0.3 * a, minHead);
+            fa = eFnc(a);
+          }
+        }
+      }
+      return Roots.Brent(eFnc, a, b, fa, fb, tolerance);
     }
 
     #endregion
@@ -2151,7 +2210,16 @@ namespace Popolo.Core.HVAC.VRF
         double pIHexIn = pCmpOut - pipeResistanceCoefficient * nominalPipeLength * mR * (mR / rhoVap);
         return pIHexIn - cndPressure;
       };
-      midHead = Roots.Newton(eFnc, partialRate * nominalHead, 0.001, 0.001, 0.001, 10);
+      double hd;
+      try { hd = Roots.Newton(eFnc, partialRate * nominalHead, 0.001, 0.001, 0.001, 10); }
+      catch (PopoloNumericalException) { hd = double.NaN; }
+      catch (PopoloOutOfRangeException) { hd = double.NaN; }
+      //Newton's method may fail or converge to a spurious root outside the physical range
+      //(0 < head < capacity, i.e. positive refrigerant flow) for small capacities: solve on a bracket
+      if (!(0 < hd && hd < midCapacity))
+        hd = SolveHeadBalance(eFnc, 0.1 * nominalHead, 1.3 * partialRate * nominalHead,
+          HEAD_SEARCH_MIN_RATIO * nominalHead, Math.Max(1.3 * partialRate * nominalHead, 0.9 * midCapacity), 0.001);
+      midHead = hd;
     }
 
     /// <summary>Estimates the partial load characteristic curve for heating mode from JIS-rated conditions.</summary>
@@ -2173,6 +2241,7 @@ namespace Popolo.Core.HVAC.VRF
       VRFUnit outdoorHex, VRFUnit indoorHex,
       double midCapacity1, double midCapacity2, out double midHead1, out double midHead2)
     {
+      indoorHex.CurrentMode = VRFUnit.Mode.Heating;
       double iHmd = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(JIS_IA_DBT_H, JIS_IA_WBT_H, PhysicsConstants.StandardAtmosphericPressure);
 
       midHead1 = midHead2 = 0;
@@ -2180,7 +2249,8 @@ namespace Popolo.Core.HVAC.VRF
       {
         //Calculation at the intermediate standard condition*****************************
         //Condenser outlet state
-        double partialRate = (css == 0 ? midCapacity1 : midCapacity2) / nominalCapacity;
+        double mid = css == 0 ? midCapacity1 : midCapacity2;
+        double partialRate = mid / nominalCapacity;
         indoorHex.SolveHeatLoad
           (indoorHex.NominalHeatingCapacity * partialRate, indoorHex.NominalAirFlowRate, JIS_IA_DBT_H, iHmd, false);
         refrigerant.GetSaturatedPropertyFromTemperature
@@ -2193,7 +2263,7 @@ namespace Popolo.Core.HVAC.VRF
         Roots.ErrorFunction eFnc2 = delegate (double head)
         {
           //Condenser outlet specific enthalpy
-          outdoorHex.SolveHeatLoad(-(midCapacity1 - head), outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_H, oHmd, false);
+          outdoorHex.SolveHeatLoad(-(mid - head), outdoorHex.NominalAirFlowRate, JIS_OA_DBT_NOM_H, oHmd, false);
           refrigerant.GetSaturatedPropertyFromTemperature(outdoorHex.RefrigerantTemperature + KTOC, out _, out double rhoVap, out double evpPressure);
           refrigerant.GetStateFromPressureAndTemperature(
             evpPressure, outdoorHex.RefrigerantTemperature + KTOC + SUPER_HEAT_NOM,
@@ -2202,7 +2272,7 @@ namespace Popolo.Core.HVAC.VRF
             outdoorHex.RefrigerantTemperature + KTOC + SUPER_HEAT_NOM, rhoVap);
 
           //Refrigerant mass flow rate
-          double mR = (midCapacity1 - head) / (hOHexOut - hOHexIn);
+          double mR = (mid - head) / (hOHexOut - hOHexIn);
 
           //Output the compression head error
           double pCmpOut = GetHighPressure(head, kappa, mR / rhoVap, evpPressure);
@@ -2211,10 +2281,11 @@ namespace Popolo.Core.HVAC.VRF
           double pIHexIn = pCmpOut - pipeResistanceCoefficient * nominalPipeLength * mR * (mR / rhoVap);
           return pIHexIn - cndPressure;
         };
-        if (css == 0)
-          midHead1 = Roots.Brent(0.1 * nominalHead, 1.3 * partialRate * nominalHead, 0.001, eFnc2);
-        else
-          midHead2 = Roots.Brent(0.1 * nominalHead, 1.3 * partialRate * nominalHead, 0.001, eFnc2);
+        //The head must stay below the capacity (positive refrigerant flow): search up to 90 % of it
+        double hd = SolveHeadBalance(eFnc2, 0.1 * nominalHead, 1.3 * partialRate * nominalHead,
+          HEAD_SEARCH_MIN_RATIO * nominalHead, Math.Max(1.3 * partialRate * nominalHead, 0.9 * mid), 0.001);
+        if (css == 0) midHead1 = hd;
+        else midHead2 = hd;
       }
     }
 
