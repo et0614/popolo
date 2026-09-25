@@ -219,6 +219,12 @@ namespace Popolo.Core.Physics
     /// <summary>Temperature range [K] of the saturation curve fit.</summary>
     private double _satFitTMin, _satFitTMax;
 
+    /// <summary>
+    /// Valid saturation temperature range [K] accepted by
+    /// <see cref="GetSaturatedPropertyFromTemperature"/> (see <see cref="InitializeSaturationTemperatureRange"/>).
+    /// </summary>
+    private double _satTLow, _satTHigh;
+
     #endregion
 
     #region Approximation coefficients (static data)
@@ -563,6 +569,7 @@ namespace Popolo.Core.Physics
       }
 
       FitSaturationCurves();
+      InitializeSaturationTemperatureRange();
     }
 
     #endregion
@@ -754,14 +761,32 @@ namespace Popolo.Core.Physics
     /// <param name="saturatedLiquidDensity">Saturated liquid density [kg/m³]</param>
     /// <param name="saturatedVaporDensity">Saturated vapor density [kg/m³]</param>
     /// <param name="saturatedPressure">Saturation pressure [kPa]</param>
+    /// <remarks>
+    /// The valid temperature range is consistent with the pressure range accepted by
+    /// <see cref="GetSaturatedPropertyFromPressure"/>: it spans the saturation
+    /// temperatures at <see cref="MinPressure"/> and <see cref="MaxPressure"/>
+    /// (widened to the saturation-curve fit range and to the 0 °C reference state
+    /// at which the enthalpy and entropy are anchored) and never exceeds the critical
+    /// temperature.
+    /// </remarks>
     /// <exception cref="PopoloOutOfRangeException">
-    /// Thrown when the temperature is below absolute zero.
+    /// Thrown when the temperature is not positive or is outside the valid saturation
+    /// temperature range (e.g., above the critical temperature).
+    /// </exception>
+    /// <exception cref="PopoloNumericalException">
+    /// Thrown when the exact saturation solution fails to converge or yields an
+    /// unphysical state (non-finite or non-positive pressure, or not
+    /// liquid density &gt; vapor density &gt; 0).
     /// </exception>
     public void GetSaturatedPropertyFromTemperature(double temperature,
         out double saturatedLiquidDensity, out double saturatedVaporDensity,
         out double saturatedPressure)
     {
       ValidateTemperature(temperature);
+      if (!(_satTLow <= temperature && temperature <= _satTHigh))
+        throw new PopoloOutOfRangeException(
+            "temperature", temperature, _satTLow, _satTHigh,
+            $"Saturation temperature is outside the valid range for {FluidType}.");
 
       //Fast path: evaluate the saturation curves fitted at construction
       if (_satFitValid && _satFitTMin <= temperature && temperature <= _satFitTMax)
@@ -774,6 +799,14 @@ namespace Popolo.Core.Physics
 
       GetSaturatedPropertyFromTemperatureExact(temperature,
         out saturatedLiquidDensity, out saturatedVaporDensity, out saturatedPressure);
+      if (!(double.IsFinite(saturatedPressure) && 0 < saturatedPressure
+          && 0 < saturatedVaporDensity && saturatedVaporDensity < saturatedLiquidDensity
+          && double.IsFinite(saturatedLiquidDensity)))
+        throw new PopoloNumericalException(
+            "GetSaturatedPropertyFromTemperature",
+            $"Unphysical saturation state for {FluidType} at temperature={temperature} K: "
+            + $"pressure={saturatedPressure} kPa, liquid density={saturatedLiquidDensity} kg/m³, "
+            + $"vapor density={saturatedVaporDensity} kg/m³.");
     }
 
     /// <summary>
@@ -994,6 +1027,55 @@ namespace Popolo.Core.Physics
         }
       }
       _satFitValid = true;
+    }
+
+    /// <summary>
+    /// Determines the valid saturation temperature range [K] accepted by
+    /// <see cref="GetSaturatedPropertyFromTemperature"/>.
+    /// </summary>
+    /// <remarks>
+    /// The range is made consistent with the pressure range accepted by
+    /// <see cref="GetSaturatedPropertyFromPressure"/> ([MinPressure, MaxPressure]):
+    /// it spans the saturation temperatures at MinPressure and MaxPressure
+    /// (as returned by <see cref="GetSaturatedPropertyFromPressure"/> itself),
+    /// widened to the temperature range of the saturation curve fit when that fit
+    /// is available (the fast path is reliable over its whole range) and down to the
+    /// reference-state temperature (saturated liquid at 0 °C, where the enthalpy and
+    /// entropy are anchored; for R1233zd(E) and R1224yd(Z) it lies slightly below
+    /// the saturation temperature at MinPressure), and capped at the critical
+    /// temperature. Outside this range the exact equal-Gibbs-energy solution may
+    /// silently return NaN or unphysical (negative) densities and pressures.
+    /// </remarks>
+    private void InitializeSaturationTemperatureRange()
+    {
+      _satTLow = 0;
+      _satTHigh = CriticalTemperature;
+      if (_aP.Length == 0 || _cts.Length == 0) return;
+
+      double tLow = Math.Min(SaturationTemperatureOrEstimate(MinPressure), _refTemperature);
+      double tHigh = SaturationTemperatureOrEstimate(MaxPressure);
+      if (_satFitValid)
+      {
+        tLow = Math.Min(tLow, _satFitTMin);
+        tHigh = Math.Max(tHigh, _satFitTMax);
+      }
+      _satTLow = tLow;
+      _satTHigh = Math.Min(tHigh, CriticalTemperature);    }
+
+    /// <summary>
+    /// Gets the saturation temperature [K] at the pressure [kPa] as
+    /// <see cref="GetSaturatedPropertyFromPressure"/> computes it; falls back to the
+    /// initial-estimate polynomial when the exact solution fails.
+    /// </summary>
+    private double SaturationTemperatureOrEstimate(double pressure)
+    {
+      try
+      {
+        GetSaturatedPropertyFromPressure(pressure, out _, out _, out double tSat);
+        if (double.IsFinite(tSat)) return tSat;
+      }
+      catch (PopoloNumericalException) { }
+      return EstimateSaturationTemperature(pressure);
     }
 
     /// <summary>Estimates the saturation temperature [K] with the cubic initial-estimate polynomial.</summary>

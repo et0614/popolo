@@ -732,5 +732,97 @@ namespace Popolo.Core.Tests.Physics
     }
 
     #endregion
+
+    #region Saturation temperature range tests
+
+    /// <summary>
+    /// 有効範囲外の飽和温度で PopoloOutOfRangeException が発生する
+    /// （従来は厳密解の Newton 法が NaN や負の密度・圧力を黙って返していた。
+    ///  例：R32 T=355K → rhoL=NaN、R410A T=200K → rhoV=-7.5, P=-191.9kPa）
+    /// </summary>
+    [Theory]
+    [InlineData(Refrigerant.Fluid.R32, 355.0)]       // 臨界温度 351.255K 超
+    [InlineData(Refrigerant.Fluid.R32, 220.0)]       // 最低圧力の飽和温度(約241K)未満
+    [InlineData(Refrigerant.Fluid.R410A, 200.0)]
+    [InlineData(Refrigerant.Fluid.R410A, 350.0)]     // 臨界温度 344.494K 超
+    [InlineData(Refrigerant.Fluid.R134a, 220.0)]
+    [InlineData(Refrigerant.Fluid.R134a, 380.0)]     // 臨界温度 374.21K 超
+    [InlineData(Refrigerant.Fluid.R1234zeE, 240.0)]
+    [InlineData(Refrigerant.Fluid.R1234yf, 380.0)]
+    [InlineData(Refrigerant.Fluid.R1233zdE, 450.0)]
+    [InlineData(Refrigerant.Fluid.R1224ydZ, 250.0)]
+    [InlineData(Refrigerant.Fluid.R290, 210.0)]
+    [InlineData(Refrigerant.Fluid.R290, 370.0)]      // 臨界温度 369.89K 超
+    public void GetSaturatedPropertyFromTemperature_OutOfValidRange_ThrowsPopoloOutOfRangeException(
+        Refrigerant.Fluid fluid, double temperature)
+    {
+      var r = new Refrigerant(fluid);
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => r.GetSaturatedPropertyFromTemperature(temperature, out _, out _, out _));
+    }
+
+    /// <summary>
+    /// 有効温度範囲は圧力範囲 [MinPressure, MaxPressure] と整合する：
+    /// 両端の飽和温度（および 0°C の基準状態）は受け付け、そこから外れると例外となる
+    /// </summary>
+    [Theory]
+    [InlineData(Refrigerant.Fluid.R32)]
+    [InlineData(Refrigerant.Fluid.R410A)]
+    [InlineData(Refrigerant.Fluid.R134a)]
+    [InlineData(Refrigerant.Fluid.R1234zeE)]
+    [InlineData(Refrigerant.Fluid.R1234yf)]
+    [InlineData(Refrigerant.Fluid.R1233zdE)]
+    [InlineData(Refrigerant.Fluid.R1224ydZ)]
+    [InlineData(Refrigerant.Fluid.R290)]
+    public void GetSaturatedPropertyFromTemperature_ValidRange_IsConsistentWithPressureRange(
+        Refrigerant.Fluid fluid)
+    {
+      var r = new Refrigerant(fluid);
+      r.GetSaturatedPropertyFromPressure(r.MinPressure, out _, out _, out double tLow);
+      r.GetSaturatedPropertyFromPressure(r.MaxPressure, out _, out _, out double tHigh);
+      //0°C の基準状態（飽和液 h=200kJ/kg, s=1.0kJ/(kg·K)）は常に有効範囲に含める
+      double lower = Math.Min(tLow, 273.15);
+
+      //範囲内（両端と基準温度を含む）：物理的に妥当な値を返す
+      int n = 20;
+      for (int i = 0; i <= n + 1; i++)
+      {
+        double t = i <= n ? lower + (tHigh - lower) * i / n : 273.15;
+        r.GetSaturatedPropertyFromTemperature(t, out double rhoL, out double rhoV, out double p);
+        Assert.True(double.IsFinite(p) && 0 < p, $"{fluid} T={t}: P={p}");
+        Assert.True(0 < rhoV && rhoV < rhoL, $"{fluid} T={t}: rhoL={rhoL}, rhoV={rhoV}");
+      }
+
+      //範囲外：例外（有効範囲は飽和曲線近似の適用範囲まで数K広がり得るため 6K 外側で確認）
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => r.GetSaturatedPropertyFromTemperature(lower - 6.0, out _, out _, out _));
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => r.GetSaturatedPropertyFromTemperature(tHigh + 6.0, out _, out _, out _));
+    }
+
+    /// <summary>
+    /// 範囲内の飽和状態は範囲チェック導入前と完全に同一の値を返す
+    /// （期待値は修正前のコードで算出した値。高速路・厳密解の双方を含む）
+    /// </summary>
+    [Theory]
+    [InlineData(Refrigerant.Fluid.R32, 278.15, 951.3998357438328, 1037.805217922443, 25.88018322683436)]
+    [InlineData(Refrigerant.Fluid.R32, 242.0, 260.69162849643146, 1154.3645503261016, 7.29683719383589)]   // 厳密解
+    [InlineData(Refrigerant.Fluid.R410A, 323.15, 3065.0762099642725, 906.4927343172868, 141.24092089350827)]
+    [InlineData(Refrigerant.Fluid.R134a, 283.15, 414.53922576672676, 1260.9636638498193, 20.223914128400413)]
+    [InlineData(Refrigerant.Fluid.R1233zdE, 273.15, 48.10983831081276, 1321.27085361586, 2.8363008519085535)]   // 厳密解
+    [InlineData(Refrigerant.Fluid.R1224ydZ, 273.15, 55.77817958924127, 1427.5948479025226, 3.7635497704829763)] // 厳密解
+    public void GetSaturatedPropertyFromTemperature_InRange_ResultsUnchanged(
+        Refrigerant.Fluid fluid, double temperature,
+        double expectedP, double expectedRhoL, double expectedRhoV)
+    {
+      var r = new Refrigerant(fluid);
+      r.GetSaturatedPropertyFromTemperature(temperature,
+          out double rhoL, out double rhoV, out double p);
+      Assert.Equal(expectedP, p, expectedP * 1e-9);
+      Assert.Equal(expectedRhoL, rhoL, expectedRhoL * 1e-9);
+      Assert.Equal(expectedRhoV, rhoV, expectedRhoV * 1e-9);
+    }
+
+    #endregion
   }
 }
