@@ -265,6 +265,8 @@ namespace Popolo.Core.HVAC.HeatSource
       this.UnitCount = unitCount;
       this.auxElec = auxiliaryElectricConsumption;
       this.heatingAirFlowRate = this.NominalHeatingCapacity = 0;
+      this.MaxChilledWaterFlowRate = chilledWaterFlowRate * unitCount;
+      this.MinChilledWaterFlowRate = chilledWaterFlowRate * 0.4;
 
       //Compute the cooling mode COP
       double mcw = 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * chilledWaterFlowRate;
@@ -428,7 +430,7 @@ namespace Popolo.Core.HVAC.HeatSource
       aTau[0] = abf0 * abf0 * aCOP[0] * mcma;
       aTau[1] = -abf0 * (mcma * abf1 + abf0 * aCOP[0] * abf3);
       aTau[2] = abf0 * abf1 * abf3 + mcma * abf2;
-      aTau[3] = - abf2 * abf3 - qLD / (GetPartialLoadFactor(qLD / cap) * NominalCoolingCOP);
+      aTau[3] = - abf2 * abf3 - qLD / (GetPartialLoadFactor(qLD / cap) * copFLR);
 
       double x1, x2, x3, tao;
       bool hasMS;

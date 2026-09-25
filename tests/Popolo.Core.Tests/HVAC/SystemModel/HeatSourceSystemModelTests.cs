@@ -488,6 +488,42 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
         #endregion
 
         // ================================================================
+        #region SimpleModularAirSourceHeatPumpSystem — cooling-only unit
+
+        /// <summary>
+        /// 冷房専用のモジュール型空冷チラーでも、熱源システムの冷房運転で冷水が製造され、
+        /// 流量比が有限値となる。旧実装では最大冷水流量が 0 のため運転されず、流量比は NaN だった。
+        /// </summary>
+        [Fact]
+        public void ModularCoolingOnly_Cooling_ProducesChilledWater()
+        {
+            double mwPerUnit = 430.0 / 60.0;
+            var chiller = new SimpleModularAirSourceHeatPump(
+                150, 7, mwPerUnit, 35, 850.0 / 60 * 1.2, 49.8, 3, 1.9);
+            var chPmp = new CentrifugalPump(150, 3e-3 * mwPerUnit, 140, 3e-3 * mwPerUnit,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var hwPmp = new CentrifugalPump(150, 3e-3 * mwPerUnit, 140, 3e-3 * mwPerUnit,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var mSystem = new SimpleModularAirSourceHeatPumpSystem(chiller, chPmp, hwPmp, 1);
+            Assert.True(double.IsFinite(mSystem.MinChilledWaterFlowRatio));
+            Assert.True(double.IsFinite(mSystem.MinHotWaterFlowRatio));
+
+            var hs = new HeatSourceSystemModel(new IHeatSourceSubSystem[] { mSystem });
+            hs.SetOperatingMode(0, HeatSourceSystemModel.OperatingMode.Cooling);
+            hs.SetChillingOperationSequence(0, 1);
+            hs.ChilledWaterSupplyTemperatureSetpoint = 7.0;
+            hs.OutdoorAir = new MoistAir(35, 0.0195);
+
+            double flow = 0.6 * 3 * mwPerUnit;
+            hs.ForecastSupplyWaterTemperature(flow, 12, 0, 40);
+            Assert.True(chiller.CoolingLoad > 0, $"CoolingLoad={chiller.CoolingLoad:F2} kW > 0");
+            Assert.True(double.IsFinite(hs.ChilledWaterSupplyTemperature));
+            Assert.InRange(hs.ChilledWaterSupplyTemperature, 6.5, 7.5);
+        }
+
+        #endregion
+
+        // ================================================================
         #region MultipleStratifiedWaterTankSystem — thermal storage
 
         private const double TankChwFlow = 500.0 / (12 - 7) / Cp;   // 冷凍機定格冷水流量 [kg/s]

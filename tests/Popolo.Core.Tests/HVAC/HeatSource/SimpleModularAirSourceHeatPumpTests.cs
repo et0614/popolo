@@ -81,6 +81,22 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             Assert.True(MakeHP().IsHeatPumpModel);
         }
 
+        /// <summary>
+        /// 冷房専用機のコンストラクタでも冷水の最大・最小流量がヒートポンプ機と同じ規則で設定される。
+        /// 旧実装では 0 のままで、システムモデルで流量比が NaN（0/0）となり運転されなかった。
+        /// </summary>
+        [Fact]
+        public void Constructor_CoolingOnly_SetsChilledWaterFlowLimits()
+        {
+            var c = new SimpleModularAirSourceHeatPump(
+                CoolingCap, ChwOutlet, MwPerUnit, CoolingAirT, 850.0/60*1.2, 49.8, Units, 1.9);
+            Assert.False(c.IsHeatPumpModel);
+            Assert.Equal(MwPerUnit * Units, c.MaxChilledWaterFlowRate, 10);
+            Assert.Equal(MwPerUnit * 0.4, c.MinChilledWaterFlowRate, 10);
+            Assert.Equal(0.0, c.MaxHotWaterFlowRate);
+            Assert.Equal(0.0, c.MinHotWaterFlowRate);
+        }
+
         [Fact]
         public void Constructor_InitialState_IsShutOff()
         {
@@ -218,6 +234,46 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
             hp.WaterOutletSetpointTemperature = HwOutlet;
             hp.Update(HeatingInletTemp(1.0), Mw, HeatingAirT);
             Assert.InRange(hp.COP, 1.0, 8.0);
+        }
+
+        /// <summary>
+        /// 暖房定格条件（1台・定格能力・外気7 °C・温水出口45 °C）で定格暖房消費電力を再現する。
+        /// 冷房定格 COP（150/49.8）と異なる暖房定格 COP を与えても反映される。
+        /// 旧実装は暖房時にも冷房定格 COP を用いていた。
+        /// </summary>
+        [Theory]
+        [InlineData(40.0)]
+        [InlineData(50.0)]
+        [InlineData(60.0)]
+        public void Update_Heating_RatedCondition_ReproducesRatedElectricity(double heatingElectricity)
+        {
+            var hp = new SimpleModularAirSourceHeatPump(
+                CoolingCap, ChwOutlet, MwPerUnit, CoolingAirT, 850.0/60*1.2, 49.8,
+                HeatingCap, HwOutlet, MwPerUnit, HeatingAirT, 850.0/60*1.2, heatingElectricity,
+                1, 1.9);
+            hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Heating;
+            hp.WaterOutletSetpointTemperature = HwOutlet;
+            hp.Update(HwOutlet - HeatingCap / (Cp * MwPerUnit), MwPerUnit, HeatingAirT);
+            Assert.InRange(hp.HeatingLoad, HeatingCap - 0.5, HeatingCap + 0.5);
+            Assert.InRange(hp.ElectricConsumption / heatingElectricity, 0.98, 1.02);
+        }
+
+        /// <summary>冷房側の結果は暖房定格消費電力の値に依存しない。</summary>
+        [Fact]
+        public void Update_Cooling_IndependentOfHeatingRating()
+        {
+            double Run(double heatingElectricity)
+            {
+                var hp = new SimpleModularAirSourceHeatPump(
+                    CoolingCap, ChwOutlet, MwPerUnit, CoolingAirT, 850.0/60*1.2, 49.8,
+                    HeatingCap, HwOutlet, MwPerUnit, HeatingAirT, 850.0/60*1.2, heatingElectricity,
+                    1, 1.9);
+                hp.Mode = SimpleModularAirSourceHeatPump.OperatingMode.Cooling;
+                hp.WaterOutletSetpointTemperature = ChwOutlet;
+                hp.Update(ChwOutlet + 0.7 * CoolingCap / (Cp * MwPerUnit), MwPerUnit, CoolingAirT);
+                return hp.ElectricConsumption;
+            }
+            Assert.Equal(Run(50.0), Run(40.0), 12);
         }
 
         #endregion

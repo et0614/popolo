@@ -95,7 +95,14 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the minimum hot water flow rate ratio [-].</summary>
     public double MinHotWaterFlowRatio
-    { get { return mChiller.MinHotWaterFlowRate / MaxHotWaterFlowRate; } }
+    {
+      get
+      {
+        //A cooling-only unit has no hot water flow (avoid 0/0)
+        double max = MaxHotWaterFlowRate;
+        return max <= 0 ? 0 : mChiller.MinHotWaterFlowRate / max;
+      }
+    }
 
     /// <summary>Gets or sets the chilled water return temperature [°C].</summary>
     public double ChilledWaterReturnTemperature { get; set; } = 12;
@@ -115,7 +122,13 @@ namespace Popolo.Core.HVAC.SystemModel
 
     /// <summary>Gets the minimum chilled water flow rate ratio [-].</summary>
     public double MinChilledWaterFlowRatio
-    { get { return mChiller.MinChilledWaterFlowRate / MaxChilledWaterFlowRate; } }
+    {
+      get
+      {
+        double max = MaxChilledWaterFlowRate;
+        return max <= 0 ? 0 : mChiller.MinChilledWaterFlowRate / max;
+      }
+    }
 
     /// <summary>Gets or sets the outdoor air conditions.</summary>
     public IReadOnlyMoistAir OutdoorAir { get; set; } = new MoistAir(35, 0.0185);
