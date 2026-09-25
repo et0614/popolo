@@ -171,7 +171,7 @@ namespace Popolo.Core.HVAC.SystemModel
         ForecastHeating_Internal(hotWaterFlowRate);
       else
       {
-        gHex.Update(0, 0);  //Calculate the soil heat flow only
+        IdleGround();
         ShutOff();
       }
     }
@@ -182,7 +182,7 @@ namespace Popolo.Core.HVAC.SystemModel
     {
       if (chilledWaterFlowRate <= 0 || ChilledWaterReturnTemperature < ChilledWaterSupplyTemperatureSetpoint)
       {
-        gHex.Update(0, 0);  //Calculate the soil heat flow only
+        IdleGround();
         ShutOff();
         return;
       }
@@ -238,7 +238,7 @@ namespace Popolo.Core.HVAC.SystemModel
     {
       if (hotWaterFlowRate <= 0 || HotWaterSupplyTemperatureSetpoint < HotWaterReturnTemperature)
       {
-        gHex.Update(0, 0);  //Calculate the soil heat flow only
+        IdleGround();
         ShutOff();
         return;
       }
@@ -286,6 +286,17 @@ namespace Popolo.Core.HVAC.SystemModel
       if (IsOverLoad_H) HotWaterSupplyTemperature = whp.HotWaterOutletTemperature;
       else HotWaterSupplyTemperature = HotWaterSupplyTemperatureSetpoint;
     }
+
+    /// <summary>Forecasts the soil state with no fluid flow (idle heat pump).</summary>
+    /// <remarks>
+    /// Only forecasts; the state is committed by <see cref="FixState"/>. Forecast is called
+    /// repeatedly within a time step, so committing here (gHex.Update) would advance the soil
+    /// by one step on every call. With no flow the inlet temperature does not affect the soil;
+    /// the committed near-field soil temperature is given so that the reported (stagnant)
+    /// fluid temperature is that of the surrounding soil.
+    /// </remarks>
+    private void IdleGround()
+    { gHex.ForecastState(gHex.CommittedNearGroundTemperature, 0); }
 
     /// <summary>Fixes (commits) the forecast state as the current state.</summary>
     public void FixState()

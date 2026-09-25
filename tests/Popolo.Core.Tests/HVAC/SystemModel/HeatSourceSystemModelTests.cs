@@ -292,6 +292,73 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
             Assert.Null(ex);
         }
 
+        /// <summary>
+        /// 冷却運転で地温を上げた後、停止条件（ゼロ負荷または停止モード）で予測を n 回行ってから
+        /// 確定したときの近傍・遠方土壌温度を返す。
+        /// </summary>
+        private static (double near, double distant) GSHP_SoilAfterIdleForecasts(
+            int forecastCount, HeatSourceSystemModel.OperatingMode idleMode)
+        {
+            var (hs, _, gHex) = MakeGSHPSystem();
+            hs.SetOperatingMode(0, HeatSourceSystemModel.OperatingMode.Cooling);
+            hs.ChilledWaterSupplyTemperatureSetpoint = 7.0;
+            hs.OutdoorAir = new MoistAir(25, 0.012);
+            double mcEvpC = 178.3 / 60;
+            for (int i = 0; i < 3; i++)
+            {
+                hs.ForecastSupplyWaterTemperature(0.8 * mcEvpC, 12, 0, 40);
+                hs.FixState();
+            }
+
+            hs.SetOperatingMode(0, idleMode);
+            for (int i = 0; i < forecastCount; i++)
+                hs.ForecastSupplyWaterTemperature(0, 12, 0, 40);
+            hs.FixState();
+            return (gHex.NearGroundTemperature, gHex.DistantGroundTemperature);
+        }
+
+        /// <summary>
+        /// 停止中の予測（ForecastSupplyWaterTemperature）を何回呼んでも、確定（FixState）後の
+        /// 地温は 1 回呼んだ場合と同じ（予測は状態を確定しない）。
+        /// 旧実装は予測のたびに gHex.Update で地温を 1 ステップ進めて確定していた。
+        /// </summary>
+        [Theory]
+        [InlineData(HeatSourceSystemModel.OperatingMode.Cooling)]
+        [InlineData(HeatSourceSystemModel.OperatingMode.Heating)]
+        [InlineData(HeatSourceSystemModel.OperatingMode.ShutOff)]
+        public void GSHP_IdleForecast_DoesNotCommitGroundState(HeatSourceSystemModel.OperatingMode idleMode)
+        {
+            var once = GSHP_SoilAfterIdleForecasts(1, idleMode);
+            var many = GSHP_SoilAfterIdleForecasts(5, idleMode);
+            Assert.Equal(once.near, many.near, 12);
+            Assert.Equal(once.distant, many.distant, 12);
+        }
+
+        /// <summary>停止中も確定のたびに地温は 1 ステップずつ回復（進行）する。</summary>
+        [Fact]
+        public void GSHP_IdleSteps_GroundRecoversEachStep()
+        {
+            var (hs, _, gHex) = MakeGSHPSystem();
+            hs.SetOperatingMode(0, HeatSourceSystemModel.OperatingMode.Cooling);
+            hs.ChilledWaterSupplyTemperatureSetpoint = 7.0;
+            hs.OutdoorAir = new MoistAir(25, 0.012);
+            double mcEvpC = 178.3 / 60;
+            for (int i = 0; i < 3; i++)
+            {
+                hs.ForecastSupplyWaterTemperature(0.8 * mcEvpC, 12, 0, 40);
+                hs.FixState();
+            }
+            double prev = gHex.NearGroundTemperature;
+            for (int i = 0; i < 3; i++)
+            {
+                hs.ForecastSupplyWaterTemperature(0, 12, 0, 40);
+                hs.FixState();
+                Assert.True(gHex.NearGroundTemperature < prev,
+                    $"step {i}: {gHex.NearGroundTemperature:F4} < {prev:F4}");
+                prev = gHex.NearGroundTemperature;
+            }
+        }
+
         #endregion
 
         // ================================================================
