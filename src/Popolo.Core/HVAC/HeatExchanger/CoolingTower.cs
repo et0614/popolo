@@ -240,7 +240,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     }
 
     /// <summary>Updates fan power consumption and water consumption.</summary>
-    private void UpdateElectricyAndWater()
+    private void UpdateElectricityAndWater()
     {
       if (HasInverter) ElectricConsumption = GetPowerConsumptionWithInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption, MinRotationRatio);
       else ElectricConsumption = GetPowerConsumptionWithOutInverter(AirFlowRate, MaxAirFlowRate, NominalPowerConsumption);
@@ -261,7 +261,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
     {
       IsOverLoad = false;
       UpdateHeatExchange(inletWaterTemperature, airFlowRate);
-      UpdateElectricyAndWater();
+      UpdateElectricityAndWater();
     }
 
     /// <summary>Updates the cooling tower state to meet the outlet water temperature setpoint.</summary>
@@ -293,7 +293,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
       }
       else Update(inletWaterTemperature, MaxAirFlowRate);
 
-      UpdateElectricyAndWater();
+      UpdateElectricityAndWater();
     }
 
     /// <summary>Computes the cooling water inlet and outlet temperatures that satisfy the given heat rejection rate.</summary>

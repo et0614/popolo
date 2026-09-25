@@ -47,10 +47,18 @@ namespace Popolo.Core.HVAC.FluidCircuit
     }
 
     /// <summary>Gets or sets the linear characteristic weighting factor [-].</summary>
-    public double LinearCharactaristicWeight
+    public double LinearCharacteristicWeight
     {
       get { return lWeight; }
       set { lWeight = Math.Max(0, Math.Min(1, value)); }
+    }
+
+    /// <summary>Gets or sets the linear characteristic weighting factor [-].</summary>
+    [Obsolete("Misspelled name. Use LinearCharacteristicWeight instead. This member will be removed in a future major version.")]
+    public double LinearCharactaristicWeight
+    {
+      get { return LinearCharacteristicWeight; }
+      set { LinearCharacteristicWeight = value; }
     }
 
     /// <summary>Gets or sets the rangeability [-].</summary>
@@ -81,7 +89,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       VolumetricFlowRateSetpoint = flowRate;
       minResistance = pressureDrop / (flowRate * flowRate);
       RangeAbility = rangeAbility;
-      LinearCharactaristicWeight = linearWeight;
+      LinearCharacteristicWeight = linearWeight;
     }
 
     /// <summary>Initializes a new instance.</summary>
@@ -94,7 +102,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       VolumetricFlowRateSetpoint = DesignFlowRate;
       minResistance = 6.89 / (DesignFlowRate * DesignFlowRate);
       RangeAbility = rangeAbility;
-      LinearCharactaristicWeight = linearWeight;
+      LinearCharacteristicWeight = linearWeight;
     }
 
     #endregion
@@ -135,7 +143,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double GetResistance()
     {
       if (IsTotallyClosable && Lift == 0) return double.PositiveInfinity;
-      double wf = LinearCharactaristicWeight;
+      double wf = LinearCharacteristicWeight;
       double lam = 1d / RangeAbility;
       return wf* minResistance / Math.Pow((1 - lam) * Lift + lam, 2)
        + (1d - wf) * minResistance * Math.Pow(lam, 2 * Lift - 2);
@@ -184,7 +192,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       if (res < minResistance) Lift = 1.0;
       else
       {
-        double wf = LinearCharactaristicWeight;
+        double wf = LinearCharacteristicWeight;
         double lam = 1d / RangeAbility;
         Roots.ErrorFunction eFnc = delegate (double c)
         {

@@ -98,10 +98,18 @@ namespace Popolo.Core.HVAC.SystemModel
     public double CoolingWaterTemperatureSetpoint { get; set; } = 32;
 
     /// <summary>Gets or sets a value indicating whether the chiller is operating.</summary>
-    public bool OperateChiler
+    public bool OperateChiller
     {
       get { return chiller.IsOperating; }
       set { chiller.IsOperating = value; }
+    }
+
+    /// <summary>Gets or sets a value indicating whether the chiller is operating.</summary>
+    [Obsolete("Misspelled name. Use OperateChiller instead. This member will be removed in a future major version.")]
+    public bool OperateChiler
+    {
+      get { return OperateChiller; }
+      set { OperateChiller = value; }
     }
 
     /// <summary>Gets or sets the state-update time step for the thermal storage tank [s].</summary>
@@ -277,7 +285,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
           //Calculate the required water flow rate through the discharge plate heat exchanger
           pHex.ControlSupplyTemperature
-            (WaterTank.LowerOutletTemperarture, ChilledWaterReturnTemperature + dtCHP, ChilledWaterFlowRate);
+            (WaterTank.LowerOutletTemperature, ChilledWaterReturnTemperature + dtCHP, ChilledWaterFlowRate);
 
           //Update the temperatures in the tank
           double tankInletTemp = 0;
@@ -298,7 +306,7 @@ namespace Popolo.Core.HVAC.SystemModel
           disPump.ShutOff();
           chwPump.ShutOff();
           chgPump.UpdateState(chgPump.DesignFlowRate);
-          CalcChillerAndCoolingTower(wTank.UpperOutletTemperarture + dtChillingPump);
+          CalcChillerAndCoolingTower(wTank.UpperOutletTemperature + dtChillingPump);
           wTank.ForecastState
             (chiller.ChilledWaterOutletTemperature, 0.001 * chiller.ChilledWaterFlowRate, false);
           IsOverLoad_C = false;
@@ -334,7 +342,7 @@ namespace Popolo.Core.HVAC.SystemModel
       double chilIn = dtChillingPump;
       if (isDownFlow)
       {
-        double tHexIn = (WaterTank.LowerOutletTemperarture * (hexFlow - ttlChilFlow)
+        double tHexIn = (WaterTank.LowerOutletTemperature * (hexFlow - ttlChilFlow)
           + chilOut * ttlChilFlow) / hexFlow;
         pHex.Update(tHexIn, rtnTmp, hexFlow, ChilledWaterFlowRate);
         disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
@@ -347,7 +355,7 @@ namespace Popolo.Core.HVAC.SystemModel
         disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
         double dtDisP = GetDischargePumpTemperatureRise();
         chilIn += ((pHex.HeatSourceOutletTemperature + dtDisP) * hexFlow
-          + wTank.UpperOutletTemperarture * (ttlChilFlow - hexFlow)) / ttlChilFlow;
+          + wTank.UpperOutletTemperature * (ttlChilFlow - hexFlow)) / ttlChilFlow;
       }
 
       //Coupled calculation of the cooling tower and the chiller
@@ -358,7 +366,7 @@ namespace Popolo.Core.HVAC.SystemModel
       {
         if (isDownFlow)
         {
-          double tHexIn = (WaterTank.LowerOutletTemperarture * (hexFlow - ttlChilFlow)
+          double tHexIn = (WaterTank.LowerOutletTemperature * (hexFlow - ttlChilFlow)
             + chiller.ChilledWaterOutletTemperature * ttlChilFlow) / hexFlow;
           pHex.Update(tHexIn, rtnTmp, hexFlow, ChilledWaterFlowRate);
         }

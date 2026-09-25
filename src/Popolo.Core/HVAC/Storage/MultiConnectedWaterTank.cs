@@ -57,7 +57,7 @@ namespace Popolo.Core.HVAC.Storage
     public double WaterInletTemperature { get; private set; }
 
     /// <summary>Gets the outlet water temperature [°C].</summary>
-    public double WaterOutletTemperarture
+    public double WaterOutletTemperature
     {
       get
       {
@@ -65,6 +65,10 @@ namespace Popolo.Core.HVAC.Storage
         else return temperatures[0];
       }
     }
+
+    /// <summary>Gets the outlet water temperature [°C].</summary>
+    [Obsolete("Misspelled name. Use WaterOutletTemperature instead. This member will be removed in a future major version.")]
+    public double WaterOutletTemperarture => WaterOutletTemperature;
 
     /// <summary>Gets the water flow rate [m³/s].</summary>
     public double WaterFlowRate { get; private set; }
@@ -207,8 +211,8 @@ namespace Popolo.Core.HVAC.Storage
     /// <returns>Heat storage rate [kW].</returns>
     public double GetHeatStorageFlow()
     {
-      double aveTemp = 0.5 * (WaterInletTemperature + WaterOutletTemperarture);
-      return (WaterInletTemperature - WaterOutletTemperarture)
+      double aveTemp = 0.5 * (WaterInletTemperature + WaterOutletTemperature);
+      return (WaterInletTemperature - WaterOutletTemperature)
         * WaterFlowRate * Water.GetLiquidDensity(aveTemp) * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
     }
 

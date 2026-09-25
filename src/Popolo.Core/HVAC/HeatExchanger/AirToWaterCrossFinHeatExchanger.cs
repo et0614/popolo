@@ -253,7 +253,7 @@ namespace Popolo.Core.HVAC.HeatExchanger
 
       //Compute the coil geometry
       double asr, car, eqr, eqd, asa;
-      GetGeometricCompfigulation(depth, width, height, rowCount, columnCount, finPitch, finThickness,
+      GetGeometricConfiguration(depth, width, height, rowCount, columnCount, finPitch, finThickness,
         innerDiameter, outerDiameter, out asr, out car, out eqr, out eqd, out asa);
 
       //Store the coil specification
@@ -866,7 +866,33 @@ namespace Popolo.Core.HVAC.HeatExchanger
     /// <param name="equivalentFinRadius">Equivalent annular fin outer radius [m].</param>
     /// <param name="equivalentDiameter">Equivalent hydraulic diameter [m].</param>
     /// <param name="surfaceArea">Air-side heat transfer surface area [m²].</param>
+    [Obsolete("Misspelled name. Use GetGeometricConfiguration instead. This member will be removed in a future major version.")]
     public static void GetGeometricCompfigulation
+      (double depth, double width, double height, int rowCount, int columnCount,
+      double finPitch, double finThickness, double innerDiameter, double outerDiameter,
+      out double airWaterSurfaceRatio, out double coreArea, out double equivalentFinRadius,
+      out double equivalentDiameter, out double surfaceArea)
+      => GetGeometricConfiguration(depth, width, height, rowCount, columnCount,
+        finPitch, finThickness, innerDiameter, outerDiameter,
+        out airWaterSurfaceRatio, out coreArea, out equivalentFinRadius,
+        out equivalentDiameter, out surfaceArea);
+
+    /// <summary>Computes the coil geometry (surface areas, diameters, fin efficiency).</summary>
+    /// <param name="depth">Coil depth [m].</param>
+    /// <param name="width">Coil width [m].</param>
+    /// <param name="height">Coil height [m].</param>
+    /// <param name="rowCount">Total number of tube columns (perpendicular to air flow).</param>
+    /// <param name="columnCount">Total number of tube rows in the air-flow direction.</param>
+    /// <param name="finPitch">Fin pitch [m].</param>
+    /// <param name="finThickness">Fin thickness [m].</param>
+    /// <param name="innerDiameter">Tube inner diameter [m].</param>
+    /// <param name="outerDiameter">Tube outer diameter [m].</param>
+    /// <param name="airWaterSurfaceRatio">Air-side to water-side surface area ratio [-].</param>
+    /// <param name="coreArea">Coil face area [m²].</param>
+    /// <param name="equivalentFinRadius">Equivalent annular fin outer radius [m].</param>
+    /// <param name="equivalentDiameter">Equivalent hydraulic diameter [m].</param>
+    /// <param name="surfaceArea">Air-side heat transfer surface area [m²].</param>
+    public static void GetGeometricConfiguration
       (double depth, double width, double height, int rowCount, int columnCount,
       double finPitch, double finThickness, double innerDiameter, double outerDiameter,
       out double airWaterSurfaceRatio, out double coreArea, out double equivalentFinRadius,

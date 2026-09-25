@@ -65,12 +65,20 @@ namespace Popolo.Core.HVAC.Storage
     public double WaterInletTemperature { get; private set; }
 
     /// <summary>Gets the outlet water temperature at the top port [°C].</summary>
-    public double UpperOutletTemperarture
+    public double UpperOutletTemperature
     { get { return temperatures[temperatures.Length - PipeInstallationLayer - 1]; } }
 
     /// <summary>Gets the outlet water temperature at the bottom port [°C].</summary>
-    public double LowerOutletTemperarture
+    public double LowerOutletTemperature
     { get { return temperatures[PipeInstallationLayer]; } }
+
+    /// <summary>Gets the outlet water temperature at the top port [°C].</summary>
+    [Obsolete("Misspelled name. Use UpperOutletTemperature instead. This member will be removed in a future major version.")]
+    public double UpperOutletTemperarture => UpperOutletTemperature;
+
+    /// <summary>Gets the outlet water temperature at the bottom port [°C].</summary>
+    [Obsolete("Misspelled name. Use LowerOutletTemperature instead. This member will be removed in a future major version.")]
+    public double LowerOutletTemperarture => LowerOutletTemperature;
 
     /// <summary>Gets the volumetric flow rate [m³/s].</summary>
     public double WaterFlowRate { get; private set; }
@@ -185,8 +193,8 @@ namespace Popolo.Core.HVAC.Storage
     public double GetHeatStorageFlow()
     {
       double two;
-      if (IsDownFlow) two = LowerOutletTemperarture;
-      else two = UpperOutletTemperarture;
+      if (IsDownFlow) two = LowerOutletTemperature;
+      else two = UpperOutletTemperature;
       double aveTemp = 0.5 * (WaterInletTemperature + two);
       return (WaterInletTemperature - two) * WaterFlowRate * Water.GetLiquidDensity(aveTemp) * 0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat;
     }

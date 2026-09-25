@@ -120,7 +120,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tank = MakeTank(3);
       tank.TimeStep = 60;
       tank.ForecastState(5.0, 0.01, isForwardFlow: true);
-      Assert.Equal(tank.LastTankTemperature, tank.WaterOutletTemperarture);
+      Assert.Equal(tank.LastTankTemperature, tank.WaterOutletTemperature);
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tank = MakeTank(3);
       tank.TimeStep = 60;
       tank.ForecastState(5.0, 0.01, isForwardFlow: false);
-      Assert.Equal(tank.FirstTankTemperature, tank.WaterOutletTemperarture);
+      Assert.Equal(tank.FirstTankTemperature, tank.WaterOutletTemperature);
     }
 
     /// <summary>
@@ -159,12 +159,12 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tankLow = MakeTank(3);
       tankLow.TimeStep = 60;
       tankLow.ForecastState(Tin, 0.001, true);
-      double outLow = tankLow.WaterOutletTemperarture;
+      double outLow = tankLow.WaterOutletTemperature;
 
       var tankHigh = MakeTank(3);
       tankHigh.TimeStep = 60;
       tankHigh.ForecastState(Tin, 0.05, true);
-      double outHigh = tankHigh.WaterOutletTemperarture;
+      double outHigh = tankHigh.WaterOutletTemperature;
 
       // 流量が多いほど出口水温は流入水温（5°C）に近い
       Assert.True(Math.Abs(outHigh - Tin) < Math.Abs(outLow - Tin),

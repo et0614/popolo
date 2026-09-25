@@ -48,7 +48,7 @@ namespace Popolo.Core.Tests.OccupantBehavior
 
     #endregion
 
-    #region IsBuisinessHours
+    #region IsBusinessHours
 
     /// <summary>
     /// 営業時間内の判定は時刻（時・分）で行う。旧実装は時と分を独立に比較していたため、
@@ -64,27 +64,27 @@ namespace Popolo.Core.Tests.OccupantBehavior
     [InlineData(17, 16, false)]
     [InlineData(20, 0, false)]
     [InlineData(3, 45, false)]
-    public void IsBuisinessHours_ComparesTimeOfDay(int hour, int minute, bool expected)
+    public void IsBusinessHours_ComparesTimeOfDay(int hour, int minute, bool expected)
     {
       var tenant = MakeTenant();
       var t = new DateTime(2025, 2, 4, hour, minute, 0); //火曜日（祝日でない）
-      Assert.Equal(expected, tenant.IsBuisinessHours(t));
+      Assert.Equal(expected, tenant.IsBusinessHours(t));
     }
 
     /// <summary>終業時刻の分内（秒単位の端数）は営業時間に含む（分単位の判定）</summary>
     [Fact]
-    public void IsBuisinessHours_EndMinuteInclusive()
+    public void IsBusinessHours_EndMinuteInclusive()
     {
       var tenant = MakeTenant();
-      Assert.True(tenant.IsBuisinessHours(new DateTime(2025, 2, 4, 17, 15, 59)));
+      Assert.True(tenant.IsBusinessHours(new DateTime(2025, 2, 4, 17, 15, 59)));
     }
 
     /// <summary>休日は常に営業時間外</summary>
     [Fact]
-    public void IsBuisinessHours_Holiday_IsFalse()
+    public void IsBusinessHours_Holiday_IsFalse()
     {
       var tenant = MakeTenant();
-      Assert.False(tenant.IsBuisinessHours(new DateTime(2025, 2, 8, 10, 0, 0))); //土曜日
+      Assert.False(tenant.IsBusinessHours(new DateTime(2025, 2, 8, 10, 0, 0))); //土曜日
     }
 
     #endregion

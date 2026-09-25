@@ -230,7 +230,7 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
         private static void GetGeometry(out double asr, out double car, out double eqr,
             out double eqd, out double area)
         {
-            AirToWaterCrossFinHeatExchanger.GetGeometricCompfigulation(
+            AirToWaterCrossFinHeatExchanger.GetGeometricConfiguration(
                 4 * 0.0329, 0.6, 0.4, 4, 6, 0.0029, 0.0002, 0.0146, 0.0158,
                 out asr, out car, out eqr, out eqd, out double asa);
             area = asa * 4;

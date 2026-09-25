@@ -70,7 +70,17 @@ namespace Popolo.Core.Building.Envelope
     /// <summary>
     /// Gets or sets a value indicating whether the shading device is deployed (pulled down).
     /// </summary>
+    [System.Obsolete("Misspelled name. Use IsPulledDown instead. This member will be removed in a future major version.")]
     bool Pulldowned { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the shading device is deployed (pulled down).
+    /// </summary>
+    /// <remarks>The default implementation forwards to the former (misspelled) member so that
+    /// existing implementations keep compiling.</remarks>
+#pragma warning disable CS0618
+    bool IsPulledDown { get => Pulldowned; set => Pulldowned = value; }
+#pragma warning restore CS0618
 
     /// <summary>
     /// Gets a value indicating whether the optical properties have changed
@@ -118,7 +128,11 @@ namespace Popolo.Core.Building.Envelope
     /// Gets or sets a value indicating whether the device is deployed.
     /// Always false for <see cref="NoShadingDevice"/>.
     /// </summary>
-    public bool Pulldowned { get; set; } = false;
+    public bool IsPulledDown { get; set; } = false;
+
+    /// <summary>Gets or sets a value indicating whether the device is deployed.</summary>
+    [System.Obsolete("Misspelled name. Use IsPulledDown instead. This member will be removed in a future major version.")]
+    public bool Pulldowned { get => IsPulledDown; set => IsPulledDown = value; }
 
     /// <summary>Gets a value indicating whether the optical properties have changed.</summary>
     public bool HasPropertyChanged { get; private set; } = true;

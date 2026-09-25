@@ -27,7 +27,15 @@ namespace Popolo.Core.HVAC.Storage
     double WaterInletTemperature { get; }
 
     /// <summary>Gets the outlet water temperature [°C].</summary>
+    [System.Obsolete("Misspelled name. Use WaterOutletTemperature instead. This member will be removed in a future major version.")]
     double WaterOutletTemperarture { get; }
+
+    /// <summary>Gets the outlet water temperature [°C].</summary>
+    /// <remarks>The default implementation forwards to the former (misspelled) member so that
+    /// existing implementations keep compiling.</remarks>
+#pragma warning disable CS0618
+    double WaterOutletTemperature => WaterOutletTemperarture;
+#pragma warning restore CS0618
 
     /// <summary>Gets the water flow rate [m³/s].</summary>
     double WaterFlowRate { get; }

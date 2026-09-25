@@ -38,7 +38,7 @@ namespace Popolo.Core.Building.Envelope
   /// <see cref="VenetianBlind"/>.
   /// </para>
   /// <para>
-  /// When <see cref="IShadingDevice.Pulldowned"/> is false, the device is
+  /// When <see cref="IShadingDevice.IsPulledDown"/> is false, the device is
   /// retracted and <see cref="ComputeOpticalProperties"/> returns the
   /// pass-through values (transmittance = 1, reflectance = 0).
   /// </para>
@@ -138,7 +138,15 @@ namespace Popolo.Core.Building.Envelope
     private bool pullDowned = true;
 
     /// <summary>Gets or sets a value indicating whether the shading device is deployed.</summary>
+    [Obsolete("Misspelled name. Use IsPulledDown instead. This member will be removed in a future major version.")]
     public bool Pulldowned
+    {
+      get { return IsPulledDown; }
+      set { IsPulledDown = value; }
+    }
+
+    /// <summary>Gets or sets a value indicating whether the shading device is deployed.</summary>
+    public bool IsPulledDown
     {
       get { return pullDowned; }
       set
@@ -163,7 +171,7 @@ namespace Popolo.Core.Building.Envelope
       (bool isDiffuseIrradianceProperties, bool irradianceFromSideF,
       out double transmittance, out double reflectance)
     {
-      if (Pulldowned)
+      if (IsPulledDown)
       {
         transmittance = Transmittance;
         reflectance = Reflectance;

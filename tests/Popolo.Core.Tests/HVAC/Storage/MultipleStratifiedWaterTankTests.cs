@@ -36,8 +36,8 @@ namespace Popolo.Core.Tests.HVAC.Storage
   ///   isDownFlow=false → water enters from the bottom, exits from the top
   ///
   /// Layers are indexed 0 (bottom) to LayerNumber-1 (top).
-  /// UpperOutletTemperarture = temperature of the topmost layer.
-  /// LowerOutletTemperarture = temperature of the bottommost layer.
+  /// UpperOutletTemperature = temperature of the topmost layer.
+  /// LowerOutletTemperature = temperature of the bottommost layer.
   /// </remarks>
   public class MultipleStratifiedWaterTankTests
   {
@@ -109,8 +109,8 @@ namespace Popolo.Core.Tests.HVAC.Storage
       tank.TimeStep = 3600;
       tank.ForecastState(5.0, 0.001, isDownFlow: true);
       // 上部から冷水が入るため上部出口は初期より低温
-      Assert.True(tank.UpperOutletTemperarture < 40.0,
-          $"Upper outlet={tank.UpperOutletTemperarture:F2}°C should be < 40°C");
+      Assert.True(tank.UpperOutletTemperature < 40.0,
+          $"Upper outlet={tank.UpperOutletTemperature:F2}°C should be < 40°C");
     }
 
     /// <summary>
@@ -123,8 +123,8 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tank = MakeTank(20.0); // 初期20°C
       tank.TimeStep = 3600;
       tank.ForecastState(60.0, 0.001, isDownFlow: false);
-      Assert.True(tank.LowerOutletTemperarture > 20.0,
-          $"Lower outlet={tank.LowerOutletTemperarture:F2}°C should be > 20°C");
+      Assert.True(tank.LowerOutletTemperature > 20.0,
+          $"Lower outlet={tank.LowerOutletTemperature:F2}°C should be > 20°C");
     }
 
     /// <summary>
@@ -151,12 +151,12 @@ namespace Popolo.Core.Tests.HVAC.Storage
       var tankLow = MakeTank(40.0);
       tankLow.TimeStep = 3600;
       tankLow.ForecastState(Tin, 0.0005, isDownFlow: true);
-      double outLow = tankLow.UpperOutletTemperarture;
+      double outLow = tankLow.UpperOutletTemperature;
 
       var tankHigh = MakeTank(40.0);
       tankHigh.TimeStep = 3600;
       tankHigh.ForecastState(Tin, 0.005, isDownFlow: true);
-      double outHigh = tankHigh.UpperOutletTemperarture;
+      double outHigh = tankHigh.UpperOutletTemperature;
 
       Assert.True(Math.Abs(outHigh - Tin) < Math.Abs(outLow - Tin),
           $"High flow outlet={outHigh:F2}°C closer to {Tin}°C than low={outLow:F2}°C");
@@ -202,8 +202,8 @@ namespace Popolo.Core.Tests.HVAC.Storage
       tank.ForecastState(60.0, 0.001, isDownFlow: false);
 
       // 補正後：底層（流入口側）が加熱されている
-      Assert.True(tank.LowerOutletTemperarture > 10.0,
-          $"Lower outlet={tank.LowerOutletTemperarture:F2}°C > 10°C (heated by hot inlet)");
+      Assert.True(tank.LowerOutletTemperature > 10.0,
+          $"Lower outlet={tank.LowerOutletTemperature:F2}°C > 10°C (heated by hot inlet)");
     }
 
     #endregion
@@ -338,7 +338,7 @@ namespace Popolo.Core.Tests.HVAC.Storage
         Assert.True(Math.Abs(dDown + dUp) < 1e-3,
             $"Layer {i}: downflow ΔT={dDown:F4} K, mirrored upflow ΔT={dUp:F4} K");
       }
-      Assert.InRange(down.LowerOutletTemperarture + up.UpperOutletTemperarture, 40.0 - 1e-3, 40.0 + 1e-3);
+      Assert.InRange(down.LowerOutletTemperature + up.UpperOutletTemperature, 40.0 - 1e-3, 40.0 + 1e-3);
     }
 
     #endregion

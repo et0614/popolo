@@ -115,7 +115,15 @@ namespace Popolo.Core.Building.Envelope
     public double SlatSpan { get; private set; }
 
     /// <summary>Gets or sets a value indicating whether the blind is deployed.</summary>
+    [Obsolete("Misspelled name. Use IsPulledDown instead. This member will be removed in a future major version.")]
     public bool Pulldowned
+    {
+      get { return IsPulledDown; }
+      set { IsPulledDown = value; }
+    }
+
+    /// <summary>Gets or sets a value indicating whether the blind is deployed.</summary>
+    public bool IsPulledDown
     {
       get { return pullDowned; }
       set
@@ -202,7 +210,7 @@ namespace Popolo.Core.Building.Envelope
     public void ComputeOpticalProperties(bool isDiffuseIrradianceProperties, bool irradianceFromSideF,
       out double transmittance, out double reflectance)
     {
-      if (!Pulldowned)
+      if (!IsPulledDown)
       {
         transmittance = 1.0;
         reflectance = 0.0;
@@ -418,7 +426,7 @@ namespace Popolo.Core.Building.Envelope
         HasPropertyChanged = false;
       }
 
-      if (!Pulldowned)
+      if (!IsPulledDown)
       {
         diffuseDiffuseTransmittance_U = 0.3;
         diffuseDiffuseTransmittance_L = 0.7;

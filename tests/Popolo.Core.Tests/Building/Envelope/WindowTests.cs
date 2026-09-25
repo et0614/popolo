@@ -280,7 +280,7 @@ namespace Popolo.Core.Tests.Building.Envelope
           $"After blind ({tauAfter:F4}) should be < before ({tauBefore:F4})");
     }
 
-    /// <summary>遮蔽物を展開しないとき（Pulldowned=false）透過率が変わらない</summary>
+    /// <summary>遮蔽物を展開しないとき（IsPulledDown=false）透過率が変わらない</summary>
     [Fact]
     public void SetShadingDevice_NotDeployed_NoEffect()
     {
@@ -290,9 +290,9 @@ namespace Popolo.Core.Tests.Building.Envelope
       window.UpdateOpticalProperties(sun);
       double tauBefore = window.DirectSolarIncidentTransmittance;
 
-      // 収納状態（Pulldowned=false）のブラインド
+      // 収納状態（IsPulledDown=false）のブラインド
       var blind = new SimpleShadingDevice(0.05, 0.55);
-      blind.Pulldowned = false;
+      blind.IsPulledDown = false;
       window.SetShadingDevice(1, blind);
       window.UpdateOpticalProperties(sun);
       double tauAfter = window.DirectSolarIncidentTransmittance;

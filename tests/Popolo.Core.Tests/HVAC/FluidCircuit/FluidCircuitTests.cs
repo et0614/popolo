@@ -826,10 +826,10 @@ namespace Popolo.Core.Tests.HVAC.FluidCircuit
 
       double mw = vf * Popolo.Core.Physics.Water.GetLiquidDensity(tIn);
       double cp = Popolo.Core.Physics.Water.GetLiquidIsobaricSpecificHeat(tIn);
-      double q = mw * cp * (pipe.OutletWaterTemperauture - tIn);
+      double q = mw * cp * (pipe.OutletWaterTemperature - tIn);
       Assert.True(pipe.HeatLoss > 0, $"HeatLoss = {pipe.HeatLoss} kW should be positive (heat gain)");
       Assert.InRange(q, pipe.HeatLoss * (1 - 1e-9), pipe.HeatLoss * (1 + 1e-9));
-      Assert.InRange(pipe.OutletWaterTemperauture - tIn, 1e-4, 1.0); // 50 m の裸管で温度上昇は小さい
+      Assert.InRange(pipe.OutletWaterTemperature - tIn, 1e-4, 1.0); // 50 m の裸管で温度上昇は小さい
     }
 
     /// <summary>

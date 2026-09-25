@@ -279,7 +279,7 @@ namespace Popolo.Core.HVAC.SystemModel
 
           //Calculate the required water flow rate through the discharge plate heat exchanger
           pHex.ControlSupplyTemperature
-            (WaterTank.WaterOutletTemperarture, (isCooling ? ChilledWaterReturnTemperature : HotWaterReturnTemperature) + dtCHP, chFlow);
+            (WaterTank.WaterOutletTemperature, (isCooling ? ChilledWaterReturnTemperature : HotWaterReturnTemperature) + dtCHP, chFlow);
 
           //Update the temperatures in the tank
           double tankInletTemp = 0;

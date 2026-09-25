@@ -79,6 +79,16 @@ namespace Popolo.Core.OccupantBehavior
     /// <summary>Determines whether the specified time is within business hours.</summary>
     /// <param name="dTime">Current date and time.</param>
     /// <returns>True if within business hours.</returns>
+    [Obsolete("Misspelled name. Use IsBusinessHours instead. This member will be removed in a future major version.")]
     bool IsBuisinessHours(DateTime dTime);
+
+    /// <summary>Determines whether the specified time is within business hours.</summary>
+    /// <param name="dTime">Current date and time.</param>
+    /// <returns>True if within business hours.</returns>
+    /// <remarks>The default implementation forwards to the former (misspelled) member so that
+    /// existing implementations keep compiling.</remarks>
+#pragma warning disable CS0618
+    bool IsBusinessHours(DateTime dTime) => IsBuisinessHours(dTime);
+#pragma warning restore CS0618
   }
 }

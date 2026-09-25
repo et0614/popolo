@@ -105,7 +105,11 @@ namespace Popolo.Core.HVAC.FluidCircuit
     public double HeatLoss { get; private set; }
 
     /// <summary>Gets the outlet water temperature [°C].</summary>
-    public double OutletWaterTemperauture { get; private set; }
+    public double OutletWaterTemperature { get; private set; }
+
+    /// <summary>Gets the outlet water temperature [°C].</summary>
+    [Obsolete("Misspelled name. Use OutletWaterTemperature instead. This member will be removed in a future major version.")]
+    public double OutletWaterTemperauture => OutletWaterTemperature;
 
     /// <summary>Gets the pipe thermal conductivity [W/(m·K)].</summary>
     public double PipeThermalConductivity { get; private set; }
@@ -232,7 +236,7 @@ namespace Popolo.Core.HVAC.FluidCircuit
       HeatLoss = LinearThermalTransmittance * Length
         * (AmbientTemperature - InletWaterTemperature) / 1000d;
       double cpw = Water.GetLiquidIsobaricSpecificHeat(InletWaterTemperature);
-      OutletWaterTemperauture = HeatLoss / (mw * cpw) + InletWaterTemperature;
+      OutletWaterTemperature = HeatLoss / (mw * cpw) + InletWaterTemperature;
     }
 
     /// <summary>Sets the insulation.</summary>

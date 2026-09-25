@@ -36,10 +36,24 @@ namespace Popolo.Core.HVAC.Storage
     double WaterInletTemperature { get; }
 
     /// <summary>Gets the outlet water temperature at the top port [°C].</summary>
+    [System.Obsolete("Misspelled name. Use UpperOutletTemperature instead. This member will be removed in a future major version.")]
     double UpperOutletTemperarture { get; }
 
     /// <summary>Gets the outlet water temperature at the bottom port [°C].</summary>
+    [System.Obsolete("Misspelled name. Use LowerOutletTemperature instead. This member will be removed in a future major version.")]
     double LowerOutletTemperarture { get; }
+
+#pragma warning disable CS0618
+    /// <summary>Gets the outlet water temperature at the top port [°C].</summary>
+    /// <remarks>The default implementation forwards to the former (misspelled) member so that
+    /// existing implementations keep compiling.</remarks>
+    double UpperOutletTemperature => UpperOutletTemperarture;
+
+    /// <summary>Gets the outlet water temperature at the bottom port [°C].</summary>
+    /// <remarks>The default implementation forwards to the former (misspelled) member so that
+    /// existing implementations keep compiling.</remarks>
+    double LowerOutletTemperature => LowerOutletTemperarture;
+#pragma warning restore CS0618
 
     /// <summary>Gets the volumetric flow rate [m³/s].</summary>
     double WaterFlowRate { get; }

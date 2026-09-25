@@ -52,6 +52,14 @@ namespace Popolo.Core.HVAC.FluidCircuit
       double HeatLoss { get; }
   
       /// <summary>Gets the outlet water temperature [°C].</summary>
+      [Obsolete("Misspelled name. Use OutletWaterTemperature instead. This member will be removed in a future major version.")]
       double OutletWaterTemperauture { get; }
+
+      /// <summary>Gets the outlet water temperature [°C].</summary>
+      /// <remarks>The default implementation forwards to the former (misspelled) member so that
+      /// existing implementations keep compiling.</remarks>
+#pragma warning disable CS0618
+      double OutletWaterTemperature => OutletWaterTemperauture;
+#pragma warning restore CS0618
     }
 }

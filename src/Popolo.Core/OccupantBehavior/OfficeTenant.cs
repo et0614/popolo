@@ -649,7 +649,18 @@ namespace Popolo.Core.OccupantBehavior
     /// start ≤ hh:mm ≤ end (e.g., with 8:30–17:15, 8:30:00 and 17:15:59 are within business hours).
     /// If the end time is earlier than the start time, the business hours are taken to span midnight.
     /// </remarks>
-    public bool IsBuisinessHours(DateTime dTime)
+    [Obsolete("Misspelled name. Use IsBusinessHours instead. This member will be removed in a future major version.")]
+    public bool IsBuisinessHours(DateTime dTime) => IsBusinessHours(dTime);
+
+    /// <summary>Determines whether the specified time is within business hours.</summary>
+    /// <param name="dTime">Current date and time.</param>
+    /// <returns>True if within business hours.</returns>
+    /// <remarks>
+    /// The time of day is compared at one-minute resolution with both ends inclusive:
+    /// start ≤ hh:mm ≤ end (e.g., with 8:30–17:15, 8:30:00 and 17:15:59 are within business hours).
+    /// If the end time is earlier than the start time, the business hours are taken to span midnight.
+    /// </remarks>
+    public bool IsBusinessHours(DateTime dTime)
     {
       //Always false on holidays
       if (IsHoliday(dTime)) return false;
