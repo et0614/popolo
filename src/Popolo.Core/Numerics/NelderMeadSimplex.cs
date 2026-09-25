@@ -27,7 +27,17 @@ namespace Popolo.Core.Numerics
     #region Constants
 
     private const int MAX_ITERATION = 5000;
-    private const double ERR_TOLERANCE = 1e-5;
+
+    /// <summary>Absolute tolerance on the mean deviation of the vertex function values.</summary>
+    private const double F_ABS_TOLERANCE = 1e-5;
+
+    /// <summary>Relative tolerance on the mean deviation of the vertex function values
+    /// (relative to the magnitude of their mean).</summary>
+    private const double F_REL_TOLERANCE = 1e-8;
+
+    /// <summary>Tolerance on the simplex size, relative to the width of the search range
+    /// in each coordinate.</summary>
+    private const double X_REL_TOLERANCE = 1e-6;
 
     /// <summary>Fixed seeds for the deterministic random restarts used when the search
     /// from the axis-spanning initial simplex fails to converge.</summary>
@@ -155,7 +165,7 @@ namespace Popolo.Core.Numerics
 
     /// <summary>Solves the minimization problem using the downhill simplex method.</summary>
     private static double[] Solve(
-        InternalOptimizeFunction fnc, double[][] points,
+        InternalOptimizeFunction fnc, double[][] points, double[] xScale,
         bool hasConstraint, out bool success)
     {
       int num = points[0].Length;
@@ -188,15 +198,21 @@ namespace Popolo.Core.Numerics
         ave /= (num + 1);
         double err = 0;
         for (int i = 0; i <= num; i++) err += Math.Abs(ypi[i] - ave);
+        //Converged when the function values agree (absolute or relative tolerance) AND the
+        //simplex has collapsed (the function tolerance alone falsely succeeds for objectives
+        //whose scale is below the absolute tolerance).
         //Never accept convergence before the first reflection: coincidentally equal
         //function values at the initial vertices would otherwise be mistaken for a minimum
-        if (0 < iterNum && err / (num + 1) < ERR_TOLERANCE) break;
+        if (0 < iterNum
+            && err / (num + 1) <= F_ABS_TOLERANCE + F_REL_TOLERANCE * Math.Abs(ave)
+            && IsSimplexCollapsed(points, iMin, xScale)) break;
 
         double yt1 = TryPoint(fnc, iterNum, points[iMax], sum, -Alpha, ref newPt1);
         if (yt1 < ypi[iMin])
         {
-          double yt2 = TryPoint(fnc, iterNum, points[iMax], sum, Gamma, ref newPt2);
-          if (yt2 < ypi[iMin])
+          //Expansion along the reflection direction: c + Alpha*Gamma*(c - p)
+          double yt2 = TryPoint(fnc, iterNum, points[iMax], sum, -Alpha * Gamma, ref newPt2);
+          if (yt2 < yt1)
           {
             SwitchPoint(ref points, ref sum, newPt2, iMax);
             ypi[iMax] = yt2;
@@ -209,20 +225,27 @@ namespace Popolo.Core.Numerics
         }
         else
         {
+          //Contract when the reflected point is no better than the second-worst vertex
+          //(accepting an equal value would let the simplex cycle forever on a plateau)
           bool ltNxt = true;
           for (int i = 0; i <= num; i++)
           {
-            if (i != iMax && yt1 <= ypi[i]) { ltNxt = false; break; }
+            if (i != iMax && yt1 < ypi[i]) { ltNxt = false; break; }
           }
           if (ltNxt)
           {
-            if (yt1 <= ypi[iMax])
+            //Outside contraction (toward the reflected point) when the reflection improves
+            //on the worst vertex, inside contraction (toward the worst vertex) otherwise
+            bool outside = yt1 < ypi[iMax];
+            if (outside)
             {
               SwitchPoint(ref points, ref sum, newPt1, iMax);
               ypi[iMax] = yt1;
             }
             yt1 = TryPoint(fnc, iterNum, points[iMax], sum, Beta, ref newPt1);
-            if (ypi[iMax] < yt1)
+            //Shrink unless the contraction point is acceptable: no worse than the reflected
+            //point (outside), or strictly better than the worst vertex (inside)
+            if (outside ? ypi[iMax] < yt1 : ypi[iMax] <= yt1)
             {
               for (int i = 0; i <= num; i++)
               {
@@ -265,14 +288,33 @@ namespace Popolo.Core.Numerics
         InternalOptimizeFunction fnc, double[] minX, double[] maxX,
         bool hasConstraint, out bool success)
     {
-      double[] result = Solve(fnc, MakeInitialPoints(minX, maxX), hasConstraint, out success);
+      double[] xScale = new double[minX.Length];
+      for (int j = 0; j < xScale.Length; j++) xScale[j] = Math.Abs(maxX[j] - minX[j]);
+
+      double[] result = Solve(fnc, MakeInitialPoints(minX, maxX), xScale, hasConstraint, out success);
       if (success) return result;
       foreach (uint seed in RESTART_SEEDS)
       {
-        result = Solve(fnc, MakeInitialPoints(minX, maxX, seed), hasConstraint, out success);
+        result = Solve(fnc, MakeInitialPoints(minX, maxX, seed), xScale, hasConstraint, out success);
         if (success) return result;
       }
       return result;
+    }
+
+    /// <summary>Determines whether every vertex lies within the size tolerance of the best vertex.</summary>
+    /// <param name="points">Simplex vertices.</param>
+    /// <param name="iMin">Index of the best vertex.</param>
+    /// <param name="xScale">Width of the search range in each coordinate.</param>
+    private static bool IsSimplexCollapsed(double[][] points, int iMin, double[] xScale)
+    {
+      for (int i = 0; i < points.Length; i++)
+      {
+        if (i == iMin) continue;
+        for (int j = 0; j < xScale.Length; j++)
+          if (X_REL_TOLERANCE * xScale[j] < Math.Abs(points[i][j] - points[iMin][j]))
+            return false;
+      }
+      return true;
     }
 
     /// <summary>Generates a deterministic axis-spanning initial simplex.</summary>

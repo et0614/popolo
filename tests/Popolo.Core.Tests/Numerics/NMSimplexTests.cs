@@ -80,6 +80,73 @@ namespace Popolo.Core.Tests.Numerics
       Assert.Equal(0.0, QuadraticFunction(result), precision: 4);
     }
 
+    /// <summary>関数値のスケールが小さい目的関数でも誤って収束と判定しない</summary>
+    /// <remarks>
+    /// 関数値の絶対誤差だけで収束判定すると、関数値の差が初期単体の段階で許容値を
+    /// 下回るため、最小点から遠い点で「収束」してしまう。
+    /// </remarks>
+    [Fact]
+    public void GetSolution_SmallScaleObjective_FindsTrueMinimum()
+    {
+      NelderMeadSimplex.OptimizeFunction f =
+          x => 1e-8 * (Math.Pow(x[0] - 3.0, 2) + Math.Pow(x[1] + 1.0, 2));
+
+      double[] result = NelderMeadSimplex.GetSolution(
+          f, new double[] { -10.0, -10.0 }, new double[] { 10.0, 10.0 }, out bool success);
+
+      Assert.True(success);
+      Assert.Equal(3.0, result[0], precision: 3);
+      Assert.Equal(-1.0, result[1], precision: 3);
+    }
+
+    /// <summary>探索範囲外の遠い最小点へ拡大ステップで効率よく到達する</summary>
+    /// <remarks>
+    /// 拡大点は反射方向 c + γα(c − p) にとる必要がある。最悪点側 (2p − c) に
+    /// とると拡大が働かず、反射だけで少しずつ移動するため評価回数が膨大になる。
+    /// </remarks>
+    [Fact]
+    public void GetSolution_DistantMinimum_ExpansionReachesItEfficiently()
+    {
+      int evalCount = 0;
+      NelderMeadSimplex.OptimizeFunction f = x =>
+      {
+        evalCount++;
+        return Math.Pow(x[0] - 1000.0, 2) + Math.Pow(x[1] - 1000.0, 2);
+      };
+
+      double[] result = NelderMeadSimplex.GetSolution(
+          f, new double[] { -1.0, -1.0 }, new double[] { 1.0, 1.0 }, out bool success);
+
+      Assert.True(success);
+      Assert.Equal(1000.0, result[0], precision: 3);
+      Assert.Equal(1000.0, result[1], precision: 3);
+      Assert.True(evalCount < 1000, $"evalCount={evalCount}");
+    }
+
+    /// <summary>ローゼンブロック関数を高精度に解ける（単体の大きさによる収束判定）</summary>
+    [Fact]
+    public void GetSolution_RosenbrockFunction_ConvergesTightly()
+    {
+      double[] result = NelderMeadSimplex.GetSolution(
+          RosenbrockFunction, new double[] { -5.0, -5.0 }, new double[] { 5.0, 5.0 }, out bool success);
+
+      Assert.True(success);
+      Assert.Equal(1.0, result[0], precision: 4);
+      Assert.Equal(1.0, result[1], precision: 4);
+    }
+
+    /// <summary>平坦な関数（全域で一定）でも単体が縮小して収束する</summary>
+    [Fact]
+    public void GetSolution_FlatFunction_Converges()
+    {
+      double[] result = NelderMeadSimplex.GetSolution(
+          x => 5.0, new double[] { -1.0, -1.0 }, new double[] { 1.0, 1.0 }, out bool success);
+
+      Assert.True(success);
+      Assert.InRange(result[0], -1.0, 1.0);
+      Assert.InRange(result[1], -1.0, 1.0);
+    }
+
     /// <summary>minX が null のとき PopoloArgumentException が発生する</summary>
     [Fact]
     public void GetSolution_NullMinX_ThrowsPopoloArgumentException()

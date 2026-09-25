@@ -1,4 +1,4 @@
-﻿/* MultiMinimization.cs
+/* MultiMinimization.cs
  *
  * Copyright (C) 2016 E.Togashi
  *
