@@ -16,6 +16,7 @@
  */
 
 using System;
+using Popolo.Core.Exceptions;
 
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
@@ -93,6 +94,31 @@ namespace Popolo.Core.ThermalComfort
 
     #endregion
 
+    #region Iteration guards
+
+    /// <summary>Maximum number of iterations for the clothing surface temperature.</summary>
+    private const int MAX_CLOTH_ITERATION = 1000;
+
+    /// <summary>Throws when the clothing-temperature iteration exceeds the iteration limit.</summary>
+    /// <param name="iteration">Number of iterations already performed.</param>
+    private static void checkIterationCount(int iteration)
+    {
+      if (MAX_CLOTH_ITERATION <= iteration)
+        throw new PopoloNumericalException(nameof(GaggeModel),
+          $"Clothing surface temperature did not converge within {MAX_CLOTH_ITERATION} iterations.");
+    }
+
+    /// <summary>Throws when the clothing temperature is NaN or infinite (the iteration would never converge).</summary>
+    /// <param name="clothTemperature">Clothing surface temperature [°C].</param>
+    private static void checkClothTemperature(double clothTemperature)
+    {
+      if (!double.IsFinite(clothTemperature))
+        throw new PopoloNumericalException(nameof(GaggeModel),
+          "Clothing surface temperature is not finite; check the input conditions (temperatures, velocity, clothing).");
+    }
+
+    #endregion
+
     #region Constructors and instance methods
 
     /// <summary>Initializes a new instance of the Gagge two-node model.</summary>
@@ -135,6 +161,10 @@ namespace Popolo.Core.ThermalComfort
       const double SETPOINT_BODY = 36.49;     //Body temperature setpoint [C]
       const double CRITICAL_WETTEDNESS = 0.85;//Maximum skin wettedness [-]
 
+      //A non-finite time step would never be consumed by the 1-min sub-step loop below
+      if (!double.IsFinite(timeStep))
+        throw new PopoloArgumentException($"timeStep must be a finite value. Got: {timeStep}.", nameof(timeStep));
+
       //Scale metabolic rate linearly, taking basal metabolism as 0.7 met
       double metab = BasalMetabolism * metabolicRate / 0.7;
       
@@ -159,8 +189,10 @@ namespace Popolo.Core.ThermalComfort
 
         //Iteratively solve for clothing surface temperature
         double operatingTemp, ra;
+        int iteration = 0;
         while (true)
         {
+          checkIterationCount(iteration++);
           double ctOld = ClothTemperature;
           //Compute radiative heat transfer coefficient [W/(m2K)]
           double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72
@@ -175,6 +207,7 @@ namespace Popolo.Core.ThermalComfort
           ClothTemperature = (ra * SkinTemperature + rcl * operatingTemp) / (ra + rcl);
           //Converged when clothing temperature change is below 0.01 C
           if (Math.Abs(ctOld - ClothTemperature) < 0.01) break;
+          checkClothTemperature(ClothTemperature);
         }
 
         //Compute control signals/////////////////////////////////////////////////////////
@@ -333,8 +366,10 @@ namespace Popolo.Core.ThermalComfort
       {
         //Iteratively solve for clothing surface temperature
         double operatingTemp, ra;
+        int iteration = 0;
         while (true)
         {
+          checkIterationCount(iteration++);
           double ctOld = clothTemperature;
           //Compute radiative heat transfer coefficient [W/(m2K)]
           double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72 
@@ -349,6 +384,7 @@ namespace Popolo.Core.ThermalComfort
           clothTemperature = (ra * skinTemperature + rcl * operatingTemp) / (ra + rcl);
           //Converged when clothing temperature change is below 0.01 C
           if (Math.Abs(ctOld - clothTemperature) < 0.01) break;
+          checkClothTemperature(clothTemperature);
         }
 
         //Compute sensible heat loss from skin [W/(m2K)]
@@ -496,8 +532,10 @@ namespace Popolo.Core.ThermalComfort
       {
         //Iteratively solve for clothing surface temperature
         double operatingTemp, ra;
+        int iteration = 0;
         while (true)
         {
+          checkIterationCount(iteration++);
           double ctOld = clothTemperature;
           //Compute radiative heat transfer coefficient [W/(m2K)]
           double hr = 4d * PhysicsConstants.StefanBoltzmannConstant * 0.72
@@ -512,6 +550,7 @@ namespace Popolo.Core.ThermalComfort
           clothTemperature = (ra * skinTemperature + rcl * operatingTemp) / (ra + rcl);
           //Converged when clothing temperature change is below 0.01 C
           if (Math.Abs(ctOld - clothTemperature) < 0.01) break;
+          checkClothTemperature(clothTemperature);
         }
 
         //Compute sensible heat loss from skin [W/(m2K)]

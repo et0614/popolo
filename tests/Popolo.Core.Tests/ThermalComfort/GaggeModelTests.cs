@@ -281,5 +281,78 @@ namespace Popolo.Core.Tests.ThermalComfort
     }
 
     #endregion
+
+    #region Regression tests (clothing-temperature iteration)
+
+    /// <summary>
+    /// 別スレッドで処理を実行し、制限時間内に終了したことを確認して結果の例外を返す。
+    /// 旧実装は着衣温度の収束計算が NaN で無限ループしていたため、ハングを検出する。
+    /// </summary>
+    private static Exception? RunWithTimeout(Action action)
+    {
+      var task = System.Threading.Tasks.Task.Run(action);
+      bool finished = ((IAsyncResult)task).AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(20));
+      Assert.True(finished, "Calculation did not finish (infinite loop).");
+      return task.Exception?.InnerException;
+    }
+
+    /// <summary>静的 GetSteadyState：平均放射温度が NaN なら無限ループせず数値例外を送出する</summary>
+    [Fact]
+    public void GetSteadyState_NaNInput_ThrowsInsteadOfHanging()
+    {
+      var ex = RunWithTimeout(() => GaggeModel.GetSteadyState(
+          25, double.NaN, 50, 0.1, 0.6, Met_SeatedQuiet, 0,
+          out _, out _, out _, out _, out _, out _, out _, out _, out _));
+      Assert.IsType<Popolo.Core.Exceptions.PopoloNumericalException>(ex);
+    }
+
+    /// <summary>体格指定版 GetSteadyState：平均放射温度が NaN なら数値例外を送出する</summary>
+    [Fact]
+    public void GetSteadyState_WithBodySize_NaNInput_ThrowsInsteadOfHanging()
+    {
+      var ex = RunWithTimeout(() => GaggeModel.GetSteadyState(
+          30, 1.70, 65.0, 25, double.NaN, 50, 0.1, 0.6, Met_SeatedQuiet, 0,
+          out _, out _, out _, out _, out _, out _, out _, out _, out _));
+      Assert.IsType<Popolo.Core.Exceptions.PopoloNumericalException>(ex);
+    }
+
+    /// <summary>UpdateState：平均放射温度が NaN なら数値例外を送出する</summary>
+    [Fact]
+    public void UpdateState_NaNInput_ThrowsInsteadOfHanging()
+    {
+      var model = new GaggeModel(25, true, 1.70, 70.0);
+      var ex = RunWithTimeout(
+          () => model.UpdateState(60, 25, double.NaN, 50, 0.1, 1.0, 1.0, 0.0, Tatm));
+      Assert.IsType<Popolo.Core.Exceptions.PopoloNumericalException>(ex);
+    }
+
+    /// <summary>UpdateState：時間間隔が NaN なら（外側ループが終了しないため）引数例外を送出する</summary>
+    [Fact]
+    public void UpdateState_NaNTimeStep_ThrowsInsteadOfHanging()
+    {
+      var model = new GaggeModel(25, true, 1.70, 70.0);
+      var ex = RunWithTimeout(
+          () => model.UpdateState(double.NaN, 25, 25, 50, 0.1, 1.0, 1.0, 0.0, Tatm));
+      Assert.IsType<Popolo.Core.Exceptions.PopoloArgumentException>(ex);
+    }
+
+    /// <summary>通常入力では収束結果が修正前とビット単位で一致する</summary>
+    [Fact]
+    public void ClothingIteration_NormalInput_ResultsBitIdentical()
+    {
+      double set = GaggeModel.GetSETStarFromAmbientCondition(26, 28, 55, 0.2, 0.6, Met_SeatedQuiet, 0);
+      Assert.Equal("26.068294955389323", set.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+
+      GaggeModel.GetSteadyState(30, 1.72, 68.0, 18, 16, 40, 0.3, 1.0, Met_LightActivity, 0,
+          out double tsk, out _, out _, out double tcl, out _, out _, out _, out _, out _);
+      Assert.Equal("32.89598372153171", tsk.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+      Assert.Equal("22.97917650059777", tcl.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+
+      var model = new GaggeModel(25, true, 1.70, 70.0);
+      for (int i = 0; i < 30; i++) model.UpdateState(60, 31, 33, 60, 0.1, 0.5, 1.2, 0.0, Tatm);
+      Assert.Equal("33.09238960169394/33.84663053517412", model.ClothTemperature.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "/" + model.SkinTemperature.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    #endregion
   }
 }

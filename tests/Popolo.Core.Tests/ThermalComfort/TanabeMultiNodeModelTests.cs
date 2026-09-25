@@ -304,5 +304,89 @@ namespace Popolo.Core.Tests.ThermalComfort
     }
 
     #endregion
+
+    #region Regression tests (full contact / invalid arguments / iteration cap)
+
+    /// <summary>
+    /// 部位の皮膚全面が接触（contactPortionRate = 1）しても温度が NaN にならない。
+    /// 旧実装は最大蒸発熱損失 eMax = 0 で 0/0 = NaN が発生していた（発汗信号 0 の寒冷側で顕在化）
+    /// </summary>
+    [Fact]
+    public void Contact_FullContact_TemperaturesRemainFinite()
+    {
+      var model = new TanabeMultiNodeModel();
+      model.SetMetabolicRate(1.0);
+      model.UpdateBoundary(0.1, 20, 20, 50);
+      model.Contact(TanabeMultiNodeModel.Node.Back, 25.0, 5.0, 1.0);
+      for (int i = 0; i < 30; i++) model.Update(TimeStepSec);
+
+      foreach (TanabeMultiNodeModel.Node node in Enum.GetValues(typeof(TanabeMultiNodeModel.Node)))
+      {
+        double tsk = model.GetTemperature(node, TanabeMultiNodeModel.Layer.Skin);
+        double tcr = model.GetTemperature(node, TanabeMultiNodeModel.Layer.Core);
+        Assert.True(double.IsFinite(tsk), $"{node} skin temperature is {tsk}");
+        Assert.True(double.IsFinite(tcr), $"{node} core temperature is {tcr}");
+      }
+      //全面接触部位からの潜熱損失は 0
+      Assert.Equal(0.0, model.GetLatentHeatLoss(TanabeMultiNodeModel.Node.Back));
+    }
+
+    /// <summary>Contact：接触面積率が [0, 1] の範囲外または NaN なら引数例外</summary>
+    [Theory]
+    [InlineData(-0.1)]
+    [InlineData(1.1)]
+    [InlineData(double.NaN)]
+    public void Contact_InvalidContactPortionRate_Throws(double rate)
+    {
+      var model = new TanabeMultiNodeModel();
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => model.Contact(TanabeMultiNodeModel.Node.Back, 25.0, 5.0, rate));
+    }
+
+    /// <summary>Contact：熱コンダクタンスが負または NaN なら引数例外</summary>
+    [Theory]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    public void Contact_InvalidHeatConductance_Throws(double conductance)
+    {
+      var model = new TanabeMultiNodeModel();
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+          () => model.Contact(TanabeMultiNodeModel.Node.Back, 25.0, conductance, 0.5));
+    }
+
+    /// <summary>Contact：境界値（0 と 1、コンダクタンス 0）は受け付ける</summary>
+    [Fact]
+    public void Contact_BoundaryValues_Accepted()
+    {
+      var model = new TanabeMultiNodeModel();
+      model.Contact(TanabeMultiNodeModel.Node.Back, 25.0, 0.0, 0.0);
+      model.Contact(TanabeMultiNodeModel.Node.Back, 25.0, 5.0, 1.0);
+    }
+
+    /// <summary>平均放射温度が NaN でも着衣温度の収束計算が無限ループせず数値例外を送出する</summary>
+    [Fact]
+    public void UpdateBoundary_NaNInput_ThrowsInsteadOfHanging()
+    {
+      var model = new TanabeMultiNodeModel();
+      var task = System.Threading.Tasks.Task.Run(() => model.UpdateBoundary(0.1, double.NaN, 25, 50));
+      bool finished = ((IAsyncResult)task).AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(20));
+      Assert.True(finished, "Calculation did not finish (infinite loop).");
+      Assert.IsType<Popolo.Core.Exceptions.PopoloNumericalException>(task.Exception?.InnerException);
+    }
+
+    /// <summary>通常入力では結果が修正前とビット単位で一致する</summary>
+    [Fact]
+    public void NormalInput_ResultsBitIdentical()
+    {
+      var model = RunEnvironment(26, 27, 55, 0.2, steps: 30);
+      model.Contact(TanabeMultiNodeModel.Node.Pelvis, 24.0, 3.0, 0.3);
+      for (int i = 0; i < 10; i++) model.Update(TimeStepSec);
+      string actual = model.GetTemperature(TanabeMultiNodeModel.Node.Chest, TanabeMultiNodeModel.Layer.Skin).ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        + "/" + model.GetTemperature(TanabeMultiNodeModel.Node.Pelvis, TanabeMultiNodeModel.Layer.Skin).ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        + "/" + model.GetTemperature(TanabeMultiNodeModel.Node.Head, TanabeMultiNodeModel.Layer.Core).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+      Assert.Equal("33.33049600735448/32.999696901865285/35.915836093336154", actual);
+    }
+
+    #endregion
   }
 }

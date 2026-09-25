@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics.LinearAlgebra;
 
@@ -30,6 +31,9 @@ namespace Popolo.Core.ThermalComfort
     {
 
       #region Class variables
+
+      /// <summary>Maximum number of iterations for the clothing surface temperature.</summary>
+      private const int MAX_CLOTH_ITERATION = 1000;
 
       /// <summary>Weight ratio 1 for body segment scaling.</summary>
       private static readonly Dictionary<Node, double> rWeight1;
@@ -731,7 +735,9 @@ namespace Popolo.Core.ThermalComfort
 
         //Evaporative heat loss [W]
         evaporativeHeatLoss_Sweat = pow1 * sweatSignalR[node];
-        latentHeatLoss = eMax * Math.Min(0.85, 0.06 + 0.94 * evaporativeHeatLoss_Sweat / eMax);
+        //No evaporation when the whole skin is in contact (eMax = 0 would give 0/0 = NaN)
+        if (eMax == 0) latentHeatLoss = 0;
+        else latentHeatLoss = eMax * Math.Min(0.85, 0.06 + 0.94 * evaporativeHeatLoss_Sweat / eMax);
 
         //Heat production due to shivering [W]
         shiveringLoad = shiveringSignal * shivSignalR[node];
@@ -888,8 +894,13 @@ namespace Popolo.Core.ThermalComfort
         clothTemperature = 30;
         if (body.IsStanding) eff = 0.73;
         else eff = 0.72;
+        int iteration = 0;
         while (true)
         {
+          //Guard against non-convergence (e.g., NaN boundary conditions would otherwise loop forever)
+          if (MAX_CLOTH_ITERATION <= iteration++)
+            throw new PopoloNumericalException(nameof(TanabeMultiNodeModel),
+              $"Clothing surface temperature did not converge within {MAX_CLOTH_ITERATION} iterations.");
           double ctOld = clothTemperature;
           //Compute the radiative heat transfer coefficient [W/(m2K)]
           radiativeHeatTransferCoefficient = 4d * PhysicsConstants.StefanBoltzmannConstant * eff 
@@ -912,6 +923,9 @@ namespace Popolo.Core.ThermalComfort
           clothTemperature = (ra * temperatures[Layer.Skin] + rcl * operatingTemperature) / (ra + rcl);
           //Converged when the clothing temperature update is 0.01C or less
           if (Math.Abs(ctOld - clothTemperature) < 0.01) break;
+          if (!double.IsFinite(clothTemperature))
+            throw new PopoloNumericalException(nameof(TanabeMultiNodeModel),
+              "Clothing surface temperature is not finite; check the boundary conditions (velocity, temperatures, humidity, clothing).");
         }
 
         //Compute the sensible heat transfer coefficient [W/K]

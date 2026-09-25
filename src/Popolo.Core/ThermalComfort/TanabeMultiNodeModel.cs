@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 
+using Popolo.Core.Exceptions;
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics.LinearAlgebra;
 
@@ -574,8 +575,20 @@ namespace Popolo.Core.ThermalComfort
     /// <param name="temperature">Object surface temperature [°C].</param>
     /// <param name="heatConductance">Thermal conductance to the object [W/K].</param>
     /// <param name="contactPortionRate">Fraction of skin surface in contact [-].</param>
+    /// <exception cref="PopoloArgumentException">
+    /// <paramref name="contactPortionRate"/> is outside [0, 1] or NaN, or
+    /// <paramref name="heatConductance"/> is negative or NaN.
+    /// </exception>
     public void Contact(Node node, double temperature, double heatConductance, double contactPortionRate)
-    { parts[node].contact(temperature, heatConductance, contactPortionRate); }
+    {
+      if (!(0 <= contactPortionRate && contactPortionRate <= 1))
+        throw new PopoloArgumentException(
+          $"contactPortionRate must be within [0, 1]. Got: {contactPortionRate}.", nameof(contactPortionRate));
+      if (!(0 <= heatConductance))
+        throw new PopoloArgumentException(
+          $"heatConductance must be non-negative. Got: {heatConductance}.", nameof(heatConductance));
+      parts[node].contact(temperature, heatConductance, contactPortionRate);
+    }
 
     #endregion
 
