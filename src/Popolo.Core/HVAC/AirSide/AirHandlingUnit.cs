@@ -231,6 +231,8 @@ namespace Popolo.Core.HVAC.AirSide
       double tdCo = (sp2 - RATemperature * DuctHeatLossRate) / (1 - DuctHeatLossRate) - tRise;
 
       //Adjust the outdoor air flow rate for economiser cooling//For free-run calculation, the outdoor air flow rate is given
+      //The coil handles the supply air flow SA made of OA and recirculated air (SA − OA), so the OA flow
+      //giving the target mixed state x_target is mOA = SA·(x_RA − x_target)/(x_RA − x_OA).
       if (controlOutletTemp)
       {
         double mOA = MinOAFlowRate;
@@ -238,13 +240,13 @@ namespace Popolo.Core.HVAC.AirSide
         {
           if (tdCo < OATemperature && OATemperature < RATemperature)
             mOA = Math.Min(MaxOAFlowRate, SAFlowRate);
-          else mOA = RAFlowRate * (RATemperature - tdCo) / (tdCo - OATemperature);
+          else mOA = GetOAFlowRateForMixedState(RATemperature, OATemperature, tdCo);
         }
         else if (OutdoorAirCooling == OutdoorAirCoolingControl.HumidityRatio)
         {
           if (spHumid < OAHumidityRatio && OAHumidityRatio < RAHumidityRatio)
             mOA = Math.Min(MaxOAFlowRate, SAFlowRate);
-          else mOA = RAFlowRate * (RAHumidityRatio - spHumid) / (spHumid - OAHumidityRatio);
+          else mOA = GetOAFlowRateForMixedState(RAHumidityRatio, OAHumidityRatio, spHumid);
         }
         else if (OutdoorAirCooling == OutdoorAirCoolingControl.Enthalpy)
         {
@@ -255,8 +257,8 @@ namespace Popolo.Core.HVAC.AirSide
           double hOA =
             MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio(OATemperature, OAHumidityRatio);
           if (hAHUo < hOA && hOA < hAHUi) mOA = Math.Min(MaxOAFlowRate, SAFlowRate);
-          else mOA = RAFlowRate * (hAHUi - hAHUo) / (hAHUo - hOA);
-        } 
+          else mOA = GetOAFlowRateForMixedState(hAHUi, hOA, hAHUo);
+        }
         OAFlowRate = Math.Max(MinOAFlowRate, Math.Min(MaxOAFlowRate, mOA));
         EAFlowRate = RAFlowRate + OAFlowRate - SAFlowRate;
       }
@@ -285,8 +287,8 @@ namespace Popolo.Core.HVAC.AirSide
         else regen.ShutOff();
       }
 
-      //Mix OA and RA and cool
-      double mr = OAFlowRate / (OAFlowRate + RAFlowRate);
+      //Mix OA and recirculated RA (SA − OA) and cool
+      double mr = GetOutdoorAirFraction();
       double tdCi = tdOA * mr + RATemperature * (1 - mr);
       double hrCi = hrOA * mr + RAHumidityRatio * (1 - mr);
       if (controlOutletTemp)
@@ -313,6 +315,30 @@ namespace Popolo.Core.HVAC.AirSide
       double hOA = MoistAir.GetEnthalpyFromDryBulbTemperatureAndHumidityRatio
         (OATemperature, OAHumidityRatio);
       return (OAFlowRate - MinOAFlowRate) * (hSA - hOA);
+    }
+
+    /// <summary>Gets the outdoor air fraction of the air entering the coils [-].</summary>
+    /// <returns>OA/SA limited to [0, 1].</returns>
+    /// <remarks>
+    /// Of the return air RA, the part EA = RA + OA − SA is exhausted and the rest (SA − OA)
+    /// is recirculated and mixed with the outdoor air OA, so the coils handle SA with an
+    /// outdoor air fraction of OA/SA. Without exhaust (RA + OA = SA) this equals OA/(OA + RA).
+    /// </remarks>
+    private double GetOutdoorAirFraction()
+    { return Math.Max(0, Math.Min(1, OAFlowRate / SAFlowRate)); }
+
+    /// <summary>Computes the outdoor air flow rate that gives the target mixed state at the coil inlet [kg/s].</summary>
+    /// <param name="returnValue">State value of the return air (temperature, humidity ratio or enthalpy).</param>
+    /// <param name="outdoorValue">State value of the outdoor air.</param>
+    /// <param name="targetValue">Target state value of the mixed air.</param>
+    /// <returns>Outdoor air flow rate [kg/s] (before limiting to the allowable range).</returns>
+    /// <remarks>Solves SA·x_target = mOA·x_OA + (SA − mOA)·x_RA for mOA.
+    /// Returns the minimum outdoor air flow rate when x_RA = x_OA (mixing cannot change the state).</remarks>
+    private double GetOAFlowRateForMixedState(double returnValue, double outdoorValue, double targetValue)
+    {
+      double dx = returnValue - outdoorValue;
+      if (dx == 0) return MinOAFlowRate;
+      return SAFlowRate * (returnValue - targetValue) / dx;
     }
 
     /// <summary>Applies duct heat loss to the supply air state.</summary>
@@ -397,8 +423,8 @@ namespace Popolo.Core.HVAC.AirSide
         else regen.ShutOff();
       }
 
-      //Mix OA and RA
-      double mr = OAFlowRate / (OAFlowRate + RAFlowRate);
+      //Mix OA and recirculated RA (SA − OA)
+      double mr = GetOutdoorAirFraction();
       double tdCi = tdOA * mr + RATemperature * (1 - mr);
       double hrCi = hrOA * mr + RAHumidityRatio * (1 - mr);
 

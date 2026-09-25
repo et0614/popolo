@@ -380,5 +380,93 @@ namespace Popolo.Core.Tests.HVAC.AirSide
     }
 
     #endregion
+
+    // ================================================================
+    #region Regression tests (OA/RA mixing with exhaust air)
+
+    /// <summary>
+    /// 排気あり（EA = RA + OA − SA &gt; 0）の冷却自然運転：コイル入口は外気 OA と
+    /// 還気のうち再循環分 (SA − OA) の混合で、外気比率は OA/SA（OA/(OA+RA) ではない）。
+    /// </summary>
+    [Fact]
+    public void CoolAir_FreeRun_CoilInletIsMixtureOfOAAndRecirculatedAir()
+    {
+      var ahu = MakeAHU(withRegenerator: false);
+      ahu.OATemperature = 34.4;
+      ahu.OAHumidityRatio = 0.0194;
+      ahu.CoolAir();
+
+      Assert.True(ahu.EAFlowRate > 0, "Precondition: exhaust air flow should be positive");
+      double expT = (Moa * 34.4 + (Msa - Moa) * 26.0) / Msa;
+      double expW = (Moa * 0.0194 + (Msa - Moa) * 0.0105) / Msa;
+      Assert.InRange(ahu.CoolingCoil.InletAirTemperature, expT - 1e-9, expT + 1e-9);
+      Assert.InRange(ahu.CoolingCoil.InletAirHumidityRatio, expW - 1e-12, expW + 1e-12);
+    }
+
+    /// <summary>加熱運転でも外気比率は OA/SA。</summary>
+    [Fact]
+    public void HeatAir_CoilInletIsMixtureOfOAAndRecirculatedAir()
+    {
+      var ahu = MakeAHU(hwInlet: 43.0, withRegenerator: false);
+      ahu.OATemperature = 2.0;
+      ahu.OAHumidityRatio = 0.0014;
+      ahu.RATemperature = 22.0;
+      ahu.RAHumidityRatio = 0.007;
+      ahu.HeatAir(30.0, 0.008);
+
+      double expT = (Moa * 2.0 + (Msa - Moa) * 22.0) / Msa;
+      double expW = (Moa * 0.0014 + (Msa - Moa) * 0.007) / Msa;
+      Assert.InRange(ahu.HeatingCoil.InletAirTemperature, expT - 1e-9, expT + 1e-9);
+      Assert.InRange(ahu.HeatingCoil.InletAirHumidityRatio, expW - 1e-12, expW + 1e-12);
+    }
+
+    /// <summary>排気なし（RA + OA = SA）の場合の混合は従来式 OA/(OA+RA) と一致する。</summary>
+    [Fact]
+    public void CoolAir_FreeRun_NoExhaust_MixingUnchanged()
+    {
+      var ahu = MakeAHU(withRegenerator: false);
+      ahu.SetAirFlowRate(Msa - Moa, Msa);
+      ahu.OATemperature = 34.4;
+      ahu.OAHumidityRatio = 0.0194;
+      ahu.CoolAir();
+
+      Assert.InRange(ahu.EAFlowRate, -1e-12, 1e-12);
+      double ra = Msa - Moa;
+      double expT = (Moa * 34.4 + ra * 26.0) / (Moa + ra);
+      Assert.InRange(ahu.CoolingCoil.InletAirTemperature, expT - 1e-9, expT + 1e-9);
+    }
+
+    /// <summary>
+    /// 外気冷房の外気量は、給気量 SA のもとで混合状態が目標値となる量
+    /// mOA = SA·(x_RA − x_目標)/(x_RA − x_OA) で決まり、コイル入口状態は OA/SA の混合と整合する。
+    /// </summary>
+    [Theory]
+    [InlineData(AirHandlingUnit.OutdoorAirCoolingControl.DryBulbTemperature)]
+    [InlineData(AirHandlingUnit.OutdoorAirCoolingControl.HumidityRatio)]
+    [InlineData(AirHandlingUnit.OutdoorAirCoolingControl.Enthalpy)]
+    public void CoolAir_Economiser_OAFlowConsistentWithSupplyAirMixing(
+        AirHandlingUnit.OutdoorAirCoolingControl mode)
+    {
+      var ahu = MakeAHU(withRegenerator: false);
+      ahu.OATemperature = 12.0;
+      ahu.OAHumidityRatio = 0.006;
+      ahu.OutdoorAirCooling = mode;
+      ahu.CoolAir(16.0, 0.009);
+
+      // 外気量は上下限の間（混合計算式の分岐）
+      Assert.InRange(ahu.OAFlowRate, Moa * 1.01, Msa * 0.99);
+      double mr = ahu.OAFlowRate / ahu.SAFlowRate;
+      double expT = mr * 12.0 + (1 - mr) * 26.0;
+      double expW = mr * 0.006 + (1 - mr) * 0.0105;
+      Assert.InRange(ahu.CoolingCoil.InletAirTemperature, expT - 1e-9, expT + 1e-9);
+      Assert.InRange(ahu.CoolingCoil.InletAirHumidityRatio, expW - 1e-12, expW + 1e-12);
+
+      if (mode == AirHandlingUnit.OutdoorAirCoolingControl.HumidityRatio)
+        Assert.InRange(ahu.CoolingCoil.InletAirHumidityRatio, 0.009 - 1e-9, 0.009 + 1e-9);
+      if (mode == AirHandlingUnit.OutdoorAirCoolingControl.DryBulbTemperature)
+        Assert.InRange(ahu.SATemperature, 16.0 - 0.05, 16.0 + 0.05); // 混合のみで目標到達
+    }
+
+    #endregion
   }
 }
