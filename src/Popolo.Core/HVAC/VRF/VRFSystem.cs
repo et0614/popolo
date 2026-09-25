@@ -1171,7 +1171,11 @@ namespace Popolo.Core.HVAC.VRF
         //When the refrigeration cycle can be formed at rated compression power by raising the evaporating temperature
         if (0 <= eFncEvpTmp(lmtTemp))
         {
-          Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
+          //Use the evaporating temperature limited by the compressor for the final state
+          lmtTemp = Roots.Bisection(eFncEvpTmp, lmtTemp, 30, 0.001, 0.001, 20);
+          eFncEvpTmp(lmtTemp);
+          refrigerant.GetSaturatedPropertyFromTemperature(Cooling.outdoorUnit.RefrigerantTemperature + KTOC,
+            out _, out _, out cndPressure);
           CompressorElectricity = Cooling.NominalElectricity;
           CompressionHead = Cooling.NominalHead;
           PartialLoadRatio = 1.0;

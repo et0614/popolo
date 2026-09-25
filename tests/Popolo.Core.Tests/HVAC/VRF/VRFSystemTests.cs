@@ -257,6 +257,51 @@ namespace Popolo.Core.Tests.HVAC.VRF
           $"HeatLoad={vrf.GetHeatLoad():F2} kW < 0 (cooling removes heat)");
     }
 
+    /// <summary>
+    /// 過負荷（定格28kW機に14kW室内機3台、JIS冷房定格条件で各室内機が定格負荷を要求）:
+    /// 圧縮機能力で制限され、部分負荷率1で処理熱量は定格能力程度（要求42kWを大きく下回る）に収まる。
+    /// 報告される蒸発温度・蒸発圧力・室内機の冷媒温度が相互に整合する。
+    /// （旧実装は圧縮機制約で求めた蒸発温度を捨て、元の蒸発温度で室内機を再計算していた）
+    /// </summary>
+    [Fact]
+    public void UpdateState_CoolingOverload_LimitedByCompressor()
+    {
+      var (vrf, iHexes) = MakeCoolingOnlySystem();
+      var third = VRFSystem.MakeIndoorUnit_Cooling(NOM_IHEX_AFLOW, 0, -IHEX_CAP_C);
+      vrf.AddIndoorUnit(third);
+      vrf.OutdoorAirDryBulbTemperature = 35;
+      vrf.OutdoorAirHumidityRatio = HR_from_DBT_WBT(35, 24);
+
+      double iHmd = HR_from_DBT_WBT(27, 19);
+      iHexes[0].SolveHeatLoad(-IHEX_CAP_C, NOM_IHEX_AFLOW, 27, iHmd, false);
+      double tSP = iHexes[0].OutletAirTemperature;
+      for (int i = 0; i < vrf.IndoorUnitCount; i++)
+      {
+        vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
+        vrf.SetIndoorUnitInletAirState(i, 27, iHmd);
+        vrf.SetIndoorUnitSetpointTemperature(i, tSP);
+      }
+      vrf.UpdateState();
+
+      Assert.Equal(1.0, vrf.PartialLoadRatio);
+      Assert.Equal(vrf.Cooling.NominalElectricity, vrf.CompressorElectricity);
+      double load = vrf.GetHeatLoad();
+      Assert.True(load < 0);
+      //接続容量比150%のため蒸発温度が上がり、定格能力をやや上回る程度は許容する
+      Assert.True(Math.Abs(load) <= Math.Abs(vrf.Cooling.NominalCapacity) * 1.10,
+        $"|load|={Math.Abs(load):F2} kW <= capacity {Math.Abs(vrf.Cooling.NominalCapacity):F2} kW (Te={vrf.EvaporatingTemperature:F2}°C)");
+      Assert.True(Math.Abs(load) < 3 * IHEX_CAP_C * 0.95,
+        $"|load|={Math.Abs(load):F2} kW is limited below the demanded {3 * IHEX_CAP_C:F1} kW");
+
+      //蒸発温度・圧力・室内機冷媒温度の整合
+      var r410a = new Refrigerant(Refrigerant.Fluid.R410A);
+      r410a.GetSaturatedPropertyFromTemperature(vrf.EvaporatingTemperature + PhysicsConstants.CelsiusToKelvinOffset,
+        out _, out _, out double pEvp);
+      Assert.Equal(pEvp, vrf.EvaporatingPressure, 6);
+      for (int i = 0; i < vrf.IndoorUnitCount; i++)
+        Assert.Equal(vrf.EvaporatingTemperature, vrf.IndoorUnits[i].RefrigerantTemperature, 9);
+    }
+
     #endregion
 
     // ================================================================
