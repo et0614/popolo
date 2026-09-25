@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using Popolo.Core.Exceptions;
 using Popolo.Core.Numerics;
 using Popolo.Core.Physics;
 
@@ -71,6 +72,22 @@ namespace Popolo.Core.Climate
 
     /// <summary>Conversion factor from degrees to radians.</summary>
     private const double DegToRad = Math.PI / 180.0;
+
+    /// <summary>
+    /// Minimum sin(altitude) [-] for back-calculating the direct normal irradiance
+    /// from (GHI − DHI) / sin(altitude). Below this value (altitude ≈ 1.15°) the
+    /// division amplifies measurement noise without bound, so the DNI is taken as 0.
+    /// The same threshold is used by the weather-data completer (MinEffectiveSinH).
+    /// </summary>
+    private const double MinimumSinAltitudeForDirectNormal = 0.02;
+
+    /// <summary>
+    /// Annual maximum of the extraterrestrial normal irradiance [W/m²]
+    /// (<see cref="SolarConstant"/> × 1.033, i.e., the perihelion value of
+    /// <see cref="GetExtraterrestrialRadiation(int)"/>). Used as the physical upper
+    /// bound of a back-calculated direct normal irradiance.
+    /// </summary>
+    private const double MaximumExtraterrestrialRadiation = SolarConstant * 1.033;
 
     #endregion
 
@@ -418,24 +435,43 @@ namespace Popolo.Core.Climate
     public double StandardLongitude { get; private set; }
 
     /// <summary>Gets or sets the direct normal irradiance (DNI) [W/m²].</summary>
+    /// <remarks>Negative values are clamped to 0.</remarks>
+    /// <exception cref="PopoloArgumentException">The value is NaN or infinite.</exception>
     public double DirectNormalRadiation
     {
       get => _directNormalRadiation;
-      set => _directNormalRadiation = Math.Max(0, value);
+      set => _directNormalRadiation = Math.Max(0, CheckFinite(value, nameof(DirectNormalRadiation)));
     }
 
     /// <summary>Gets or sets the diffuse horizontal irradiance (DHI) [W/m²].</summary>
+    /// <remarks>Negative values are clamped to 0.</remarks>
+    /// <exception cref="PopoloArgumentException">The value is NaN or infinite.</exception>
     public double DiffuseHorizontalRadiation
     {
       get => _diffuseHorizontalRadiation;
-      set => _diffuseHorizontalRadiation = Math.Max(0, value);
+      set => _diffuseHorizontalRadiation = Math.Max(0, CheckFinite(value, nameof(DiffuseHorizontalRadiation)));
     }
 
     /// <summary>Gets or sets the global horizontal irradiance (GHI) [W/m²].</summary>
+    /// <remarks>Negative values are clamped to 0.</remarks>
+    /// <exception cref="PopoloArgumentException">The value is NaN or infinite.</exception>
     public double GlobalHorizontalRadiation
     {
       get => _globalHorizontalRadiation;
-      set => _globalHorizontalRadiation = Math.Max(0, value);
+      set => _globalHorizontalRadiation = Math.Max(0, CheckFinite(value, nameof(GlobalHorizontalRadiation)));
+    }
+
+    /// <summary>
+    /// Rejects NaN / infinite irradiance values. <c>Math.Max(0, NaN)</c> returns NaN,
+    /// so without this check a NaN would silently propagate into every solar-gain
+    /// calculation.
+    /// </summary>
+    private static double CheckFinite(double value, string paramName)
+    {
+      if (!double.IsFinite(value))
+        throw new PopoloArgumentException(
+            $"{paramName} must be a finite value. Got: {value}.", paramName);
+      return value;
     }
 
     /// <summary>Gets the current date and time.</summary>
@@ -467,7 +503,7 @@ namespace Popolo.Core.Climate
       _cities.Add(City.Asuncion, new double[] { -25.25, -57.67, -60 });
       _cities.Add(City.Athens, new double[] { 37.97, 23.72, 30 });
       _cities.Add(City.Auckland, new double[] { -36.87, 174.75, 180 });
-      _cities.Add(City.Bangkok, new double[] { 13.75, 100.50, -75 });
+      _cities.Add(City.Bangkok, new double[] { 13.75, 100.50, 105 });
       _cities.Add(City.Barcelona, new double[] { 41.38, 2.15, 15 });
       _cities.Add(City.Beijing, new double[] { 39.92, 116.42, 120 });
       _cities.Add(City.Belem, new double[] { -1.47, -48.48, -45 });
@@ -667,13 +703,20 @@ namespace Popolo.Core.Climate
     /// </summary>
     /// <param name="globalHorizontalRadiation">Global horizontal irradiance [W/m²]</param>
     /// <param name="diffuseHorizontalRadiation">Diffuse horizontal irradiance [W/m²]</param>
+    /// <remarks>
+    /// The DNI is 0 when sin(altitude) is below 0.02 (altitude ≈ 1.15°, including the
+    /// below-horizon state where <see cref="Altitude"/> is 0), and is capped at the
+    /// extraterrestrial normal irradiance of the current date.
+    /// See <see cref="GetDirectNormalRadiation(double, double, double)"/>.
+    /// </remarks>
     public void SetDirectNormalRadiation(
         double globalHorizontalRadiation, double diffuseHorizontalRadiation)
     {
       GlobalHorizontalRadiation = globalHorizontalRadiation;
       DiffuseHorizontalRadiation = diffuseHorizontalRadiation;
       DirectNormalRadiation = GetDirectNormalRadiation(
-          GlobalHorizontalRadiation, DiffuseHorizontalRadiation, Altitude);
+          GlobalHorizontalRadiation, DiffuseHorizontalRadiation, Altitude,
+          GetExtraterrestrialRadiation());
       UpdateIlluminance();
     }
 
@@ -899,9 +942,43 @@ namespace Popolo.Core.Climate
     /// <param name="diffuseHorizontalRadiation">Diffuse horizontal irradiance [W/m²]</param>
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <returns>Direct normal irradiance [W/m²]</returns>
+    /// <remarks>
+    /// <para>
+    /// Computed as (GHI − DHI) / sin(altitude). Two guards keep the result physical:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>When sin(altitude) &lt; 0.02 (altitude ≈ 1.15°, including the sun
+    ///   below the horizon, where <see cref="GetSunPosition"/> reports altitude = 0) the
+    ///   division is ill-conditioned (0/0 = NaN or x/0 = ∞ at the horizon), so 0 is returned.
+    ///   This is the same threshold that the weather-data completer uses before
+    ///   back-calculating DNI, i.e., the horizontal beam component near the horizon is
+    ///   treated as unresolvable.</description></item>
+    ///   <item><description>The result is capped at the annual maximum extraterrestrial
+    ///   normal irradiance (<see cref="SolarConstant"/> × 1.033); a larger value cannot be
+    ///   physical and only arises from measurement noise at low altitude.</description></item>
+    /// </list>
+    /// <para>
+    /// Negative results (DHI &gt; GHI) are returned as-is; the
+    /// <see cref="DirectNormalRadiation"/> setter clamps them to 0.
+    /// </para>
+    /// </remarks>
     public static double GetDirectNormalRadiation(
         double globalHorizontalRadiation, double diffuseHorizontalRadiation, double altitude)
-        => (globalHorizontalRadiation - diffuseHorizontalRadiation) / Math.Sin(altitude);
+        => GetDirectNormalRadiation(globalHorizontalRadiation, diffuseHorizontalRadiation,
+            altitude, MaximumExtraterrestrialRadiation);
+
+    /// <summary>
+    /// Computes (GHI − DHI) / sin(altitude) with the low-altitude cut-off and the given upper limit.
+    /// </summary>
+    private static double GetDirectNormalRadiation(
+        double globalHorizontalRadiation, double diffuseHorizontalRadiation, double altitude,
+        double upperLimit)
+    {
+      double sinH = Math.Sin(altitude);
+      if (sinH < MinimumSinAltitudeForDirectNormal) return 0;
+      return Math.Min(upperLimit,
+          (globalHorizontalRadiation - diffuseHorizontalRadiation) / sinH);
+    }
 
     /// <summary>
     /// Gets the diffuse horizontal irradiance [W/m²] from direct and global components.
@@ -1001,11 +1078,12 @@ namespace Popolo.Core.Climate
         }
 
         //Case where the estimate falls below the observed value at atmospheric transmissivity = 1
+        //Scale both components so that DNI·sinH + DHI = GHI (the output is DNI, not the horizontal direct component)
         GetDirectAndDiffuseRadiation(1, sinH, io, method, out dn, out dff);
         if (dn * sinH + dff < globalHorizontalRadiation)
         {
           double rate = globalHorizontalRadiation / (dn * sinH + dff);
-          directSolarRadiation = dn * sinH * rate;
+          directSolarRadiation = dn * rate;
           diffuseHorizontalRadiation = dff * rate;
           return;
         }

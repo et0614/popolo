@@ -328,5 +328,175 @@ namespace Popolo.Core.Tests.Climate
         }
 
         #endregion
+
+        #region Regression tests (DNI derivation near/below the horizon)
+
+        /// <summary>
+        /// 夜間（太陽高度 = 0 の番兵値）に GHI・DHI から DNI を求めても NaN にならず 0 になる
+        /// （旧実装は 0/0 = NaN を返し、セッターの Math.Max(0, NaN) が NaN を保持していた）
+        /// </summary>
+        [Theory]
+        [InlineData(0.0, 0.0)]    //0/0 → NaN だった
+        [InlineData(50.0, 20.0)]  //正/0 → +∞ だった
+        public void SetDirectNormalRadiation_SunBelowHorizon_ReturnsZero(double ghi, double dhi)
+        {
+            var sun = new Sun(TokyoLatitude, TokyoLongitude, TokyoStandardLongitude);
+            sun.Update(new DateTime(2024, 6, 22, 2, 0, 0)); //深夜2時
+            Assert.Equal(0.0, sun.Altitude);
+
+            sun.SetDirectNormalRadiation(ghi, dhi);
+
+            Assert.Equal(0.0, sun.DirectNormalRadiation);
+            Assert.Equal(ghi, sun.GlobalHorizontalRadiation);
+            Assert.Equal(dhi, sun.DiffuseHorizontalRadiation);
+        }
+
+        /// <summary>静的メソッドも太陽高度 0 では DNI = 0 を返す（NaN/∞ にならない）</summary>
+        [Fact]
+        public void GetDirectNormalRadiation_AltitudeZero_ReturnsZero()
+        {
+            Assert.Equal(0.0, Sun.GetDirectNormalRadiation(0.0, 0.0, 0.0));
+            Assert.Equal(0.0, Sun.GetDirectNormalRadiation(50.0, 20.0, 0.0));
+            Assert.Equal(0.0, Sun.GetDirectNormalRadiation(50.0, 20.0, -0.1));
+        }
+
+        /// <summary>
+        /// sin(高度) が閾値 0.02（≈1.15°）未満では DNI の逆算を行わず 0 を返す
+        /// （WeatherCompleter の MinEffectiveSinH と同じ閾値）
+        /// </summary>
+        [Fact]
+        public void GetDirectNormalRadiation_BelowMinimumAltitude_ReturnsZero()
+        {
+            double altitude = 0.5 * Math.PI / 180.0; //0.5°
+            Assert.Equal(0.0, Sun.GetDirectNormalRadiation(30.0, 20.0, altitude));
+        }
+
+        /// <summary>
+        /// 低高度で (GHI − DHI) / sin(h) が物理的上限を超える場合、
+        /// 大気圏外法線面日射量（年最大値）で頭打ちになる
+        /// </summary>
+        [Fact]
+        public void GetDirectNormalRadiation_LowAltitude_IsCappedAtExtraterrestrial()
+        {
+            double altitude = 2.0 * Math.PI / 180.0; //2°：sin ≈ 0.035
+            double dni = Sun.GetDirectNormalRadiation(120.0, 20.0, altitude); //旧実装では ≈ 2865 W/m²
+            Assert.True(double.IsFinite(dni));
+            Assert.InRange(dni, 0.0, Sun.SolarConstant * 1.033 + 1e-9);
+        }
+
+        /// <summary>インスタンスメソッドでは当日の大気圏外法線面日射量で頭打ちになる</summary>
+        [Fact]
+        public void SetDirectNormalRadiation_LowAltitude_IsCappedAtDailyExtraterrestrial()
+        {
+            var sun = new Sun(TokyoLatitude, TokyoLongitude, TokyoStandardLongitude);
+            //日の出直後の低高度時刻を探す
+            DateTime t = new DateTime(2024, 6, 22, 4, 0, 0);
+            while (!(0.03 < Math.Sin(sun.Altitude) && Math.Sin(sun.Altitude) < 0.05))
+            {
+                t = t.AddMinutes(1);
+                sun.Update(t);
+            }
+            sun.SetDirectNormalRadiation(200.0, 20.0);
+            Assert.Equal(sun.GetExtraterrestrialRadiation(), sun.DirectNormalRadiation, precision: 9);
+        }
+
+        /// <summary>通常の太陽高度では従来の (GHI − DHI) / sin(h) と一致する（挙動不変）</summary>
+        [Theory]
+        [InlineData(700.0, 150.0, 1.0)]
+        [InlineData(300.0, 100.0, 0.2)]
+        [InlineData(40.0, 30.0, 0.03)]
+        public void GetDirectNormalRadiation_NormalAltitude_Unchanged(
+            double ghi, double dhi, double altitude)
+        {
+            Assert.Equal((ghi - dhi) / Math.Sin(altitude),
+                Sun.GetDirectNormalRadiation(ghi, dhi, altitude));
+        }
+
+        /// <summary>日射量セッターは NaN・無限大を拒否する</summary>
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(double.NegativeInfinity)]
+        public void RadiationSetters_NonFiniteValue_Throws(double value)
+        {
+            var sun = new Sun(TokyoLatitude, TokyoLongitude, TokyoStandardLongitude);
+            Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+                () => sun.DirectNormalRadiation = value);
+            Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+                () => sun.DiffuseHorizontalRadiation = value);
+            Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(
+                () => sun.GlobalHorizontalRadiation = value);
+        }
+
+        #endregion
+
+        #region Regression tests (separation fallback returns DNI)
+
+        /// <summary>
+        /// 大気透過率 = 1 でも推定値が観測 GHI に届かないフォールバック分岐でも、
+        /// 出力は法線面直達日射（DNI）であり DNI·sin(h) + DHI = GHI が成り立つ
+        /// （旧実装は水平面直達 DNI·sin(h) を返していた）
+        /// </summary>
+        [Theory]
+        [InlineData(Sun.SeparationMethod.Berlage)]
+        [InlineData(Sun.SeparationMethod.Watanabe)]
+        public void SeparateGlobalHorizontalRadiation_Fallback_ReturnsNormalDirect(
+            Sun.SeparationMethod method)
+        {
+            //東京, 夏至の正午。大気透過率 1 の推定値（≈ Io·sin h）を超える GHI を与える
+            var dTime = new DateTime(2024, 6, 22, 12, 0, 0);
+            double altitude = Sun.GetSunAltitude(
+                TokyoLatitude, TokyoLongitude, TokyoStandardLongitude, dTime);
+            double ghi = 1.05 * Sun.GetExtraterrestrialRadiation(dTime.DayOfYear) * Math.Sin(altitude);
+
+            Sun.SeparateGlobalHorizontalRadiation(ghi,
+                TokyoLatitude, TokyoLongitude, TokyoStandardLongitude,
+                dTime, method, out double dni, out double dhi);
+
+            Assert.Equal(ghi, dni * Math.Sin(altitude) + dhi, precision: 6);
+        }
+
+        #endregion
+
+        #region Regression tests (city table)
+
+        /// <summary>全都市で経度と標準子午線の差が 30° 未満、かつ標準子午線は 15° の倍数</summary>
+        [Fact]
+        public void CityTable_StandardMeridian_IsConsistentWithLongitude()
+        {
+            foreach (Sun.City city in Enum.GetValues(typeof(Sun.City)))
+            {
+                var sun = new Sun(city);
+                Assert.True(Math.Abs(sun.Longitude - sun.StandardLongitude) < 30.0,
+                    $"{city}: longitude {sun.Longitude}, standard meridian {sun.StandardLongitude}");
+                Assert.True(Math.Abs(sun.StandardLongitude % 15.0) < 1e-9,
+                    $"{city}: standard meridian {sun.StandardLongitude} is not a multiple of 15°");
+                Assert.InRange(sun.Latitude, -90.0, 90.0);
+                Assert.InRange(sun.Longitude, -180.0, 180.0);
+            }
+        }
+
+        /// <summary>代表都市の標準子午線がタイムゾーン（UTC オフセット × 15°）と一致する</summary>
+        [Theory]
+        [InlineData(Sun.City.Bangkok, 105.0)]    //UTC+7（旧値 -75 は誤り）
+        [InlineData(Sun.City.Tokyo, 135.0)]      //UTC+9
+        [InlineData(Sun.City.Jakarta, 105.0)]    //UTC+7
+        [InlineData(Sun.City.Singapore, 120.0)]  //UTC+8
+        [InlineData(Sun.City.Beijing, 120.0)]    //UTC+8
+        [InlineData(Sun.City.London, 0.0)]       //UTC+0
+        [InlineData(Sun.City.Paris, 15.0)]       //UTC+1
+        [InlineData(Sun.City.Cairo, 30.0)]       //UTC+2
+        [InlineData(Sun.City.Moscow, 45.0)]      //UTC+3
+        [InlineData(Sun.City.Sydney, 150.0)]     //UTC+10
+        [InlineData(Sun.City.Auckland, 180.0)]   //UTC+12
+        [InlineData(Sun.City.Bogota, -75.0)]     //UTC-5
+        [InlineData(Sun.City.MexicoCity, -90.0)] //UTC-6
+        [InlineData(Sun.City.SaoPaulo, -45.0)]   //UTC-3
+        public void CityTable_StandardMeridian_MatchesTimeZone(Sun.City city, double expected)
+        {
+            Assert.Equal(expected, new Sun(city).StandardLongitude);
+        }
+
+        #endregion
     }
 }

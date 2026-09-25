@@ -184,6 +184,11 @@ namespace Popolo.Core.Climate
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <param name="orientation">Solar azimuth [radian]</param>
     /// <returns>cosθ [-] (clamped to 0 when the sun is behind the surface)</returns>
+    /// <remarks>
+    /// This overload is a purely geometric function of the given direction and does
+    /// not treat altitude ≤ 0 specially. The <see cref="IReadOnlySun"/> overload
+    /// returns 0 when the sun is below the horizon.
+    /// </remarks>
     public double GetDirectSolarRadiationRatio(double altitude, double orientation)
     {
       double sh = Math.Sin(altitude);
@@ -197,15 +202,24 @@ namespace Popolo.Core.Climate
     /// on the surface normal (cosθ) [-].
     /// </summary>
     /// <param name="sun">Solar state</param>
-    /// <returns>cosθ [-]</returns>
+    /// <returns>cosθ [-] (0 when the sun is below the horizon or behind the surface)</returns>
+    /// <remarks>
+    /// When the sun is below the horizon, <see cref="Sun.GetSunPosition"/> reports the
+    /// sentinel altitude = 0 and azimuth = 0 (due south); evaluating the geometry with
+    /// that sentinel would give cosθ = 1 on a south-facing vertical wall. Therefore 0 is
+    /// returned whenever <c>sun.Altitude ≤ 0</c>.
+    /// </remarks>
     public double GetDirectSolarRadiationRatio(IReadOnlySun sun)
-        => GetDirectSolarRadiationRatio(sun.Altitude, sun.Azimuth);
+    {
+      if (sun.Altitude <= 0) return 0;
+      return GetDirectSolarRadiationRatio(sun.Altitude, sun.Azimuth);
+    }
 
     /// <summary>
     /// Gets the direct solar irradiance on the tilted surface [W/m²].
     /// </summary>
     /// <param name="sun">Solar state</param>
-    /// <returns>Direct solar irradiance [W/m²]</returns>
+    /// <returns>Direct solar irradiance [W/m²] (0 when the sun is below the horizon)</returns>
     public double GetDirectSolarIrradiance(IReadOnlySun sun)
         => GetDirectSolarRadiationRatio(sun) * sun.DirectNormalRadiation;
 
@@ -313,13 +327,33 @@ namespace Popolo.Core.Climate
     /// <param name="altitude">Solar altitude [radian]</param>
     /// <param name="orientation">Solar azimuth [radian]</param>
     /// <returns>Tangent of profile angle [-]</returns>
+    /// <remarks>
+    /// <para>
+    /// The profile angle is the angle between the surface normal <c>n</c> and the
+    /// projection of the sun vector <c>s</c> onto the plane spanned by <c>n</c> and the
+    /// in-plane "up-slope" unit vector <c>u</c> (for a vertical wall, the vertical plane
+    /// through the normal; <c>u</c> is then the zenith). With tilt β, surface azimuth α,
+    /// solar altitude h and solar azimuth A (both azimuths measured from south, west
+    /// positive):
+    /// </para>
+    /// <code>
+    /// tan(profile) = s·u / s·n
+    ///              = [sin h · sin β − cos h · cos β · cos(A − α)] / cos θ
+    /// cos θ        = sin h · cos β + cos h · sin β · cos(A − α)
+    /// </code>
+    /// <para>
+    /// For a vertical wall this reduces to tan h / cos(A − α). When the sun is behind
+    /// the surface (cos θ ≤ 0) the sentinel −π is returned.
+    /// </para>
+    /// </remarks>
     public double GetTangentProfileAngle(double altitude, double orientation)
     {
       double cosTheta = GetDirectSolarRadiationRatio(altitude, orientation);
       if (cosTheta <= 0) return -Math.PI;
+      //cos(A − α) = sin A · sin α + cos A · cos α
       return (Math.Sin(altitude) * _sinBeta
           - Math.Cos(altitude) * _cosBeta
-          * (Math.Sin(orientation) * _sinAlpha - Math.Cos(orientation) * _cosAlpha))
+          * (Math.Sin(orientation) * _sinAlpha + Math.Cos(orientation) * _cosAlpha))
           / cosTheta;
     }
 
