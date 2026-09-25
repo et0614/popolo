@@ -338,14 +338,14 @@ namespace Popolo.Core.HVAC.SystemModel
         double tHexIn = (WaterTank.LowerOutletTemperarture * (hexFlow - ttlChilFlow)
           + chilOut * ttlChilFlow) / hexFlow;
         pHex.Update(tHexIn, rtnTmp, hexFlow, ChilledWaterFlowRate);
-        disPump.UpdateState(pHex.HeatSourceFlowRate);
+        disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
         double dtDisP = disPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
         chilIn += pHex.HeatSourceOutletTemperature + dtDisP;
       }
       else
       {
         pHex.Update(chilOut, rtnTmp, hexFlow, ChilledWaterFlowRate);
-        disPump.UpdateState(pHex.HeatSourceFlowRate);
+        disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
         double dtDisP = disPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
         chilIn += ((pHex.HeatSourceOutletTemperature + dtDisP) * hexFlow 
           + wTank.UpperOutletTemperarture * (ttlChilFlow - hexFlow)) / ttlChilFlow;
@@ -375,9 +375,13 @@ namespace Popolo.Core.HVAC.SystemModel
       //Coupled calculation of the cooling tower and the chiller (cooling water temperature)
       double mch = 1000 * chgPump.DesignFlowRate;
       // Fixed 2026.01.09: the cooling water flow rate follows the setpoint
-      double vcd = Math.Min(cdwPump.DesignFlowRate, 0.001 * CoolingWaterFlowSetpoint);
+      // A setpoint of 0 or less (the default) means "not set": use the design flow rate,
+      // as in CentrifugalChillerSystem (a zero flow would stop the chiller).
+      double vcd = CoolingWaterFlowSetpoint <= 0 ? cdwPump.DesignFlowRate
+        : Math.Min(cdwPump.DesignFlowRate, 0.001 * CoolingWaterFlowSetpoint);
       double mcd = 1000 * vcd;
       cdwPump.UpdateState(vcd);
+      cTower.WaterFlowRate = mcd / CoolingTowerCount;
       //double mcd = 1000 * cdwPump.DesignFlowRate;
       //cdwPump.UpdateState(cdwPump.DesignFlowRate);
 

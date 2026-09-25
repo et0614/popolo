@@ -488,6 +488,88 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
         #endregion
 
         // ================================================================
+        #region MultipleStratifiedWaterTankSystem — thermal storage
+
+        private const double TankChwFlow = 500.0 / (12 - 7) / Cp;   // 冷凍機定格冷水流量 [kg/s]
+        private const double TankCdwFlow = 1670.0 / 60;              // 冷却水定格流量 [kg/s]
+
+        /// <summary>
+        /// 温度成層型蓄熱槽システム（ターボ冷凍機1台＋冷却塔1基＋放熱用プレート熱交換器）。
+        /// </summary>
+        private static (MultipleStratifiedWaterTankSystem, SimpleCentrifugalChiller) MakeTankSystem()
+        {
+            var chiller = new SimpleCentrifugalChiller(500.0 / 6.0, 0.2, 12, 7, 37, TankChwFlow, false);
+            var chwPmp = new CentrifugalPump(150, 0.03, 140, 0.03,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var cdwPmp = new CentrifugalPump(150, 1e-3 * TankCdwFlow, 140, 1e-3 * TankCdwFlow,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var chgPmp = new CentrifugalPump(150, 1e-3 * TankChwFlow, 140, 1e-3 * TankChwFlow,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var disPmp = new CentrifugalPump(150, 0.03, 140, 0.03,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var cTower = new CoolingTower(37, 32, 27, TankCdwFlow,
+                CoolingTower.AirFlowDirection.CrossFlow, false);
+            var pHex = new PlateHeatExchanger(200.0, 30.0, 30.0);
+            var tank = new MultipleStratifiedWaterTank(4.0, 25.0, 0.2, 3.8, 20);
+            tank.InitializeTemperature(6.0);
+
+            var sys = new MultipleStratifiedWaterTankSystem(
+                tank, pHex, chiller, chwPmp, cdwPmp, chgPmp, disPmp, cTower, 1, 1);
+            sys.Mode = HeatSourceSystemModel.OperatingMode.Cooling;
+            sys.TimeStep = 3600;
+            sys.StorageTemperature = 5.0;
+            sys.ChilledWaterSupplyTemperatureSetpoint = 7.0;
+            sys.ChilledWaterReturnTemperature = 12.0;
+            sys.OutdoorAir = new MoistAir(30, 0.015);
+            return (sys, chiller);
+        }
+
+        /// <summary>
+        /// 冷却水流量設定値が既定値（0＝未設定）のとき、冷却水は設計流量で流れ、蓄熱運転で冷凍機が
+        /// 冷却能力を発揮する。旧実装は設定値 0 をそのまま使い、冷却水流量 0 で冷凍機が停止していた。
+        /// </summary>
+        [Fact]
+        public void TankSystem_DefaultCoolingWaterSetpoint_UsesDesignFlow()
+        {
+            var (sys, chiller) = MakeTankSystem();
+            sys.Charging = true;
+            sys.ForecastSupplyWaterTemperature(0, 0);
+            Assert.True(chiller.CoolingLoad > 0, $"CoolingLoad={chiller.CoolingLoad:F2} kW > 0");
+            Assert.Equal(TankCdwFlow, chiller.CoolingWaterFlowRate, 6);
+            Assert.Equal(TankCdwFlow, sys.CoolingTower.WaterFlowRate, 6);
+        }
+
+        /// <summary>冷却水流量設定値を与えた場合、冷凍機と冷却塔の冷却水流量がともに設定値に従う。</summary>
+        [Fact]
+        public void TankSystem_CoolingWaterSetpoint_AppliedToChillerAndTower()
+        {
+            var (sys, chiller) = MakeTankSystem();
+            sys.Charging = true;
+            sys.CoolingWaterFlowSetpoint = 0.8 * TankCdwFlow;
+            sys.ForecastSupplyWaterTemperature(0, 0);
+            Assert.Equal(0.8 * TankCdwFlow, chiller.CoolingWaterFlowRate, 6);
+            Assert.Equal(0.8 * TankCdwFlow, sys.CoolingTower.WaterFlowRate, 6);
+        }
+
+        /// <summary>
+        /// 追いかけ運転（蓄熱運転中の二次側負荷）で、放熱ポンプには熱交換器の熱源側流量が
+        /// 体積流量 [m³/s] で与えられる。旧実装は質量流量 [kg/s] をそのまま渡していた（1000倍）。
+        /// </summary>
+        [Fact]
+        public void TankSystem_ChasingOperation_DischargePumpFlowInCubicMetres()
+        {
+            var (sys, _) = MakeTankSystem();
+            sys.Charging = true;
+            sys.CoolingWaterFlowSetpoint = TankCdwFlow;
+            sys.ForecastSupplyWaterTemperature(20.0, 0);
+            double hexFlow = sys.PlateHeatExchanger.HeatSourceFlowRate;
+            Assert.True(0 < hexFlow, $"HEX heat source flow={hexFlow} kg/s > 0");
+            Assert.Equal(0.001 * hexFlow, sys.DischargePump.VolumetricFlowRate, 9);
+        }
+
+        #endregion
+
+        // ================================================================
         #region HeatSourceSystemModel — basic properties
 
         /// <summary>SetOperatingMode で Mode が設定される。</summary>
