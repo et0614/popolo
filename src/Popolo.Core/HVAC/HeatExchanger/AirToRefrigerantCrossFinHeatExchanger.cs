@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2026 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -769,8 +767,21 @@ namespace Popolo.Core.HVAC.HeatExchanger
       };
       try
       {
-        refrigerantTemperature = Roots.Brent(
-          refrigerantTemperature - 20, refrigerantTemperature, REFRIGERANT_TEMPERATURE_TOLERANCE, eFnc);
+        //The outlet air temperature rises monotonically with the evaporating temperature.
+        //When the setpoint lies outside what the search range can deliver, the coil runs
+        //at the corresponding end of the range: capacity-limited at the lower end, or no
+        //cooling required at the upper end (the inlet air is already at or below the setpoint).
+        double tLow = refrigerantTemperature - 20;
+        double tHigh = refrigerantTemperature;
+        double fLow = eFnc(tLow);
+        if (0 <= fLow) refrigerantTemperature = tLow;
+        else
+        {
+          double fHigh = eFnc(tHigh);
+          if (fHigh <= 0) refrigerantTemperature = tHigh;
+          else refrigerantTemperature = Roots.Brent(
+            eFnc, tLow, tHigh, fLow, fHigh, REFRIGERANT_TEMPERATURE_TOLERANCE);
+        }
       }
       catch (Exception ex)
       {

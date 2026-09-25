@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2014 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -23,7 +21,15 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Numerics
 {
   /// <summary>Gauss-Legendre numerical integrator.</summary>
-  /// <remarks>Adapted from "Numerical Recipes".</remarks>
+  /// <remarks>
+  /// The nodes are the roots of the Legendre polynomial P_n, located by Newton's method
+  /// from Tricomi's asymptotic estimate; the weights follow from P_n' at each node.
+  /// References:
+  /// Abramowitz, M. and Stegun, I.A. (eds.), Handbook of Mathematical Functions,
+  /// NBS Applied Mathematics Series 55, 1964, Eqs. 22.7.10, 22.8.5 and 25.4.29;
+  /// Tricomi, F.G., Sugli zeri dei polinomi sferici ed ultrasferici,
+  /// Annali di Matematica Pura ed Applicata 31, pp. 93-97, 1950.
+  /// </remarks>
   [Serializable]
   public class GaussLegendreIntegrator
   {
@@ -84,8 +90,10 @@ namespace Popolo.Core.Numerics
 
     /// <summary>Computes the nodes and weights for Gauss-Legendre quadrature.</summary>
     /// <param name="number">Number of quadrature nodes (1 or more).</param>
-    /// <param name="x">Output: quadrature nodes.</param>
-    /// <param name="w">Output: quadrature weights.</param>
+    /// <param name="x">Output: the non-negative half of the nodes on [-1, 1] in descending
+    /// order (the negative nodes are their mirror images). For an odd
+    /// <paramref name="number"/> the last element is the center node, exactly 0.</param>
+    /// <param name="w">Output: quadrature weights corresponding to <paramref name="x"/>.</param>
     /// <exception cref="PopoloArgumentException">
     /// Thrown when <paramref name="number"/> is less than 1.
     /// </exception>
@@ -97,32 +105,60 @@ namespace Popolo.Core.Numerics
             $"number must be at least 1. Got: {number}",
             nameof(number));
 
-      int m = (number + 1) / 2;
-      x = new double[m];
-      w = new double[m];
-      for (int i = 1; i <= m; i++)
+      const int MAX_ITER = 100;
+      const double TOLERANCE = 1e-15;
+
+      // Tricomi's estimate of the k-th largest root:
+      // x_k ≈ (1 − 1/(8n²) + 1/(8n³))·cos(π(4k − 1)/(4n + 2))
+      double n = number;
+      double scale = 1.0 - (1.0 - 1.0 / n) / (8.0 * n * n);
+
+      int half = (number + 1) / 2;
+      x = new double[half];
+      w = new double[half];
+      for (int k = 0; k < half; k++)
       {
-        double z = Math.Cos(Math.PI * (i - 0.25) / (number + 0.5));
-        double pp = 0;
-        while (true)
+        double root;
+        if (number % 2 == 1 && k == half - 1) root = 0.0;   // center node of an odd rule
+        else
         {
-          double p1 = 1.0;
-          double p2 = 0.0;
-          for (int j = 1; j <= number; j++)
+          root = scale * Math.Cos(Math.PI * (4 * k + 3) / (4.0 * n + 2.0));
+          for (int iter = 0; iter < MAX_ITER; iter++)
           {
-            double p3 = p2;
-            p2 = p1;
-            p1 = ((2.0 * j - 1.0) * z * p2 - (j - 1.0) * p3) / j;
+            EvaluateLegendre(number, root, out double pn, out double dpn);
+            double step = pn / dpn;
+            root -= step;
+            if (Math.Abs(step) <= TOLERANCE) break;
           }
-          pp = number * (z * p1 - p2) / (z * z - 1.0);
-          double prevz = z;
-          z = z - p1 / pp;
-          if (Math.Abs(z - prevz) < 1e-10) break;
         }
-        if (number % 2 == 1 && i == m) x[i - 1] = 0;
-        else x[i - 1] = z;
-        w[i - 1] = 2.0 / ((1.0 - z * z) * pp * pp);
+
+        // Weight (A&S 25.4.29): w = 2 / ((1 − x²)·P_n'(x)²)
+        EvaluateLegendre(number, root, out _, out double slope);
+        x[k] = root;
+        w[k] = 2.0 / ((1.0 - root * root) * slope * slope);
       }
+    }
+
+    /// <summary>Evaluates the Legendre polynomial P_n and its derivative at t (|t| &lt; 1).</summary>
+    /// <param name="degree">Degree n (1 or more).</param>
+    /// <param name="t">Evaluation point.</param>
+    /// <param name="value">Output: P_n(t).</param>
+    /// <param name="derivative">Output: P_n'(t).</param>
+    private static void EvaluateLegendre(
+        int degree, double t, out double value, out double derivative)
+    {
+      // Bonnet's recurrence (A&S 22.7.10): (k+1)·P_{k+1} = (2k+1)·t·P_k − k·P_{k−1}
+      double lower = 1.0;   // P_0
+      double upper = t;     // P_1
+      for (int k = 1; k < degree; k++)
+      {
+        double next = ((2 * k + 1) * t * upper - k * lower) / (k + 1);
+        lower = upper;
+        upper = next;
+      }
+      value = upper;
+      // A&S 22.8.5: (1 − t²)·P_n' = n·(P_{n−1} − t·P_n)
+      derivative = degree * (lower - t * upper) / (1.0 - t * t);
     }
 
     /// <summary>Evaluates the definite integral over [a, b] using the given nodes and weights.</summary>

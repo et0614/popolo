@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2014 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -122,92 +120,152 @@ namespace Popolo.Core.Numerics
     /// <summary>Finds a root using Brent's method.</summary>
     /// <param name="a">First bracket endpoint.</param>
     /// <param name="b">Second bracket endpoint.</param>
-    /// <param name="errorTolerance">Tolerance on the residual.</param>
+    /// <param name="errorTolerance">Absolute tolerance on the root location (the search stops
+    /// when the bracket half-width falls below errorTolerance + 2ε|x|).</param>
     /// <param name="eFnc">Residual function.</param>
     /// <returns>Root of the function.</returns>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when f(a) and f(b) have the same sign (the root is not bracketed).
+    /// </exception>
     /// <exception cref="PopoloNumericalException">
     /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
     public static double Brent(double a, double b, double errorTolerance, ErrorFunction eFnc)
     {
-      const int MAX_ITER = 100;
+      return Brent(eFnc, a, b, eFnc(a), eFnc(b), errorTolerance);
+    }
 
-      double e = 0;
-      double d = 0;
-      double fa = eFnc(a);
-      double fb = eFnc(b);
-      double c = a;
-      double fc = fa;
+    /// <summary>Finds a root using Brent's method with precomputed values at the bracket endpoints.</summary>
+    /// <param name="eFnc">Residual function.</param>
+    /// <param name="a">First bracket endpoint.</param>
+    /// <param name="b">Second bracket endpoint.</param>
+    /// <param name="fa">Residual value at <paramref name="a"/>.</param>
+    /// <param name="fb">Residual value at <paramref name="b"/>.</param>
+    /// <param name="errorTolerance">Absolute tolerance on the root location (the search stops
+    /// when the bracket half-width falls below errorTolerance + 2ε|x|).</param>
+    /// <returns>Root of the function.</returns>
+    /// <exception cref="PopoloArgumentException">
+    /// Thrown when <paramref name="fa"/> and <paramref name="fb"/> have the same sign (the root is not bracketed).
+    /// </exception>
+    /// <exception cref="PopoloNumericalException">
+    /// Thrown when convergence is not reached within the maximum number of iterations.
+    /// </exception>
+    public static double Brent(ErrorFunction eFnc, double a, double b,
+        double fa, double fb, double errorTolerance)
+    {
+      //With the stall safeguard in BrentQ the bracket at least halves every 3 iterations,
+      //so 200 iterations cover a width-to-tolerance ratio of up to 2^66.
+      const int MAX_ITER = 200;
 
-      int iterNum = 0;
-      while (true)
+      if (fa == 0.0) return a;
+      if (fb == 0.0) return b;
+      if ((fa < 0.0) == (fb < 0.0))
+        throw new PopoloArgumentException(
+            $"Initial points do not bracket a root. f(a)={fa} at a={a}, f(b)={fb} at b={b} "
+            + "must have opposite signs.",
+            nameof(a));
+
+      return BrentQ(eFnc, a, fa, b, fb, 2.0 * errorTolerance, 4.0 * MECH_EPS, MAX_ITER);
+    }
+
+    /// <summary>Brent's method on a bracketing interval [xa, xb] with known end values.</summary>
+    /// <remarks>
+    /// C# port of brentq() in SciPy (scipy/optimize/Zeros/brentq.c, written by Charles Harris).
+    /// Copyright (c) 2001-2002 Enthought, Inc. 2003, SciPy Developers. All rights reserved.
+    /// Distributed under the BSD 3-Clause License; the full license text is reproduced in
+    /// THIRD-PARTY-NOTICES.md at the repository root. Changes from the original: the end
+    /// values are passed in rather than evaluated, non-convergence throws, and a stall
+    /// safeguard forces bisection when the bracket has not halved during the last
+    /// STALL_LIMIT iterations (the original can creep toward a multiple root from one side
+    /// with slowly shrinking interpolation steps while the bracket stays wide).
+    /// </remarks>
+    private static double BrentQ(ErrorFunction f,
+        double xa, double fa, double xb, double fb, double xtol, double rtol, int maxIter)
+    {
+      const int STALL_LIMIT = 2;
+
+      double xpre = xa, xcur = xb, fpre = fa, fcur = fb;
+      double xblk = 0.0, fblk = 0.0, spre = 0.0, scur = 0.0;
+      if (fpre == 0.0) return xpre;
+      if (fcur == 0.0) return xcur;
+
+      double refWidth = double.PositiveInfinity;   //bracket width at the last halving
+      int stalled = 0;                             //iterations since the last halving
+      for (int i = 0; i < maxIter; i++)
       {
-        if ((0 < fb && 0 < fc) || (fb < 0 && fc < 0))
+        if (fpre != 0.0 && fcur != 0.0 && (fpre < 0.0) != (fcur < 0.0))
         {
-          c = a;
-          fc = fa;
-          e = d = b - a;
+          xblk = xpre;
+          fblk = fpre;
+          spre = scur = xcur - xpre;
+        }
+        if (Math.Abs(fblk) < Math.Abs(fcur))
+        {
+          xpre = xcur;
+          xcur = xblk;
+          xblk = xpre;
+
+          fpre = fcur;
+          fcur = fblk;
+          fblk = fpre;
         }
 
-        if (Math.Abs(fc) < Math.Abs(fa))
-        {
-          a = b; b = c; c = a;
-          fa = fb; fb = fc; fc = fa;
-        }
+        //The tolerance is 2*delta
+        double delta = (xtol + rtol * Math.Abs(xcur)) / 2.0;
+        double sbis = (xblk - xcur) / 2.0;
+        if (fcur == 0.0 || Math.Abs(sbis) < delta) return xcur;
 
-        double tol = 2.0 * MECH_EPS * Math.Abs(b) + errorTolerance;
-        double mid = 0.5 * (c - b);
-        if (Math.Abs(mid) < tol || fb == 0.0) return b;
+        //Stall safeguard (not in the original)
+        double width = 2.0 * Math.Abs(sbis);
+        if (width <= 0.5 * refWidth) { refWidth = width; stalled = 0; }
+        else stalled++;
 
-        if ((Math.Abs(e) < tol) || Math.Abs(fa) <= Math.Abs(fb))
+        if (stalled < STALL_LIMIT && Math.Abs(spre) > delta && Math.Abs(fcur) < Math.Abs(fpre))
         {
-          d = mid;
-          e = d;
+          double stry;
+          if (xpre == xblk)
+          {
+            //Interpolate
+            stry = -fcur * (xcur - xpre) / (fcur - fpre);
+          }
+          else
+          {
+            //Extrapolate
+            double dpre = (fpre - fcur) / (xpre - xcur);
+            double dblk = (fblk - fcur) / (xblk - xcur);
+            stry = -fcur * (fblk * dblk - fpre * dpre)
+                / (dblk * dpre * (fblk - fpre));
+          }
+          if (2.0 * Math.Abs(stry) < Math.Min(Math.Abs(spre), 3.0 * Math.Abs(sbis) - delta))
+          {
+            //Good short step
+            spre = scur;
+            scur = stry;
+          }
+          else
+          {
+            //Bisect
+            spre = sbis;
+            scur = sbis;
+          }
         }
         else
         {
-          double p, q, r;
-          double s = fb / fa;
-          if (a == c)
-          {
-            p = 2.0 * mid * s;
-            q = 1.0 - s;
-          }
-          else
-          {
-            q = fa / fc;
-            r = fb / fc;
-            p = s * (2.0 * mid * q * (q - r) - (b - a) * (r - 1.0));
-            q = (q - 1.0) * (r - 1.0) * (s - 1.0);
-          }
-          if (0 < p) q = -q;
-          p = Math.Abs(p);
-          double min1 = 3.0 * mid * mid * q - Math.Abs(tol * q);
-          double min2 = Math.Abs(e * q);
-          if (2.0 * p < Math.Min(min1, min2))
-          {
-            e = d;
-            d = p / q;
-          }
-          else
-          {
-            d = mid;
-            e = d;
-          }
+          //Bisect
+          spre = sbis;
+          scur = sbis;
         }
-        a = b;
-        fa = fb;
-        if (tol < Math.Abs(d)) b += d;
-        else b += Math.Sign(mid) * tol;
-        fb = eFnc(b);
 
-        iterNum++;
-        if (MAX_ITER < iterNum)
-          throw new PopoloNumericalException(
-              "Brent",
-              $"Convergence failed after {iterNum} iterations. "
-              + $"Last estimate: b={b}, f(b)={fb}.");
+        xpre = xcur; fpre = fcur;
+        if (Math.Abs(scur) > delta) xcur += scur;
+        else xcur += (sbis > 0.0 ? delta : -delta);
+
+        fcur = f(xcur);
       }
+      throw new PopoloNumericalException(
+          "Brent",
+          $"Convergence failed after {maxIter} iterations. "
+          + $"Last estimate: x={xcur}, f(x)={fcur}.");
     }
 
     /// <summary>Finds a root using Newton's method with numerical differentiation.</summary>

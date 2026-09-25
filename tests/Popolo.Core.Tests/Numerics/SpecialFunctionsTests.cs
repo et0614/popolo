@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2026 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -109,6 +107,34 @@ namespace Popolo.Core.Tests.Numerics
             Assert.Equal(1.0, result, precision: 10);
         }
 
+        /// <summary>整数 a では Q(n, x) = e^(−x)·Σ_{k&lt;n} x^k/k! と機械精度で一致する</summary>
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        [InlineData(10)]
+        [InlineData(40)]
+        public void GammaQ_IntegerA_MatchesClosedForm(int n)
+        {
+            foreach (double x in new[] { 1e-6, 0.1, 1.0, 5.0, 20.0, 50.0 })
+            {
+                double term = 1.0, sum = 1.0;
+                for (int k = 1; k < n; k++) { term *= x / k; sum += term; }
+                double expected = Math.Exp(-x) * sum;
+                Assert.True(Math.Abs(SpecialFunctions.GammaQ(n, x) - expected) < 1e-14,
+                    $"n={n}, x={x}");
+            }
+        }
+
+        /// <summary>a が大きくても収束し、P(a, a) ≈ 1/2 + 1/(3√(2πa)) となる</summary>
+        [Fact]
+        public void GammaP_LargeA_Converges()
+        {
+            double p = SpecialFunctions.GammaP(500.0, 500.0);
+            double q = SpecialFunctions.GammaQ(500.0, 500.0);
+            Assert.InRange(p, 0.5055, 0.5065);
+            Assert.Equal(1.0, p + q, precision: 14);
+        }
+
         /// <summary>a が0以下のとき PopoloArgumentException が発生する</summary>
         [Fact]
         public void GammaQ_WhenAIsNotPositive_ThrowsPopoloArgumentException()
@@ -149,6 +175,22 @@ namespace Popolo.Core.Tests.Numerics
         {
             double result = SpecialFunctions.ComplementaryErrorFunction(x);
             Assert.Equal(expected, result, precision: 6);
+        }
+
+        /// <summary>erfc(x) が裾まで相対誤差 1e-13 以内で参照値と一致する</summary>
+        [Theory]
+        [InlineData(0.1, 0.8875370839817151)]
+        [InlineData(0.5, 0.4795001221869535)]
+        [InlineData(1.5, 0.033894853524689274)]
+        [InlineData(3.0, 2.209049699858544e-05)]
+        [InlineData(4.0, 1.541725790028002e-08)]
+        [InlineData(5.0, 1.5374597944280349e-12)]
+        public void ComplementaryErrorFunction_Tail_HasHighRelativeAccuracy(
+            double x, double expected)
+        {
+            double result = SpecialFunctions.ComplementaryErrorFunction(x);
+            Assert.True(Math.Abs(result - expected) / expected < 1e-13,
+                $"x={x}: {result} vs {expected}");
         }
 
         /// <summary>erfc(x) + erfc(-x) = 2 となる（対称性）</summary>

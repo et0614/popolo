@@ -2,19 +2,17 @@
  * 
  * Copyright (C) 2014 E.Togashi
  * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using Popolo.Core.Exceptions;
@@ -27,7 +25,7 @@ namespace Popolo.Core.Numerics.LinearAlgebra
   /// References:
   /// Oguni, T. "New Numerical Analysis";
   /// Kitagawa, G. "Introduction to Time Series Analysis";
-  /// "Numerical Recipes in C".
+  /// JAMA: A Java Matrix Package, The MathWorks and NIST, 1998 (public domain).
   /// </summary>
   public static class LinearAlgebraOperations
   {
@@ -50,79 +48,78 @@ namespace Popolo.Core.Numerics.LinearAlgebra
       FAndBSubstitute(aMatrix, perm, bVector);
     }
 
-    /// <summary>Performs LU decomposition (A = LU) using Crout's method.</summary>
+    /// <summary>Performs LU decomposition (PA = LU) with scaled partial pivoting.</summary>
     /// <param name="matrix">
     /// Input: square matrix to decompose.
-    /// Output: the upper triangle and diagonal contain U; the lower triangle contains L.
+    /// Output: the upper triangle and diagonal contain U; the strict lower triangle
+    /// contains the unit-diagonal factor L.
     /// </param>
-    /// <param name="perm">Row permutation vector produced by partial pivoting.</param>
-    /// <param name="wArray">Working storage (length equal to the number of rows).</param>
-    /// <remarks>Adapted from "Numerical Recipes".</remarks>
+    /// <param name="perm">
+    /// Output: row interchange record. At elimination step j, row j was exchanged with
+    /// row perm[j] (perm[j] ≥ j); pass it unchanged to <see cref="FAndBSubstitute"/>.
+    /// </param>
+    /// <param name="wArray">Working storage (length equal to the number of rows); receives
+    /// the reciprocal row scale factors.</param>
+    /// <remarks>
+    /// "Left-looking" dot-product Doolittle elimination ported from the public-domain
+    /// JAMA package (LUDecomposition). The pivot is the candidate of largest magnitude
+    /// relative to the largest element of its original row (implicit row equilibration),
+    /// which keeps the choice independent of the scaling of individual equations.
+    /// </remarks>
+    /// <exception cref="PopoloNumericalException">Thrown when a row of the matrix is entirely zero.</exception>
     public static void LUDecompose(IMatrix matrix, int[] perm, IVector wArray)
     {
       if (matrix.Rows != matrix.Columns)
         throw new PopoloArgumentException(
           $"The matrix must be square ({matrix.Rows}x{matrix.Columns}).", nameof(matrix));
 
-      //Get the number of rows/columns of the matrix
-      int num = matrix.Rows;
+      int n = matrix.Rows;
 
-      for (int i = 0; i < num; i++)
+      //Reciprocal scale factor of each row (used only to select pivots)
+      for (int i = 0; i < n; i++)
       {
-        double big = 0.0;
-        for (int j = 0; j < num; j++)
-          big = Math.Max(big, Math.Abs(matrix[i, j]));
-        if (big < 1e-30) throw new PopoloNumericalException(
+        double rowMax = 0.0;
+        for (int k = 0; k < n; k++) rowMax = Math.Max(rowMax, Math.Abs(matrix[i, k]));
+        if (rowMax < 1e-30) throw new PopoloNumericalException(
           "LUDecompose",
           $"Singular matrix detected at row {i}. All elements in the row are zero.");
-        wArray[i] = 1.0 / big;
+        wArray[i] = 1.0 / rowMax;
       }
 
-      for (int j = 0; j < num; j++)
+      double[] colJ = new double[n];
+      for (int j = 0; j < n; j++)
       {
-        double sum = 0;
-        double big = 0.0d;
-        int imax = 0;
+        //Copy the j-th column to localize references
+        for (int i = 0; i < n; i++) colJ[i] = matrix[i, j];
 
-        //Apply Crout's method
-        //Iterate from i to j
-        for (int i = 0; i < j; i++)
+        //Apply the previous transformations: the dot product runs over min(i, j) terms
+        for (int i = 0; i < n; i++)
         {
-          sum = -matrix[i, j];
-          for (int k = 0; k < i; k++) sum += matrix[i, k] * matrix[k, j];
-          matrix[i, j] = -sum;
+          int kMax = Math.Min(i, j);
+          double s = 0.0;
+          for (int k = 0; k < kMax; k++) s += matrix[i, k] * colJ[k];
+          colJ[i] -= s;
+          matrix[i, j] = colJ[i];
         }
 
-        //Iterate from j to N
-        for (int i = j; i < num; i++)
+        //Find the pivot. On ties the later row is taken, and an all-zero candidate
+        //column selects the last row.
+        int p = j;
+        double best = -1.0;
+        for (int i = j; i < n; i++)
         {
-          sum = -matrix[i, j];
-          for (int k = 0; k < j; k++) sum += matrix[i, k] * matrix[k, j];
-          matrix[i, j] = -sum;
-
-          //Select the largest pivot considering scaling
-          double dum = wArray[i] * Math.Abs(sum);
-          if (big <= dum)
+          double scaled = wArray[i] * Math.Abs(colJ[i]);
+          if (best <= scaled) { best = scaled; p = i; }
+        }
+        if (p != j)
+        {
+          for (int k = 0; k < n; k++)
           {
-            big = dum;
-            imax = i;
+            double t = matrix[p, k]; matrix[p, k] = matrix[j, k]; matrix[j, k] = t;
           }
+          wArray[p] = wArray[j];
         }
-
-        //Check whether row exchange is needed
-        if (j != imax)
-        {
-          //Exchange rows
-          for (int k = 0; k < num; k++)
-          {
-            double dum = matrix[imax, k];
-            matrix[imax, k] = matrix[j, k];
-            matrix[j, k] = dum;
-          }
-          wArray[imax] = wArray[j];   //Exchange the scaling factors
-        }
-        //Record the row permutation
-        perm[j] = imax;
+        perm[j] = p;
 
         //A zero pivot after partial pivoting means the matrix is (numerically) singular.
         //Substituting a huge-magnitude pivot makes the multipliers and the solution
@@ -132,43 +129,44 @@ namespace Popolo.Core.Numerics.LinearAlgebra
         //zero-flow branches).
         if (matrix[j, j] == 0.0) matrix[j, j] = double.MinValue;
 
-        double bf = 1d / matrix[j, j];
-        for (int i = j + 1; i < num; i++) matrix[i, j] *= bf;
+        //Compute the multipliers
+        double pivot = matrix[j, j];
+        for (int i = j + 1; i < n; i++) matrix[i, j] /= pivot;
       }
     }
 
-    /// <summary>Performs forward and back substitution using an LU-decomposed matrix.</summary>
+    /// <summary>Solves LUx = Pb by forward and back substitution after <see cref="LUDecompose"/>.</summary>
     /// <param name="luMatrix">Matrix produced by LU decomposition.</param>
-    /// <param name="perm">Row permutation vector from the LU decomposition.</param>
+    /// <param name="perm">Row interchange record from the LU decomposition.</param>
     /// <param name="b">Right-hand side vector; overwritten with the solution.</param>
     public static void FAndBSubstitute(IMatrix luMatrix, int[] perm, IVector b)
     {
-      //Get the number of rows/columns of the matrix
-      int num = luMatrix.Rows;
+      int n = luMatrix.Rows;
 
-      //Position where vector b first takes a nonzero value
-      int ii = 0;
-
-      for (int i = 0; i < num; i++)
+      //Apply the row interchanges in the order they were made
+      for (int j = 0; j < n; j++)
       {
-        //Reorder vector b according to the permutation vector
-        int ip = perm[i];
-        double sum = b[ip];
-        b[ip] = b[i];
-
-        //Forward substitution
-        if (ii != 0)
-          for (int j = ii - 1; j < i; j++) sum -= luMatrix[i, j] * b[j];
-        else
-          if (sum != 0) ii = i + 1;
-        b[i] = sum;
+        int p = perm[j];
+        if (p != j) { double t = b[p]; b[p] = b[j]; b[j] = t; }
       }
-      //Back substitution
-      for (int i = num - 1; 0 <= i; i--)
+
+      //Solve L·y = Pb (L has a unit diagonal). Leading zeros of Pb stay zero in y, so the
+      //sweep starts at the first nonzero element (saves work for unit vectors in GetInverse).
+      int first = 0;
+      while (first < n && b[first] == 0.0) first++;
+      for (int i = first + 1; i < n; i++)
       {
-        double sum = b[i];
-        for (int j = i + 1; j < num; j++) sum -= luMatrix[i, j] * b[j];
-        b[i] = sum / luMatrix[i, i];
+        double s = b[i];
+        for (int k = first; k < i; k++) s -= luMatrix[i, k] * b[k];
+        b[i] = s;
+      }
+
+      //Solve U·x = y
+      for (int i = n - 1; 0 <= i; i--)
+      {
+        double s = b[i];
+        for (int k = i + 1; k < n; k++) s -= luMatrix[i, k] * b[k];
+        b[i] = s / luMatrix[i, i];
       }
     }
 
@@ -347,29 +345,33 @@ namespace Popolo.Core.Numerics.LinearAlgebra
     /// <param name="y">Response values.</param>
     /// <param name="coefA">Output: slope coefficient a.</param>
     /// <param name="coefB">Output: intercept coefficient b.</param>
-    /// <remarks>Adapted from "Numerical Recipes".</remarks>
+    /// <remarks>
+    /// Ordinary least squares with sums taken about the sample means (two-pass form),
+    /// a = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)², b = ȳ − a·x̄, which avoids the cancellation of
+    /// the one-pass raw-moment formulas.
+    /// </remarks>
     public static void FitAxPlusB
       (double[] x, double[] y, out double coefA, out double coefB)
     {
-      int num = x.Length;
-      double sx = 0;
-      double sy = 0;
-      for (int i = 0; i < num; i++)
+      int n = x.Length;
+      double meanX = 0.0, meanY = 0.0;
+      for (int i = 0; i < n; i++)
       {
-        sx += x[i];
-        sy += y[i];
+        meanX += x[i];
+        meanY += y[i];
       }
-      double sxoss = sx / num;
-      double st2 = 0;
-      coefA = 0;
-      for (int i = 0; i < num; i++)
+      meanX /= n;
+      meanY /= n;
+
+      double sxx = 0.0, sxy = 0.0;
+      for (int i = 0; i < n; i++)
       {
-        double t = x[i] - sxoss;
-        st2 += t * t;
-        coefA += t * y[i];
+        double dx = x[i] - meanX;
+        sxx += dx * dx;
+        sxy += dx * (y[i] - meanY);
       }
-      coefA /= st2;
-      coefB = (sy - sx * coefA) / num;
+      coefA = sxy / sxx;
+      coefB = meanY - coefA * meanX;
     }
 
     /// <summary>Estimates multiple regression coefficients.</summary>

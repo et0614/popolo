@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2026 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -288,6 +286,62 @@ namespace Popolo.Core.Tests.Numerics.Linearalgebra
       Assert.Equal(27.906962426189473, b[2], precision: 10);
       Assert.Equal(27.341150194671329, b[3], precision: 10);
       Assert.Equal(26.899012767856604, b[4], precision: 10);
+    }
+
+    /// <summary>FitAxPlusB は x が大きなオフセットを持つデータでも桁落ちせずに係数を返す</summary>
+    [Fact]
+    public void FitAxPlusB_LargeOffsetData_IsAccurate()
+    {
+      // y = 3x - 2 を x = 1e5 + {0, 0.1, ..., 0.9} で厳密に満たすデータ
+      double[] x = new double[10];
+      double[] y = new double[10];
+      for (int i = 0; i < 10; i++) { x[i] = 1e5 + 0.1 * i; y[i] = 3.0 * x[i] - 2.0; }
+
+      LinearAlgebraOperations.FitAxPlusB(x, y, out double a, out double b);
+
+      Assert.Equal(3.0, a, 1e-9);
+      Assert.Equal(-2.0, b, 1e-4);
+    }
+
+    /// <summary>行ごとにスケールが大きく異なる行列でも、行スケーリング付きピボット選択で正しく解ける</summary>
+    [Fact]
+    public void SolveLinearEquations_BadlyScaledRows_ReturnsAccurateSolution()
+    {
+      // 1行目を 1e-10 倍に縮小した系（解 x = [1, 2, 3]）
+      var a = new Matrix(new double[][] {
+        new double[] { 2e-10, 1e-10, 1e-10 },
+        new double[] { 4.0, -6.0, 0.0 },
+        new double[] { -2.0, 7.0, 2.0 } });
+      var b = new Vector(3);
+      b[0] = 7e-10; b[1] = -8.0; b[2] = 18.0;
+
+      LinearAlgebraOperations.SolveLinearEquations(a, b);
+
+      Assert.Equal(1.0, b[0], 1e-9);
+      Assert.Equal(2.0, b[1], 1e-9);
+      Assert.Equal(3.0, b[2], 1e-9);
+    }
+
+    /// <summary>GetInverse の結果と元の行列の積が単位行列になる（行交換を伴う場合）</summary>
+    [Fact]
+    public void GetInverse_WithRowInterchanges_ProducesIdentity()
+    {
+      // 対角が小さく、部分ピボット選択で行交換が発生する行列
+      double[][] src = {
+        new double[] { 1e-3, 2.0, 3.0, 1.0 },
+        new double[] { 4.0, 1e-3, 1.0, 2.0 },
+        new double[] { 2.0, 5.0, 1e-3, 3.0 },
+        new double[] { 1.0, 2.0, 7.0, 1e-3 } };
+      var a = new Matrix(src);
+      var inv = new Matrix(4, 4);
+      LinearAlgebraOperations.GetInverse(a, inv);
+
+      var orig = new Matrix(src);
+      var prod = new Matrix(4, 4);
+      LinearAlgebraOperations.Multiply(orig, inv, prod);
+      for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+          Assert.Equal(i == j ? 1.0 : 0.0, prod[i, j], 1e-12);
     }
 
     /// <summary>特異行列のLU分解で例外が発生する</summary>

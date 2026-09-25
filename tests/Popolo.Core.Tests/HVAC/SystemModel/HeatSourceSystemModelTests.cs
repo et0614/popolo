@@ -1,7 +1,7 @@
 /* HeatSourceSystemModelTests.cs
  *
  * Copyright (C) 2026 E.Togashi
- * GNU General Public License v3 — see accompanying LICENSE file.
+ * Licensed under the Apache License, Version 2.0 - see the accompanying LICENSE file.
  */
 
 using System;
@@ -212,6 +212,39 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
             hs.ForecastSupplyWaterTemperature(0, 12, 0.8 * mcCndH, 40);
             Assert.True(whp.HeatingLoad > 0,
                 $"WHP HeatingLoad={whp.HeatingLoad:F2} kW > 0");
+        }
+
+        /// <summary>
+        /// GSHP の地中熱交換器ループの熱収支が閉じる（地中熱交換器出口温度 = ヒートポンプの冷却水入口温度）。
+        /// 探索区間の下限に予測後の地温を使っていた旧実装では、区間が根を挟まず約 8 K の不整合が残っていた。
+        /// </summary>
+        [Fact]
+        public void GSHP_Cooling_GroundLoopIsClosed()
+        {
+            var (hs, whp, gHex) = MakeGSHPSystem();
+            hs.SetOperatingMode(0, HeatSourceSystemModel.OperatingMode.Cooling);
+            hs.ChilledWaterSupplyTemperatureSetpoint = 7.0;
+            hs.OutdoorAir = new MoistAir(25, 0.012);
+
+            double mcEvpC = 178.3 / 60;
+            hs.ForecastSupplyWaterTemperature(0.8 * mcEvpC, 12, 0, 40);
+            Assert.True(Math.Abs(gHex.FluidOutletTemperature - whp.CoolingWaterInletTemperature) < 0.05,
+                $"Ground outlet {gHex.FluidOutletTemperature:F3} °C vs HP cooling water inlet {whp.CoolingWaterInletTemperature:F3} °C");
+        }
+
+        /// <summary>GSHP 暖房運転でも地中熱交換器ループの熱収支が閉じる。</summary>
+        [Fact]
+        public void GSHP_Heating_GroundLoopIsClosed()
+        {
+            var (hs, whp, gHex) = MakeGSHPSystem();
+            hs.SetOperatingMode(0, HeatSourceSystemModel.OperatingMode.Heating);
+            hs.HotWaterSupplyTemperatureSetpoint = 45.0;
+            hs.OutdoorAir = new MoistAir(5, 0.004);
+
+            double mcCndH = 206.7 / 60;
+            hs.ForecastSupplyWaterTemperature(0, 12, 0.8 * mcCndH, 40);
+            Assert.True(Math.Abs(gHex.FluidOutletTemperature - whp.HeatSourceWaterInletTemperature) < 0.05,
+                $"Ground outlet {gHex.FluidOutletTemperature:F3} °C vs HP source water inlet {whp.HeatSourceWaterInletTemperature:F3} °C");
         }
 
         /// <summary>

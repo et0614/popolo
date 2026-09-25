@@ -3,6 +3,12 @@
 namespace Popolo.Core.Numerics.LinearAlgebra
 {
   /// <summary>Performs QR decomposition with optional column pivoting.</summary>
+  /// <remarks>
+  /// Translated from the MINPACK routine QRFAC (B. Garbow, K. Hillstrom and J. Moré,
+  /// Argonne National Laboratory). Minpack Copyright Notice (1999) University of Chicago.
+  /// All rights reserved. The license text is reproduced in THIRD-PARTY-NOTICES.md at the
+  /// repository root.
+  /// </remarks>
   public class QRDecomposer
   {
 

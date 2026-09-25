@@ -1,6 +1,8 @@
 ﻿//Original public domain version by B.Garbow, K.Hillstrom, J.More' 
 //(Argonne National Laboratory, MINPACK project, March 1980)
 //Tranlation to C# Language by E.Togashi 2015
+//Minpack Copyright Notice (1999) University of Chicago. All rights reserved.
+//The license text is reproduced in THIRD-PARTY-NOTICES.md at the repository root.
 
 using System;
 

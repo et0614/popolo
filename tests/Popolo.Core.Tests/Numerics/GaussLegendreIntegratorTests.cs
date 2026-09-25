@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2026 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -167,6 +165,37 @@ namespace Popolo.Core.Tests.Numerics
         for (int i = 0; i < n; i++) sum += 2.0 * w[i];
       }
       Assert.Equal(2.0, sum, precision: 7);
+    }
+
+    /// <summary>2点・3点則の分点と重みが解析解と一致する</summary>
+    [Fact]
+    public void ComputeNodesAndWeights_MatchesAnalyticRules()
+    {
+      const double tol = 1e-14;
+      GaussLegendreIntegrator.ComputeNodesAndWeights(2, out double[] x2, out double[] w2);
+      Assert.Equal(1.0 / Math.Sqrt(3.0), x2[0], tol);
+      Assert.Equal(1.0, w2[0], tol);
+
+      GaussLegendreIntegrator.ComputeNodesAndWeights(3, out double[] x3, out double[] w3);
+      Assert.Equal(Math.Sqrt(0.6), x3[0], tol);
+      Assert.Equal(0.0, x3[1]);   // 奇数則の中心点は厳密に0
+      Assert.Equal(5.0 / 9.0, w3[0], tol);
+      Assert.Equal(8.0 / 9.0, w3[1], tol);
+    }
+
+    /// <summary>n点則は 2n−1 次多項式を厳密に積分する</summary>
+    [Theory]
+    [InlineData(5)]
+    [InlineData(20)]
+    [InlineData(50)]
+    public void ComputeNodesAndWeights_ExactForDegree2nMinus1(int n)
+    {
+      GaussLegendreIntegrator.ComputeNodesAndWeights(n, out double[] x, out double[] w);
+      int degree = 2 * n - 1;
+      double result = GaussLegendreIntegrator.Integrate(t => Math.Pow(t, degree), 0.0, 1.0, x, w);
+      double expected = 1.0 / (degree + 1);
+      Assert.True(Math.Abs(result - expected) / expected < 1e-12,
+          $"n={n}: {result} vs {expected}");
     }
 
     /// <summary>静的Integrateメソッドで∫[0,1] x dx = 0.5</summary>

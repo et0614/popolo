@@ -1,6 +1,6 @@
 /* IReadOnlyHotWaterBoiler.cs
  * Copyright (C) 2026 E.Togashi
- * GNU General Public License v3
+ * Licensed under the Apache License, Version 2.0 - see the accompanying LICENSE file.
  */
 
 namespace Popolo.Core.HVAC.HeatSource

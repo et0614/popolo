@@ -283,7 +283,12 @@ samples/
 
 ## License
 
-Popolo is distributed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later). See `LICENSE` for details.
+Popolo is distributed under the **Apache License 2.0** (Apache-2.0). See `LICENSE` for details.
+Versions 3.x and earlier were released under GPL-3.0-or-later; the change applies from version 4.0.0.
+
+Some numerical routines are ported from third-party code (SciPy, MINPACK, the Mersenne Twister
+reference implementation) and are used under their original permissive licenses. See
+`THIRD-PARTY-NOTICES.md` for the notices.
 
 ---
 

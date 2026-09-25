@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2014 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -23,9 +21,24 @@ using Popolo.Core.Exceptions;
 namespace Popolo.Core.Numerics
 {
   /// <summary>Provides numerical special functions.</summary>
-  /// <remarks>Adapted from "Numerical Recipes".</remarks>
+  /// <remarks>
+  /// References:
+  /// Abramowitz, M. and Stegun, I.A. (eds.), Handbook of Mathematical Functions,
+  /// NBS Applied Mathematics Series 55, 1964, Eqs. 6.1.15, 6.1.40, 6.5.17, 6.5.29 and 6.5.31;
+  /// Thompson, I.J. and Barnett, A.R., Coulomb and Bessel functions of complex arguments
+  /// and order, Journal of Computational Physics 64, pp. 490-509, 1986 (modified Lentz method).
+  /// </remarks>
   public static class SpecialFunctions
   {
+
+    /// <summary>Relative convergence tolerance of the series and continued fraction.</summary>
+    private const double CONVERGENCE_TOLERANCE = 1e-15;
+
+    /// <summary>Maximum number of series terms or continued-fraction levels.</summary>
+    private const int MAX_TERMS = 10000;
+
+    /// <summary>ln(2π)/2.</summary>
+    private const double HALF_LOG_TWO_PI = 0.91893853320467274178;
 
     #region Incomplete gamma function
 
@@ -50,10 +63,8 @@ namespace Popolo.Core.Numerics
             $"x must be non-negative. Got: {x}",
             nameof(x));
 
-      if (x < (a + 1.0))
-        return gser(a, x);
-      else
-        return 1.0 - gcf(a, x);
+      if (x < a + 1.0) return LowerRegularizedGammaBySeries(a, x);
+      else return 1.0 - UpperRegularizedGammaByContinuedFraction(a, x);
     }
 
     /// <summary>Computes the regularized incomplete gamma function Q(a, x) = 1 - P(a, x).</summary>
@@ -77,96 +88,100 @@ namespace Popolo.Core.Numerics
             $"x must be non-negative. Got: {x}",
             nameof(x));
 
-      if (x < (a + 1.0))
-        return 1.0 - gser(a, x);
-      else
-        return gcf(a, x);
+      if (x < a + 1.0) return 1.0 - LowerRegularizedGammaBySeries(a, x);
+      else return UpperRegularizedGammaByContinuedFraction(a, x);
     }
 
     /// <summary>Computes the complementary error function erfc(x).</summary>
     /// <param name="x">Input value.</param>
     /// <returns>Value of erfc(x).</returns>
+    /// <remarks>Uses erf(x) = P(1/2, x²) for x ≥ 0 (A&amp;S 6.5.17) and erfc(−x) = 2 − erfc(x).</remarks>
     public static double ComplementaryErrorFunction(double x)
     {
       return x < 0.0 ? 1.0 + GammaP(0.5, x * x) : GammaQ(0.5, x * x);
     }
 
-    private static double gammln(double xx)
+    /// <summary>Computes ln Γ(z) for z &gt; 0.</summary>
+    /// <remarks>
+    /// Arguments below 10 are raised with Γ(z+1) = z·Γ(z) (A&amp;S 6.1.15); the Stirling
+    /// asymptotic series (A&amp;S 6.1.40) is then summed through the z⁻¹³ term, whose
+    /// truncation error is below 1e-16 for z ≥ 10.
+    /// </remarks>
+    private static double LogGamma(double z)
     {
-      double[] cof = new double[]
+      double shiftProduct = 1.0;
+      while (z < 10.0)
       {
-                76.18009172947146,
-                -86.50532032941677,
-                24.01409824083091,
-                -1.231739572450155,
-                0.1208650973866179e-2,
-                -0.5395239384953e-5
-      };
+        shiftProduct *= z;
+        z += 1.0;
+      }
 
-      double y, x;
-      y = x = xx;
-      double tmp = x + 5.5;
-      tmp -= (x + 0.5) * Math.Log(tmp);
-      double ser = 1.000000000190015;
-      for (int j = 0; j <= 5; j++) ser += cof[j] / ++y;
-      return -tmp + Math.Log(2.5066282746310005 * ser / x);
+      // Σ B_2k / (2k(2k−1)·z^(2k−1)), k = 1..7, in Horner form over 1/z²
+      double r = 1.0 / (z * z);
+      double correction = (1.0 / 12.0 + r * (-1.0 / 360.0 + r * (1.0 / 1260.0
+          + r * (-1.0 / 1680.0 + r * (1.0 / 1188.0 + r * (-691.0 / 360360.0
+          + r * (1.0 / 156.0))))))) / z;
+
+      return (z - 0.5) * Math.Log(z) - z + HALF_LOG_TWO_PI + correction
+          - Math.Log(shiftProduct);
     }
 
-    private static double gser(double a, double x)
+    /// <summary>Computes P(a, x) by its power series; converges quickly for x &lt; a + 1.</summary>
+    /// <remarks>
+    /// A&amp;S 6.5.29: P(a, x) = x^a·e^(−x)/Γ(a+1) · Σ_{k≥0} x^k / ((a+1)(a+2)…(a+k)).
+    /// </remarks>
+    private static double LowerRegularizedGammaBySeries(double a, double x)
     {
-      const int ITMAX = 100;
-      const double EPS = 3.0e-7;
+      if (x == 0.0) return 0.0;
 
-      if (x <= 0.0) return 0.0;
-
-      double ap = a;
-      double del = 1.0 / a;
-      double sum = del;
-      for (int n = 1; n <= ITMAX; n++)
+      double term = 1.0;
+      double sum = 1.0;
+      for (int k = 1; k <= MAX_TERMS; k++)
       {
-        ++ap;
-        del *= x / ap;
-        sum += del;
-        if (Math.Abs(del) < Math.Abs(sum) * EPS)
-          return sum * Math.Exp(-x + a * Math.Log(x) - gammln(a));
+        term *= x / (a + k);
+        sum += term;
+        if (term < sum * CONVERGENCE_TOLERANCE)
+          return sum * Math.Exp(a * Math.Log(x) - x - LogGamma(a + 1.0));
       }
       throw new PopoloNumericalException(
-          "gser",
-          $"Convergence failed. a={a}, x={x}. Try reducing a or increasing ITMAX.");
+          nameof(LowerRegularizedGammaBySeries),
+          $"The series did not converge within {MAX_TERMS} terms. a={a}, x={x}.");
     }
 
-    private static double gcf(double a, double x)
+    /// <summary>Computes Q(a, x) by its continued fraction; converges quickly for x ≥ a + 1.</summary>
+    /// <remarks>
+    /// Even contraction of A&amp;S 6.5.31:
+    /// Q(a, x) = x^a·e^(−x)/Γ(a) · 1/(b₀ + a₁/(b₁ + a₂/(b₂ + …))),
+    /// with b_k = x + 2k + 1 − a and a_k = −k(k − a), evaluated by the modified Lentz method
+    /// (Thompson and Barnett, 1986).
+    /// </remarks>
+    private static double UpperRegularizedGammaByContinuedFraction(double a, double x)
     {
-      const int ITMAX = 100;
-      const double EPS = 3.0e-7;
+      const double TINY = 1e-300;
 
-      double a0 = 1.0;
-      double a1 = x;
-      double b0 = 0.0;
-      double b1 = 1.0;
-      double fac = 1.0;
-      double gold = 0.0;
-      for (int n = 1; n <= ITMAX; n++)
+      double fraction = x + 1.0 - a;   // b₀ ≥ 2 in the range where this is called
+      double numeratorRatio = fraction;
+      double denominatorRatio = 0.0;
+      for (int k = 1; k <= MAX_TERMS; k++)
       {
-        double an = n;
-        double ana = an - a;
-        a0 = (a1 + a0 * ana) * fac;
-        b0 = (b1 + b0 * ana) * fac;
-        double anf = an * fac;
-        a1 = x * a0 + anf * a1;
-        b1 = x * b0 + anf * b1;
-        if (a1 != 0)
-        {
-          fac = 1.0 / a1;
-          double g = b1 * fac;
-          if (Math.Abs((g - gold) / g) < EPS)
-            return Math.Exp(-x + a * Math.Log(x) - gammln(a)) * g;
-          gold = g;
-        }
+        double ak = -k * (k - a);
+        double bk = x + 2 * k + 1.0 - a;
+
+        denominatorRatio = bk + ak * denominatorRatio;
+        if (Math.Abs(denominatorRatio) < TINY) denominatorRatio = TINY;
+        denominatorRatio = 1.0 / denominatorRatio;
+
+        numeratorRatio = bk + ak / numeratorRatio;
+        if (Math.Abs(numeratorRatio) < TINY) numeratorRatio = TINY;
+
+        double factor = numeratorRatio * denominatorRatio;
+        fraction *= factor;
+        if (Math.Abs(factor - 1.0) < CONVERGENCE_TOLERANCE)
+          return Math.Exp(a * Math.Log(x) - x - LogGamma(a)) / fraction;
       }
       throw new PopoloNumericalException(
-          "gcf",
-          $"Convergence failed. a={a}, x={x}. Try reducing a or increasing ITMAX.");
+          nameof(UpperRegularizedGammaByContinuedFraction),
+          $"The continued fraction did not converge within {MAX_TERMS} levels. a={a}, x={x}.");
     }
 
     #endregion

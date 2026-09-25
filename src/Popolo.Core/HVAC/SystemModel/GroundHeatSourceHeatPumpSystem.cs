@@ -2,19 +2,17 @@
  * 
  * Copyright (C) 2018 E.Togashi
  * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -207,14 +205,21 @@ namespace Popolo.Core.HVAC.SystemModel
       //Iterate on the ground source water temperature
       else
       {
-        //Golden-section method
         Roots.ErrorFunction eFnc = delegate (double x)
         {
           whp.CoolWater(chilledWaterFlowRate, GroundWaterFlowRate, ChilledWaterReturnTemperature + deltaTW, x);
           gHex.ForecastState(whp.CoolingWaterOutletTemperature + deltaTG, GroundWaterFlowRate);
           return gHex.FluidOutletTemperature - x;
         };
-        Roots.Brent(gHex.NearGroundTemperature, COOL_MAX_TEMP, 0.01, eFnc);
+        //Lower bound: the colder of the committed soil temperatures. Heat rejection and pump
+        //heat make the loop inlet at least x, and the forecast near-soil temperature is a
+        //blend of that inlet and the committed soil temperatures, so the ground outlet
+        //cannot fall below x there (residual ≥ 0). gHex.NearGroundTemperature is unsuitable
+        //because it holds the forecast just made at COOL_MAX_TEMP.
+        double tLow = Math.Min(
+          gHex.CommittedNearGroundTemperature, gHex.CommittedDistantGroundTemperature);
+        //Evaluate at the root last so that the heat pump and ground states correspond to it
+        eFnc(Roots.Brent(tLow, COOL_MAX_TEMP, 0.01, eFnc));
 
         IsGroundHEX_OverLoad = false;
       }
@@ -256,14 +261,20 @@ namespace Popolo.Core.HVAC.SystemModel
       //Iterate on the ground source water temperature
       else
       {
-        //Golden-section method
-        Roots.ErrorFunction eFnc = delegate (double x) 
+        Roots.ErrorFunction eFnc = delegate (double x)
         {
           whp.HeatWater(hotWaterFlowRate, GroundWaterFlowRate, HotWaterReturnTemperature + deltaTW, x);
           gHex.ForecastState(whp.HeatSourceWaterOutletTemperature + deltaTG, GroundWaterFlowRate);
           return gHex.FluidOutletTemperature - x;
         };
-        Roots.Brent(HEAT_MIN_TEMP, gHex.NearGroundTemperature, 0.01, eFnc);
+        //Upper bound: the warmer of the committed soil temperatures (mirror image of the
+        //cooling case; heat extraction makes the loop inlet lower than x, residual ≤ 0).
+        //gHex.NearGroundTemperature is unsuitable because it holds the forecast just made
+        //at HEAT_MIN_TEMP.
+        double tHigh = Math.Max(
+          gHex.CommittedNearGroundTemperature, gHex.CommittedDistantGroundTemperature);
+        //Evaluate at the root last so that the heat pump and ground states correspond to it
+        eFnc(Roots.Brent(HEAT_MIN_TEMP, tHigh, 0.01, eFnc));
 
         IsGroundHEX_OverLoad = false;
       }

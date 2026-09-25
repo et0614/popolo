@@ -17,10 +17,10 @@
 		<!-- NuGetパッケージ情報 -->
 		<PackageId>Popolo.Core</PackageId>
 		<PackageIcon>icon.png</PackageIcon>
-		<Version>3.4.0</Version>
+		<Version>4.0.0</Version>
 		<Authors>E.Togashi</Authors>
 		<Description>A C# library for academic simulation of building thermal environments and HVAC systems. Provides physics-based models for heat transfer, thermophysical properties, climate data, occupant comfort, and HVAC equipment with no external dependencies.</Description>
-		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/et0614/popolo</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/et0614/popolo</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
@@ -50,6 +50,8 @@
 		<!-- README をパッケージルートに同梱（nuget.org 詳細ページ用） -->
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
+		<!-- 第三者ライセンス表示（BSD 系ライセンスはバイナリ配布時にも表示が必要） -->
+		<None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 </Project>

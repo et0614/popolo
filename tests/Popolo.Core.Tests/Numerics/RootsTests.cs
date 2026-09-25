@@ -2,19 +2,17 @@
  *
  * Copyright (C) 2026 E.Togashi
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -104,6 +102,48 @@ namespace Popolo.Core.Tests.Numerics
         {
             double result = Roots.Brent(1.0, 2.0, 1e-10, SqrtTwoFunction);
             Assert.Equal(Math.Sqrt(2.0), result, precision: 8);
+        }
+
+        /// <summary>根が囲い込まれていない場合、Brent法は PopoloArgumentException を投げる（黙って非解を返さない）</summary>
+        [Fact]
+        public void Brent_RootNotBracketed_ThrowsPopoloArgumentException()
+        {
+            // f(1.5)=0.25, f(2)=2 → 同符号
+            Assert.Throws<PopoloArgumentException>(
+                () => Roots.Brent(1.5, 2.0, 1e-10, SqrtTwoFunction));
+        }
+
+        /// <summary>重根（区間が片側からしか縮まない難しいケース）でも許容誤差内に収束する</summary>
+        [Theory]
+        [InlineData(3)]
+        [InlineData(5)]
+        public void Brent_MultipleRoot_Converges(int multiplicity)
+        {
+            double result = Roots.Brent(0.0, 3.0, 1e-10, x => Math.Pow(x - 1.0, multiplicity));
+            Assert.True(Math.Abs(result - 1.0) < 1e-9, $"root={result}");
+        }
+
+        /// <summary>不連続な関数でも符号変化点を許容誤差内で囲い込む</summary>
+        [Fact]
+        public void Brent_StepFunction_LocatesSignChange()
+        {
+            double result = Roots.Brent(0.0, 1.0, 1e-8, x => x < 0.3 ? -1.0 : 1.0);
+            Assert.True(Math.Abs(result - 0.3) < 2e-8, $"root={result}");
+        }
+
+        /// <summary>端点の値を与える多重定義は、関数を端点で再評価せずに同じ解を返す</summary>
+        [Fact]
+        public void Brent_WithEndValues_DoesNotReevaluateEndpoints()
+        {
+            int calls = 0;
+            Roots.ErrorFunction f = x => { calls++; return x * x - 2.0; };
+            double result = Roots.Brent(f, 1.0, 2.0, -1.0, 2.0, 1e-10);
+            Assert.Equal(Math.Sqrt(2.0), result, precision: 8);
+            // 端点(1.0, 2.0)を評価しないため、通常版より2回少ない
+            int callsWith = calls;
+            calls = 0;
+            Roots.Brent(1.0, 2.0, 1e-10, f);
+            Assert.Equal(calls - 2, callsWith);
         }
 
         #endregion
