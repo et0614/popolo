@@ -217,10 +217,14 @@ namespace Popolo.IO.Json.Building
         throw new JsonException($"'{PropMultiRooms}' must be an array.");
 
       var mRoomsList = new List<MultiRoom>();
+      // Legacy files (no per-MultiRoom "wallIds"): a single MultiRoom keeps the
+      // historical "whole wall table" behaviour; with several MultiRooms each
+      // gets only the walls it references.
+      bool singleMultiRoom = mRoomsElem.GetArrayLength() == 1;
       foreach (var mRoomElem in mRoomsElem.EnumerateArray())
       {
         var dto = ReadMultiRoomsDtoFromElement(mRoomElem, options);
-        var mRooms = MultiRoomsConverter.BuildMultiRooms(dto, wallsById);
+        var mRooms = MultiRoomsConverter.BuildMultiRooms(dto, wallsById, singleMultiRoom);
         mRoomsList.Add(mRooms);
       }
 

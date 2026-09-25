@@ -515,6 +515,26 @@ namespace Popolo.IO.Tests.Json.Building
             Assert.Throws<JsonException>(() => ReadDtoFromJson(json, CreateOptions()));
         }
 
+        /// <summary>wallIds に壁表に存在しない ID / 重複 ID があれば JsonException を投げる。</summary>
+        [Theory]
+        [InlineData("[ 999 ]")]
+        [InlineData("[ 0, 0 ]")]
+        public void BuildMultiRooms_InvalidWallIds_Throws(string wallIds)
+        {
+            string json = """
+                {
+                  "kind": "multiRooms", "albedo": 0.4, "wallIds":
+                """ + wallIds + """
+                  , "rooms": [],
+                  "outsideWalls": [], "groundWalls": [], "adjacentSpaces": [], "interZoneAirflows": []
+                }
+                """;
+            var dto = ReadDtoFromJson(json, CreateOptions());
+            var wall = new Wall(1.0, new[] { new WallLayer("X", 1.0, 1000.0, 0.1) });
+            var dict = new Dictionary<int, Wall> { [0] = wall };
+            Assert.Throws<JsonException>(() => MultiRoomsConverter.BuildMultiRooms(dto, dict));
+        }
+
         [Fact]
         public void BuildMultiRooms_UnknownWallId_Throws()
         {

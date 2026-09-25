@@ -296,6 +296,103 @@ namespace Popolo.IO.Tests.Json.Building
             Assert.Equal("Zone 2", restored.MultiRoom[1].Zones[0].Name);
         }
 
+        /// <summary>
+        /// 2 つの MultiRoom が壁を共有するモデル。MR1 の壁順 [wC, wShared] は
+        /// 書き出し時の通し ID (wA=0, wShared=1, wC=2) の昇順とは異なる。
+        /// </summary>
+        private static BuildingThermalModel MakeSharedWallTwoMultiRoomsModel()
+        {
+            var incline = new Incline(0d, Math.PI / 2);
+            var wA = MakeExternalWall(100);
+            var wShared = MakeExternalWall(101);
+            var wC = MakeExternalWall(102);
+
+            var z0 = new Zone("Z0", 100, 10);
+            var mr0 = new MultiRoom(1, new[] { z0 }, new[] { wA, wShared }, Array.Empty<Window>());
+            mr0.AddWall(0, 0, true);
+            mr0.SetOutsideWall(0, false, incline);
+            mr0.AddWall(0, 1, true);       // 共有壁の F 側が Z0 に面する
+
+            var z1 = new Zone("Z1", 100, 10);
+            var mr1 = new MultiRoom(1, new[] { z1 }, new[] { wC, wShared }, Array.Empty<Window>());
+            mr1.AddWall(0, 0, true);
+            mr1.SetOutsideWall(0, false, incline);
+            mr1.AddWall(0, 1, false);      // 共有壁の B 側が Z1 に面する
+
+            var model = new BuildingThermalModel(new[] { mr0, mr1 });
+            model.TimeStep = 3600;
+            model.UpdateOutdoorCondition(new DateTime(2026, 1, 1, 0, 0, 0),
+                new Sun(35.68, 139.77, 135.0), 5.0, 0.004, 0.0);
+            return model;
+        }
+
+        /// <summary>
+        /// 複数 MultiRoom の往復で、各 MultiRoom の Walls 配列の長さと順序
+        /// （＝壁インデックス）が保存されることを確認する。
+        /// 従来は全 MultiRoom に建物全体の壁表 (ID 昇順) が渡され、長さも順序も変わっていた。
+        /// </summary>
+        [Fact]
+        public void RoundTrip_MultipleMultiRooms_PreservesPerMultiRoomWallOrder()
+        {
+            var original = MakeSharedWallTwoMultiRoomsModel();
+            var json = JsonSerializer.Serialize(original, CreateOptions());
+            var restored = JsonSerializer.Deserialize<BuildingThermalModel>(json, CreateOptions())!;
+
+            for (int m = 0; m < 2; m++)
+            {
+                var o = original.MultiRoom[m].Walls;
+                var r = restored.MultiRoom[m].Walls;
+                Assert.Equal(o.Length, r.Length);
+                for (int i = 0; i < o.Length; i++)
+                    Assert.Equal(o[i].ID, r[i].ID);
+            }
+            // 共有壁は同一インスタンスとして復元される
+            Assert.Same(restored.MultiRoom[0].Walls[1], restored.MultiRoom[1].Walls[1]);
+            // MR1 の壁インデックス 0 に外壁が接続されている（インデックスが保たれている）
+            var ow = ((MultiRoom)restored.MultiRoom[1]).GetOutsideWallReferences();
+            Assert.Single(ow);
+            Assert.Equal(restored.MultiRoom[1].Walls[0].ID, ow[0].WallId);
+        }
+
+        /// <summary>
+        /// wallIds を持たない旧形式 JSON（複数 MultiRoom）では、各 MultiRoom が
+        /// 参照する壁のみを ID 昇順で持つ（建物全体の壁表を渡さない）ことを確認する。
+        /// </summary>
+        [Fact]
+        public void Read_LegacyJsonWithoutWallIds_MultipleMultiRooms_UsesReferencedWallsOnly()
+        {
+            var json = JsonSerializer.Serialize(MakeSharedWallTwoMultiRoomsModel(), CreateOptions());
+            var node = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+            foreach (var mr in node["multiRooms"]!.AsArray())
+                mr!.AsObject().Remove("wallIds");
+            var legacy = node.ToJsonString();
+
+            var restored = JsonSerializer.Deserialize<BuildingThermalModel>(legacy, CreateOptions())!;
+
+            Assert.Equal(new[] { 0, 1 }, Array.ConvertAll(restored.MultiRoom[0].Walls, w => w.ID));
+            Assert.Equal(new[] { 1, 2 }, Array.ConvertAll(restored.MultiRoom[1].Walls, w => w.ID));
+        }
+
+        /// <summary>
+        /// wallIds を持たない旧形式 JSON（単一 MultiRoom）は従来通り
+        /// 壁表全体を ID 昇順で持つ（既存ファイルの読み込み結果を変えない）ことを確認する。
+        /// </summary>
+        [Fact]
+        public void Read_LegacyJsonWithoutWallIds_SingleMultiRoom_UsesWholeWallTable()
+        {
+            var json = JsonSerializer.Serialize(MakeSimpleModel(), CreateOptions());
+            var node = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+            // 参照されていない壁を壁表に追加しても、単一 MultiRoom では従来通り含まれる
+            var extraWall = node["walls"]![0]!.DeepClone();
+            extraWall["id"] = 7;
+            node["walls"]!.AsArray().Add(extraWall);
+            node["multiRooms"]![0]!.AsObject().Remove("wallIds");
+
+            var restored = JsonSerializer.Deserialize<BuildingThermalModel>(node.ToJsonString(), CreateOptions())!;
+
+            Assert.Equal(new[] { 0, 7 }, Array.ConvertAll(restored.MultiRoom[0].Walls, w => w.ID));
+        }
+
         #endregion
 
         // ================================================================

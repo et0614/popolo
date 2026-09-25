@@ -49,6 +49,13 @@ namespace Popolo.IO.Json.Building
     /// <summary>Ground reflectance [-].</summary>
     public double Albedo { get; set; } = 0.4;
 
+    /// <summary>
+    /// IDs of this MultiRoom's walls in the original <c>MultiRoom.Walls</c> order
+    /// (= wall index order), or <c>null</c> when the JSON predates the
+    /// <c>wallIds</c> property.
+    /// </summary>
+    public List<int>? WallIds { get; set; }
+
     /// <summary>Rooms → zones grouping. Zone membership to its room is positional.</summary>
     public List<List<Zone>> Rooms { get; } = new List<List<Zone>>();
 

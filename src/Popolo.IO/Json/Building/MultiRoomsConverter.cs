@@ -37,6 +37,7 @@ namespace Popolo.IO.Json.Building
   /// {
   ///   "kind":    "multiRooms",
   ///   "albedo":  0.4,
+  ///   "wallIds": [ 42, 43, 44 ],
   ///   "rooms": [
   ///     { "zones": [ {...zone...}, {...zone...} ] },
   ///     { "zones": [ {...zone...} ] }
@@ -70,6 +71,14 @@ namespace Popolo.IO.Json.Building
   /// <see cref="MultiRoom"/> via <see cref="BuildMultiRooms"/>.
   /// </para>
   /// <para>
+  /// <b>wallIds</b> lists the IDs of <see cref="MultiRoom.Walls"/> in order, so that
+  /// each MultiRoom is rebuilt with exactly its own walls and the original wall
+  /// indices. It is optional on read: for older files without it, a single
+  /// MultiRoom receives the whole wall table (ascending ID) as before, while in a
+  /// model with several MultiRooms each receives only the walls it references
+  /// (ascending ID).
+  /// </para>
+  /// <para>
   /// <b>Interzone airflows</b> are serialized sparsely: only entries with a
   /// non-zero flow rate are written.
   /// </para>
@@ -86,6 +95,7 @@ namespace Popolo.IO.Json.Building
 
     private const string PropKind = "kind";
     private const string PropAlbedo = "albedo";
+    private const string PropWallIds = "wallIds";
     private const string PropRooms = "rooms";
     private const string PropZones = "zones";
     private const string PropOutsideWalls = "outsideWalls";
@@ -133,6 +143,14 @@ namespace Popolo.IO.Json.Building
       writer.WriteStartObject();
       writer.WriteString(PropKind, ExpectedKind);
       writer.WriteNumber(PropAlbedo, value.Albedo);
+
+      // wallIds: this MultiRoom's walls in Walls[] order (= wall index order).
+      // Needed so that each MultiRoom gets back exactly its own walls in the
+      // original order when a model holds several MultiRooms.
+      writer.WritePropertyName(PropWallIds);
+      writer.WriteStartArray();
+      foreach (var w in value.Walls) writer.WriteNumberValue(w.ID);
+      writer.WriteEndArray();
 
       // rooms: the number of rooms is RoomCount. Classified by the RoomIndex of each zone.
       WriteRooms(writer, value, options);
@@ -189,6 +207,9 @@ namespace Popolo.IO.Json.Building
             dto.Albedo = reader.GetDouble();
             seenAlbedo = true;
             break;
+          case PropWallIds:
+            dto.WallIds = ReadIntArray(ref reader, PropWallIds);
+            break;
           case PropRooms:
             ReadRooms(ref reader, dto, options);
             break;
@@ -228,10 +249,17 @@ namespace Popolo.IO.Json.Building
     /// </summary>
     /// <param name="dto">Intermediate DTO produced by <see cref="ReadDto"/>.</param>
     /// <param name="wallsById">Map of wall ID to <see cref="Wall"/> instance.</param>
+    /// <param name="useWholeWallTableWhenUnspecified">
+    /// Only relevant for legacy JSON without <c>wallIds</c>: when <c>true</c>
+    /// (single-MultiRoom model; the historical behaviour) the MultiRoom receives the
+    /// whole wall table in ascending ID order; when <c>false</c> (several MultiRooms)
+    /// it receives only the walls it references, in ascending ID order.
+    /// </param>
     /// <returns>A fully configured <see cref="MultiRoom"/>.</returns>
     /// <exception cref="JsonException">Thrown when a wall reference cannot be resolved.</exception>
     internal static MultiRoom BuildMultiRooms(
-      MultiRoomsDto dto, IReadOnlyDictionary<int, Wall> wallsById)
+      MultiRoomsDto dto, IReadOnlyDictionary<int, Wall> wallsById,
+      bool useWholeWallTableWhenUnspecified = true)
     {
       // 1. Prepare the Zone / Window / Wall arrays
       var flatZones = dto.FlattenZones();
@@ -243,10 +271,8 @@ namespace Popolo.IO.Json.Building
         if (ctx is not null) windows.AddRange(ctx.Windows);
       }
 
-      // Wall[] is all of wallsById as an array. The order is fixed as ascending ID.
-      var wallsSorted = new List<Wall>(wallsById.Values);
-      wallsSorted.Sort((a, b) => a.ID.CompareTo(b.ID));
-      var walls = wallsSorted.ToArray();
+      // Wall[] of this MultiRoom (its order defines the wall indices)
+      var walls = ResolveWalls(dto, flatZones, wallsById, useWholeWallTableWhenUnspecified);
 
       // 2. Create the MultiRooms instance
       var mRooms = new MultiRoom(
@@ -313,6 +339,86 @@ namespace Popolo.IO.Json.Building
         mRooms.SetAirFlow(flow.FromZoneIndex, flow.ToZoneIndex, flow.FlowRate);
 
       return mRooms;
+    }
+
+    /// <summary>
+    /// Determines this MultiRoom's <see cref="Wall"/>[] (whose order defines the wall indices).
+    /// </summary>
+    /// <remarks>
+    /// <list type="bullet">
+    ///   <item><description><c>wallIds</c> present: exactly those walls, in that order.</description></item>
+    ///   <item><description>Legacy JSON, single MultiRoom: the whole wall table, ascending ID
+    ///   (identical to the pre-4.0 reader).</description></item>
+    ///   <item><description>Legacy JSON, several MultiRooms: the walls referenced by this
+    ///   MultiRoom's zones / outside / ground / adjacent-space entries, ascending ID.
+    ///   (Pre-4.0 readers handed every MultiRoom the whole table, so each MultiRoom
+    ///   also held — and processed — the walls of the other MultiRooms.)</description></item>
+    /// </list>
+    /// </remarks>
+    private static Wall[] ResolveWalls(
+      MultiRoomsDto dto, List<Zone> flatZones,
+      IReadOnlyDictionary<int, Wall> wallsById, bool useWholeWallTableWhenUnspecified)
+    {
+      if (dto.WallIds is not null)
+      {
+        var result = new Wall[dto.WallIds.Count];
+        var seen = new HashSet<int>();
+        for (int i = 0; i < result.Length; i++)
+        {
+          int id = dto.WallIds[i];
+          if (!seen.Add(id))
+            throw new JsonException($"Duplicate wall ID {id} in '{PropWallIds}'.");
+          if (!wallsById.TryGetValue(id, out var w))
+            throw new JsonException($"Wall with ID {id} listed in '{PropWallIds}' not found in the wall table.");
+          result[i] = w;
+        }
+        return result;
+      }
+
+      List<Wall> walls;
+      if (useWholeWallTableWhenUnspecified)
+      {
+        walls = new List<Wall>(wallsById.Values);
+      }
+      else
+      {
+        var ids = new HashSet<int>();
+        foreach (var zone in flatZones)
+        {
+          var ctx = ZoneDeserializationContext.TryGet(zone);
+          if (ctx is null) continue;
+          foreach (var wr in ctx.WallReferences) ids.Add(wr.WallId);
+        }
+        foreach (var ow in dto.OutsideWalls) ids.Add(ow.WallId);
+        foreach (var gw in dto.GroundWalls) ids.Add(gw.WallId);
+        foreach (var asw in dto.AdjacentSpaces) ids.Add(asw.WallId);
+
+        walls = new List<Wall>();
+        foreach (int id in ids)
+        {
+          if (!wallsById.TryGetValue(id, out var w))
+            throw new JsonException($"Wall with ID {id} not found in the wall table.");
+          walls.Add(w);
+        }
+      }
+      walls.Sort((a, b) => a.ID.CompareTo(b.ID));
+      return walls.ToArray();
+    }
+
+    /// <summary>Reads a JSON array of integers.</summary>
+    private static List<int> ReadIntArray(ref Utf8JsonReader reader, string propName)
+    {
+      if (reader.TokenType != JsonTokenType.StartArray)
+        throw new JsonException($"Expected StartArray for '{propName}', but got {reader.TokenType}.");
+      var list = new List<int>();
+      while (reader.Read())
+      {
+        if (reader.TokenType == JsonTokenType.EndArray) break;
+        if (reader.TokenType != JsonTokenType.Number)
+          throw new JsonException($"Each '{propName}' entry must be an integer, but got {reader.TokenType}.");
+        list.Add(reader.GetInt32());
+      }
+      return list;
     }
 
     /// <summary>Finds the array index of a wall by its ID.</summary>
