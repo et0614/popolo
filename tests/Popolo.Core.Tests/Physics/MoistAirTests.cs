@@ -506,5 +506,96 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
+    #region Physically impossible inputs and robustness of inversions
+
+    /// <summary>
+    /// 水蒸気分圧が大気圧以上（または負）のとき PopoloOutOfRangeException が発生する
+    /// （従来は負の絶対湿度を返していた。例：pw=110kPa で -7.89 kg/kg）
+    /// </summary>
+    [Theory]
+    [InlineData(110.0)]
+    [InlineData(101.325)]
+    [InlineData(-0.1)]
+    public void GetHumidityRatioFromWaterVaporPartialPressure_ImpossiblePressure_Throws(double pw)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => MoistAir.GetHumidityRatioFromWaterVaporPartialPressure(pw, Atm));
+    }
+
+    /// <summary>
+    /// 沸点以上の乾球温度では飽和絶対湿度が定義できず PopoloOutOfRangeException が発生する
+    /// （従来は 120°C で -1.27 kg/kg を返していた）
+    /// </summary>
+    [Fact]
+    public void GetSaturationHumidityRatio_AboveBoilingPoint_Throws()
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => MoistAir.GetSaturationHumidityRatioFromDryBulbTemperature(120.0, Atm));
+    }
+
+    /// <summary>
+    /// 高温空気（乾球120°C）の湿球温度が正しく求まる
+    /// （従来は Newton 法が沸点を超えて発散し -203765°C を返していた）
+    /// </summary>
+    [Theory]
+    [InlineData(120.0, 0.01)]
+    [InlineData(150.0, 0.05)]
+    [InlineData(99.0, 0.02)]
+    public void GetWetBulbTemperature_HotAir_ReturnsConsistentValue(double dbt, double w)
+    {
+      double wbt = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(dbt, w, Atm);
+      Assert.InRange(wbt, 0.0, 100.0);
+      Assert.True(wbt < dbt);
+      double wRecovered = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
+          dbt, wbt, Atm);
+      Assert.Equal(w, wRecovered, 1e-6);
+
+      //コンストラクタでも同様
+      var air = new MoistAir(dbt, w);
+      Assert.Equal(wbt, air.WetBulbTemperature, 1e-9);
+    }
+
+    /// <summary>
+    /// 相対湿度0%（ゼロ除算）や絶対湿度0（露点が -∞）からの乾球温度逆算は
+    /// PopoloOutOfRangeException となる（従来は NaN / -∞ を返していた）
+    /// </summary>
+    [Theory]
+    [InlineData(0.01, 0.0)]
+    [InlineData(0.0, 50.0)]
+    [InlineData(0.01, -5.0)]
+    public void GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity_Degenerate_Throws(
+        double w, double rh)
+    {
+      Assert.Throws<PopoloOutOfRangeException>(
+          () => MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity(w, rh, Atm));
+    }
+
+    /// <summary>
+    /// 範囲内の入力に対する結果は検証追加前と同一である（期待値は修正前のコードによる値）
+    /// </summary>
+    [Fact]
+    public void InRangeResults_AreUnchanged()
+    {
+      Assert.Equal(23.998891676483026,
+          MoistAir.GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity(0.0093, 50, Atm), 1e-12);
+      Assert.Equal(27.567963169086013,
+          MoistAir.GetDryBulbTemperatureFromWetBulbTemperatureAndRelativeHumidity(20, 50, Atm), 1e-12);
+      Assert.Equal(24.876476689863026,
+          MoistAir.GetDryBulbTemperatureFromEnthalpyAndRelativeHumidity(50, 50, Atm), 1e-12);
+      Assert.Equal(23.808567537400393,
+          MoistAir.GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature(0.0093, 17, Atm), 1e-12);
+      Assert.Equal(25.517136238063348,
+          MoistAir.GetDryBulbTemperatureFromRelativeHumidityAndSpecificVolume(50, 0.86, Atm), 1e-12);
+      Assert.Equal(26.461355425581658,
+          MoistAir.GetDryBulbTemperatureFromWetBulbTemperatureAndSpecificVolume(17, 0.86, Atm), 1e-12);
+
+      var air = new MoistAir(24.0, 0.0093);
+      Assert.Equal(49.99667133298734, air.RelativeHumidity, 1e-12);
+      Assert.Equal(47.806175999999994, air.Enthalpy, 1e-12);
+      Assert.Equal(0.8544171812189127, air.SpecificVolume, 1e-12);
+    }
+
+    #endregion
+
   }
 }

@@ -190,6 +190,18 @@ namespace Popolo.Core.Physics
             "Atmospheric pressure must be positive.");
     }
 
+    /// <summary>
+    /// Checks that a temperature [°C] obtained by an iterative inversion is finite and
+    /// above absolute zero; otherwise the iteration has diverged.
+    /// </summary>
+    private static double EnsureFiniteTemperature(double temperature, string solverName, string inputs)
+    {
+      if (!double.IsFinite(temperature) || temperature < AbsoluteZero)
+        throw new PopoloNumericalException(solverName,
+            $"The iteration diverged to an unphysical temperature ({temperature} °C). {inputs}");
+      return temperature;
+    }
+
     #endregion
 
     #region Conversion between water vapor partial pressure and humidity ratio
@@ -216,10 +228,19 @@ namespace Popolo.Core.Physics
     /// <param name="waterVaporPartialPressure">Water vapor partial pressure [kPa]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Humidity ratio [kg/kg(DA)]</returns>
+    /// <exception cref="PopoloOutOfRangeException">
+    /// Thrown when the water vapor partial pressure is negative or not below the
+    /// atmospheric pressure (no dry air would remain; e.g., the saturation state of
+    /// water at or above its boiling point).
+    /// </exception>
     public static double GetHumidityRatioFromWaterVaporPartialPressure(
         double waterVaporPartialPressure, double atmosphericPressure)
     {
       ValidateAtmosphericPressure(atmosphericPressure, nameof(atmosphericPressure));
+      if (!(0 <= waterVaporPartialPressure && waterVaporPartialPressure < atmosphericPressure))
+        throw new PopoloOutOfRangeException(nameof(waterVaporPartialPressure),
+            waterVaporPartialPressure, 0.0, atmosphericPressure,
+            "Water vapor partial pressure must be non-negative and below the atmospheric pressure.");
       return 0.62198 * waterVaporPartialPressure
           / (atmosphericPressure - waterVaporPartialPressure);
     }
@@ -413,7 +434,31 @@ namespace Popolo.Core.Physics
         Roots.ErrorFunction eFnc = wbt =>
             humidityRatio - GetHumidityRatioFromWetBulbBalance(
                 dryBulbTemperature, wbt, atmosphericPressure, false);
-        return Roots.Newton(eFnc, dryBulbTemperature, 1e-5, 1e-7, 1e-4, 20);
+        //The wet-bulb temperature lies below the boiling point at the atmospheric pressure
+        double tBoil = Water.GetSaturationTemperature(atmosphericPressure);
+        double wbtN;
+        try
+        {
+          wbtN = Roots.Newton(eFnc, dryBulbTemperature, 1e-5, 1e-7, 1e-4, 20);
+        }
+        catch (PopoloOutOfRangeException) { wbtN = double.NaN; } //stepped beyond the boiling point
+        catch (PopoloNumericalException) { wbtN = double.NaN; }
+        if (double.IsFinite(wbtN) && -0.01 < wbtN && wbtN < tBoil) return wbtN;
+
+        //Fallback (e.g., hot air whose dry-bulb temperature exceeds the boiling point, where
+        //Newton's method started at the dry-bulb temperature walks off): bracketed solution
+        //on [0, tBoil). The residual is non-negative at 0 °C and tends to −∞ at tBoil.
+        double high = tBoil - 1e-3;
+        double fBoil = eFnc(high);
+        if (0 <= fBoil)
+          throw new PopoloOutOfRangeException(nameof(humidityRatio), humidityRatio, 0.0, null,
+              "The humidity ratio is too large for a wet-bulb temperature below the boiling point.");
+        double wbtB = Roots.Brent(eFnc, 0.0, high, humidityRatio - w0, fBoil, 1e-7);
+        if (!double.IsFinite(wbtB))
+          throw new PopoloNumericalException(
+              "GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio",
+              $"Non-finite wet-bulb temperature. dbt={dryBulbTemperature} °C, W={humidityRatio}.");
+        return wbtB;
       }
 
       //Ice (ice-bulb) branch: t* < 0 °C
@@ -471,7 +516,10 @@ namespace Popolo.Core.Physics
           GetHumidityRatioFromDryBulbTemperatureAndEnthalpy(dbt, enthalpy)
           - GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
               dbt, wetBulbTemperature, atmosphericPressure);
-      return Roots.Newton(eFnc, wetBulbTemperature, 1e-5, 1e-7, 1e-4, 20);
+      return EnsureFiniteTemperature(
+          Roots.Newton(eFnc, wetBulbTemperature, 1e-5, 1e-7, 1e-4, 20),
+          "GetDryBulbTemperatureFromWetBulbTemperatureAndEnthalpy",
+          $"wbt={wetBulbTemperature} °C, h={enthalpy} kJ/kg.");
     }
 
     /// <summary>
@@ -614,9 +662,19 @@ namespace Popolo.Core.Physics
     /// <param name="relativeHumidity">Relative humidity [%]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Dry-bulb temperature [°C]</returns>
+    /// <exception cref="PopoloOutOfRangeException">
+    /// Thrown when the relative humidity is not positive (the dry-bulb temperature is then
+    /// undefined) or the humidity ratio is not positive (the dry-bulb temperature would be −∞).
+    /// </exception>
     public static double GetDryBulbTemperatureFromHumidityRatioAndRelativeHumidity(
         double humidityRatio, double relativeHumidity, double atmosphericPressure)
     {
+      if (!(0 < relativeHumidity))
+        throw new PopoloOutOfRangeException(nameof(relativeHumidity), relativeHumidity, 0.0, null,
+            "Relative humidity must be positive to determine the dry-bulb temperature.");
+      if (!(0 < humidityRatio))
+        throw new PopoloOutOfRangeException(nameof(humidityRatio), humidityRatio, 0.0, null,
+            "Humidity ratio must be positive to determine the dry-bulb temperature.");
       double ps = GetWaterVaporPartialPressureFromHumidityRatio(humidityRatio, atmosphericPressure);
       return Water.GetSaturationTemperature(ps / relativeHumidity * 100);
     }
@@ -780,7 +838,10 @@ namespace Popolo.Core.Physics
         return dbt - GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature(
             hrt, wetBulbTemperature, atmosphericPressure);
       };
-      return Roots.Newton(eFnc, wetBulbTemperature, 1e-5, 1e-4, 1e-4, 20);
+      return EnsureFiniteTemperature(
+          Roots.Newton(eFnc, wetBulbTemperature, 1e-5, 1e-4, 1e-4, 20),
+          "GetDryBulbTemperatureFromWetBulbTemperatureAndRelativeHumidity",
+          $"wbt={wetBulbTemperature} °C, RH={relativeHumidity} %.");
     }
 
     /// <summary>
@@ -834,7 +895,10 @@ namespace Popolo.Core.Physics
       Roots.ErrorFunction eFnc = dbt =>
           enthalpy - GetEnthalpyFromDryBulbTemperatureAndRelativeHumidity(
               dbt, relativeHumidity, atmosphericPressure);
-      return Roots.Newton(eFnc, 25, 1e-5, 1e-4, 1e-4, 20);
+      return EnsureFiniteTemperature(
+          Roots.Newton(eFnc, 25, 1e-5, 1e-4, 1e-4, 20),
+          "GetDryBulbTemperatureFromEnthalpyAndRelativeHumidity",
+          $"h={enthalpy} kJ/kg, RH={relativeHumidity} %.");
     }
 
     /// <summary>
@@ -913,7 +977,8 @@ namespace Popolo.Core.Physics
               "GetDryBulbTemperatureFromRelativeHumidityAndSpecificVolume",
               $"Convergence failed after {iterNum} iterations. Last dbt={dbt} °C.");
       }
-      return dbt;
+      return EnsureFiniteTemperature(dbt, "MoistAir specific-volume inversion",
+          $"v={specificVolume} m³/kg.");
     }
 
     /// <summary>
@@ -952,7 +1017,8 @@ namespace Popolo.Core.Physics
               "GetDryBulbTemperatureFromWetBulbTemperatureAndSpecificVolume",
               $"Convergence failed after {iterNum} iterations. Last dbt={dbt} °C.");
       }
-      return dbt;
+      return EnsureFiniteTemperature(dbt, "MoistAir specific-volume inversion",
+          $"v={specificVolume} m³/kg.");
     }
 
     /// <summary>
