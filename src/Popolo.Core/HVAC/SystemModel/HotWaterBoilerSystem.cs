@@ -120,7 +120,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public void ShutOff()
     {
       IsOverLoad_H = false;
-      BoilerCount = 0;
+      ActiveUnitCount = 0;
       boiler.ShutOff();
       hwPump.ShutOff();
     }
@@ -131,6 +131,7 @@ namespace Popolo.Core.HVAC.SystemModel
     public void ForecastSupplyWaterTemperature(double chilledWaterFlowRate, double hotWaterFlowRate)
     {
       ChilledWaterFlowRate = chilledWaterFlowRate;
+      HotWaterFlowRate = hotWaterFlowRate;
 
       if (Mode != HeatSourceSystemModel.OperatingMode.Heating || hotWaterFlowRate == 0)
       {

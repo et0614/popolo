@@ -357,6 +357,65 @@ namespace Popolo.Core.Tests.HVAC.SystemModel
             Assert.False(hs.IsOverLoad_C);
         }
 
+        /// <summary>
+        /// 停止（ゼロ負荷）を経ても次の暖房要求で再びボイラが運転される。
+        /// ShutOff がボイラ台数（BoilerCount）を 0 にしていた旧実装では永久に停止していた。
+        /// </summary>
+        [Fact]
+        public void HotWaterBoilerSystem_AfterShutOff_HeatsAgain()
+        {
+            var (hs, boiler) = MakeBoilerSystem();
+            hs.ForecastSupplyWaterTemperature(0, 12, 0, 40);   // 暖房負荷なし → サブシステム停止
+            hs.ForecastSupplyWaterTemperature(0, 12, 1.0, 40);
+            Assert.True(boiler.FuelConsumption > 0,
+                $"FuelConsumption={boiler.FuelConsumption:F6} > 0");
+            Assert.InRange(hs.HotWaterSupplyTemperature, 58.0, 62.0);
+        }
+
+        /// <summary>
+        /// サブシステムを直接 ShutOff した後も、台数と最大流量が保持され、次の予測で運転できる。
+        /// </summary>
+        [Fact]
+        public void HotWaterBoilerSystem_ShutOff_KeepsUnitCount()
+        {
+            double nomFuel = Boiler.GetFuelConsumption(
+                nomCap_Boiler(), 60.0, 15.0, Boiler.Fuel.Gas13A, 200, 1.1, 0, 15.0, 60.0);
+            var boiler = new HotWaterBoiler(
+                40.0, 60.0, 2.0, nomFuel, 0.5, 15.0, 1.1, Boiler.Fuel.Gas13A, 200.0);
+            var hwPmp = new CentrifugalPump(
+                100, 0.002, 90, 0.002,
+                CentrifugalPump.ControlMethod.ConstantPressureWithInverter, 50);
+            var bSystem = new HotWaterBoilerSystem(boiler, hwPmp, 2);
+            bSystem.Mode = HeatSourceSystemModel.OperatingMode.Heating;
+            bSystem.HotWaterSupplyTemperatureSetpoint = 60.0;
+
+            bSystem.ShutOff();
+            Assert.Equal(2, bSystem.BoilerCount);
+            Assert.Equal(0, bSystem.ActiveUnitCount);
+            Assert.Equal(4.0, bSystem.MaxHotWaterFlowRate, 10);
+
+            bSystem.ForecastSupplyWaterTemperature(0, 1.0);
+            Assert.Equal(1, bSystem.ActiveUnitCount);
+            Assert.True(boiler.FuelConsumption > 0);
+        }
+
+        /// <summary>
+        /// 過負荷時、系全体の往温度は各サブシステムの温水流量で重み付け平均される。
+        /// ボイラ系が HotWaterFlowRate を設定しなかった旧実装では 0/0 で NaN になっていた。
+        /// </summary>
+        [Fact]
+        public void HotWaterBoilerSystem_Overload_SupplyTemperatureIsFinite()
+        {
+            var (hs, boiler) = MakeBoilerSystem();
+            // 還温度20 °C・1.5 kg/s → 60 °C まで約 251 kW（定格約 167 kW を超過）
+            hs.ForecastSupplyWaterTemperature(0, 12, 1.5, 20);
+            Assert.True(hs.IsOverLoad_H);
+            Assert.True(double.IsFinite(hs.HotWaterSupplyTemperature),
+                $"HotWaterSupplyTemperature={hs.HotWaterSupplyTemperature}");
+            Assert.InRange(hs.HotWaterSupplyTemperature, 15.0, 60.0);
+            Assert.Equal(boiler.OutletWaterTemperature, hs.HotWaterSupplyTemperature, 6);
+        }
+
         private static double nomCap_Boiler() => (60.0 - 40.0) * 2.0 * Cp;
 
         #endregion
