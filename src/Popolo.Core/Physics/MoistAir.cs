@@ -50,6 +50,15 @@ namespace Popolo.Core.Physics
     /// <summary>Gas constant of dry air [kJ/(kg·K)].</summary>
     public const double DryAirGasConstant = 0.287055;
 
+    /// <summary>Latent heat of fusion of water at 0 °C [kJ/kg] (ASHRAE Fundamentals: 333.4 kJ/kg).</summary>
+    private const double FusionLatentHeat = 333.4;
+
+    /// <summary>Latent heat of sublimation of ice at 0 °C [kJ/kg] (vaporization + fusion).</summary>
+    private const double SublimationLatentHeat = VaporizationLatentHeat + FusionLatentHeat;
+
+    /// <summary>Isobaric specific heat of ice [kJ/(kg·K)] (ASHRAE Fundamentals psychrometrics: 2.1).</summary>
+    private const double IceIsobaricSpecificHeat = 2.1;
+
     #endregion
 
     #region Properties
@@ -269,6 +278,45 @@ namespace Popolo.Core.Physics
     #region Wet-bulb temperature calculation
 
     /// <summary>
+    /// Gets the latent heat [kJ/kg] and the specific heat of the condensed phase
+    /// [kJ/(kg·K)] of the wet-bulb energy balance: liquid water at or above 0 °C,
+    /// ice (sublimation) below 0 °C.
+    /// </summary>
+    private static void GetWetBulbBalanceConstants(bool isIceBulb,
+        out double latentHeat, out double condensedSpecificHeat)
+    {
+      if (isIceBulb)
+      {
+        latentHeat = SublimationLatentHeat;
+        condensedSpecificHeat = IceIsobaricSpecificHeat;
+      }
+      else
+      {
+        latentHeat = VaporizationLatentHeat;
+        condensedSpecificHeat = WaterIsobaricSpecificHeat;
+      }
+    }
+
+    /// <summary>
+    /// Evaluates the humidity ratio [kg/kg(DA)] from the adiabatic-saturation energy
+    /// balance on the liquid-water (wet-bulb) or ice (ice-bulb) surface.
+    /// </summary>
+    private static double GetHumidityRatioFromWetBulbBalance(
+        double dryBulbTemperature, double wetBulbTemperature, double atmosphericPressure,
+        bool isIceBulb)
+    {
+      GetWetBulbBalanceConstants(isIceBulb, out double lh, out double cc);
+      double ps = Water.GetSaturationPressure(wetBulbTemperature);
+      double ws = GetHumidityRatioFromWaterVaporPartialPressure(ps, atmosphericPressure);
+      double a = ws * (lh
+          + (VaporIsobaricSpecificHeat - cc) * wetBulbTemperature)
+          + DryAirIsobaricSpecificHeat * (wetBulbTemperature - dryBulbTemperature);
+      double b = lh + VaporIsobaricSpecificHeat * dryBulbTemperature
+          - cc * wetBulbTemperature;
+      return a / b;
+    }
+
+    /// <summary>
     /// Gets the humidity ratio [kg/kg(DA)]
     /// from the dry-bulb temperature [°C], wet-bulb temperature [°C],
     /// and atmospheric pressure [kPa].
@@ -277,17 +325,30 @@ namespace Popolo.Core.Physics
     /// <param name="wetBulbTemperature">Wet-bulb temperature [°C]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Humidity ratio [kg/kg(DA)]</returns>
+    /// <remarks>
+    /// <para>
+    /// At or above 0 °C the energy balance of evaporation from a liquid-water surface is used:
+    /// W = [(r0 + (cpv − cw)·t*)·Ws* − cpa·(t − t*)] / (r0 + cpv·t − cw·t*).
+    /// </para>
+    /// <para>
+    /// Below 0 °C the saturation pressure <see cref="Water.GetSaturationPressure"/> is taken over
+    /// ice, so the balance of sublimation from an ice surface (ice-bulb) is used consistently
+    /// (ASHRAE Handbook Fundamentals 2017, Ch.1, Eq.(37)):
+    /// W = [(rs + (cpv − ci)·t*)·Ws* − cpa·(t − t*)] / (rs + cpv·t − ci·t*),
+    /// with the latent heat of sublimation rs = r0 + 333.4 kJ/kg and the specific heat of ice
+    /// ci = 2.1 kJ/(kg·K) (ASHRAE: 2830 − 0.24·t*, 2830 + 1.86·t − 2.1·t*).
+    /// </para>
+    /// <para>
+    /// Because the latent heats differ, W jumps slightly at t* = 0 °C (for t = 5 °C about
+    /// 0.24 g/kg, the ice-bulb value being larger); this discontinuity is inherent to the
+    /// wet-bulb/ice-bulb definition.
+    /// </para>
+    /// </remarks>
     public static double GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
         double dryBulbTemperature, double wetBulbTemperature, double atmosphericPressure)
     {
-      double ps = Water.GetSaturationPressure(wetBulbTemperature);
-      double ws = GetHumidityRatioFromWaterVaporPartialPressure(ps, atmosphericPressure);
-      double a = ws * (VaporizationLatentHeat
-          + (VaporIsobaricSpecificHeat - WaterIsobaricSpecificHeat) * wetBulbTemperature)
-          + DryAirIsobaricSpecificHeat * (wetBulbTemperature - dryBulbTemperature);
-      double b = VaporizationLatentHeat + VaporIsobaricSpecificHeat * dryBulbTemperature
-          - WaterIsobaricSpecificHeat * wetBulbTemperature;
-      return a / b;
+      return GetHumidityRatioFromWetBulbBalance(dryBulbTemperature, wetBulbTemperature,
+          atmosphericPressure, wetBulbTemperature < 0);
     }
 
     /// <summary>
@@ -299,15 +360,20 @@ namespace Popolo.Core.Physics
     /// <param name="wetBulbTemperature">Wet-bulb temperature [°C]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Dry-bulb temperature [°C]</returns>
+    /// <remarks>
+    /// Inverse of <see cref="GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature"/>;
+    /// below 0 °C the ice-bulb (sublimation) energy balance is used.
+    /// </remarks>
     public static double GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature(
         double humidityRatio, double wetBulbTemperature, double atmosphericPressure)
     {
+      GetWetBulbBalanceConstants(wetBulbTemperature < 0, out double lh, out double cc);
       double ps = Water.GetSaturationPressure(wetBulbTemperature);
       double ws = GetHumidityRatioFromWaterVaporPartialPressure(ps, atmosphericPressure);
-      double a = ws * (VaporizationLatentHeat
-          + (VaporIsobaricSpecificHeat - WaterIsobaricSpecificHeat) * wetBulbTemperature);
+      double a = ws * (lh
+          + (VaporIsobaricSpecificHeat - cc) * wetBulbTemperature);
       a += DryAirIsobaricSpecificHeat * wetBulbTemperature;
-      a += (WaterIsobaricSpecificHeat * wetBulbTemperature - VaporizationLatentHeat) * humidityRatio;
+      a += (cc * wetBulbTemperature - lh) * humidityRatio;
       double b = VaporIsobaricSpecificHeat * humidityRatio + DryAirIsobaricSpecificHeat;
       return a / b;
     }
@@ -321,13 +387,68 @@ namespace Popolo.Core.Physics
     /// <param name="humidityRatio">Humidity ratio [kg/kg(DA)]</param>
     /// <param name="atmosphericPressure">Atmospheric pressure [kPa]</param>
     /// <returns>Wet-bulb temperature [°C]</returns>
+    /// <remarks>
+    /// <para>
+    /// When the humidity ratio is at least the value for a wet-bulb temperature of 0 °C on the
+    /// liquid-water balance, the (liquid) wet-bulb temperature ≥ 0 °C is returned. Otherwise
+    /// the ice-bulb temperature &lt; 0 °C is returned (see
+    /// <see cref="GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature"/>).
+    /// </para>
+    /// <para>
+    /// Because of the inherent discontinuity at 0 °C, a narrow band of humidity ratios admits
+    /// both a liquid solution slightly above 0 °C and an ice solution slightly below 0 °C;
+    /// the liquid solution is returned there, so the result jumps by a few tenths of a kelvin
+    /// across 0 °C. In the opposite case (only possible for dry-bulb temperatures below 0 °C
+    /// and strongly supersaturated air) neither branch has a solution and 0 °C is returned.
+    /// </para>
+    /// </remarks>
     public static double GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
         double dryBulbTemperature, double humidityRatio, double atmosphericPressure)
     {
-      Roots.ErrorFunction eFnc = wbt =>
-          humidityRatio - GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
-              dryBulbTemperature, wbt, atmosphericPressure);
-      return Roots.Newton(eFnc, dryBulbTemperature, 1e-5, 1e-7, 1e-4, 20);
+      //Liquid-water (wet-bulb) branch: t* >= 0 °C
+      double w0 = GetHumidityRatioFromWetBulbBalance(
+          dryBulbTemperature, 0.0, atmosphericPressure, false);
+      if (w0 <= humidityRatio)
+      {
+        Roots.ErrorFunction eFnc = wbt =>
+            humidityRatio - GetHumidityRatioFromWetBulbBalance(
+                dryBulbTemperature, wbt, atmosphericPressure, false);
+        return Roots.Newton(eFnc, dryBulbTemperature, 1e-5, 1e-7, 1e-4, 20);
+      }
+
+      //Ice (ice-bulb) branch: t* < 0 °C
+      Roots.ErrorFunction iFnc = wbt =>
+          humidityRatio - GetHumidityRatioFromWetBulbBalance(
+              dryBulbTemperature, wbt, atmosphericPressure, true);
+      double fHigh = iFnc(0.0);
+      if (0 <= fHigh) return 0.0; //no solution on either branch (see remarks)
+      return SolveIceBulbTemperature(iFnc, Math.Min(dryBulbTemperature, 0.0), fHigh);
+    }
+
+    /// <summary>
+    /// Solves the ice-bulb energy balance for the ice-bulb temperature [°C] &lt; 0 °C by
+    /// Brent's method. The residual is negative at 0 °C and increases as the temperature falls.
+    /// </summary>
+    /// <param name="iFnc">Residual W − W_ice(t*).</param>
+    /// <param name="start">Upper end of the initial lower-bracket search [°C] (≤ 0).</param>
+    /// <param name="fHigh">Residual at 0 °C (negative).</param>
+    private static double SolveIceBulbTemperature(Roots.ErrorFunction iFnc, double start, double fHigh)
+    {
+      double high = 0.0;
+      double low = start - 1.0;
+      double fLow = iFnc(low);
+      while (fLow < 0)
+      {
+        high = low;
+        fHigh = fLow;
+        low -= 10.0;
+        if (low < AbsoluteZero + 1.0)
+          throw new PopoloNumericalException(
+              "GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio",
+              "Could not bracket the ice-bulb temperature.");
+        fLow = iFnc(low);
+      }
+      return Roots.Brent(iFnc, low, high, fLow, fHigh, 1e-7);
     }
 
     #endregion

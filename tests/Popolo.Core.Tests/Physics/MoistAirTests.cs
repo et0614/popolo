@@ -406,5 +406,105 @@ namespace Popolo.Core.Tests.Physics
 
     #endregion
 
+    #region Sub-zero wet-bulb (ice-bulb) tests
+
+    /// <summary>
+    /// 湿球温度が0°C未満では氷面の昇華の熱収支（ASHRAE Fundamentals 2017 Ch.1 Eq.(37)）で
+    /// 絶対湿度を求める。参照値：PsychroLib (Meyer and Thevenard, JOSS 2019) の試験値
+    /// GetHumRatioFromTWetBulb(-1, -5, 95461 Pa) = 0.00120399819933844
+    /// （従来の液面の式では 0.0010245 と約15%過小だった）
+    /// </summary>
+    [Fact]
+    public void GetHumidityRatioFromDryBulbAndWetBulb_BelowFreezing_MatchesAshraeIceBulb()
+    {
+      double w = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
+          -1.0, -5.0, 95.461);
+      Assert.Equal(0.00120399819933844, w, 0.00120399819933844 * 0.005);
+    }
+
+    /// <summary>
+    /// 氷点下の湿球温度での絶対湿度が ASHRAE Eq.(37)（ASHRAE の定数 2830, 0.24, 1.006,
+    /// 1.86, 2.1 と Hyland-Wexler の氷面飽和水蒸気圧、Ws=0.621945·pws/(p−pws)）による値と
+    /// 1% 以内で一致する（本クラスは cpv=1.805, 昇華潜熱 2501+333.4 を用いるため僅かに差がある。
+    /// 従来の液面の式では例えば (5°C, -2°C) で 0.00038 と約46%過小）
+    /// </summary>
+    [Theory]
+    [InlineData(-10.0, -12.0, 0.0006257657877335384)]
+    [InlineData(5.0, -2.0, 0.0007029770300539591)]
+    [InlineData(0.0, -3.0, 0.0018660529997003386)]
+    [InlineData(-20.0, -21.0, 0.0002211481923194345)]
+    public void GetHumidityRatioFromDryBulbAndWetBulb_BelowFreezing_MatchesAshraeEquation(
+        double dbt, double wbt, double expected)
+    {
+      double w = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
+          dbt, wbt, Atm);
+      Assert.Equal(expected, w, expected * 0.01);
+    }
+
+    /// <summary>氷点下の湿球温度は絶対湿度からの逆算で元に戻る（PsychroLib の試験条件）</summary>
+    [Fact]
+    public void GetWetBulbTemperature_BelowFreezing_MatchesPsychroLib()
+    {
+      double wbt = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
+          -1.0, 0.00120399819933844, 95.461);
+      Assert.Equal(-5.0, wbt, 0.05);
+    }
+
+    /// <summary>氷点下の湿球温度での順算・逆算（湿球温度・乾球温度）が整合する</summary>
+    [Theory]
+    [InlineData(-10.0, -12.0)]
+    [InlineData(5.0, -2.0)]
+    [InlineData(0.0, -3.0)]
+    [InlineData(-20.0, -21.0)]
+    public void WetBulbRelations_BelowFreezing_AreMutuallyConsistent(double dbt, double wbt)
+    {
+      double w = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
+          dbt, wbt, Atm);
+      double wbtRecovered = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
+          dbt, w, Atm);
+      double dbtRecovered = MoistAir.GetDryBulbTemperatureFromHumidityRatioAndWetBulbTemperature(
+          w, wbt, Atm);
+      Assert.Equal(wbt, wbtRecovered, 1e-3);
+      Assert.Equal(dbt, dbtRecovered, 1e-6);
+    }
+
+    /// <summary>
+    /// 0°C を境に液面（湿球）と氷面（氷球）の式が切り替わる。昇華潜熱と融解熱の差のため
+    /// 絶対湿度から求めた湿球温度には 0°C で本質的な小さな不連続が生じるが、その幅は 0.6K 未満である
+    /// </summary>
+    [Theory]
+    [InlineData(5.0)]
+    [InlineData(15.0)]
+    [InlineData(-2.0)]
+    public void GetWetBulbTemperature_AcrossFreezingPoint_DiscontinuityIsSmall(double dbt)
+    {
+      //湿球温度 0°C（液面側）に対応する絶対湿度
+      double w0 = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndWetBulbTemperature(
+          dbt, 0.0, Atm);
+      if (w0 <= 0) return;
+      double above = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
+          dbt, w0 * (1 + 1e-9), Atm);
+      double below = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(
+          dbt, w0 * (1 - 1e-6), Atm);
+      Assert.InRange(above, -1e-4, 1e-3);
+      Assert.True(below <= 0.0, $"below={below}");
+      Assert.True(above - below < 0.6, $"above={above}, below={below}");
+    }
+
+    /// <summary>湿球温度が0°C以上の結果は従来と同一である（期待値は修正前のコードによる値）</summary>
+    [Theory]
+    [InlineData(24.0, 0.0093, 17.066400694277977)]
+    [InlineData(35.0, 0.02, 27.395686677334883)]
+    [InlineData(5.0, 0.004, 3.16713502763123)]
+    [InlineData(40.0, 0.0065, 20.07313960442337)]
+    [InlineData(10.0, 0.0, 0.3654578505261884)]
+    public void Constructor_WetBulbAboveFreezing_Unchanged(double dbt, double w, double expectedWbt)
+    {
+      var air = new MoistAir(dbt, w);
+      Assert.Equal(expectedWbt, air.WetBulbTemperature, 1e-12);
+    }
+
+    #endregion
+
   }
 }
