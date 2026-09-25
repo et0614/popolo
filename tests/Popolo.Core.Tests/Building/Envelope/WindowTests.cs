@@ -328,5 +328,57 @@ namespace Popolo.Core.Tests.Building.Envelope
     }
 
     #endregion
+
+    #region Angle-dependence preset tests
+
+    /// <summary>
+    /// 全 GlassType プリセットの入射角特性多項式が垂直入射で ≈1 に正規化されており、
+    /// 任意の入射角で T+R ∈ [0,1]・吸収 1−T−R ≥ 0 を満たす。
+    /// </summary>
+    /// <remarks>
+    /// 多項式 P(cosθ)=Σ c_j cos^(j+1)θ は垂直入射 (cosθ=1) で Σ c_j となり、
+    /// τ(θ)=τ_n·P_T、ρ(θ)=1−(1−ρ_n)·P_R の関係から Σ c_j ≈ 1 でなければ
+    /// 垂直入射で τ_n, ρ_n が再現されない。かつて HeatReflecting の反射率多項式に
+    /// 符号誤り (−21.642、係数和 −42.285) があり、拡散反射率が 1 を超え
+    /// 吸収率が負になっていた（回帰テスト）。
+    /// </remarks>
+    [Theory]
+    [InlineData(Window.GlassType.Transparent)]
+    [InlineData(Window.GlassType.HeatAbsorbing)]
+    [InlineData(Window.GlassType.HeatReflecting)]
+    [InlineData(Window.GlassType.LowEmissivity)]
+    public void SetAngleDependence_Preset_NormalizedAndPhysical(Window.GlassType type)
+    {
+      const double tauN = 0.60;
+      const double rhoN = 0.20;
+      var window = new Window(1.0, new[] { tauN }, new[] { rhoN }, MakeSouthVerticalIncline());
+      window.SetAngleDependence(0, type);
+
+      // 拡散特性（半球積分値）は物理的範囲内
+      Assert.InRange(window.DiffuseSolarIncidentTransmittance, 0.0, 1.0);
+      Assert.InRange(window.DiffuseSolarIncidentReflectance, 0.0, 1.0);
+      Assert.InRange(window.DiffuseSolarIncidentTransmittance
+          + window.DiffuseSolarIncidentReflectance, 0.0, 1.0);
+      Assert.InRange(window.DiffuseSolarLostTransmittance
+          + window.DiffuseSolarLostReflectance, 0.0, 1.0);
+
+      // ほぼ垂直入射（南向き鉛直面に太陽高度≈0・方位0）で τ_n, ρ_n を再現（多項式の係数和≈1）
+      window.UpdateOpticalProperties(MakeSun(0.01, 0.0));
+      Assert.Equal(tauN, window.DirectSolarIncidentTransmittance, 2);
+      Assert.Equal(rhoN, window.DirectSolarIncidentReflectance, 2);
+
+      // 入射角全域で T, R ∈ [0,1]、T+R ≤ 1（吸収 ≥ 0）
+      for (int deg = 1; deg < 90; deg += 2)
+      {
+        window.UpdateOpticalProperties(MakeSun(deg, 0.0));
+        double t = window.DirectSolarIncidentTransmittance;
+        double r = window.DirectSolarIncidentReflectance;
+        Assert.InRange(t, 0.0, 1.0);
+        Assert.InRange(r, 0.0, 1.0);
+        Assert.True(1.0 - t - r >= -1e-9, $"{type} alt={deg}°: T={t:F4}, R={r:F4}, A={1 - t - r:F4} < 0");
+      }
+    }
+
+    #endregion
   }
 }

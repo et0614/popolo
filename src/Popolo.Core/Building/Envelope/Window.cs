@@ -1136,8 +1136,8 @@ namespace Popolo.Core.Building.Envelope
           SetAngleDependence(layerIndex,
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
             new double[] { 3.297, -1.122, -8.408, 12.206, -4.972 },
-            new double[] { 5.842, -15.264, -21.642, -15.948, 4.727 },
-            new double[] { 5.842, -15.264, -21.642, -15.948, 4.727 }
+            new double[] { 5.842, -15.264, 21.642, -15.948, 4.727 },
+            new double[] { 5.842, -15.264, 21.642, -15.948, 4.727 }
             );
           return;
         case GlassType.LowEmissivity:
