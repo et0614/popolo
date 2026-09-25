@@ -275,7 +275,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       //When controlling the outlet temperature, adjust the air flow rate
       if (controlOutletWaterTemperature)
       {
-        if (InletWaterTemperature <= OutletWaterSetpointTemperature) ShutOff();
+        if (InletWaterTemperature <= OutletWaterSetpointTemperature)
+        {
+          //No heat rejection needed: stop the fan; consumptions are reset by ShutOff
+          ShutOff();
+          return;
+        }
         else
         {
           bool oload;
@@ -320,10 +325,12 @@ namespace Popolo.Core.HVAC.HeatExchanger
       Roots.NewtonBisection(eFnc, 37, 1e-4, 1e-3, 1e-3, 20);
     }
 
-    /// <summary>Shuts off the cooling tower (zero heat rejection, zero power).</summary>
+    /// <summary>Shuts off the cooling tower (zero air flow, heat rejection, power and water consumption).</summary>
     public void ShutOff()
     {
       OutletWaterTemperature = InletWaterTemperature;
+      AirFlowRate = 0;
+      IsOverLoad = false;
       HeatRejection = ElectricConsumption = 0;
       EvaporationWater = DriftWater = BlowDownWater = 0;
     }
@@ -524,8 +531,9 @@ namespace Popolo.Core.HVAC.HeatExchanger
       out double evaporationWater, out double driftWater, out double blowDownWater)
     {
       //Compute evaporation water from the heat rejection
+      //(no heat rejection or no air flow: the air leaves unchanged and nothing evaporates)
       double outletHRatio;
-      if (heatRejection <= 0 || airFlowRate <= 0) outletHRatio = 0;
+      if (heatRejection <= 0 || airFlowRate <= 0) outletHRatio = airHumidityRatio;
       else outletHRatio = MoistAir.GetHumidityRatioFromEnthalpyAndRelativeHumidity
         (airEnthalpy + heatRejection / airFlowRate, 100, PhysicsConstants.StandardAtmosphericPressure);
       evaporationWater = airFlowRate * (outletHRatio - airHumidityRatio);
@@ -534,7 +542,8 @@ namespace Popolo.Core.HVAC.HeatExchanger
       driftWater = waterFlowRate * driftWaterRate * (airFlowRate / nominalAirFlowRate);
 
       //Adjust blowdown water so that it does not fall below 0 kg/s
-      blowDownWater = Math.Max(0, evaporationWater / (concentrationRatio - 1) - driftWater);
+      if (evaporationWater <= 0) blowDownWater = 0;
+      else blowDownWater = Math.Max(0, evaporationWater / (concentrationRatio - 1) - driftWater);
     }
 
     /// <summary>Computes the fan power consumption [kW] without inverter control (on/off).</summary>

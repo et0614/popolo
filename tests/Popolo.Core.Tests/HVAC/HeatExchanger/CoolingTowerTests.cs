@@ -113,6 +113,58 @@ namespace Popolo.Core.Tests.HVAC.HeatExchanger
       Assert.Equal(0.0, ct.ElectricConsumption);
     }
 
+    /// <summary>
+    /// 出口水温制御で入口水温が設定値以下となり停止した場合、蒸発水量・飛散水量・
+    /// ブロー水量・ファン動力はいずれも0で、風量0・過負荷なしとなる。
+    /// （旧実装では停止後に直前の風量で消費量を再計算し、蒸発水量が負値になっていた）
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Update_ControlledShutOff_NoConsumption(bool hasInverter)
+    {
+      var ct = MakeTower(hasInverter);
+      ct.Update(37.0, true);
+      Assert.True(ct.HeatRejection > 0 && ct.AirFlowRate > 0);
+
+      ct.Update(31.0, true); //入口水温 < 設定値32°C → 停止
+      Assert.Equal(0.0, ct.HeatRejection);
+      Assert.Equal(0.0, ct.AirFlowRate);
+      Assert.False(ct.IsOverLoad);
+      Assert.Equal(0.0, ct.ElectricConsumption);
+      Assert.Equal(0.0, ct.EvaporationWater);
+      Assert.Equal(0.0, ct.DriftWater);
+      Assert.Equal(0.0, ct.BlowDownWater);
+      Assert.Equal(0.0, ct.WaterConsumption);
+      Assert.Equal(31.0, ct.OutletWaterTemperature);
+    }
+
+    /// <summary>ShutOff は風量を0に、過負荷フラグを false に戻す。</summary>
+    [Fact]
+    public void ShutOff_ResetsAirFlowAndOverLoad()
+    {
+      var ct = MakeTower();
+      ct.UpdateFromHeatRejection(10000.0);
+      Assert.True(ct.IsOverLoad);
+
+      ct.ShutOff();
+      Assert.Equal(0.0, ct.AirFlowRate);
+      Assert.False(ct.IsOverLoad);
+    }
+
+    /// <summary>除去熱量0（または風量0）のとき蒸発水量は0（負値にならない）。</summary>
+    [Theory]
+    [InlineData(0.0, 20.0)]
+    [InlineData(100.0, 0.0)]
+    public void GetMakeupWater_NoHeatRejection_ZeroEvaporation(double heatRejection, double airFlow)
+    {
+      CoolingTower.GetMakeupWater(heatRejection, 72.0, 0.0182, 10.0, airFlow, 20.0, 0.001, 3.0,
+        out double ew, out double dw, out double bw);
+      Assert.Equal(0.0, ew);
+      Assert.True(0 <= bw);
+      Assert.True(0 <= dw);
+    }
+
     #endregion
 
     // ================================================================
