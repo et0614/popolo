@@ -198,6 +198,79 @@ namespace Popolo.Core.Tests.HVAC.SolarEnergy
       Assert.InRange(eta, 0.0, 1.0);
     }
 
+    /// <summary>
+    /// 出口水温のエネルギー収支：集熱量 Q [W] = m·cp·(出口 − 入口)（cp [kJ/(kg·K)] × 1000）。
+    /// </summary>
+    [Theory]
+    [InlineData(0.005, 20.0)]
+    [InlineData(0.01, 20.0)]
+    [InlineData(0.05, 50.0)]
+    public void FlatPlate_OutletTemperature_SatisfiesEnergyBalance(double flowRate, double inlet)
+    {
+      double pt, gt, outlet, mt, eta;
+      double q = FlatPlateSolarCollector.GetHeatTransfer(
+          Sky, Air, Dni, Diff, flowRate, inlet, Gap, GlEm, PnEm,
+          Wind, InsTh, InsCo, Area, Pitch, Di, Do, PnTh, PnCo,
+          CosT, Trans, Refl, Abs,
+          out pt, out gt, out outlet, out mt, out eta);
+      double cp = Popolo.Core.Physics.Water.GetLiquidIsobaricSpecificHeat(inlet);
+      double qCheck = flowRate * cp * 1000 * (outlet - inlet);
+      Assert.InRange(qCheck, q * (1 - 1e-9), q * (1 + 1e-9));
+      Assert.InRange(outlet - inlet, 0.1, 50.0); // 2 m², 500 W/m² で現実的な温度上昇
+    }
+
+    /// <summary>管本数を指定して GetHeatTransfer を呼ぶ。</summary>
+    private static double CallWithTubes(double area, double flowRate, int tubeCount, out double outlet)
+    {
+      return FlatPlateSolarCollector.GetHeatTransfer(
+          Sky, Air, Dni, Diff, flowRate, 20.0, Gap, GlEm, PnEm,
+          Wind, InsTh, InsCo, area, Pitch, Di, Do, PnTh, PnCo,
+          CosT, Trans, Refl, Abs, tubeCount,
+          out _, out _, out outlet, out _, out _);
+    }
+
+    /// <summary>
+    /// 管内流速は 1 本あたりの質量流量 [kg/s] から u = m/(ρA) で求める：
+    /// 同一集熱器を 2 台並列（面積・流量・管本数が 2 倍）にすると集熱量は正確に 2 倍、出口水温は同一。
+    /// </summary>
+    [Fact]
+    public void FlatPlate_TwoCollectorsInParallel_DoubleHeatSameOutlet()
+    {
+      double q1 = CallWithTubes(Area, Wf, 20, out double out1);
+      double q2 = CallWithTubes(2 * Area, 2 * Wf, 40, out double out2);
+      Assert.InRange(q2, 2 * q1 * (1 - 1e-9), 2 * q1 * (1 + 1e-9));
+      Assert.InRange(out2, out1 - 1e-9, out1 + 1e-9);
+    }
+
+    /// <summary>
+    /// 同じ総流量でも管本数が少ないほど 1 本あたりの流速が大きく、管内熱伝達が良くなり集熱量が増える。
+    /// </summary>
+    [Fact]
+    public void FlatPlate_FewerTubes_HigherTubeVelocity_MoreHeat()
+    {
+      double qSerpentine = CallWithTubes(Area, Wf, 1, out _);
+      double qHarp = CallWithTubes(Area, Wf, 71, out _);
+      Assert.True(qSerpentine > qHarp, $"1 tube: {qSerpentine:F1} W > 71 tubes: {qHarp:F1} W");
+    }
+
+    /// <summary>
+    /// 管本数を省略した場合は正方形の吸熱板を仮定し round(√A / ピッチ) 本とする（2 m², 0.02 m → 71 本）。
+    /// </summary>
+    [Fact]
+    public void FlatPlate_DefaultTubeCount_AssumesSquareAbsorber()
+    {
+      double qDefault = CallGetHeatTransfer(20.0);
+      double q71 = CallWithTubes(Area, Wf, 71, out _);
+      Assert.Equal(q71, qDefault);
+    }
+
+    /// <summary>管本数が 1 未満では PopoloArgumentException。</summary>
+    [Fact]
+    public void FlatPlate_InvalidTubeCount_Throws()
+    {
+      Assert.Throws<Popolo.Core.Exceptions.PopoloArgumentException>(() => CallWithTubes(Area, Wf, 0, out _));
+    }
+
     #endregion
 
     // ================================================================

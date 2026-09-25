@@ -90,15 +90,76 @@ namespace Popolo.Core.HVAC.SolarEnergy
     /// <param name="meanWaterTemperature">Output: mean water temperature [°C].</param>
     /// <param name="efficiency">Output: collection efficiency [-].</param>
     /// <returns>Collected heat [W].</returns>
+    /// <remarks>
+    /// The collector is modelled as parallel riser tubes (Hottel–Whillier–Bliss) with the total
+    /// water flow split evenly among them. Since only the surface area and the tube pitch are
+    /// given, a square absorber plate is assumed to determine the number of tubes:
+    /// round(√surfaceArea / tubePitch) (at least 1). Use the overload with the tube count
+    /// argument to specify the number of parallel tubes explicitly.
+    /// </remarks>
     public static double GetHeatTransfer
-      (double skyTemperature, double airTemperature, double directNormalRadiation, double diffuseRadiation, 
+      (double skyTemperature, double airTemperature, double directNormalRadiation, double diffuseRadiation,
       double waterFlowRate, double waterInletTemperature, double airThickness, double glassEmissivity,
       double panelEmissivity, double windSpeed, double insulatorThickness, double insulatorThermalConductivity,
       double surfaceArea, double tubePitch, double innerDiameter, double outerDiameter, double panelThickness,
-      double panelThermalConductivity, double cosTheta, double glassTransmittance, double glassReflectance, 
+      double panelThermalConductivity, double cosTheta, double glassTransmittance, double glassReflectance,
       double panelAbsorptance, out double panelTemperature, out double glassTemperature,
       out double waterOutletTemperature, out double meanWaterTemperature, out double efficiency)
     {
+      return GetHeatTransfer
+        (skyTemperature, airTemperature, directNormalRadiation, diffuseRadiation,
+        waterFlowRate, waterInletTemperature, airThickness, glassEmissivity,
+        panelEmissivity, windSpeed, insulatorThickness, insulatorThermalConductivity,
+        surfaceArea, tubePitch, innerDiameter, outerDiameter, panelThickness,
+        panelThermalConductivity, cosTheta, glassTransmittance, glassReflectance,
+        panelAbsorptance, GetDefaultTubeCount(surfaceArea, tubePitch),
+        out panelTemperature, out glassTemperature,
+        out waterOutletTemperature, out meanWaterTemperature, out efficiency);
+    }
+
+    /// <summary>Computes the heat collected by a flat-plate solar thermal collector.</summary>
+    /// <param name="skyTemperature">Effective sky temperature [°C].</param>
+    /// <param name="airTemperature">Ambient air temperature [°C].</param>
+    /// <param name="directNormalRadiation">Direct normal irradiance [W/m²].</param>
+    /// <param name="diffuseRadiation">Diffuse horizontal irradiance [W/m²].</param>
+    /// <param name="waterFlowRate">Total water flow rate through the collector [kg/s].</param>
+    /// <param name="waterInletTemperature">Inlet water temperature [°C].</param>
+    /// <param name="airThickness">Air gap thickness [m].</param>
+    /// <param name="glassEmissivity">Glass emissivity [-].</param>
+    /// <param name="panelEmissivity">Absorber panel emissivity [-].</param>
+    /// <param name="windSpeed">External wind speed [m/s].</param>
+    /// <param name="insulatorThickness">Insulator thickness [m].</param>
+    /// <param name="insulatorThermalConductivity">Insulator thermal conductivity [W/(m·K)].</param>
+    /// <param name="surfaceArea">Panel surface area [m²].</param>
+    /// <param name="tubePitch">Tube pitch (centre-to-centre spacing) [m].</param>
+    /// <param name="innerDiameter">Inner diameter of the collector tube [m].</param>
+    /// <param name="outerDiameter">Outer diameter of the collector tube [m].</param>
+    /// <param name="panelThickness">Absorber panel thickness [m].</param>
+    /// <param name="panelThermalConductivity">Absorber panel thermal conductivity [W/(m·K)].</param>
+    /// <param name="cosTheta">Cosine of the angle of incidence.</param>
+    /// <param name="glassTransmittance">Glass solar transmittance [-].</param>
+    /// <param name="glassReflectance">Glass solar reflectance [-].</param>
+    /// <param name="panelAbsorptance">Absorber panel solar absorptance [-].</param>
+    /// <param name="tubeCount">Number of parallel riser tubes sharing the water flow (1 for a single serpentine tube).</param>
+    /// <param name="panelTemperature">Output: absorber panel temperature [°C].</param>
+    /// <param name="glassTemperature">Output: glass cover temperature [°C].</param>
+    /// <param name="waterOutletTemperature">Output: outlet water temperature [°C].</param>
+    /// <param name="meanWaterTemperature">Output: mean water temperature [°C].</param>
+    /// <param name="efficiency">Output: collection efficiency [-].</param>
+    /// <returns>Collected heat [W].</returns>
+    public static double GetHeatTransfer
+      (double skyTemperature, double airTemperature, double directNormalRadiation, double diffuseRadiation,
+      double waterFlowRate, double waterInletTemperature, double airThickness, double glassEmissivity,
+      double panelEmissivity, double windSpeed, double insulatorThickness, double insulatorThermalConductivity,
+      double surfaceArea, double tubePitch, double innerDiameter, double outerDiameter, double panelThickness,
+      double panelThermalConductivity, double cosTheta, double glassTransmittance, double glassReflectance,
+      double panelAbsorptance, int tubeCount, out double panelTemperature, out double glassTemperature,
+      out double waterOutletTemperature, out double meanWaterTemperature, out double efficiency)
+    {
+      if (tubeCount < 1)
+        throw new PopoloArgumentException(
+          $"The number of tubes must be at least 1 (was {tubeCount}).", nameof(tubeCount));
+
       double heatTransfer = 0; //Collected heat [W]
       glassTemperature = 0;
       meanWaterTemperature = 0;
@@ -171,8 +232,9 @@ namespace Popolo.Core.HVAC.SolarEnergy
         double rectFinEfficiency = Math.Tanh(wd2) / wd2;
 
         //Compute the fin efficiency of the solar collector [-]
-        double tubeHeatTransfer = 
-          GetConvectiveHeatTransferCoefficientOfTube(waterInletTemperature, innerDiameter, waterFlowRate);
+        //(the tube-side coefficient is evaluated with the mass flow rate per tube)
+        double tubeHeatTransfer =
+          GetConvectiveHeatTransferCoefficientOfTube(waterInletTemperature, innerDiameter, waterFlowRate / tubeCount);
         double fe1 = 1 / (heatLossCoefficient * (outerDiameter + (tubePitch - outerDiameter) * rectFinEfficiency));
         double fe2 = 1 / (Math.PI * innerDiameter * tubeHeatTransfer);
         double finEfficiency = (1 / heatLossCoefficient) / (tubePitch * (fe1 + fe2));
@@ -194,8 +256,8 @@ namespace Popolo.Core.HVAC.SolarEnergy
 
         iterNumP++;
       }
-      //Compute the outlet water temperature
-      waterOutletTemperature = 0.001 * waterInletTemperature + heatTransfer
+      //Compute the outlet water temperature (heat transfer [W], specific heat [kJ/(kg·K)])
+      waterOutletTemperature = waterInletTemperature + 0.001 * heatTransfer
         / (waterFlowRate * Water.GetLiquidIsobaricSpecificHeat(waterInletTemperature));
       //Compute the collection efficiency
       efficiency = heatTransfer / (cosTheta * directNormalRadiation + diffuseRadiation) / surfaceArea;
@@ -253,7 +315,7 @@ namespace Popolo.Core.HVAC.SolarEnergy
     /// <summary>Computes the convective heat transfer coefficient inside the collector tube.</summary>
     /// <param name="waterTemperature">Water temperature [°C].</param>
     /// <param name="diameter">Tube inner diameter [m].</param>
-    /// <param name="waterFlowRate">Water flow rate [L/min].</param>
+    /// <param name="waterFlowRate">Water mass flow rate through the tube [kg/s].</param>
     /// <returns>Convective heat transfer coefficient [W/(m²·K)].</returns>
     private static double GetConvectiveHeatTransferCoefficientOfTube
       (double waterTemperature, double diameter, double waterFlowRate)
@@ -263,8 +325,9 @@ namespace Popolo.Core.HVAC.SolarEnergy
       double a = Water.GetLiquidThermalDiffusivity(waterTemperature);
       double lambda = Water.GetLiquidThermalConductivity(waterTemperature);
 
-      //Compute the flow velocity in the tube [m/s]
-      double u = (waterFlowRate / 60 / 1000) / (Math.Pow(diameter / 2, 2) * Math.PI);
+      //Compute the flow velocity in the tube [m/s]: u = m / (ρ·A)
+      double u = waterFlowRate
+        / (Water.GetLiquidDensity(waterTemperature) * Math.Pow(diameter / 2, 2) * Math.PI);
 
       //Compute the Nusselt number
       double reNumber = u * diameter / v;
@@ -273,6 +336,17 @@ namespace Popolo.Core.HVAC.SolarEnergy
 
       //Compute the convective heat transfer coefficient from the Nusselt number
       return nuNumber * lambda / diameter;
+    }
+
+    /// <summary>Gets the default number of parallel riser tubes assuming a square absorber plate.</summary>
+    /// <param name="surfaceArea">Panel surface area [m²].</param>
+    /// <param name="tubePitch">Tube pitch [m].</param>
+    /// <returns>Number of tubes, round(√surfaceArea / tubePitch), at least 1.</returns>
+    private static int GetDefaultTubeCount(double surfaceArea, double tubePitch)
+    {
+      double n = Math.Round(Math.Sqrt(surfaceArea) / tubePitch);
+      if (double.IsNaN(n) || n < 1) return 1;
+      return (int)Math.Min(n, int.MaxValue);
     }
 
     #endregion
