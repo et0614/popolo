@@ -86,7 +86,11 @@ namespace Popolo.Core.Numerics
     }
 
     /// <summary>Gets a value indicating whether the optimization converged successfully.</summary>
-    public bool SuccessfullyConverged { get { return (1 <= info && info <= 3); } }
+    /// <remarks>
+    /// Termination codes 1-4 (ftol, xtol, both, or gtol satisfied) are treated as successful
+    /// convergence, as in MINPACK; codes 5-8 (evaluation limit or tolerances too small) are not.
+    /// </remarks>
+    public bool SuccessfullyConverged { get { return (1 <= info && info <= 4); } }
 
     /// <summary>Gets or sets the step size used for numerical differentiation.</summary>
     public double Epsilon
@@ -294,7 +298,8 @@ namespace Popolo.Core.Numerics
             if (wa2[l] != 0.0d)
             {
               double sum = 0.0d;
-              for (int j = 0; j < i; j++) sum += fjac[j, i] * (qtf[j] / fnorm);
+              //MINPACK sums over rows 1..j inclusive (the diagonal term of R included)
+              for (int j = 0; j <= i; j++) sum += fjac[j, i] * (qtf[j] / fnorm);
               gnorm = Math.Max(gnorm, Math.Abs(sum / wa2[l]));
             }
           }
