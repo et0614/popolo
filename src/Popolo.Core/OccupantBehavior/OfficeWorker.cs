@@ -175,13 +175,14 @@ namespace Popolo.Core.OccupantBehavior
         urGen = uRnd;
         nrGen = new NormalRandom(uRnd);
 
-        //Determine job category stochastically
+        //Determine job category stochastically from the manager / administrator ratios of the sex-age group
         CategoryOfJob job;
         double[] mngRate = new double[] { 4 / 80d, 9 / 80d, 23 / 81d, 31 / 83d, 18 / 59d, 1 / 72d, 1 / 78d, 4 / 79d, 6 / 67d, 7 / 67d };  //Manager ratio
         double[] admRate = new double[] { 1 / 80d, 0 / 80d, 4 / 81d, 11 / 83d, 22 / 59d, 1 / 72d, 0 / 78d, 0 / 79d, 4 / 67d, 13 / 67d };  //Administrator ratio
-        double rnd = nrGen.NextDouble();
-        if (mngRate[group] < rnd) job = CategoryOfJob.Manager;
-        else if (mngRate[group] + admRate[group] < rnd) job = CategoryOfJob.Administrator;
+        int grp = GetGroup(isMale, age);
+        double rnd = urGen.NextDouble();  //Uniform random number in [0, 1)
+        if (rnd < mngRate[grp]) job = CategoryOfJob.Manager;
+        else if (rnd < mngRate[grp] + admRate[grp]) job = CategoryOfJob.Administrator;
         else job = CategoryOfJob.NoTitle;
 
         Initialize(office, isMale, age, isPermanent, job, indoorRate);
@@ -218,22 +219,7 @@ namespace Popolo.Core.OccupantBehavior
         Job = job;
 
         //Determine the group by sex and age
-        if (IsMale)
-        {
-          if (age < 30) group = 0;
-          else if (30 <= age && age < 40) group = 1;
-          else if (40 <= age && age < 50) group = 2;
-          else if (50 <= age && age < 60) group = 3;
-          else group = 4;
-        }
-        else
-        {
-          if (age < 30) group = 5;
-          else if (30 <= age && age < 40) group = 6;
-          else if (40 <= age && age < 50) group = 7;
-          else if (50 <= age && age < 60) group = 8;
-          else group = 9;
-        }
+        group = GetGroup(IsMale, age);
 
         //Compute state transition probability from the average presence ratio
         tProbII = tProbOO[group] * (1 / indoorRate - 1) + 2 - 1 / indoorRate;
@@ -270,6 +256,21 @@ namespace Popolo.Core.OccupantBehavior
         if (bf < nGoOut[group]) lunchBreak = LunchBreakTake.NeverGoesOut;
         else if (bf < nGoOut[group] + aGoOut[group]) lunchBreak = LunchBreakTake.AlwaysGoesOut;
         else lunchBreak = LunchBreakTake.SometimeGoesOut;
+      }
+
+      /// <summary>Gets the worker group index encoding sex and age decade.</summary>
+      /// <param name="isMale">True for male; false for female.</param>
+      /// <param name="age">Age [years].</param>
+      /// <returns>Group index: M20,M30,M40,M50,M60,F20,F30,F40,F50,F60 = 0..9.</returns>
+      private static int GetGroup(bool isMale, int age)
+      {
+        int decade;
+        if (age < 30) decade = 0;
+        else if (age < 40) decade = 1;
+        else if (age < 50) decade = 2;
+        else if (age < 60) decade = 3;
+        else decade = 4;
+        return isMale ? decade : decade + 5;
       }
 
       #endregion
@@ -340,8 +341,9 @@ namespace Popolo.Core.OccupantBehavior
         }
 
         //Lunch break******************************************
-        //When going out
-        if (lunchBreak == LunchBreakTake.AlwaysGoesOut || urGen.NextDouble() < 0.488)
+        //When going out (workers who never go out stay in; the 48.8% draw applies only to occasional goers)
+        if (lunchBreak == LunchBreakTake.AlwaysGoesOut
+          || (lunchBreak == LunchBreakTake.SometimeGoesOut && urGen.NextDouble() < 0.488))
         {
           double min = lncStMdl[0] + lncStMdl[1] * Math.Sinh((nrGen.NextDouble() - lncStMdl[3]) / lncStMdl[2]);
           lnchOutGoTime = new DateTime(dTime.Year, dTime.Month, dTime.Day, Office.LunchStartHour, Office.LunchStartMinute, 0).AddMinutes(min);

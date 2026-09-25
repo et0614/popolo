@@ -644,13 +644,22 @@ namespace Popolo.Core.OccupantBehavior
     /// <summary>Determines whether the specified time is within business hours.</summary>
     /// <param name="dTime">Current date and time.</param>
     /// <returns>True if within business hours.</returns>
+    /// <remarks>
+    /// The time of day is compared at one-minute resolution with both ends inclusive:
+    /// start ≤ hh:mm ≤ end (e.g., with 8:30–17:15, 8:30:00 and 17:15:59 are within business hours).
+    /// If the end time is earlier than the start time, the business hours are taken to span midnight.
+    /// </remarks>
     public bool IsBuisinessHours(DateTime dTime)
     {
       //Always false on holidays
       if (IsHoliday(dTime)) return false;
 
-      //On weekdays, check whether the time is within business start and end times
-      return (StartHour <= dTime.Hour && StartMinute <= dTime.Minute) && (dTime.Hour <= EndHour && dTime.Minute <= EndMinute);
+      //On weekdays, check whether the time of day is within business start and end times
+      TimeSpan now = new TimeSpan(dTime.Hour, dTime.Minute, 0);
+      TimeSpan start = new TimeSpan(StartHour, StartMinute, 0);
+      TimeSpan end = new TimeSpan(EndHour, EndMinute, 0);
+      if (start <= end) return start <= now && now <= end;
+      else return start <= now || now <= end;
     }
 
     /// <summary>Resets the random seed for reproducibility.</summary>
