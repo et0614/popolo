@@ -111,6 +111,93 @@ namespace Popolo.Core.Tests.Numerics
             Assert.Equal(0.0, result, precision: 2);
         }
 
+        /// <summary>対称な試行点で関数値が等しくなっても極小点を通り過ぎない</summary>
+        /// <remarks>
+        /// (t−25)² を [10,40] で最小化すると、最初の2つの試行点 21.46 と 28.54 が
+        /// 極小点に対して対称となり関数値が一致する。等値時に極小点側を捨てる
+        /// 更新規則では 28.54 を返していた。
+        /// </remarks>
+        [Fact]
+        public void GoldenSection_SymmetricTie_FindsTrueMinimum()
+        {
+            Minimization.MinimizeFunction f = t => (t - 25.0) * (t - 25.0);
+            double xMin = 10.0;
+
+            double result = Minimization.GoldenSection(ref xMin, 40.0, f);
+
+            Assert.Equal(25.0, xMin, precision: 3);
+            Assert.Equal(0.0, result, precision: 6);
+        }
+
+        /// <summary>下限と上限を逆に与えても正しく最小化できる</summary>
+        [Fact]
+        public void GoldenSection_ReversedBounds_FindsTrueMinimum()
+        {
+            Minimization.MinimizeFunction f = t => (t - 17.0) * (t - 17.0);
+            double xMin = 40.0;
+
+            double result = Minimization.GoldenSection(ref xMin, 10.0, f);
+
+            Assert.Equal(17.0, xMin, precision: 3);
+            Assert.Equal(0.0, result, precision: 6);
+        }
+
+        /// <summary>逆順の範囲でも対称な等値ケースで極小点を返す</summary>
+        [Fact]
+        public void GoldenSection_ReversedBoundsSymmetricTie_FindsTrueMinimum()
+        {
+            Minimization.MinimizeFunction f = t => (t - 25.0) * (t - 25.0);
+            double xMin = 40.0;
+
+            Minimization.GoldenSection(ref xMin, 10.0, f);
+
+            Assert.Equal(25.0, xMin, precision: 3);
+        }
+
+        /// <summary>左側が平坦な関数では平坦部の右端（変化点）を返す（従来挙動の維持）</summary>
+        /// <remarks>
+        /// 平坦部で3点の関数値が等しい場合は平坦部の端へ探索を進める。
+        /// AirHandlingUnit.OptimizeVAV など、この挙動に依存する呼び出し元がある。
+        /// </remarks>
+        [Fact]
+        public void GoldenSection_LeftPlateau_ReturnsPlateauEdge()
+        {
+            Minimization.MinimizeFunction f = t => Math.Max(t - 20.0, 0.0);
+            double xMin = 10.0;
+
+            double result = Minimization.GoldenSection(ref xMin, 40.0, f);
+
+            Assert.Equal(0.0, result);
+            Assert.Equal(20.0, xMin, precision: 3);
+        }
+
+        /// <summary>右側が平坦な関数では平坦部の左端（変化点）を返す（従来挙動の維持）</summary>
+        [Fact]
+        public void GoldenSection_RightPlateau_ReturnsPlateauEdge()
+        {
+            Minimization.MinimizeFunction f = t => Math.Max(20.0 - t, 0.0);
+            double xMin = 10.0;
+
+            double result = Minimization.GoldenSection(ref xMin, 40.0, f);
+
+            Assert.Equal(0.0, result);
+            Assert.Equal(20.0, xMin, precision: 3);
+        }
+
+        /// <summary>単調関数では区間端の近くを返す</summary>
+        [Theory]
+        [InlineData(1.0, 10.0)]
+        [InlineData(-1.0, 40.0)]
+        public void GoldenSection_MonotonicFunction_ReturnsBoundary(double slope, double expected)
+        {
+            Minimization.MinimizeFunction f = t => slope * t;
+            double xMin = 10.0;
+
+            Minimization.GoldenSection(ref xMin, 40.0, f);
+
+            Assert.Equal(expected, xMin, precision: 3);
+        }
+
         #endregion
     }
 }

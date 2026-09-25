@@ -33,6 +33,14 @@ namespace Popolo.Core.Numerics
     /// <param name="xMax">Upper bound of x.</param>
     /// <param name="mFnc">Function to minimize.</param>
     /// <returns>Value of the local minimum.</returns>
+    /// <remarks>
+    /// The bounds may be given in either order. When a probe value ties with the interior
+    /// point, the bracket keeping the interior point is retained (strict comparison), so a
+    /// minimum lying between two equal probe values is not discarded. Only when three
+    /// successive values are equal (a flat region) does the search advance past the interior
+    /// point, toward the edge of the flat region; callers such as
+    /// AirHandlingUnit.OptimizeVAV rely on this edge-seeking behavior.
+    /// </remarks>
     /// <exception cref="PopoloNumericalException">
     /// Thrown when convergence is not reached within the maximum number of iterations.
     /// </exception>
@@ -42,9 +50,10 @@ namespace Popolo.Core.Numerics
       const double ERR_TOL = 0.0001;
       const double G_RATIO = 0.61803399;
 
-      double a = xMin;
-      double b = xMin + (xMax - xMin) * G_RATIO;
-      double c = xMax;
+      //Normalize reversed bounds (a <= c)
+      double a = Math.Min(xMin, xMax);
+      double c = Math.Max(xMin, xMax);
+      double b = a + (c - a) * G_RATIO;
 
       double fa = mFnc(a);
       double fb = mFnc(b);
@@ -57,7 +66,7 @@ namespace Popolo.Core.Numerics
         {
           double x1 = a + (c - a) * G_RATIO;
           double fx1 = mFnc(x1);
-          if (fx1 < fb || fa == fb)
+          if (fx1 < fb || (fa == fb && fx1 == fb))
           {
             a = b; fa = fb;
             b = x1; fb = fx1;
@@ -71,7 +80,7 @@ namespace Popolo.Core.Numerics
         {
           double x1 = c - (c - a) * G_RATIO;
           double fx1 = mFnc(x1);
-          if (fx1 < fb || fb == fc)
+          if (fx1 < fb || (fb == fc && fx1 == fb))
           {
             c = b; fc = fb;
             b = x1; fb = fx1;
