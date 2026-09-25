@@ -170,6 +170,43 @@ namespace Popolo.Core.Tests.HVAC.HeatSource
           $"CyclingTimeRate=1: Q={q1:F3}, CyclingTimeRate=2: Q={q2:F3} should differ");
     }
 
+    /// <summary>
+    /// 低温の冷却水条件（約 9 C）で COP=0 と COP=0.8 の残差がともに正となる
+    /// （COP の求根区間が挟めない）場合でも例外とならず、冷凍能力ゼロとして解を返す。
+    /// </summary>
+    /// <remarks>
+    /// この温度域では吸着量の補正により残差関数が不連続となるため、
+    /// 入力値は再現性確保のため丸めずに与えている。
+    /// </remarks>
+    [Fact]
+    public void Update_ResidualPositiveAtZeroCOP_ReturnsZeroCoolingLoad()
+    {
+      var c = MakeChiller();
+      c.CyclingTimeRatio = 0.37913373840450426;
+      c.Update(4.3966121288931985, MChW * 0.9783220056809122,
+          9.424447756458282, MCdW * 1.6059921012753584,
+          30.44232354939092, MHW * 0.45109017991977285);
+      Assert.Equal(0.0, c.CoolingLoad);
+      Assert.Equal(c.ChilledWaterInletTemperature, c.ChilledWaterOutletTemperature);
+    }
+
+    /// <summary>
+    /// COP=0 と COP=0.8 の残差がともに負となる場合、探索上限を拡張して解を求め、
+    /// 例外とならずに物理的に妥当な範囲（0 &lt;= COP &lt;= 1）の結果を返す。
+    /// </summary>
+    [Fact]
+    public void Update_ResidualNegativeAtInitialUpperBound_ExpandsBracket()
+    {
+      var c = MakeChiller();
+      c.CyclingTimeRatio = 0.3005918916412271;
+      c.Update(4.619937852779374, MChW * 0.33828143637547337,
+          10.891701625609631, MCdW * 1.6833598811101913,
+          14.655740272093443, MHW * 0.9446031430943883);
+      Assert.True(c.CoolingLoad >= 0, $"CoolingLoad={c.CoolingLoad} >= 0");
+      Assert.InRange(c.COP, 0.0, 1.0);
+      Assert.True(double.IsFinite(c.ChilledWaterOutletTemperature));
+    }
+
     [Fact]
     public void ShutOff_ZeroCoolingLoad()
     {

@@ -19,6 +19,7 @@ using System;
 
 using Popolo.Core.Physics;
 using Popolo.Core.Numerics;
+using Popolo.Core.Exceptions;
 
 namespace Popolo.Core.HVAC.HeatSource
 {
@@ -47,6 +48,9 @@ namespace Popolo.Core.HVAC.HeatSource
 
     /// <summary>Heat recovery effectiveness [-].</summary>
     private const double EPSILON_RCV = 0.3;
+
+    /// <summary>Upper bound of the COP search range (single-effect adsorption cycle) [-].</summary>
+    private const double MAX_COP = 1.0;
 
     /// <summary>Latent heat of vaporisation approximation coefficients.</summary>
     private const double CGAM_A = -2.4564;
@@ -381,8 +385,31 @@ namespace Popolo.Core.HVAC.HeatSource
 
           return (qEVP / (gamAD * mperc)) - (wadt - wad0);
         };
-        if (0.001 < Math.Abs(eFnc(0.0)))
-          Roots.Bisection(eFnc, 0.0, 0.8, 0.001, 0.0001, 20);
+        //Solve the COP. The residual is evaluated at the bracket ends first:
+        //  - f(0) ~ 0 or f(0) > 0: the cycle cannot produce cooling (COP = 0; the state
+        //    computed by eFnc(0) is kept).
+        //  - otherwise the upper bound 0.8 is expanded up to MAX_COP if needed.
+        //Bisection (same tolerances as before) is kept so that results in the normally
+        //bracketed range are unchanged. Each eFnc call overwrites the captured state;
+        //Bisection returns the point it evaluated last, so the state matches the root.
+        double f0 = eFnc(0.0);
+        if (0.001 < Math.Abs(f0) && f0 < 0)
+        {
+          double copU = 0.8;
+          double fU = eFnc(copU);
+          if (fU < 0)
+          {
+            copU = MAX_COP;
+            fU = eFnc(copU);
+          }
+          if (fU < 0)
+            throw new PopoloNumericalException(
+                "AdsorptionChiller.Update",
+                $"COP could not be bracketed in [0, {MAX_COP}] (residual f(0)={f0}, f({MAX_COP})={fU}). "
+                + $"Chilled water {chilledWaterInletTemperature} C, cooling water {coolingWaterInletTemperature} C, "
+                + $"hot water {hotWaterInletTemperature} C.");
+          Roots.Bisection(eFnc, 0.0, copU, f0, fU, 0.001, 0.0001, 20);
+        }
         //Roots.NewtonBisection(eFnc, 0.45, 0.001, 0.001, 0.0001, 20);  //Newton's method occasionally diverges
 
         ChilledWaterOutletTemperature = ChilledWaterInletTemperature - qEVP / mcCH;
