@@ -258,8 +258,7 @@ namespace Popolo.Core.HVAC.SystemModel
           //Update the temperatures in the tank
           double tTNKin;
           bool isDownFlow = chiller.ChilledWaterFlowRate < pHex.HeatSourceFlowRate;
-          if (isDownFlow) tTNKin = pHex.HeatSourceOutletTemperature 
-              + disPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
+          if (isDownFlow) tTNKin = pHex.HeatSourceOutletTemperature + GetDischargePumpTemperatureRise();
           else tTNKin = chiller.ChilledWaterOutletTemperature;
           wTank.ForecastState
             (tTNKin, 0.001 * Math.Abs(chiller.ChilledWaterFlowRate - pHex.HeatSourceFlowRate), isDownFlow);
@@ -339,15 +338,15 @@ namespace Popolo.Core.HVAC.SystemModel
           + chilOut * ttlChilFlow) / hexFlow;
         pHex.Update(tHexIn, rtnTmp, hexFlow, ChilledWaterFlowRate);
         disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
-        double dtDisP = disPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
+        double dtDisP = GetDischargePumpTemperatureRise();
         chilIn += pHex.HeatSourceOutletTemperature + dtDisP;
       }
       else
       {
         pHex.Update(chilOut, rtnTmp, hexFlow, ChilledWaterFlowRate);
         disPump.UpdateState(0.001 * pHex.HeatSourceFlowRate);
-        double dtDisP = disPump.GetElectricConsumption() / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * pHex.HeatSourceFlowRate);
-        chilIn += ((pHex.HeatSourceOutletTemperature + dtDisP) * hexFlow 
+        double dtDisP = GetDischargePumpTemperatureRise();
+        chilIn += ((pHex.HeatSourceOutletTemperature + dtDisP) * hexFlow
           + wTank.UpperOutletTemperarture * (ttlChilFlow - hexFlow)) / ttlChilFlow;
       }
 
@@ -366,6 +365,20 @@ namespace Popolo.Core.HVAC.SystemModel
         else
           pHex.Update(chiller.ChilledWaterOutletTemperature, rtnTmp, hexFlow, ChilledWaterFlowRate);
       }
+    }
+
+    /// <summary>Gets the water temperature rise across the discharge pump [K].</summary>
+    /// <remarks>
+    /// Zero when the plate heat exchanger draws no heat-source water (the pump is stopped).
+    /// The previous inline expression divided 0 by 0 in that case and propagated NaN into
+    /// the chiller inlet temperature.
+    /// </remarks>
+    private double GetDischargePumpTemperatureRise()
+    {
+      double flow = pHex.HeatSourceFlowRate;
+      if (flow <= 0) return 0.0;
+      return disPump.GetElectricConsumption()
+        / (0.001 * PhysicsConstants.NominalWaterIsobaricSpecificHeat * flow);
     }
 
     /// <summary>Performs coupled chiller and cooling tower calculation.</summary>
