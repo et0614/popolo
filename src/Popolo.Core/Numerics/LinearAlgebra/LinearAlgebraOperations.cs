@@ -224,6 +224,14 @@ namespace Popolo.Core.Numerics.LinearAlgebra
           + $"x has length {x.Length}.", nameof(x));
 
       int num = abc.Columns - 1;
+
+      //A single unknown: the system reduces to abc(1,0)*nx(0) = x(0)
+      if (num == 0)
+      {
+        x[0] /= abc[1, 0];
+        return;
+      }
+
       abc[2, 0] /= abc[1, 0];
       x[0] /= abc[1, 0];
 

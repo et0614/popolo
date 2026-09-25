@@ -25,11 +25,12 @@ namespace Popolo.Core.Numerics
   public static class CubicSpline
   {
     /// <summary>Computes the spline coefficients for cubic spline interpolation.</summary>
+    /// <remarks>Natural spline (zero second derivative at both ends); at least three points are required.</remarks>
     /// <param name="x">Array of X coordinates (ascending order).</param>
     /// <param name="y">Array of Y coordinates.</param>
     /// <returns>Array of cubic spline coefficients.</returns>
     /// <exception cref="PopoloArgumentException">
-    /// Thrown when x or y is null, contains fewer than two elements, or when their lengths differ.
+    /// Thrown when x or y is null, contains fewer than three elements, or when their lengths differ.
     /// </exception>
     public static double[] GetParameters(double[] x, double[] y)
     {

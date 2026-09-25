@@ -69,9 +69,49 @@ namespace Popolo.Core.Tests.Numerics
       Assert.Equal(0.0, c[c.Length - 1], precision: 10);
     }
 
+    /// <summary>最小点数（3点）でも係数を計算できる</summary>
+    /// <remarks>3点では未知数が1つの三重対角系となる。</remarks>
+    [Fact]
+    public void GetParameters_ThreePoints_ReturnsNaturalSplineCoefficients()
+    {
+      double[] x = { 0.0, 1.0, 2.0 };
+      double[] y = { 0.0, 1.0, 0.0 };
+      double[] c = CubicSpline.GetParameters(x, y);
+
+      // 4 c1 = 3 ((0-1)/1 - (1-0)/1) = -6 → c1 = -1.5
+      Assert.Equal(3, c.Length);
+      Assert.Equal(0.0, c[0], precision: 12);
+      Assert.Equal(-1.5, c[1], precision: 12);
+      Assert.Equal(0.0, c[2], precision: 12);
+    }
+
+    /// <summary>引数チェック：2点以下のとき例外が発生する</summary>
+    [Fact]
+    public void GetParameters_TwoPoints_ThrowsPopoloArgumentException()
+    {
+      var ex = Assert.Throws<PopoloArgumentException>(
+          () => CubicSpline.GetParameters(new double[] { 0, 1 }, new double[] { 0, 1 }));
+      Assert.Equal("x", ex.ParamName);
+    }
+
     #endregion
 
     #region Interpolate tests
+
+    /// <summary>3点のデータで補間でき、データ点を再現する</summary>
+    [Fact]
+    public void Interpolate_ThreePoints_ReproducesDataAndMidpoint()
+    {
+      double[] x = { 0.0, 1.0, 2.0 };
+      double[] y = { 0.0, 1.0, 0.0 };
+      double[] c = CubicSpline.GetParameters(x, y);
+
+      for (int i = 0; i < x.Length; i++)
+        Assert.Equal(y[i], CubicSpline.Interpolate(x, y, c, x[i]), precision: 12);
+      // 区間 [0,1]: S(t) = 1.5 t - 0.5 t^3 → S(0.5) = 0.6875（対称性より S(1.5) も同じ）
+      Assert.Equal(0.6875, CubicSpline.Interpolate(x, y, c, 0.5), precision: 12);
+      Assert.Equal(0.6875, CubicSpline.Interpolate(x, y, c, 1.5), precision: 12);
+    }
 
     /// <summary>補間点がデータ点と一致する場合、元の値が返る</summary>
     [Fact]
@@ -142,7 +182,6 @@ namespace Popolo.Core.Tests.Numerics
     [Fact]
     public void Interpolate_OutOfRange_ThrowsPopoloArgumentException()
     {
-      // 4点以上が必要（3点だとSolveTridiagonalMatrixが1列行列になる）
       double[] x = { 0.0, 1.0, 2.0, 3.0 };
       double[] y = { 0.0, 1.0, 4.0, 9.0 };
       double[] c = CubicSpline.GetParameters(x, y);

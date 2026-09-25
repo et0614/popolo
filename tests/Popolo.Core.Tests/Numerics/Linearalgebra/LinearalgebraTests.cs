@@ -380,6 +380,37 @@ namespace Popolo.Core.Tests.Numerics.Linearalgebra
       Assert.Equal(26.899012767856604, x[4], precision: 10);
     }
 
+    /// <summary>三重対角行列ソルバーが未知数1つの系を解ける</summary>
+    [Fact]
+    public void SolveTridiagonalMatrix_SingleUnknown_ReturnsCorrectSolution()
+    {
+      Matrix abc = new Matrix(3, 1);
+      IVector x = new Vector(1);
+      abc[0, 0] = 0; abc[1, 0] = 4.0; abc[2, 0] = 0;
+      x[0] = -6.0;
+
+      LinearAlgebraOperations.SolveTridiagonalMatrix(abc, x);
+
+      Assert.Equal(-1.5, x[0], precision: 12);
+    }
+
+    /// <summary>三重対角行列ソルバーが未知数2つの系を解ける</summary>
+    [Fact]
+    public void SolveTridiagonalMatrix_TwoUnknowns_ReturnsCorrectSolution()
+    {
+      // [2 1; 1 3] x = [3; 5] → x = [0.8, 1.4]
+      Matrix abc = new Matrix(3, 2);
+      IVector x = new Vector(2);
+      abc[0, 0] = 0; abc[1, 0] = 2; abc[2, 0] = 1;
+      abc[0, 1] = 1; abc[1, 1] = 3; abc[2, 1] = 0;
+      x[0] = 3; x[1] = 5;
+
+      LinearAlgebraOperations.SolveTridiagonalMatrix(abc, x);
+
+      Assert.Equal(0.8, x[0], precision: 12);
+      Assert.Equal(1.4, x[1], precision: 12);
+    }
+
     /// <summary>最小二乗法（過剰決定系）が正しい係数を返す</summary>
     [Fact]
     public void LeastSquareFit_ReturnsCorrectCoefficients()
