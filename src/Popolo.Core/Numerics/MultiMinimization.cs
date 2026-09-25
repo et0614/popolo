@@ -1,4 +1,4 @@
-/* MultiMinimization.cs
+﻿/* MultiMinimization.cs
  *
  * Copyright (C) 2016 E.Togashi
  *
@@ -176,6 +176,7 @@ namespace Popolo.Core.Numerics
       {
         if (maxIteration < iteration) return false;
 
+        bool isIdentity = false;
         if (needInit || (iteration % (2 * num) == 0))
         {
           for (int i = 0; i < num; i++)
@@ -184,6 +185,7 @@ namespace Popolo.Core.Numerics
             hINV[i, i] = 1.0;
           }
           needInit = false;
+          isIdentity = true;
         }
 
         for (int i = 0; i < num; i++)
@@ -195,6 +197,9 @@ namespace Popolo.Core.Numerics
 
         double wk = 0;
         for (int i = 0; i < num; i++) wk += dir[i] * dif[i];
+        //With the identity matrix wk = -|grad|^2, so wk >= 0 means the numerical gradient
+        //is exactly zero: a stationary point, which resetting the matrix cannot improve.
+        if (0 <= wk && isIdentity) return true;
         if (0 <= wk) needInit = true;
         else
         {
@@ -238,7 +243,8 @@ namespace Popolo.Core.Numerics
             for (int i = 0; i < num; i++) qk[i] = dif[i] - dif2[i];
             double delt = Math.Abs(fx2 - fx);
             double mean = 0.5 * (Math.Abs(fx2) + Math.Abs(fx));
-            if (mean * rErrFVal < delt || delt < 1e-10)
+            //Test for convergence only when the relative change of the objective is small
+            if (delt <= mean * rErrFVal || delt < 1e-10)
             {
               double maxDX = 0;
               double maxDF = 0;

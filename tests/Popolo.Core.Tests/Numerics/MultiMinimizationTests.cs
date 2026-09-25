@@ -90,6 +90,45 @@ namespace Popolo.Core.Tests.Numerics
             Assert.InRange(fval, 0.0, 0.01);
         }
 
+        /// <summary>定数オフセットをもつローゼンブロック関数でも収束判定が成立する</summary>
+        /// <remarks>
+        /// 相対変化が小さいときに収束判定へ進むべきところ、判定条件が逆転していると
+        /// 相対変化が大きい場合にしか収束判定が行われず、収束しても失敗と判定される。
+        /// </remarks>
+        [Fact]
+        public void QuasiNewton_OffsetRosenbrock_Converges()
+        {
+            MultiMinimization.MinimizeFunction f = (x, iter) => 100.0 + Rosenbrock(x, iter);
+            IVector x = new Vector(new double[] { -1.0, 1.0 });
+
+            bool success = MultiMinimization.QuasiNewton(
+                ref x, f, 400, 1e-5, 1e-5, 1e-4, out int iter);
+
+            Assert.True(success);
+            Assert.Equal(1.0, x[0], precision: 3);
+            Assert.Equal(1.0, x[1], precision: 3);
+        }
+
+        /// <summary>大きな定数オフセットをもつ2次関数でも収束判定が成立する</summary>
+        /// <remarks>
+        /// オフセットが 1e6 だと数値勾配が丸めにより厳密に 0 となる。勾配 0 の停留点では
+        /// 探索方向が得られないため、反復上限まで空回りせずに収束として終了する。
+        /// </remarks>
+        [Fact]
+        public void QuasiNewton_LargeOffsetQuadratic_Converges()
+        {
+            MultiMinimization.MinimizeFunction f =
+                (x, iter) => 1e6 + Math.Pow(x[0] - 1, 2) + Math.Pow(x[1] - 2, 2);
+            IVector x = new Vector(new double[] { 0.0, 0.0 });
+
+            bool success = MultiMinimization.QuasiNewton(
+                ref x, f, 400, 1e-5, 1e-5, 1e-4, out int iter);
+
+            Assert.True(success);
+            Assert.Equal(1.0, x[0], precision: 3);
+            Assert.Equal(2.0, x[1], precision: 3);
+        }
+
         /// <summary>最大反復回数を超えると false を返す</summary>
         [Fact]
         public void QuasiNewton_MaxIterationExceeded_ReturnsFalse()
