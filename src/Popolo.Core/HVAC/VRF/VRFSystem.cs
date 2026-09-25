@@ -1398,9 +1398,35 @@ namespace Popolo.Core.HVAC.VRF
       {
         if (eFncEvpTmp(Cooling.MinEvaporatingTemperature) < 0) //Overload because the lower evaporating temperature limit is reached
         {
-          double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, 0.001, 0.001, 20);
-          eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
-          CalculateCoolingElectricity(hd);
+          //The indoor units now run at the lower evaporating temperature limit (evpPressure follows it)
+          double fLo = eFncHead(0);
+          double fHi = eFncHead(Cooling.NominalHead);
+          if ((fLo < 0) == (fHi < 0) && fLo != 0 && fHi != 0)
+          {
+            //The head balance still uses the load and compressor inlet state at the target
+            //evaporating temperature: re-evaluate them at the lower limit
+            qEvpSum = 0;
+            for (int i = 0; i < indoorUnits.Count; i++) qEvpSum += indoorUnits[i].HeatTransfer;
+            refrigerant.GetStateFromPressureAndTemperature(evpPressure,
+              Cooling.MinEvaporatingTemperature + KTOC + SuperHeatDegree,
+              out _, out iUnitOutletDensity, out iUnitOutletEnthalpy, out _);
+            fLo = eFncHead(0);
+            fHi = eFncHead(Cooling.NominalHead);
+          }
+          if ((fLo < 0) != (fHi < 0) || fLo == 0 || fHi == 0)
+          {
+            double hd = Roots.Bisection(eFncHead, 0, Cooling.NominalHead, fLo, fHi, 0.001, 0.001, 20);
+            eFncHead(hd - 0.001); //Workaround: convergence sometimes ended on the high side, leaving the pressure excessively high. Not a clean implementation.
+            CalculateCoolingElectricity(hd);
+          }
+          else
+          {
+            //The head cannot be balanced: fall back to the nominal-head state at the lower limit
+            eFncEvpTmp(Cooling.MinEvaporatingTemperature);
+            CompressorElectricity = Cooling.NominalElectricity;
+            CompressionHead = Cooling.NominalHead;
+            PartialLoadRatio = 1.0;
+          }
         }
         else //Overload due to insufficient compressor capacity
         {

@@ -433,6 +433,40 @@ namespace Popolo.Core.Tests.HVAC.VRF
       Assert.InRange(vrf.PartialLoadRatio, 0.0, 1.0);
     }
 
+    /// <summary>
+    /// 成り行き計算で目標蒸発温度では過負荷だが、蒸発温度下限では定格圧縮動力が過剰となる場合
+    /// （目標蒸発温度 &lt; 蒸発温度下限）: 例外を出さず、蒸発温度は下限、部分負荷率は (0, 1]。
+    /// （旧実装は圧縮ヘッドの二分法の両端が同符号となり例外になっていた）
+    /// </summary>
+    [Theory]
+    [InlineData(0.0, 5.0, 20.0)]
+    [InlineData(0.0, 10.0, 20.0)]
+    [InlineData(5.0, 15.0, 27.0)]
+    public void UpdateState_FreeRunning_OverloadAtLowerEvaporatingLimit_DoesNotThrow(
+      double target, double minEvp, double tin)
+    {
+      var (vrf, iHexes) = MakeCoolingOnlySystem();
+      vrf.Cooling.MinEvaporatingTemperature = minEvp;
+      vrf.Cooling.MaxEvaporatingTemperature = 30;
+      vrf.TargetEvaporatingTemperature = target;
+      vrf.OutdoorAirDryBulbTemperature = 35;
+      vrf.OutdoorAirHumidityRatio = HR_from_DBT_WBT(35, 24);
+      double hr = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(tin, 50, ATM);
+      for (int i = 0; i < vrf.IndoorUnitCount; i++)
+      {
+        vrf.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
+        vrf.SetIndoorUnitAirFlowRate(i, NOM_IHEX_AFLOW);
+        vrf.SetIndoorUnitInletAirState(i, tin, hr);
+      }
+      vrf.UpdateState(false);
+
+      Assert.Equal(minEvp, vrf.EvaporatingTemperature, 6);
+      Assert.True(0 < vrf.PartialLoadRatio && vrf.PartialLoadRatio <= 1.0,
+        $"PLR={vrf.PartialLoadRatio:F3} in (0, 1]");
+      Assert.True(vrf.GetHeatLoad() < 0);
+      Assert.True(0 < vrf.CompressorElectricity);
+    }
+
     #endregion
 
     // ================================================================
