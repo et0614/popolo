@@ -7,6 +7,7 @@
   - 加工版   : ベースラインの帯で全文字をつなぐ (レーザーカット・3Dプリント・ステンシル向け)
 """
 import os
+import math
 from shapely.geometry import Point, box
 from shapely.ops import unary_union
 from shapely import affinity
@@ -28,8 +29,16 @@ R = X / 2      # o の外半径
 RES = 64       # 円の分割数
 
 
+CIRCLES = []   # ロゴに使った円 (cx, cy, r)。DXF で円弧として書き出すために記録する
+
+
+def circle(cx, cy, r):
+    CIRCLES.append((cx, cy, r))
+    return Point(cx, cy).buffer(r, RES)
+
+
 def ring(cx, cy, r_out, r_in):
-    return Point(cx, cy).buffer(r_out, RES).difference(Point(cx, cy).buffer(r_in, RES))
+    return circle(cx, cy, r_out).difference(circle(cx, cy, r_in))
 
 
 def slit_top(cx, cy, r):
@@ -42,8 +51,8 @@ def letter_P(x):
     bh = 74.0                      # ボウルの高さ
     rb = bh / 2
     cx, cy = x + 42.0, H - rb
-    outer = unary_union([box(x, H - bh, cx, H), Point(cx, cy).buffer(rb, RES)])
-    inner = unary_union([box(x + W, H - bh + W, cx, H - W), Point(cx, cy).buffer(rb - W, RES)])
+    outer = unary_union([box(x, H - bh, cx, H), circle(cx, cy, rb)])
+    inner = unary_union([box(x + W, H - bh + W, cx, H - W), circle(cx, cy, rb - W)])
     bowl = outer.difference(inner)
     # 切れ目はボウル下側の縦棒との付け根 (上側だと頭の横線が途切れて見えるため)
     slit = box(x + W, H - bh - 1, x + W + G, H - bh + W + 1)
@@ -63,7 +72,7 @@ def letter_p(x):
     bowl = ring(cx, cy, R, R - W)
     # 縦棒の上端と丸の外周の間にできる小さな段差を埋めて、肩を平らにする
     # (段差が残ると、CAD で押し出したときに極小の面が作れず、立体が閉じないことがある)
-    shoulder = box(x + W - 0.01, cy, cx, X).difference(Point(cx, cy).buffer(R, RES))
+    shoulder = box(x + W - 0.01, cy, cx, X).difference(circle(cx, cy, R))
     g = unary_union([stem, bowl, shoulder]).difference(slit_top(cx, cy, R))
     return g, x + 2 * R
 
@@ -168,20 +177,66 @@ def clean(poly, tol=0.02):
     return poly.simplify(tol, preserve_topology=True)
 
 
+def arc_runs(pts):
+    """閉じた点列の各線分が、ロゴのどの円の弦か (円の番号, 円でなければ None) を返す"""
+    n = len(pts)
+    seg = []
+    for i in range(n):
+        (ax, ay), (bx, by) = pts[i], pts[(i + 1) % n]
+        hit = None
+        for ci, (cx, cy, r) in enumerate(CIRCLES):
+            tol = r * (1 - math.cos(math.pi / RES)) + 1e-6      # 多角形の弦と円のずれ
+            chord = 2 * r * math.sin(math.pi / RES) * 1.001 + 1e-6
+            if (abs(math.hypot(ax - cx, ay - cy) - r) <= tol and abs(math.hypot(bx - cx, by - cy) - r) <= tol
+                    and math.hypot(bx - ax, by - ay) <= chord):
+                hit = ci
+                break
+        seg.append(hit)
+    return seg
+
+
 def to_dxf(geom, path, scale):
-    """1文字ずつ閉じたポリライン (R12 の POLYLINE) で DXF を書く。中心を原点に置く。単位 mm"""
+    """1文字ずつ閉じたポリライン (R12 の POLYLINE) で DXF を書く。中心を原点に置く。単位 mm
+    円の部分は多角形ではなく円弧 (bulge) で書く。CAD で押し出したときに極小の面ができないようにするため"""
     minx, miny, maxx, maxy = geom.bounds
     ox, oy = (minx + maxx) / 2, (miny + maxy) / 2
     out = ["0", "SECTION", "2", "ENTITIES"]
+    stats = {"line": [], "arc": 0}
     for p in polys(geom):
         for ringc in [p.exterior] + list(p.interiors):
             pts = list(ringc.coords)[:-1]
+            seg = arc_runs(pts)
+            # 円弧の途中から書き始めないよう、直線と円弧の境目から始める
+            n = len(pts)
+            s0 = next((i for i in range(n) if seg[i] != seg[i - 1]), 0)
+            pts, seg = pts[s0:] + pts[:s0], seg[s0:] + seg[:s0]
+            verts, i = [], 0
+            while i < n:
+                if seg[i] is None:
+                    verts.append((pts[i], 0.0))
+                    a, b = pts[i], pts[(i + 1) % n]
+                    stats["line"].append(math.hypot(b[0] - a[0], b[1] - a[1]) * scale)
+                    i += 1
+                    continue
+                cx, cy, r = CIRCLES[seg[i]]
+                sweep, j = 0.0, i
+                while j < n and seg[j] == seg[i] and abs(sweep) < math.pi / 2:   # 1つの円弧は90°まで
+                    a, b = pts[j], pts[(j + 1) % n]
+                    sweep += math.atan2((a[0] - cx) * (b[1] - cy) - (a[1] - cy) * (b[0] - cx),
+                                        (a[0] - cx) * (b[0] - cx) + (a[1] - cy) * (b[1] - cy))
+                    j += 1
+                verts.append((pts[i], math.tan(sweep / 4)))
+                stats["arc"] += 1
+                i = j
             out += ["0", "POLYLINE", "8", "LOGO", "66", "1", "70", "1"]
-            for x, y in pts:
+            for (x, y), bulge in verts:
                 out += ["0", "VERTEX", "8", "LOGO", "10", "%.5f" % ((x - ox) * scale), "20", "%.5f" % ((y - oy) * scale), "30", "0.0"]
+                if bulge:
+                    out += ["42", "%.8f" % bulge]
             out += ["0", "SEQEND", "8", "LOGO"]
     out += ["0", "ENDSEC", "0", "EOF"]
     open(path, "w", encoding="ascii").write("\n".join(out) + "\n")
+    return stats
 
 
 EMBOSS_CAP_MM = 4.8      # 大文字の高さ [mm] (C-Logger の天板: ロゴ全体の幅 約21mm)
@@ -189,7 +244,10 @@ EMBOSS_CAP_MM = 4.8      # 大文字の高さ [mm] (C-Logger の天板: ロゴ�
 emb = unary_union([clean(q) for q in word("Popolo", SP)[0]])
 k = EMBOSS_CAP_MM / H
 EMBOSS_SLIT_MM = G * k
-to_dxf(emb, os.path.join(OUT, "popolo_emboss_%.1fmm.dxf" % EMBOSS_CAP_MM), k)
+# DXF は円を円弧で書くので、簡略化していない形から作る
+# (simplify は一直線上に残った余分な点だけを取り除く。形は変わらない)
+st = to_dxf(unary_union(word("Popolo", SP)[0]).simplify(1e-6), os.path.join(OUT, "popolo_emboss_%.1fmm.dxf" % EMBOSS_CAP_MM), k)
+print("emboss DXF: arcs %d, lines %d, shortest line %.3f mm" % (st["arc"], len(st["line"]), min(st["line"])))
 to_svg(emb, os.path.join(OUT, "popolo_emboss_%.1fmm.svg" % EMBOSS_CAP_MM), pad=0.0, cap_mm=EMBOSS_CAP_MM)
 fig, ax = plt.subplots(figsize=(6, 1.8))
 draw(ax, emb, "black", "white", "Emboss version: cap %.1f mm, slit %.1f mm, stroke %.2f mm"
